@@ -197,7 +197,7 @@ static int set_mysql_state(const char *arg)
         else {
                 ret = db_connect();
                 if ( ret < 0 ) 
-                        return -1;
+                    return prelude_option_error;
                 
                 ret = plugin_subscribe((plugin_generic_t *) &plugin);
                 if ( ret < 0 )

@@ -52,6 +52,7 @@ static LIST_HEAD(db_plugins_list);
 static int subscribe(plugin_container_t *pc) 
 {
         log(LOG_INFO, "- Subscribing %s to active database plugins.\n", pc->plugin->name);
+        db = (plugin_db_t *) pc->plugin;
         return plugin_add(pc, &db_plugins_list, NULL);
 }
 
@@ -59,6 +60,7 @@ static int subscribe(plugin_container_t *pc)
 static void unsubscribe(plugin_container_t *pc) 
 {
         log(LOG_INFO, "- Un-subscribing %s from active database plugins.\n", pc->plugin->name);
+        db = NULL;
         plugin_del(pc);
 }
 
@@ -66,7 +68,7 @@ static void unsubscribe(plugin_container_t *pc)
 
 
 char *db_plugin_escape(const char *string) 
-{
+{                
         if ( ! string )
                 string = "NULL";
         
@@ -100,7 +102,7 @@ void db_plugin_insert(char *table, char *fields, const char *fmt, ...)
  */
 void db_plugins_run(idmef_message_t *idmef) 
 {
-        if ( list_empty(&db_plugins_list) )
+        if ( ! db )
                 return;
 
         idmef_db_output(idmef);

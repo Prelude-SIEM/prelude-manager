@@ -80,7 +80,7 @@ static int set_pidfile(const char *arg)
 
 static int set_relay_manager(const char *arg) 
 {
-        relay_managers = prelude_client_mgr_new(arg, RELAY_BACKUP_DIR);
+        relay_managers = prelude_client_mgr_new(arg, RELAY_BACKUP_FILE);
         if ( ! relay_managers )
                 return prelude_option_error;
 
