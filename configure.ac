@@ -61,7 +61,7 @@ dnl * Check for the MySQL library (MySQL plugin       *
 dnl ***************************************************
 
 AC_CHECK_PROG(MYSQL_CONFIG, mysql_config, true, false)
-AM_CONDITIONAL(HAVE_MYSQL, $MYSQ_CONFIG)
+AM_CONDITIONAL(HAVE_MYSQL, $MYSQL_CONFIG)
 AC_SUBST(HAVE_MYSQL)
 
 if test x$MYSQL_CONFIG == xtrue; then
@@ -71,6 +71,25 @@ fi
 
 AC_SUBST(MYSQL_LIBS)
 AC_SUBST(MYSQL_CFLAGS)
+
+
+dnl ********************************************************
+dnl * Check for the PostgreSQL library (PostgreSQL plugin) *
+dnl ********************************************************
+
+AC_CHECK_PROG(PGSQL_CONFIG, pg_config, true, false)
+AM_CONDITIONAL(HAVE_PGSQL, $PGSQL_CONFIG)
+AC_SUBST(HAVE_PGSQL)
+
+if test x$PGSQL_CONFIG == xtrue; then
+	PGSQL_LIBDIR=`pg_config --libdir`
+	PGSQL_INCLUDEDIR=`pg_config --includedir`
+fi
+
+AC_SUBST(PGSQL_LIBDIR)
+AC_SUBST(PGSQL_INCLUDEDIR)
+
+
 
 dnl **************************************************
 dnl * Check for networking function                  *
@@ -291,6 +310,7 @@ plugins/Makefile
 
 plugins/db/Makefile
 plugins/db/mysql/Makefile
+plugins/db/pgsql/Makefile
 
 plugins/decodes/Makefile
 plugins/decodes/prelude-nids/Makefile

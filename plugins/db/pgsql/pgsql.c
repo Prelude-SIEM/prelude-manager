@@ -1,7 +1,6 @@
 /*****
 *
 * Copyright (C) 2001 Vandoorselaere Yoann <yoann@mandrakesoft.com>
-* Copyright (C) 2001 Sylvain GIL <prelude@tootella.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -30,7 +29,7 @@
 #include <time.h>
 #include <errno.h>
 
-#include <mysql/mysql.h>
+#include <libpq-fe.h>
 
 #include "config.h"
 #include "db.h"
@@ -40,10 +39,11 @@
 
 
 static char *dbhost = NULL;
+static char *dbport = NULL;
 static char *dbname = NULL;
 static char *dbuser = NULL;
 static char *dbpass = NULL;
-static MYSQL *connection, mysql;
+static PGconn *pgsql;
 
 
 
@@ -53,49 +53,32 @@ static MYSQL *connection, mysql;
  */
 static char *db_escape(const char *string)
 {
-        char *escaped;
-
-        if ( ! string )
-                string = "";
-        
-        /*
-         * MySQL documentation say :
-         * The string pointed to by from must be length bytes long. You must
-         * allocate the to buffer to be at least length*2+1 bytes long. (In the
-         * worse case, each character may need to be encoded as using two bytes,
-         * and you need room for the terminating null byte.)
-         */
-        escaped = malloc(strlen(string) * 2 + 1);
-        if (! escaped) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return NULL;
-        }
-
-        mysql_real_escape_string(&mysql, escaped, string, strlen(string));
-
-        return escaped;
+        return string; /* FIXME */
 }
 
 
 
 static int db_insert_id(char *table, char *field, unsigned long *id) 
 {
-        int ret;
+        PGresult *ret;
         char query[MAX_QUERY_LENGTH];
         
         if ( *id == DB_INSERT_AUTOINC_ID ) {
-                *id = mysql_insert_id(&mysql);
+                
+#if 0
+                *id = mysql_insert_id(&mysql); /* FIXME */
+#endif
                 return (*id == 0) ? -1 : 0;
         }
         
         snprintf(query, sizeof(query), "INSERT INTO %s (%s) VALUES(%ld)", table, field, *id);
-        
-        ret = mysql_query(&mysql, query);
-        if ( ret < 0 ) {
-                log(LOG_ERR, "db_query \"%s\" returned %d\n", query, ret);
+
+        ret = PQexec(pgsql, query);
+        if ( ! ret || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
+                log(LOG_ERR, "Query \"%s\" returned an error.\n", query);
                 return -1;
         }
-
+        
         return 0;
 }
 
@@ -107,19 +90,18 @@ static int db_insert_id(char *table, char *field, unsigned long *id)
  */
 static int db_insert(char *table, char *fields, char *values)
 {
-        int ret = 0;
-        char query[MAX_QUERY_LENGTH];
+        PGresult *ret;
+        char query[8192];
+
+        snprintf(query, sizeof(query), "INSERT INTO %s (%s) VALUES(%s)", table, fields, values);
         
-        snprintf(query, sizeof(query),
-                 "INSERT INTO %s (%s) VALUES(%s)", table, fields, values);
-                
-        ret = mysql_query(&mysql, query);
-        if ( ret ) {
-                log(LOG_ERR, "Query \"%s\" returned %d\n", query, ret);
-                ret = -1;
+        ret = PQexec(pgsql, query);
+        if ( ! ret || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
+                log(LOG_ERR, "Query \"%s\" returned an error.\n", query);
+                return -1;
         }
-        
-        return ret;
+
+        return 0;
 }
 
 
@@ -128,8 +110,8 @@ static int db_insert(char *table, char *fields, char *values)
  */
 static void db_close(void)
 {
-        mysql_close(connection);
-        log(LOG_INFO, "mysql connection closed.\n");
+        PQfinish(pgsql);
+        log(LOG_INFO, "PostgreSQL connection closed.\n");
 }
 
 
@@ -139,29 +121,18 @@ static void db_close(void)
  */
 static int db_connect(void)
 {
-        int state;
-
         /*
-         * connect to the mySQL database
+         * Connect to the PostgreSQL database.
          */
-        connection = mysql_connect(&mysql, dbhost, dbuser, dbpass);        
-        if ( ! connection ) {
-                log(LOG_INFO, "%s\n", mysql_error(&mysql));
+        pgsql = PQsetdbLogin(dbhost, dbport, NULL, NULL, dbname, dbuser, dbpass);
+
+
+        if ( PQstatus(pgsql) == CONNECTION_BAD) {
+                log(LOG_ERR, "Connection to database '%s' failed: %s\n", dbname, PQerrorMessage(pgsql));
+                PQfinish(pgsql);
                 return -1;
         }
-
-        /*
-         * select which database to use on the server
-         */
-        state = mysql_select_db(connection, dbname);
-
-        /* -1 means an error occurred */
-        if (state == -1) {
-                log(LOG_INFO, "%s\n", mysql_error(connection));
-                mysql_close(connection);
-                return -1;
-        }
-
+        
         return 0;
 }
 
@@ -218,8 +189,8 @@ int plugin_init(unsigned int id)
                 { 0, 0, 0, 0 },
         };
 
-        plugin_set_name(&plugin, "MySQL");
-        plugin_set_desc(&plugin, "Will log all alert to a MySQL database.");
+        plugin_set_name(&plugin, "PostgreSQL");
+        plugin_set_desc(&plugin, "Will log all alert to a PostgreSQL database.");
         plugin_set_escape_func(&plugin, db_escape);
         plugin_set_insert_func(&plugin, db_insert);
         plugin_set_insert_id_func(&plugin, db_insert_id);
@@ -227,7 +198,7 @@ int plugin_init(unsigned int id)
         
         plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_MANAGER_CONF);
         if ( ! dbhost || ! dbname ) {
-                log(LOG_INFO, "MySQL logging not enabled because dbhost / dbname information missing.\n");
+                log(LOG_INFO, "PostgreSQL logging not enabled because dbhost / dbname information missing.\n");
                 return -1;
         }
         
