@@ -105,6 +105,7 @@ main ()
 ],, no_libpreludedb=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
        CFLAGS="$ac_save_CFLAGS"
        LIBS="$ac_save_LIBS"
+       LDFLAGS="$ac_save_LDFLAGS"
   fi
 
   if test "x$no_libpreludedb" = x ; then
