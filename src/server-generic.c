@@ -127,11 +127,31 @@ static int handle_ssl_connection(prelude_io_t *fd, const char *addr)
 
 
 
+
+static int send_plaintext_authentication_result(prelude_io_t *fd, uint8_t tag)
+{
+        int ret;
+        prelude_msg_t *msg;
+        
+        msg = prelude_msg_new(1, 0, PRELUDE_MSG_AUTH, 0);
+        if ( ! msg )
+                return -1;
+        
+        prelude_msg_set(msg, tag, 0, NULL);
+        ret = prelude_msg_write(msg, fd);
+        prelude_msg_destroy(msg);
+
+        return ret;
+}
+
+
+
+
 /*
  * Read authentication information contained in the passed message.
  * Then try to authenticate the peer.
  */
-static int handle_plaintext_connection(prelude_msg_t *msg, const char *addr)
+static int handle_plaintext_connection(prelude_msg_t *msg, prelude_io_t *fd, const char *addr)
 {
         int ret;
         void *buf;
@@ -165,12 +185,12 @@ static int handle_plaintext_connection(prelude_msg_t *msg, const char *addr)
         ret = prelude_auth_check(MANAGER_AUTH_FILE, user, pass);
         if ( ret < 0 ) {
                 log(LOG_INFO, "Plaintext authentication failed with %s.\n", addr);
-                return -1;
+                return send_plaintext_authentication_result(fd, PRELUDE_MSG_AUTH_FAILED);
         }
 
         log(LOG_INFO, "Plaintext authentication succeed with %s.\n", addr);
 
-        return 0;
+        return send_plaintext_authentication_result(fd, PRELUDE_MSG_AUTH_SUCCEED);
 }
 
 
@@ -205,7 +225,7 @@ static int handle_connection(prelude_msg_t *msg, server_generic_client_t *client
                 break;
                 
         case PRELUDE_MSG_AUTH_PLAINTEXT:
-                ret = handle_plaintext_connection(msg, client->addr);
+                ret = handle_plaintext_connection(msg, client->fd, client->addr);
                 break;
 
         default:
