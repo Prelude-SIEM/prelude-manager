@@ -64,23 +64,11 @@ typedef enum {
 
 
 
-typedef struct {
-        /*
-         * What category/plugin should this entry be hooked at.
-         */
-        manager_filter_category_t category;
-        prelude_plugin_generic_t *plugin;
-        
-        /*
-         * private data associated with an entry.
-         */
-        void *private_data;
-} manager_filter_entry_t;
+typedef struct manager_filter_hook manager_filter_hook_t;
 
 
 typedef struct {
         PRELUDE_PLUGIN_GENERIC;
-        manager_filter_entry_t *category;
         int (*run)(idmef_message_t *message, void *data);
 } manager_filter_plugin_t;
 
@@ -88,6 +76,10 @@ typedef struct {
 #define manager_filter_plugin_set_running_func(p, f) (p)->run = (f)
 
 
-int manager_filter_plugins_add_filter(prelude_plugin_instance_t *pi,
-                                      manager_filter_category_t filtered_category,
-                                      prelude_plugin_instance_t *filtered_plugin, void *data);
+int manager_filter_new_hook(manager_filter_hook_t **entry,
+                            prelude_plugin_instance_t *pi,
+                            manager_filter_category_t filtered_category,
+                            prelude_plugin_instance_t *filtered_plugin, void *data);
+
+
+void manager_filter_destroy_hook(manager_filter_hook_t *entry);

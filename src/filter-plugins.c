@@ -41,25 +41,25 @@
 #define MANAGER_PLUGIN_SYMBOL "manager_plugin_init"
 
 
-typedef struct {
+struct manager_filter_hook {
         prelude_list_t list;
 
         void *data;
         prelude_plugin_instance_t *filter;
         prelude_plugin_instance_t *filtered_plugin;
         
-} filter_plugin_entry_t;
-
+};
 
 
 static prelude_list_t filter_category_list[MANAGER_FILTER_CATEGORY_END];
 
 
 
-static int add_filter_entry(prelude_plugin_instance_t *filter, manager_filter_category_t cat,
+static int add_filter_entry(manager_filter_hook_t **entry,
+                            prelude_plugin_instance_t *filter, manager_filter_category_t cat,
                             prelude_plugin_instance_t *filtered_plugin_instance, void *data) 
 {
-        filter_plugin_entry_t *new;
+        manager_filter_hook_t *new;
         prelude_plugin_generic_t *plugin, *filtered_plugin;
         
         new = malloc(sizeof(*new));
@@ -83,6 +83,8 @@ static int add_filter_entry(prelude_plugin_instance_t *filter, manager_filter_ca
         } else
                 prelude_log(PRELUDE_LOG_WARN, "- Subscribing %s to filtering plugin with category hook %d.\n",
                             plugin->name, cat);
+
+        *entry = new;
         
         return 0;
 }
@@ -91,19 +93,26 @@ static int add_filter_entry(prelude_plugin_instance_t *filter, manager_filter_ca
 
 static void unsubscribe(prelude_plugin_instance_t *pi) 
 {
-        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
-        
+        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);       
         prelude_log(PRELUDE_LOG_WARN, "- Un-subscribing %s from active reporting plugins.\n", plugin->name);
-        prelude_plugin_instance_del(pi);
 }
 
 
 
-int manager_filter_plugins_add_filter(prelude_plugin_instance_t *pi,
-                                      manager_filter_category_t filtered_category,
-                                      prelude_plugin_instance_t *filtered_plugin, void *data)
+void manager_filter_destroy_hook(manager_filter_hook_t *entry)
 {
-        return add_filter_entry(pi, filtered_category, filtered_plugin, data);
+        prelude_list_del(&entry->list);
+        free(entry);
+}
+
+
+
+int manager_filter_new_hook(manager_filter_hook_t **entry,
+                            prelude_plugin_instance_t *pi,
+                            manager_filter_category_t filtered_category,
+                            prelude_plugin_instance_t *filtered_plugin, void *data)
+{
+        return add_filter_entry(entry, pi, filtered_category, filtered_plugin, data);
 }
 
 
@@ -113,10 +122,10 @@ int filter_plugins_run_by_category(idmef_message_t *msg, manager_filter_category
 {
         int ret;
         prelude_list_t *tmp;
-        filter_plugin_entry_t *entry;
-
+        manager_filter_hook_t *entry;
+        
         prelude_list_for_each(&filter_category_list[cat], tmp) {
-                entry = prelude_list_entry(tmp, filter_plugin_entry_t, list);
+                entry = prelude_list_entry(tmp, manager_filter_hook_t, list);
                 
                 ret = prelude_plugin_run(entry->filter, manager_filter_plugin_t, run, msg, entry->data);
                 if ( ret < 0 )
@@ -133,11 +142,11 @@ int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t
 {
         int ret;
         prelude_list_t *tmp;
-        filter_plugin_entry_t *entry;
+        manager_filter_hook_t *entry;
         
         prelude_list_for_each(&filter_category_list[MANAGER_FILTER_CATEGORY_PLUGIN], tmp) {
                 
-                entry = prelude_list_entry(tmp, filter_plugin_entry_t, list);
+                entry = prelude_list_entry(tmp, manager_filter_hook_t, list);
 
                 if ( entry->filtered_plugin != plugin )
                         continue;

@@ -39,7 +39,7 @@ static manager_filter_plugin_t filter_plugin;
 
 typedef struct {
         idmef_criteria_t *criteria;
-        prelude_plugin_instance_t *pi;
+        manager_filter_hook_t *hook;
 } filter_plugin_t;
 
 
@@ -76,12 +76,12 @@ static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_st
                 { NULL,                0                                },
         };
 
-        plugin = prelude_plugin_instance_get_data(context);
+        plugin = prelude_plugin_instance_get_plugin_data(context);
         
         for ( i = 0; tbl[i].hook != NULL; i++ ) {
                 ret = strcasecmp(optarg, tbl[i].hook);
                 if ( ret == 0 ) {
-                        manager_filter_plugins_add_filter(context, tbl[i].cat, NULL, plugin);
+                        manager_filter_new_hook(&plugin->hook, context, tbl[i].cat, NULL, plugin);
                         return 0;
                 }
         }
@@ -98,7 +98,7 @@ static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_st
                 return -1;
         }
 
-        manager_filter_plugins_add_filter(context, MANAGER_FILTER_CATEGORY_PLUGIN, ptr, plugin);
+        manager_filter_new_hook(&plugin->hook, context, MANAGER_FILTER_CATEGORY_PLUGIN, ptr, plugin);
         
         return 0;
 }
@@ -156,7 +156,7 @@ static int read_criteria_from_filename(filter_plugin_t *plugin, const char *file
 static int set_filter_rule(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
 {
 	int ret;
-        filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+        filter_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
 
         ret = access(optarg, R_OK);
         if ( ret == 0 )
@@ -170,7 +170,7 @@ static int set_filter_rule(prelude_option_t *opt, const char *optarg, prelude_st
 
 static int get_filter_rule(prelude_option_t *opt, prelude_string_t *out, void *context)
 {
-        filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);       
+        filter_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);       
         return idmef_criteria_to_string(plugin->criteria, out);
 }
 
@@ -186,8 +186,25 @@ static int filter_activate(prelude_option_t *opt, const char *optarg, prelude_st
                 return prelude_error_from_errno(errno);
         
         new->criteria = NULL;
-        prelude_plugin_instance_set_data(context, new);
+        prelude_plugin_instance_set_plugin_data(context, new);
         
+        return 0;
+}
+
+
+
+static void filter_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
+{
+        filter_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
+
+        if ( plugin->criteria )
+                idmef_criteria_destroy(plugin->criteria);
+
+        if ( plugin->hook )
+                manager_filter_destroy_hook(plugin->hook);
+        
+        free(plugin);
+
         return 0;
 }
 
@@ -224,6 +241,7 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *roo
                 return ret;
         
         prelude_plugin_set_name(&filter_plugin, "Filter");
+        prelude_plugin_set_destroy_func(&filter_plugin, filter_destroy);
         manager_filter_plugin_set_running_func(&filter_plugin, process_message);
 
         prelude_plugin_entry_set_plugin(pe, (void *) &filter_plugin);
