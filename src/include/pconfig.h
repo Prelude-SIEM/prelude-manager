@@ -27,7 +27,7 @@
 int pconfig_init(prelude_option_t *manager_root_optlist, int argc, char **argv);
 
 struct manager_config {
-	char *addr;
+        char *addr;
         unsigned int port;
         const char *pidfile;
 
