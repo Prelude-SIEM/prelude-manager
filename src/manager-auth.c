@@ -35,6 +35,7 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/prelude-client.h>
+#include <libprelude/prelude-message-id.h>
 
 #include <gcrypt.h>
 #include <gnutls/gnutls.h>
@@ -71,7 +72,7 @@ static int handle_gnutls_error(gnutls_session session, server_generic_client_t *
         }
 
         server_generic_log_client(client, "TLS handshake failed: %s.\n", gnutls_strerror(ret));
-
+        
         return -1;
 }
 
@@ -87,10 +88,10 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
                 server_generic_log_client(client, "TLS certificate error: %s.\n", gnutls_strerror(ret));
                 return -1;
         }
-        
+
 	if ( ret == GNUTLS_E_NO_CERTIFICATE_FOUND ) {
 		server_generic_log_client(client, "TLS authentication error: client did not send any certificate.\n");
-                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_SSL3_NO_CERTIFICATE);
+                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_UNOBTAINABLE);
                 return -1;
 	}
 
@@ -102,7 +103,7 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
         
         if ( ret & GNUTLS_CERT_INVALID ) {
                 server_generic_log_client(client, "TLS authentication error: client certificate is NOT trusted.\n");
-                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_BAD_CERTIFICATE);
+                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_UNKNOWN);
                 return -1;
         }
 
@@ -159,9 +160,9 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
                 return handle_gnutls_error(session, client, ret);
         
         ret = verify_certificate(client, session);
-        if ( ret < 0 )
+        if ( ret < 0 ) 
                 return -1;
-
+                
         return 1;
 }
 
