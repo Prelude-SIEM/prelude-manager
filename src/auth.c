@@ -150,11 +150,11 @@ static int check_account(const char *given_user, const char *given_pass)
  */
 static int get_account_infos(int sock, char **user, char **pass) 
 {
-        int tlen, ret, i = 1;
-        char buf[1024], *u = NULL, *p = NULL;
+        int tlen, ret, i = 1;       
+        char *buf, *u = NULL, *p = NULL;
 
         do {
-                tlen = socket_read_delimited(sock, buf, sizeof(buf));                
+                tlen = socket_read_delimited(sock, (void **) &buf, read);                
                 if ( tlen <= 0 ) {
                         if ( tlen < 0 )
                                 log(LOG_ERR, "read().\n");
@@ -206,10 +206,10 @@ int auth_check(int sock)
         ret = check_account(user, pass);
         if ( ret < 0 ) {
                 log(LOG_INFO, "authentication failed for user %s.\n", user);
-                socket_write_delimited(sock, "failed", 6);
+                socket_write_delimited(sock, "failed", 6, write);
         } else {
                 log(LOG_INFO, "authentication suceed for user %s.\n", user);
-                socket_write_delimited(sock, "ok", 2);
+                socket_write_delimited(sock, "ok", 2, write);
         }
         
         free(user);

@@ -49,14 +49,6 @@ extern struct list_head __report_plugins;
 extern struct report_config config;
 
 
-
-#ifdef HAVE_XDR
-static int is_endian_convertion_needed(void) 
-{
-        return config.use_xdr;
-}
-#endif
-
 /*
  *
  */
@@ -123,8 +115,8 @@ static int set_options(const char *optbuf)
 
 static int setup_connection(int sock) 
 {
+        char *buf;
         int ret, len;
-        char buf[1024];
         const char *ssl, *xdr;
         
 #ifdef HAVE_SSL
@@ -133,21 +125,15 @@ static int setup_connection(int sock)
         ssl = "unsupported";
 #endif
 
-#ifdef HAVE_XDR
-        xdr = "supported";
-#else
-        xdr = "unsupported";
-#endif
+        len = snprintf(buf, sizeof(buf), "ssl=%s;\n", xdr, ssl);
 
-        len = snprintf(buf, sizeof(buf), "xdr=%s; ssl=%s;\n", xdr, ssl);
-
-        ret = socket_write_delimited(sock, buf, ++len);
+        ret = socket_write_delimited(sock, buf, ++len, write);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error writing config to Prelude client.\n");
                 return -1;
         }
         
-        ret = socket_read_delimited(sock, buf, sizeof(buf));
+        ret = socket_read_delimited(sock, (void **)&buf, read);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error reading Prelude client config string.\n");
                 return -1;

@@ -249,6 +249,7 @@ prelude_report_conf=$configdir/prelude-report.conf
 plugindir=$libdir/prelude
 detect_plugin_dir=$plugindir/detects/
 report_plugin_dir=$plugindir/reports/
+decode_plugin_dir=$plugindir/decodes/
 protocol_plugin_dir=$plugindir/protocols/
 
 AC_DEFINE_UNQUOTED(PRELUDE_REPORT_CONF, "$prelude_report_conf")
@@ -258,6 +259,7 @@ AC_SUBST(configdir)
 AC_SUBST(localstatedir)
 AC_SUBST(prelude_report_conf)
 AC_SUBST(report_plugin_dir)
+AC_SUBST(decode_plugin_dir)
 AC_SUBST(LIBWRAP_LIBS)
 AC_SUBST(COMMON_LIBS)
 AC_SUBST(PRELUDE_LIBS)

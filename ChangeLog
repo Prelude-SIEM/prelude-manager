@@ -1,3 +1,17 @@
+2001-08-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report.c (main): 
+	call the decode_plugins init function.
+
+	* src/auth.c (get_account_infos): 
+	(auth_check): handle socket-op.c API change.
+
+	* src/cnx.c (setup_connection): 
+	handle socket-op.c API change.
+	(setup_connection): remove XDR support.
+
+	* src/decode-plugins.c: new file, handle decode plugins.
+
 2001-08-19  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/prelude/rules_parsing.c (signature_parser_add_post_processing): 
