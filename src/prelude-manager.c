@@ -194,7 +194,7 @@ int main(int argc, char **argv)
         reverse_relay_init();
         sensor_server = sensor_server_new();
         
-        ret = pconfig_init(manager_root_optlist, argc, argv);
+        ret = manager_options_init(manager_root_optlist, argc, argv);
         if ( ret < 0 )
                 exit(1);
         

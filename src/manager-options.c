@@ -138,7 +138,7 @@ static int print_help(void *context, prelude_option_t *opt, const char *arg, pre
 
 
 
-int pconfig_init(prelude_option_t *manager_root_optlist, int argc, char **argv) 
+int manager_options_init(prelude_option_t *manager_root_optlist, int argc, char **argv) 
 {
         prelude_option_t *opt;
         
