@@ -27,6 +27,7 @@
 #include <libprelude/list.h>
 #include <libprelude/idmef-tree.h>
 
+#include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <libxml/valid.h>
 
@@ -844,8 +845,6 @@ static int set_output_stderr(prelude_option_t *option, const char *arg)
 
 static int set_dtd_check(prelude_option_t *option, const char *arg)
 {        
-        xmlDoValidityCheckingDefaultValue = 1;
-        
         if ( ! arg ) 
                 arg = IDMEF_DTD;
                 
