@@ -55,17 +55,22 @@ static void print(int depth, const char *fmt, ...)
 {
         va_list ap;
 
-        va_start(ap, fmt);
-
-        if ( out_fd )
+        /*
+         * we have to call va_start() / va_end() once by
+         * do_print() call. It'll SIGSEGV on some architecture otherwise.
+         */
+        if ( out_fd ) {
+                va_start(ap, fmt);
                 do_print(out_fd, depth, fmt, ap);
-
-        if ( out_stderr )
+                va_end(ap);
+        }
+        
+        if ( out_stderr ) {
+                va_start(ap, fmt);
                 do_print(stderr, depth, fmt, ap);
-
-        va_end(ap);
+                va_end(ap);
+        }
 }
-
 
 
 

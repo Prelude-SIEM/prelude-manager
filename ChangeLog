@@ -1,3 +1,9 @@
+2002-07-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* plugins/reports/textmod/textmod.c (print): 
+	call va_start() / va_end() once by do_print() call.
+	Avoid a SIGSEGV on some architecture (like PPC).
+
 2002-06-27  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* fit prelude-getopt API change.
