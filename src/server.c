@@ -69,8 +69,6 @@ static int server_read_connection_cb(prelude_io_t *src, void **clientdata)
         int ret;
         uint32_t dlen;
         uint8_t tag, priority;
-
-        printf("read cb\n");
         
         ret = prelude_msg_read((prelude_msg_t **) clientdata, src);
         if ( ret < 0 )
