@@ -1,3 +1,9 @@
+2002-05-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server-logic.c (handle_fd_event): 
+	handle POLLIN before POLLHUP. The two bits may be set 
+	in the revents field, and we want to proceed the available data.
+
 2002-05-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/sensor-server.c (handle_request_ident): removed.
