@@ -383,10 +383,7 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
                 if ( ! set ) 
                         return -1;
 
-                /*
-                 * add_connection should never call
-                 * list_del() at this time, so we don't need locking.
-                 */
+                add_connection(server, set, client);
                 
                 ret = pthread_create(&set->thread, NULL, &child_reader, set);
                 dprint("Created thread %ld (used=%d)\n", set->thread, set->used_index);
@@ -395,8 +392,6 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
                         log(LOG_ERR, "couldn't create thread.\n");
                         return -1;
                 }
-
-                add_connection(server, set, client);
         } 
                 
         return 0;
