@@ -1,3 +1,8 @@
+2002-06-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/idmef-db-output.c (insert_process): fix
+	another typo.
+
 2002-06-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* configure.in (gtk_doc_min_version): 

@@ -246,7 +246,7 @@ static int insert_process(uint64_t alert_ident, uint64_t parent_ident,
                 if ( ! env )
                         return -1;
                 
-                db_plugin_insert("Prelyde_ProcessEnv", "alert_ident, parent_type, parent_ident, env",
+                db_plugin_insert("Prelude_ProcessEnv", "alert_ident, parent_type, parent_ident, env",
                                  "%llu, '%c', %llu, '%s'", alert_ident, parent_type, parent_ident, env);
 
                 free(env);
