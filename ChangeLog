@@ -1,5 +1,11 @@
 2001-09-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/server-logic.c (child_reader): do not try to handle
+	events on fd if revents is 0 (nothing occured on this fd).
+
+	Use a different method to store connection key.
+	Should be bug free this time.
+
 	* src/ssl.c (ssl_init_server): use PRELUDE_MANAGER_CONF
 	instead of PRELUDE_REPORT_CONF. call ssl_read_config() with
 	a NULL section name.	
