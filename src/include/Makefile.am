@@ -3,6 +3,7 @@ includedir = $(prefix)/include/prelude-manager
 
 noinst_HEADERS = 			\
 	idmef-message-scheduler.h 	\
+	libmissing.h			\
 	manager-auth.h			\
 	pconfig.h			\
 	pmsg-to-idmef.h			\
