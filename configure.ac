@@ -265,7 +265,7 @@ AC_SUBST(LIBWRAP_LIBS)
 AC_SUBST(COMMON_LIBS)
 AC_SUBST(PRELUDE_LIBS)
 
-CFAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
+CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
 -Wbad-function-cast -Wcast-qual -Wcast-align -Wnested-externs"
 
 AC_OUTPUT([
