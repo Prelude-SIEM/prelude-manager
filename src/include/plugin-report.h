@@ -30,13 +30,8 @@
 #include <libprelude/prelude-getopt.h>
 #include <libprelude/prelude-plugin.h>
 
-
 typedef struct {
         PRELUDE_PLUGIN_GENERIC;
-
-        int state;
-        const char *bkpfile;
-        
         int (*run)(prelude_plugin_instance_t *pi, idmef_message_t *message);
         void (*close)(prelude_plugin_instance_t *pi);
 } plugin_report_t;
@@ -48,6 +43,8 @@ typedef struct {
 
 
 int report_plugins_available(void);
+
+int report_plugin_activate_failover(const char *plugin);
 
 int report_plugins_init(const char *dirname, int argc, char **argv);
 

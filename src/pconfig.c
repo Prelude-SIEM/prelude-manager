@@ -45,7 +45,7 @@
 #include "ssl.h"
 #include "server-generic.h"
 #include "reverse-relaying.h"
-
+#include "plugin-report.h"
 
 
 
@@ -109,6 +109,20 @@ static int set_sensor_listen_address(void **context, prelude_option_t *opt, cons
 
 
 
+static int set_report_plugin_failover(void **context, prelude_option_t *opt, const char *arg)
+{
+        int ret;
+        
+        ret = report_plugin_activate_failover(arg);
+        if ( ret == 0 )
+                log(LOG_INFO, "- Failover capability enabled for reporting plugin %s.\n", arg);
+
+        return ret;
+}
+
+
+
+
 static int print_help(void **context, prelude_option_t *opt, const char *arg) 
 {
         prelude_option_print(NULL, CLI_HOOK, 25);
@@ -152,6 +166,11 @@ int pconfig_init(int argc, char **argv)
                            "Address the sensors server should listen on (addr:port)", required_argument,
                            set_sensor_listen_address, NULL);
 
+        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'f', "failover",
+                                 "Enable failover for specified report plugin", required_argument,
+                                 set_report_plugin_failover, NULL);
+        prelude_option_set_priority(opt, prelude_option_run_last);
+        
         prelude_set_program_name("prelude-manager");
         
         ret = prelude_option_parse_arguments(&context, NULL, PRELUDE_MANAGER_CONF, argc, argv);

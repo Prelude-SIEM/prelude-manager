@@ -2,9 +2,9 @@
 #
 # <IMPORTANT>
 #
-# Section are important, and thing won't work correctly if they are
-# not un-commented. For example you need to uncomment [MySQL] if you
-# want the MySQL plugin to be loaded.
+# Sections are importants, and things won't work correctly if they are not 
+# un-commented. For example you need to uncomment [MySQL] if you want the 
+# MySQL plugin to be loaded.
 #
 # </IMPORTANT>
 
@@ -20,15 +20,30 @@
 sensors-srvr = 127.0.0.1;
 
 
-# Address where the administrative server is listening on.
-# if value is "unix", it mean the report server is listening
-# on the same machine via a local (UNIX) socket.
+# If you want this Manager to retrieve message from another
+# Manager (useful if the other Manager is inside a DMZ):
 #
-# format : address:port
-# 
-# admin-srvr = 0.0.0.0:5555;
+# child-managers = x.x.x.x 
+#
+# This mean the messages should be gathered from x.x.x.x
+
+#
+# If you want a given reporting plugin to be protected against 
+# possible failure, use the failover option. Failover will prevent
+# the data sent to the report plugin to be lost in case this one fail.
+#
+# You might use this option multiple time for different plugins.
+#
+# failover = name_of_plugin
 
 
+
+####################################
+# Here start plugins configuration #
+####################################
+
+# [relaying]
+#
 # If you want the message caught by this manager to be relayed.
 # You can use boolean AND and OR to make the rule.
 #
@@ -39,17 +54,6 @@ sensors-srvr = 127.0.0.1;
 # the emission will be considered as failed involving saving the 
 # message locally).
 
-
-# If you want this Manager to retrieve message from another
-# Manager (useful if the other Manager is inside a DMZ):
-#
-# child-managers = x.x.x.x 
-#
-# This mean the messages should be gathered from x.x.x.x
-
-####################################
-# Here start plugins configuration #
-####################################
 
 # [db]
 
