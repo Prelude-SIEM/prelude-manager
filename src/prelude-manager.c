@@ -27,13 +27,13 @@
 #include <unistd.h>
 #include <syslog.h>
 #include <signal.h>
-#include <inttypes.h>
 #include <assert.h>
 #include <pthread.h>
 #include <sys/time.h>
 
 #include <ltdl.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/idmef.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-log.h>

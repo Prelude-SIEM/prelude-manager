@@ -29,12 +29,12 @@
 #include <dlfcn.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <assert.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-message-buffered.h>
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-message-write.h>

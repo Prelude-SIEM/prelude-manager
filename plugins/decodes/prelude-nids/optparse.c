@@ -26,9 +26,9 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <sys/types.h>
-#include <inttypes.h>
 #include <netinet/in.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-strbuf.h>
 #include <libprelude/extract.h>

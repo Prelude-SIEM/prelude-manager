@@ -25,14 +25,13 @@
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
-
-#include <inttypes.h>
 #include <sys/types.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/list.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/idmef-tree-func.h>

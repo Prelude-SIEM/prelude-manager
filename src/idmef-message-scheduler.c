@@ -25,7 +25,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -36,6 +35,7 @@
 #include <sys/time.h>
 #include <netinet/in.h> /* required by common.h */
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-list.h>
 #include <libprelude/prelude-linked-object.h>

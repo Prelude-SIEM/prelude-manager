@@ -24,12 +24,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <inttypes.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-list.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/idmef-tree.h>

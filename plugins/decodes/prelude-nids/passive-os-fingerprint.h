@@ -25,7 +25,7 @@
 *****/
 
 
-#include <inttypes.h>
+#include <libprelude/prelude-inttypes.h>
 #include <sys/types.h>
 
 /* based on ettercap os fingerprint database */

@@ -23,11 +23,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <inttypes.h>
 #include <ctype.h>
 #include <fcntl.h>
 #include <assert.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-log.h>
 
 #include "plugin-util.h"

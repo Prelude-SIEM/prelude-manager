@@ -24,11 +24,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
 #include <stdarg.h>
 
 #include "packet.h"
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 #include <libprelude/prelude-strbuf.h>

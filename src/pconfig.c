@@ -25,8 +25,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <inttypes.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/idmef.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/config-engine.h>

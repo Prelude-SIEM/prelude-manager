@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <inttypes.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/plugin-prelude-log.h>
 
 #include "report-infos.h"

@@ -26,9 +26,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <inttypes.h>
 #include <sys/types.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/idmef.h>
 
 #include <libpreludedb/db-type.h>

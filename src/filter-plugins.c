@@ -29,9 +29,9 @@
 #include <dlfcn.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <inttypes.h>
 #include <assert.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-list.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-log.h>

@@ -25,7 +25,7 @@
 #define _MANAGER_SERVER_GENERIC_H
 
 
-#include <inttypes.h>
+#include <libprelude/prelude-inttypes.h>
 
 
 #define SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED  0x01

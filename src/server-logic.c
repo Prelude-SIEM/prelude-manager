@@ -26,11 +26,11 @@
 #include <sys/poll.h>
 #include <pthread.h>
 #include <assert.h>
-#include <inttypes.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/time.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-list.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>

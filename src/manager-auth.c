@@ -25,13 +25,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <errno.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/prelude-client.h>

@@ -25,8 +25,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <inttypes.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-list.h>
 #include <libprelude/prelude-linked-object.h>
 #include <libprelude/idmef-tree.h>
