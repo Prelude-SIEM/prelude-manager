@@ -248,7 +248,7 @@ if test -n "$LIBWRAP_LIBS";
 fi
 
 if test -n "$LIBWRAP_LIBS"; then
-	AC_CHECK_HEADERS(tcpd.h)
+	AC_CHECK_HEADER(tcpd.h, tcpd_header=yes)
 fi
 
 LIBS="$ORIG_LIBS"
