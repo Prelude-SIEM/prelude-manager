@@ -64,6 +64,13 @@ static int set_daemon_mode(prelude_option_t *opt, const char *arg, prelude_strin
 }
 
 
+static int set_debug_mode(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+{
+        prelude_log_set_flags(prelude_log_get_flags() | PRELUDE_LOG_FLAGS_DEBUG);
+        return 0;
+}
+
+
 static int set_pidfile(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         config.pidfile = strdup(arg);
@@ -159,6 +166,9 @@ int manager_options_init(prelude_option_t *manager_root_optlist, void *rootopt)
 
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'd',
                            "daemon", "Run in daemon mode", PRELUDE_OPTION_ARGUMENT_NONE, set_daemon_mode, NULL);
+
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI, 'D', "debug",
+                           "Run in debug mode", PRELUDE_OPTION_ARGUMENT_NONE, set_debug_mode, NULL);
         
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'P',
                            "pidfile", "Write Prelude PID to pidfile", PRELUDE_OPTION_ARGUMENT_REQUIRED,
