@@ -1,9 +1,9 @@
-#######################################
-# Configuration for the Report Server #
-#######################################
-[Prelude Report]
+#################################
+# Configuration for the Manager #
+#################################
+[Prelude Manager]
 
-# Address where Prelude Report Server is listening on.
+# Address where the Prelude Manager is listening on.
 # if value is "unix", it mean the report server is listening
 # on the same machine via a local (UNIX) socket.
 #

@@ -424,12 +424,10 @@ static int inet_server_start(void)
 
 #ifdef HAVE_SSL
         ret = ssl_init_server();
-            /*
 	if ( ret < 0 ) {
                 close(sock);
                 return -1;
         }
-            */
 #endif
 
         ret = auth_init();
