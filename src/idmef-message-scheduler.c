@@ -51,7 +51,7 @@
 #include "plugin-report.h"
 #include "plugin-filter.h"
 #include "pconfig.h"
-#include "relaying.h"
+#include "reverse-relaying.h"
 #include "pmsg-to-idmef.h"
 #include "idmef-message-scheduler.h"
 
@@ -231,12 +231,8 @@ static prelude_msg_t *get_message_from_file(file_output_t *out)
 
 static int process_message(prelude_msg_t *msg) 
 {
-        idmef_message_t *idmef = NULL;
+        idmef_message_t *idmef;
         int relay_filter_available = 0;
-        
-        relay_filter_available = filter_plugins_available(FILTER_CATEGORY_RELAYING);
-        if ( relay_filter_available < 0 )
-                manager_relay_msg_if_needed(msg);
         
         if ( report_plugins_available() < 0 && relay_filter_available < 0 ) {
                 /*
@@ -252,8 +248,12 @@ static int process_message(prelude_msg_t *msg)
                 return -1;
         }
 
-        if ( relay_filter_available == 0 && filter_plugins_run_by_category(idmef, FILTER_CATEGORY_RELAYING) == 0 )
-                manager_relay_msg_if_needed(msg);
+        relay_filter_available = filter_plugins_available(FILTER_CATEGORY_REVERSE_RELAYING);
+        if ( relay_filter_available < 0 )
+                reverse_relay_send_msg(idmef);
+
+        else if ( filter_plugins_run_by_category(idmef, FILTER_CATEGORY_REVERSE_RELAYING) == 0 )
+                reverse_relay_send_msg(idmef);
 
 
         /*
@@ -628,9 +628,12 @@ static int flush_orphan_fifo(const char *filename)
 
 
 
-void idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg) 
+int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg) 
 {
         message_queue_t *mqueue = NULL;
+
+        if ( ! queue )
+                return -1;
         
         switch (prelude_msg_get_priority(msg)) {
 
@@ -651,6 +654,8 @@ void idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg)
         
         queue_message(queue, mqueue, msg);        
         signal_input_available();
+
+        return 0;
 }
 
 
