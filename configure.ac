@@ -276,8 +276,8 @@ src/Makefile
 src/include/Makefile
 
 plugins/Makefile
-plugins/decode/Makefile
-plugins/decode/prelude-nids/Makefile
+plugins/decodes/Makefile
+plugins/decodes/prelude-nids/Makefile
 
 plugins/reports/Makefile
 plugins/reports/filemod/Makefile

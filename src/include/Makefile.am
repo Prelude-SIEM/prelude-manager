@@ -1,12 +1,10 @@
 noinst_HEADERS = \
-	pconfig.h	\
+	pconfig.h		\
 	auth.h			\
 	cnx.h			\
 	server.h		\
-	optparse.h		\
 	ethertype.h		\
-	tcpdump-func.h		\
-	ssl.h \
+	ssl.h 			\
 	report.h		\
-	report-infos.h \
+	report-infos.h 	\
 	plugin-report.h

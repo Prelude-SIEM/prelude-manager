@@ -12,16 +12,14 @@ bin_PROGRAMS = prelude-report
 prelude_report_LDADD = @COMMON_LIBS@ @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@
 prelude_report_LDFLAGS = -export-dynamic 
 
-prelude_report_SOURCES = 			\
-                        auth.c 			\
-                        cnx.c 			\
-                        optparse.c 		\
-                        pconfig.c 		\
-                        prelude-report.c 	\
-                        report-plugins.c 	\
-                        server.c 		\
+prelude_report_SOURCES = 						\
+                        auth.c 					\
+                        cnx.c 					\
+                        pconfig.c 				\
+                        prelude-report.c 		\	
+                        report-plugins.c 		\
+                        server.c 				\
                         ssl-register-client.c 	\
-                        ssl.c 			\
-                        tcpdump-func.c 		\
-	                decode-plugins.c	\
-			report-infos.c
+                        ssl.c 					\
+	                	decode-plugins.c		\
+						report-infos.c
