@@ -1,3 +1,8 @@
+2001-09-02  Sylvain GIL  <prelude@tootella.org>
+
+	* plugins/decodes/prelude-nids/Makefile.am
+	Install nids decode plugin in correct directory
+
 2001-09-02  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/decodes/prelude-nids/decode.c (plugin_init): 
