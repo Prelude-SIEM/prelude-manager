@@ -96,7 +96,7 @@ ask_db_name () {
 	echo
 	echo "*** Phase 2/5 ***"
 	echo
-	echo -n "Enter the name of the Prelude database [${db_name}]: "
+	echo -n "Enter the name of the database that should be created to stock alerts [${db_name}]: "
 	read answer
 	
 	if [[ "${answer}" != "" && "${answer}" != "${db_name}" ]]; then
@@ -119,6 +119,7 @@ ask_db_user () {
 	echo
 	echo "*** Phase 3/5 ***"
 	echo
+	echo "This installation script has to connect to your ${db_type} database in order to create a user dedicated to stock prelude's alerts"
 	echo -n "What is the database administrative user ? [${db_user}]: "
 	read answer
 
@@ -134,8 +135,7 @@ ask_manager_user() {
 	answer=""
 	echo "*** Phase 4/5 ***"
 	echo
-	echo "We need to create an user to be used by the Prelude Manager in order"
-	echo "to access the \"${db_name}\" database."
+	echo "We need to create a database user account that will be used by the Prelude Manager in order to access the \"${db_name}\" database."
  	echo
 
 	echo -n "Username to create [prelude] : "
@@ -157,7 +157,7 @@ ask_password () {
 	echo
 
 	echo -n "Please comfirm entered password: "
-	stty echo
+	stty -echo
 	read answerbis
 	stty sane
 	echo
@@ -272,12 +272,12 @@ db_create_users ()
 			;;
 		esac
        	echo   
-	echo "If everything succeed, you should now be able to launch prelude-manager with thoses parameters :"
-	echo "prelude-manager --${db_type} --dbhost localhost --dbname ${db_name} --dbuser ${manager_user} --dbpass \"not shown\""
+	echo "-------------- End of Database Support Installation -------------"
+	echo "If it succeeded, you should now be able to launch prelude-manager like that :"
+	echo "==>  prelude-manager --${db_type} --dbhost localhost --dbname ${db_name} --dbuser ${manager_user} --dbpass xxxxxx"
 	echo
-	echo "Or you may modify the prelude-manager configuration file to include theses informations :"
-
-	echo "cut here --->"
+	echo "Or you may modify the prelude-manager configuration file (/usr/local/etc/prelude-manager/prelude-manager.conf by default) in order to launch prelude-manager without database arguments:"
+	echo "---------- cut here --->"
 	case $db_type in
 		mysql)
 		    echo "[MySQL]"
@@ -297,11 +297,10 @@ db_create_users ()
 	echo "dbuser = ${manager_user};"
 	echo "# Password used to connect the database."
 	echo "dbpass = xxxxxx;"
-	echo "<--- cut here"
+	echo "<--- cut here ----------"
 	echo 
 	echo "Replace xxxxxx by the password you choose for the manager account"
-	echo "And fill those lines in /usr/local/etc/prelude-manager/prelude-manager.conf"
-	echo
+	echo "-----------------------------------------------------------------"
 }
 
 
@@ -316,13 +315,17 @@ idmef () {
 
 	if [ "${db_type}" == "mysql" ]; then
 	    echo "We need the password of the admin user \"${db_user}\" to log on the database."
+	    if [ "${db_user}" == "root" ]; then
+	    	echo "By default under ${db_type}, root has an empty password.."
+	    fi
 	    ask_password
 	    db_password=${password}
 	fi
 
 	ask_manager_user
 	echo
-	echo "We need a password for the \"${manager_user}\" account."
+	echo "We need to set a password for this special \"${manager_user}\" account."
+	echo "This password will have to used by prelude-manager to access the database."
 	ask_password
 	manager_password=${password}
 	
