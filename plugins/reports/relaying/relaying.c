@@ -102,14 +102,27 @@ static int relaying_activate(void *context, prelude_option_t *opt, const char *o
 
 static int relaying_set_manager(void *context, prelude_option_t *opt, const char *optarg)
 {
+        int ret;
         relaying_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         prelude_client_capability_t capability = prelude_client_get_capability(manager_client);
         
         prelude_client_set_capability(manager_client, capability|PRELUDE_CLIENT_CAPABILITY_SEND_IDMEF);
         
-        plugin->parent_manager = prelude_connection_mgr_new(manager_client, optarg);
+        plugin->parent_manager = prelude_connection_mgr_new(manager_client);
         if ( ! plugin->parent_manager )
                 return -1;
+
+        ret = prelude_connection_mgr_set_connection_string(plugin->parent_manager, optarg);
+        if ( ret < 0 ) {
+                prelude_connection_mgr_destroy(plugin->parent_manager);
+                return -1;
+        }
+
+        ret = prelude_connection_mgr_init(plugin->parent_manager);
+        if ( ret < 0 ) {
+                prelude_connection_mgr_destroy(plugin->parent_manager);
+                return -1;
+        }       
 
         return 0;
 }

@@ -159,10 +159,24 @@ void reverse_relay_send_msg(idmef_message_t *idmef)
 
 int reverse_relay_create_initiator(const char *arg)
 {
-        initiator_managers = prelude_connection_mgr_new(manager_client, arg);
+        int ret;
+        
+        initiator_managers = prelude_connection_mgr_new(manager_client);
         if ( ! initiator_managers )
                 return -1;
 
+        ret = prelude_connection_mgr_set_connection_string(initiator_managers, arg);
+        if ( ret < 0 ) {
+                prelude_connection_mgr_destroy(manager_client);
+                return -1;
+        }
+
+        ret = prelude_connection_mgr_init(initiator_managers);
+        if ( ret < 0 ) {
+                prelude_connection_mgr_destroy(manager_client);
+                return -1;
+        }
+        
         return 0;
 }
 
