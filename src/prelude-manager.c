@@ -56,16 +56,17 @@ static void cleanup(int sig)
          * we caught to it's default behavior
          */
         signal(sig, SIG_DFL);
+
+        
+        /*
+         *
+         */
+        manager_server_close();
         
         /*
          *
          */
         report_plugins_close();
-
-        /*
-         *
-         */
-        manager_server_close();
         
 
         if ( config.pidfile )
@@ -119,6 +120,11 @@ int main(int argc, char **argv)
 
 	exit(ret);	
 }
+
+
+
+
+
 
 
 

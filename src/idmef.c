@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <libprelude/common.h>
+#include <assert.h>
 
 #include "idmef.h"
 
@@ -202,11 +203,165 @@ idmef_userid_t *idmef_userid_new(idmef_user_t *user)
 
 
 
+const char *idmef_additional_data_type_to_string(idmef_additional_data_type_t type)  
+{
+        static const char *tbl[] = {
+                "boolean",
+                "byte",
+                "character",
+                "date-time",
+                "integer",
+                "ntpstamps",
+                "portlist",
+                "real",
+                "string",
+                "xml",
+        };
+
+        /*
+         * Assert on read overflow.
+         */
+        assert( type < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[type];        
+}
+
+
+
+
+const char *idmef_classification_origin_to_string(idmef_classification_origin_t origin)  
+{
+        static const char *tbl[] = {
+                "unknown",
+                "bugtraqid",
+                "cve",
+                "vendor-specific",
+        };
+        
+        /*
+         * Assert on read overflow.
+         */
+        assert( origin < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[origin];  
+}
+
+
+
+
+const char *idmef_address_category_to_string(idmef_address_category_t category) 
+{
+        static const char *tbl[] = {
+                "unknow",
+                "atm",
+                "e-mail",
+                "lotus-notes",
+                "mac",
+                "sna",
+                "vm",
+                "ipv4-addr",
+                "ipv4-addr-hex",
+                "ipv4-net",
+                "ipv4-net-mask",
+                "ipv6-addr",
+                "ipv6-addr-hex",
+                "ipv6-net",
+                "ipv6-net-mask",
+        };
+        
+
+        assert( category < (sizeof(tbl) / sizeof(void *)) );
+        
+        return tbl[category];
+}
 
 
 
 
 
+const char *idmef_node_category_to_string(idmef_node_category_t category) 
+{
+        static const char *tbl[] = {
+                "unknow",
+                "ads",
+                "afs",
+                "coda",
+                "dfs",
+                "dns",
+                "kerberos",
+                "nds",
+                "nis",
+                "nisplus",
+                "nt",
+                "wfw",
+        };
+
+        assert( category < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[category];
+}
 
 
+
+const char *idmef_user_category_to_string(idmef_user_category_t category) 
+{
+        static const char *tbl[] = {
+                "unknow",
+                "application",
+                "os-device",
+        };
+
+        assert( category < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[category];
+}
+
+
+
+
+const char *idmef_userid_type_to_string(idmef_userid_type_t type) 
+{
+        static const char *tbl[] = {
+                "current-user",
+                "original-user",
+                "target-user",
+                "user-privs",
+                "current-group",
+                "group-privs",
+        };
+        
+        assert( type < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[type];
+}
+
+
+
+const char *idmef_source_spoofed_to_string(idmef_spoofed_t spoofed) 
+{
+        static const char *tbl[] = {
+                "unknow",
+                "yes",
+                "no",
+        };
+
+        assert( spoofed < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[spoofed];
+}
+
+
+
+const char *idmef_target_decoy_to_string(idmef_spoofed_t decoy) 
+{
+        static const char *tbl[] = {
+                "unknow",
+                "yes",
+                "no",
+        };
+
+        assert( decoy < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[decoy];
+}
 

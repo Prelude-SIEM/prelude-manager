@@ -94,7 +94,7 @@ static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip)
         saddr->category = ipv4_addr;
         saddr->address = strdup(inet_ntoa(ip->ip_src));
         
-        target->spoofed = unknow;
+        target->decoy = unknow;
         target->node.category = unknow;
 
         daddr->category = ipv4_addr;

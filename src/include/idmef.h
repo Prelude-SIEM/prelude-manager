@@ -35,16 +35,16 @@
  * Additional Data class
  */
 typedef enum {
-        boolean,
-        byte,
-        character,
-        date_time,
-        integer,
-        ntpstamps,
-        portlist,
-        real,
-        string,
-        xml,
+        boolean   = 0,
+        byte      = 1,
+        character = 2,
+        date_time = 3,
+        integer   = 4,
+        ntpstamps = 5,
+        portlist  = 6,
+        real      = 7,
+        string    = 8,
+        xml       = 9,
 } idmef_additional_data_type_t;
 
 
@@ -64,17 +64,17 @@ typedef struct {
  * Classification class
  */
 typedef enum {
-        unknown,
-        bugtraqid,
-        cve,
-        vendor_specific,
-} idmef_origin_t;
+        unknown         = 0,
+        bugtraqid       = 1,
+        cve             = 2,
+        vendor_specific = 3,
+} idmef_classification_origin_t;
 
 
 
 typedef struct {
         struct list_head list;
-        idmef_origin_t origin;
+        idmef_classification_origin_t origin;
         const char *name;
         const char *url;
 } idmef_classification_t;
@@ -87,12 +87,12 @@ typedef struct {
  * UserId class
  */
 typedef enum {
-        current_user,
-        original_user,
-        target_user,
-        user_privs,
-        current_group,
-        group_privs,
+        current_user  = 0,
+        original_user = 1,
+        target_user   = 2,
+        user_privs    = 3,
+        current_group = 4,
+        group_privs   = 5,
 } idmef_userid_type_t;
 
 
@@ -114,9 +114,9 @@ typedef struct {
  * User class
  */
 typedef enum {
-        cat_unknow,
-        application,
-        os_device
+        cat_unknow  = 0,
+        application = 1,
+        os_device   = 2,
 } idmef_user_category_t;
 
 
@@ -134,21 +134,21 @@ typedef struct {
  * Address class
  */
 typedef enum {
-        addr_unknow,
-        atm,
-        e_mail,
-        lotus_notes,
-        mac,
-        sna,
-        vm,
-        ipv4_addr,
-        ipv4_addr_hex,
-        ipv4_net,
-        ipv4_net_mask,
-        ipv6_addr,
-        ipv6_addr_hex,
-        ipv6_net,
-        ipv6_net_mask
+        addr_unknow   = 0,
+        atm           = 1,
+        e_mail        = 2,
+        lotus_notes   = 3,
+        mac           = 4,
+        sna           = 5,
+        vm            = 6,
+        ipv4_addr     = 7,
+        ipv4_addr_hex = 8,
+        ipv4_net      = 9,
+        ipv4_net_mask = 10,
+        ipv6_addr     = 11,
+        ipv6_addr_hex = 12,
+        ipv6_net      = 13,
+        ipv6_net_mask = 14,
 } idmef_address_category_t;
 
 
@@ -230,18 +230,18 @@ typedef struct {
  * Node class
  */
 typedef enum {
-        node_unknow,
-        ads,
-        afs,
-        coda,
-        dfs,
-        dns,
-        kerberos,
-        nds,
-        nis,
-        nisplus,
-        nt,
-        wfw
+        node_unknow = 0,
+        ads         = 1,
+        afs         = 2,
+        coda        = 3,
+        dfs         = 4,
+        dns         = 5,
+        kerberos    = 6,
+        nds         = 7,
+        nis         = 8,
+        nisplus     = 9,
+        nt          = 10,
+        wfw         = 11,
 } idmef_node_category_t;
 
 
@@ -258,14 +258,13 @@ typedef struct {
 
 
 /*
- * Source/Target class
+ * Source class
  */
 typedef enum {
-        unknow,
-        yes,
-        no,
+        unknow = 0,
+        yes    = 1,
+        no     = 2,
 } idmef_spoofed_t;
-
 
 
 typedef struct {
@@ -280,7 +279,27 @@ typedef struct {
         idmef_process_t process;
         idmef_service_t service;
         
-} idmef_source_t, idmef_target_t;
+} idmef_source_t;
+
+
+
+
+/*
+ * Target class
+ */
+typedef struct {
+        struct list_head list;
+        
+        const char *ident;
+        idmef_spoofed_t decoy;
+        const char *interface;
+
+        idmef_node_t node;
+        idmef_user_t user;
+        idmef_process_t process;
+        idmef_service_t service;
+        
+} idmef_target_t;
 
 
 
@@ -295,6 +314,9 @@ typedef struct {
         const char *model;
         const char *version;
         const char *class;
+
+        idmef_node_t node;
+        idmef_process_t process;
 } idmef_analyzer_t;
 
 
@@ -352,9 +374,9 @@ typedef struct {
  * Alert class
  */
 typedef enum {
-        idmef_tool_alert,
-        idmef_correlation_alert,
-        idmef_overflow_alert,
+        idmef_tool_alert        = 0,
+        idmef_correlation_alert = 1,
+        idmef_overflow_alert    = 2,
 } idmef_alert_type_t;
 
 
@@ -407,8 +429,8 @@ typedef struct {
  * IDMEF Message class
  */
 typedef enum {
-        idmef_alert_message,
-        idmef_heartbeat_message,
+        idmef_alert_message     = 0,
+        idmef_heartbeat_message = 1,
 } idmef_message_type_t;
 
 
@@ -446,6 +468,22 @@ idmef_classification_t *idmef_classification_new(idmef_alert_t *alert);
 idmef_address_t *idmef_address_new(idmef_node_t *node);
 
 idmef_userid_t *idmef_userid_new(idmef_user_t *user);
+
+const char *idmef_additional_data_type_to_string(idmef_additional_data_type_t type);
+
+const char *idmef_classification_origin_to_string(idmef_classification_origin_t origin);
+
+const char *idmef_address_category_to_string(idmef_address_category_t category);
+
+const char *idmef_node_category_to_string(idmef_node_category_t category);
+
+const char *idmef_user_category_to_string(idmef_user_category_t category);
+
+const char *idmef_userid_type_to_string(idmef_userid_type_t type);
+
+const char *idmef_source_spoofed_to_string(idmef_spoofed_t spoofed);
+
+const char *idmef_target_decoy_to_string(idmef_spoofed_t decoy);
 
 #endif
 

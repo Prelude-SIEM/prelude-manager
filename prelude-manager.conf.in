@@ -29,6 +29,22 @@ listen = unix;
 # Here start plugins configuration #
 ####################################
 
+[MySQL]
+
+# Host the database is listening on.
+# dbhost = localhost;
+
+# Name of the database.
+# dbname = prelude;
+
+# Username to be used to connect the database.
+# dbuser = prelude;
+
+# Password used to connect the database.
+# dbpass = xxxxxx;
+
+
+
 
 [XmlMod]
 
@@ -66,4 +82,5 @@ enable = yes;
 # Filename where the log should be written in.
 #
 logfile = /var/log/prelude/prelude.log;
+
 
