@@ -8,5 +8,6 @@ EXTRA_DIST = $(preludeconf_DATA) config.h \
              ChangeLog
 
 install-data-local:
-	$(INSTALL) -d /var/lib/prelude
-	$(INSTALL) -d /var/spool/prelude-manager
+	$(INSTALL) -d -m 700 /var/spool/prelude-manager
+
+

@@ -83,7 +83,7 @@ static int option_list_to_xml(sensor_fd_t *cnx, prelude_msg_t *msg)
         case PRELUDE_OPTION_NAME:
                 //printf("option name = %s\n", (char *) buf);
                 break;
-
+                
         case PRELUDE_OPTION_DESC:
                 //printf("option desc = %s\n", (char *) buf);
                 break;
@@ -106,14 +106,13 @@ static int option_list_to_xml(sensor_fd_t *cnx, prelude_msg_t *msg)
                 
         case PRELUDE_OPTION_END:
                 //printf("end option.\n");
-                return 0;
+                break;
                 
         default:
                 /*
                  * for compatibility purpose, don't return an error on unknow tag.
                  */
                 log(LOG_INFO, "[%s] - unknow option tag %d.\n", cnx->addr, tag);
-                return 0;
         }
 
         return option_list_to_xml(cnx, msg);
@@ -159,8 +158,29 @@ static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen)
         int ret;
         
         ret = extract_uint64(&cnx->analyzerid, buf, blen);
-        log(LOG_INFO, "[%s] - sensor declared ident %llu.\n", cnx->addr, cnx->analyzerid);
-        return ret;
+        if ( ret < 0 )
+                return -1;
+        
+        if ( cnx->analyzerid != 0 ) {
+                log(LOG_INFO, "[%s] - sensor declared ident %llu.\n", cnx->addr, cnx->analyzerid);
+                return 0;
+        }
+        
+        /*
+         * our client is a relaying Manager.
+         * we want relaying Manager to be at the end of our list (see
+         * sensor_server_broadcast_admin_command).
+         */
+        pthread_mutex_lock(&list_mutex);
+
+        list_del(&cnx->list);
+        list_add_tail(&cnx->list, &sensor_cnx_list);
+
+        pthread_mutex_unlock(&list_mutex);
+
+        log(LOG_INFO, "[%s] - sensor declared ident %llu (Relaying Manager).\n", cnx->addr, cnx->analyzerid);
+
+        return 0;
 }
 
 
@@ -246,7 +266,10 @@ static int read_connection_cb(server_generic_client_t *client)
                 
         case PRELUDE_MSG_OPTION_LIST:
                 log(LOG_INFO, "[%s] - FIXME: (%s) message to XML translation here.\n", cnx->addr, __FUNCTION__);
+                
                 ret = option_list_to_xml(cnx, msg);
+                if ( ret == 0 )
+                        manager_relay_msg_if_needed(msg);
                 break;
 
         default:
@@ -286,6 +309,14 @@ static void close_connection_cb(server_generic_client_t *ptr)
 static int accept_connection_cb(server_generic_client_t *ptr) 
 {
         sensor_fd_t *client = (sensor_fd_t *) ptr;
+
+        /*
+         * set the analyzer id to -1, because at this timer,
+         * the analyzer (or relay manager) didn't declared it's ID.
+         * and in case of admin request, we don't want to think it's
+         * a relay Manager.
+         */
+        client->analyzerid = (uint64_t) -1;
         
         pthread_mutex_lock(&list_mutex);
         list_add(&client->list, &sensor_cnx_list);
@@ -332,28 +363,44 @@ void sensor_server_start(void)
 
 int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *msg) 
 {
-        int ret;
+        int ret, ok = -1;
         sensor_fd_t *cnx;
         struct list_head *tmp;
         
         if ( ! analyzerid )
                 return -1;
 
+        /*
+         * the list is sorted with :
+         * - real analyzer first (analyzerid != 0).
+         * - then relay manager (analyzerid == 0).
+         */
         pthread_mutex_lock(&list_mutex);
         
         list_for_each(tmp, &sensor_cnx_list) {
                 cnx = list_entry(tmp, sensor_fd_t, list);
-
+                
                 if ( cnx->analyzerid == *analyzerid ) {
+                        ok = 1;
                         ret = prelude_msg_write(msg, cnx->fd);
-                        pthread_mutex_unlock(&list_mutex);
-                        return ret;
+                        break;
+                }
+
+                /*
+                 * no luck, the analyzer we want to send admin command to
+                 * isn't directly connected here. So we have to broadcast the
+                 * message to all there relay being connected to us.
+                 */
+                if ( cnx->analyzerid == 0 ) {
+                        ok = 1;
+                        ret = prelude_msg_write(msg, cnx->fd);
                 }
         }
         
         pthread_mutex_unlock(&list_mutex);
 
-        log(LOG_ERR, "couldn't find sensor with ID %s\n", *analyzerid);
+        if ( ok < 0 )
+                log(LOG_ERR, "couldn't find sensor with ID %llu and no relay connected\n", *analyzerid);
 
         return -1;
 }

@@ -1,3 +1,21 @@
+2002-01-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/sensor-server.c (option_list_to_xml): 
+	(option_list_to_xml): don't return here. Wait end of message.
+
+	(handle_declare_ident): if the client is a Relaying Manager,
+	put it at the end of the client list (default route).
+	
+	(sensor_server_broadcast_admin_command): Search for the analyzerid.
+	If the analyzer is not directly connected here, broadcast the message
+	to every Relaying Manager connected.
+
+	* Makefile.am (install-data-local): 
+	fix directory creation.
+
+	* src/sensor-server.c (read_connection_cb):
+	relay option list message if this Manager is a relay.
+
 2002-01-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/sensor-server.c: 
