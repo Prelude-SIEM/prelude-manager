@@ -36,7 +36,6 @@
 #include <libprelude/ssl-gencrypto.h>
 #include <libprelude/ssl.h>
 
-#include "pconfig.h"
 #include "ssl.h"
 
 
