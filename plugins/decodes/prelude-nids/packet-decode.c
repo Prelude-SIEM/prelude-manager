@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2001-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -621,9 +621,8 @@ static int udp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
 static int data_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *pkt) 
 {
         int ret;
+        char tmp[256];
         idmef_data_t *data;
-        idmef_string_t *meaning;
-        char tmp[256], *payload;
         idmef_additional_data_t *pdata = NULL;
         
         if ( pkt->len ) {
@@ -631,30 +630,16 @@ static int data_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
                 if ( ! pdata ) 
                         return -1;
                 
-                payload = prelude_string_to_hex(pkt->p.data, pkt->len);
-                if ( ! payload ) {
-                        idmef_additional_data_destroy(pdata);
-                        return -1;
-                }
-                
-                data = idmef_data_new_nodup(payload, strlen(payload) + 1);
+                data = idmef_data_new_ref(pkt->p.data, pkt->len);
                 if ( ! data ) {
-                        free(payload);
                         idmef_additional_data_destroy(pdata);
                         return -1;
                 }
-                
-                meaning = idmef_string_new_constant("Payload Hexadecimal Dump");
-                if ( ! meaning ) {
-                        idmef_data_destroy(data);
-                        idmef_additional_data_destroy(pdata);
-                        return -1;
-                }
+
+                idmef_string_set_constant(idmef_additional_data_new_meaning(pdata), "Packet Payload");
                 
                 idmef_additional_data_set_data(pdata, data);
-                idmef_additional_data_set_type(pdata, string);
-                idmef_additional_data_set_meaning(pdata, meaning);
-                
+                idmef_additional_data_set_type(pdata, byte);
                 idmef_alert_set_additional_data(alert, pdata);
         }
 
