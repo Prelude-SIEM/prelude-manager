@@ -28,8 +28,6 @@
 #include <libprelude/idmef-tree.h>
 
 #include <libxml/parser.h>
-#include <libxml/tree.h>
-#include <libxml/valid.h>
 
 #include "report.h"
 #include "idmef-util.h"

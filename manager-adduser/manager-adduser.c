@@ -256,8 +256,8 @@ static int handle_authentication_method(prelude_io_t *fd, char *pass)
 
 static int generate_one_shot_password(char *buf, size_t size) 
 {
+        int i;
         char c;
-        int num, i;
         struct timeval tv;
 
         gettimeofday(&tv, NULL);
@@ -265,18 +265,17 @@ static int generate_one_shot_password(char *buf, size_t size)
         srand((unsigned int) getpid() * tv.tv_usec);
         
         for ( i = 0; i < (size - 1); i++ ) {
-                num = rand();
 
-                c = num % 128;
+                /*
+                 * we want the generated character to be between
+                 * the 33 - 126 decimal ascii range (printable characters).
+                 */
+                c = rand() % 127;
+                
                 if ( c < 33 )
                         c += 33;
-
-                else if ( c > 126 )
-                        c = 126;
-                                
-                buf[i] = c;
-                num >>= (sizeof(num) * 8) / (size - 1);
                 
+                buf[i] = c;
         }
 
         buf[size - 1] = '\0';

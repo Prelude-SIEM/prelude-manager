@@ -16,4 +16,3 @@ xmldtddir   = $(manager_data_dir)/xmlmod
 EXTRA_DIST = $(xmldtd_DATA)
 
 endif
-

@@ -1,3 +1,19 @@
+* 2002-09-23, prelude-manager-0.8.6:
+	
+	- Fix a communication problem on linux kernel 2.2.x
+          due to the non standard compliant poll() implementation.
+	  (Yoann Vandoorselaere).
+	
+	- Fix server-logic thread cancelation.
+	  (Yoann Vandoorselaere).
+
+	- Add missing field in mysql / pgsql database schema.
+	  (Yoann Vandoorselaere).
+
+	- Fix a FreeBSD compilation problem in the XML reporting plugin.
+	  (Krzysztof Zaraska, Yoann Vandoorselaere).
+
+	
 * 2002-09-10, prelude-manager-0.8.5:
 	- Fix possible heartbeat insertion problem.
 	  (Yoann Vandoorselaere)
