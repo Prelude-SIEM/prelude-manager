@@ -291,7 +291,7 @@ static void save_idmef_message(plugin_failover_t *pf, idmef_message_t *msg)
         }
 
         /*
-         * this a message we generated ourself...
+         * this is a message we generated ourself...
          */
         prelude_msgbuf_set_data(msgbuf, pf);
         idmef_message_write(msg, msgbuf);
