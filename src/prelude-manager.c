@@ -219,7 +219,7 @@ int main(int argc, char **argv)
         if ( ret < 0 ) {
                 prelude_perror(ret, "error creating prelude-client object");
                 
-                if ( prelude_client_is_setup_needed(manager_client, ret) )
+                if ( prelude_client_is_setup_needed(ret) )
                         prelude_client_print_setup_error(manager_client);
                 
                 return -1;
