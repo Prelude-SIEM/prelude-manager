@@ -117,7 +117,7 @@ static int setup_connection(int sock)
 {
         char *buf;
         int ret, len;
-        const char *ssl, *xdr;
+        const char *ssl;
         
 #ifdef HAVE_SSL
         ssl = "supported";
@@ -125,7 +125,7 @@ static int setup_connection(int sock)
         ssl = "unsupported";
 #endif
 
-        len = snprintf(buf, sizeof(buf), "ssl=%s;\n", xdr, ssl);
+        len = snprintf(buf, sizeof(buf), "ssl=%s;\n", ssl);
 
         ret = socket_write_delimited(sock, buf, ++len, write);
         if ( ret < 0 ) {
