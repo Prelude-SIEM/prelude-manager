@@ -44,7 +44,7 @@ dnl **************************************************
 dnl * Check for libprelude                           *
 dnl **************************************************
 
-AC_PATH_GENERIC(libprelude, 0.4.1, ,
+AC_PATH_GENERIC(libprelude, 0.8.0, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
 
 defined="$defined $LIBPRELUDE_CFLAGS"
