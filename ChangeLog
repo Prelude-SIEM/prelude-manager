@@ -1,5 +1,9 @@
 2002-09-20  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* plugins/reports/textmod/textmod.c (process_alert): 
+	fix typo (information, not informations). Thanks to
+	Igor Genibel <igenibel@debian.org> for pointing this out.
+
 	* plugins/db/mysql/mysql.sql: 
 	* plugins/db/pgsql/postgres.sql: add missing field
 	for good File table handling.

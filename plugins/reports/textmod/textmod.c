@@ -582,7 +582,7 @@ static void process_alert(idmef_alert_t *alert)
         process_assessment(alert->assessment);
         
         if ( ! list_empty(&alert->source_list) )
-                print(0, "*** Source informations ********************************************************\n");
+                print(0, "*** Source information ********************************************************\n");
         
         list_for_each(tmp, &alert->source_list) {
                 source = list_entry(tmp, idmef_source_t, list);
@@ -590,7 +590,7 @@ static void process_alert(idmef_alert_t *alert)
         }
 
         if ( ! list_empty(&alert->target_list) ) 
-                print(0, "*\n*** Target informations ********************************************************\n");
+                print(0, "*\n*** Target information ********************************************************\n");
 
         list_for_each(tmp, &alert->target_list) {
                 target = list_entry(tmp, idmef_target_t, list);
