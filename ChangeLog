@@ -1,3 +1,16 @@
+2002-04-07  Baptiste Malguy <baptiste@malguy.net>
+
+	* src/db-plugins.c (generate_dynamic_query): 
+	(db_plugin_insert):
+
+	* src/include/plugin-db.h:
+	* plugins/db/mysql/mysql.c (db_insert):
+	* plugins/db/pgsql/pgsql.c (db_insert):
+
+	added a dynamic management of the SQL query buffer to both avoid
+	a too short buffer truncating queries and allowing big queries when
+	necessary.
+
 2002-04-04  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/reports/textmod/textmod.c (process_node): 
