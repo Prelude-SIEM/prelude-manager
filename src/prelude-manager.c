@@ -28,7 +28,6 @@
 #include <syslog.h>
 #include <signal.h>
 #include <inttypes.h>
-#include <parser.h>
 
 #include <libprelude/list.h>
 #include <libprelude/plugin-common.h>

@@ -34,7 +34,6 @@
 #include <arpa/inet.h>
 #include <syslog.h>
 #include <sys/poll.h>
-#include <parser.h>
 #include <assert.h>
 
 #include <libprelude/common.h>
@@ -56,7 +55,8 @@
 
 #define UNIX_SOCK "/var/lib/prelude/socket"
 
-        
+
+static int unix_srvr = 0;
 static server_t *manager_srvr;
 extern struct report_config config;
 
@@ -87,8 +87,16 @@ static int server_read_connection_cb(prelude_io_t *src, void **clientdata)
 static int server_close_connection_cb(prelude_io_t *pio, void *clientdata) 
 {
         int ret;
-        
-        log(LOG_INFO, "closing connection with %s.\n", "");
+
+        if ( unix_srvr )
+                log(LOG_INFO, "closing connection on UNIX socket.\n");
+        else {
+                struct sockaddr_in addr;
+                int len = sizeof(addr);
+                
+                getpeername(prelude_io_get_fd(pio), (struct sockaddr *)&addr, &len);
+                log(LOG_INFO, "closing connection with %s.\n", inet_ntoa(addr.sin_addr));
+        }
 
         ret = prelude_io_close(pio);
         prelude_io_destroy(pio);
@@ -432,6 +440,8 @@ static int unix_server_start(void)
                 return -1;
         }
 
+        unix_srvr = 1;
+        
         return wait_connection(sock, (struct sockaddr *) &addr, sizeof(addr), 1);
 }
 

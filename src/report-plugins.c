@@ -35,8 +35,6 @@
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>
 
-#include <libxml/parser.h>
-
 #include "plugin-report.h"
 
 

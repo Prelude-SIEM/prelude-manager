@@ -31,8 +31,6 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 
-#include <libxml/parser.h>
-
 #include "plugin-decode.h"
 
 
@@ -51,6 +49,24 @@ static int decode_plugin_register(plugin_container_t *pc)
 }
 
 
+
+plugin_decode_t *decode_plugin_get_from_id(uint8_t id) 
+{
+        plugin_decode_t *p;
+        struct list_head *tmp;
+        plugin_container_t *pc;
+        
+        list_for_each(tmp, &decode_plugins_list) {
+            
+                pc = list_entry(tmp, plugin_container_t, ext_list);
+
+                p = (plugin_decode_t *) pc->plugin;
+                if ( p->decode_id == id )
+                        return p;
+        }
+
+        return NULL;
+}
 
 /*
  *

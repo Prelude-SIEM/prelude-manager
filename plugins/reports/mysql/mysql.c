@@ -265,7 +265,7 @@ static void print_process(unsigned long alert_ident, const char *parent_ident,
         /*
          * prepare query
          */
-        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"",
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\", \"%s\", \"%u\", \"%s\"",
                  alert_ident, parent_type, parent_ident, ident, name, process->pid, path);
 
         db_insert("Prelude_Process", "alert_ident, parent_type, parent_ident, ident, name, pid, path",

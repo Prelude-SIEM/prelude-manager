@@ -45,14 +45,6 @@ AC_PATH_GENERIC(libprelude, 0.4.1, ,
 
 
 dnl **************************************************
-dnl * Check for XML library.                         *
-dnl **************************************************
-
-AC_PATH_GENERIC(xml2, , ,
-  AC_MSG_ERROR(Cannot find libxml2: Is xml-config in the path?) )
-
-
-dnl **************************************************
 dnl * Check for the Posix Thread library             *
 dnl **************************************************
 
@@ -64,6 +56,21 @@ else
 fi
 
 
+dnl ***************************************************
+dnl * Check for the MySQL library (MySQL plugin       *
+dnl ***************************************************
+
+AC_CHECK_PROG(MYSQL_CONFIG, mysql_config, true, false)
+AM_CONDITIONAL(HAVE_MYSQL, $MYSQ_CONFIG)
+AC_SUBST(HAVE_MYSQL)
+
+if test x$MYSQL_CONFIG == xtrue; then
+	MYSQL_LIBS=`mysql_config --libs`
+	MYSQL_CFLAGS=`mysql_config --cflags`
+fi
+
+AC_SUBST(MYSQL_LIBS)
+AC_SUBST(MYSQL_CFLAGS)
 
 dnl **************************************************
 dnl * Check for networking function                  *

@@ -37,6 +37,11 @@
 #include "idmef-message-read.h"
 
 
+
+static LIST_HEAD(used_decode_plugin_list);
+
+
+
 static int additional_data_get(prelude_msg_t *msg, idmef_additional_data_t *data) 
 {
         int ret;
@@ -84,8 +89,6 @@ static int classification_get(prelude_msg_t *msg, idmef_classification_t *class)
         uint32_t len;
 
         ret = prelude_msg_get(msg, &tag, &len, &buf);
-        printf("class %d\n", ret);
-        
         if ( ret <= 0 )
                 return -1; /* Message should always terminate by END OF TAG */
 
@@ -210,7 +213,7 @@ static int process_get(prelude_msg_t *msg, idmef_process_t *process)
                 break;
 
         case MSG_PROCESS_PID:
-                process->pid = buf;
+                process->pid = (ntohl(*(uint32_t *)buf));
                 break;
 
         case MSG_PROCESS_PATH:
@@ -333,8 +336,6 @@ static int node_get(prelude_msg_t *msg, idmef_node_t *node)
         uint8_t tag;
         uint32_t len;
         idmef_address_t *addr;
-
-        printf("HERE\n");
 
         ret = prelude_msg_get(msg, &tag, &len, &buf);
         if ( ret <= 0 )
@@ -568,10 +569,7 @@ static int alert_get(prelude_msg_t *msg, idmef_alert_t *alert)
         idmef_classification_t *class;
         idmef_additional_data_t *data;
         
-        ret = prelude_msg_get(msg, &tag, &len, &buf);
-
-        printf("alert get ret = %d, tag=%d\n", ret, tag);
-        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);        
         if ( ret <= 0 )
                 return -1; /* Message should always terminate by END OF TAG */
 
@@ -671,12 +669,8 @@ int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg)
         uint32_t len;
         
         ret = prelude_msg_get(msg, &tag, &len, &buf);
-        printf("msg get returned %d\n", ret);
-        
         if ( ret <= 0 ) 
                 return ret; /* Message should always terminate by END OF TAG */
-        
-        printf("tag = %d\n", tag);
         
         switch (tag) {
 
@@ -703,6 +697,4 @@ int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg)
         
         return idmef_message_read(idmef, msg);
 }
-
-
 

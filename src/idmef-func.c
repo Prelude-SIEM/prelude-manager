@@ -89,7 +89,8 @@ void idmef_get_timestamp(struct timeval *tv, char *outptr, size_t size)
         /*
          * Format as the IDMEF draft tell us to.
          */
-        strftime(outptr, size, "%Y-%m-%dT%H:%M:%S", utc);
+        /* strftime(outptr, size, "%Y-%m-%dT%H:%M:%S", utc); */
+        strftime(outptr, size, "%Y-%m-%d%H:%M:%S", utc);
 }
 
 

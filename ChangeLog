@@ -1,3 +1,29 @@
+2001-12-03  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server.c (server_close_connection_cb): 
+	print the remote end address when closing the connection.
+
+2001-11-22  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* plugins/decodes/prelude-nids/Makefile.am: 
+	* src/Makefile.am (prelude_manager_LDADD): no need to link
+	with XML library anymore...
+
+	* src/idmef-message-read.c: remove lot of debugging stuff.
+
+	* src/idmef-func.c (idmef_get_timestamp): 
+	use : separate date and hour by an empty space, not a 'T'
+	because it is annoying for database operations.
+
+	* plugins/reports/mysql/Makefile.am: use mysql_config output.
+
+	* plugins/decodes/prelude-nids/decode.c (nids_decode_run): 
+	use tail recursivity instead of a loop, this make this function more
+	readable.
+
+	* src/idmef-message-read.c (process_get): PID is a 32 bits
+	unsigned integer.
+
 2001-11-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/reports/mysql/mysql.c (print_target): 

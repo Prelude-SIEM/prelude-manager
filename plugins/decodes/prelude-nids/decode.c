@@ -43,29 +43,6 @@
 
 
 
-static char *hex(unsigned char *data, size_t len) 
-{
-        int i;
-        char *buf, *r;
-
-        r = buf = malloc(len * 2 + 1);
-        if ( ! buf ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return NULL;
-        }
-
-        for ( i = 0; i < len; i++ ) {
-                snprintf(buf, 3, "%02x", data[i]);
-                buf += 2;
-        }
-
-        r[len * 2] = '\0';
-        
-        return r;
-}
-
-
-
 
 static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip) 
 {
@@ -145,7 +122,10 @@ static void gather_payload_infos(idmef_alert_t *alert, unsigned char *data, size
         
         pdata->type = string;
         pdata->meaning = "Packet Payload";
-        pdata->data = hex(data, len);       
+        
+        pdata->data = prelude_string_to_hex(data, len);
+        if ( ! pdata->data )
+                idmef_additional_data_free(alert);
 }
 
 
@@ -214,48 +194,43 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert)
         uint32_t len;
         struct timeval tv;
         
-        while ( 1 ) {
-
-                ret = prelude_msg_get(pmsg, &tag, &len, &buf);
-                printf("nids get %d, %d\n", ret, tag);
-                
-                if ( ret < 0 ) {
-                        log(LOG_ERR, "error decoding message.\n");
-                        return -1;
-                }
-
-                /*
-                 * End of message.
-                 */
-                if ( ret == 0 ) 
-                        break;
-
-                switch (tag) {
-
-                case ID_PRELUDE_NIDS_TS_SEC:
-                        tv.tv_sec = ntohl( (*(long *)buf));
-                        break;
-
-                case ID_PRELUDE_NIDS_TS_USEC:
-                        tv.tv_usec = ntohl( (*(long *)buf)) ;
-                        break;
-                        
-                case ID_PRELUDE_NIDS_PACKET:
-                        ret = msg_to_packet(pmsg, alert);
-                        if ( ret < 0 )
-                                return -1;
-                        break;
-
-                case MSG_END_OF_TAG:
-                        return 0;
-                        
-                default:
-                        log(LOG_ERR, "unknown tag : %d.\n", tag);
-                        break;
-                }
+        ret = prelude_msg_get(pmsg, &tag, &len, &buf);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error decoding message.\n");
+                return -1;
         }
         
-        return 0;
+        /*
+         * End of message.
+         */
+        if ( ret == 0 ) 
+                return -1; /* message should always terminate by END OF TAG */
+        
+        switch (tag) {
+                
+        case ID_PRELUDE_NIDS_TS_SEC:
+                tv.tv_sec = ntohl( (*(long *)buf));
+                break;
+                
+        case ID_PRELUDE_NIDS_TS_USEC:
+                tv.tv_usec = ntohl( (*(long *)buf)) ;
+                break;
+                
+        case ID_PRELUDE_NIDS_PACKET:
+                ret = msg_to_packet(pmsg, alert);
+                if ( ret < 0 )
+                        return -1;
+                break;
+                
+        case MSG_END_OF_TAG:
+                return 0;
+                
+        default:
+                log(LOG_ERR, "unknown tag : %d.\n", tag);
+                break;
+        }
+        
+        return nids_decode_run(pmsg, alert);
 }
 
 
