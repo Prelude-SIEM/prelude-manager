@@ -20,7 +20,7 @@ include = @LIBPRELUDE_CONFIG_PREFIX@/default/global.conf
 # listen = unix:/tmp/prelude-manager.socket
 # listen = unix
 #
-listen = unix
+listen = 127.0.0.1
 
 
 # Number of bits of the prime used in the Diffie Hellman key exchange. 
