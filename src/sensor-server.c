@@ -160,11 +160,11 @@ static int handle_request_ident(sensor_fd_t *cnx)
 static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen) 
 {
         int ret;
-        
-        ret = extract_uint64(&cnx->analyzerid, buf, blen);
+
+        ret = extract_uint64_safe(&cnx->analyzerid, buf, blen);
         if ( ret < 0 )
                 return -1;
-        
+                
         if ( cnx->analyzerid != 0 ) {
                 log(LOG_INFO, "[%s] - sensor declared ident %llu.\n", cnx->addr, cnx->analyzerid);
                 return 0;

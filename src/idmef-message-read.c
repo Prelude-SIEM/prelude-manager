@@ -43,8 +43,25 @@
 #include "config.h"
 
 
-#define extract_idmef_string(buf, len, dst)  \
-        extract_string(buf, len, dst.string)
+#define extract_idmef_string(buf, blen, dst) do {                         \
+        int ret;                                                          \
+        ret = extract_string_safe(&dst.string, buf, blen);                \
+        if ( ret < 0 )                                                    \
+               return -1;                                                 \
+} while(0)
+
+
+
+#define extract_int(type, buf, blen, dst) do {        \
+                                                      \
+        if ( sizeof(type ## _t) != blen ) {           \
+                log(LOG_ERR, "Datatype error, buffer is not %s: couldn't convert.\n", "type ## _t"); \
+                return -1;                            \
+        }                                             \
+                                                      \
+        dst = extract_ ## type ((unsigned char *) buf);   \
+} while (0)
+
 
 
 static int additional_data_get(prelude_msg_t *msg, idmef_additional_data_t *data) 
@@ -1342,7 +1359,10 @@ int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg)
                         return -1;
 
         case MSG_OWN_FORMAT:
-                extract_int(uint8, buf, len, tag);
+                ret = extract_uint8_safe(&tag, buf, len);
+                if ( ret < 0 )
+                        return -1;
+                
                 ret = decode_plugins_run(tag, msg, idmef);                
                 if ( ret < 0 ) 
                         return ret;

@@ -30,6 +30,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 
+#include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 
 #include "packet.h"
@@ -50,10 +51,7 @@ static packet_t packet[MAX_PKTDEPTH + 1];
 
 static const char *get_address(struct in_addr *addr) 
 {
-        struct in_addr tmp;
-
-        extract_ipv4_addr(&tmp, addr);
-        return inet_ntoa(tmp);        
+        return inet_ntoa(extract_ipv4_addr(addr));        
 }
 
 
@@ -148,16 +146,26 @@ static int packet_to_idmef(idmef_alert_t *alert, packet_t *p)
                 }
                 
                 else if ( p[i].proto == p_tcp ) {
-                        extract_int(uint16, &p[i].p.tcp->th_sport, sizeof(uint16_t), sport);
-                        extract_int(uint16, &p[i].p.tcp->th_dport, sizeof(uint16_t), dport);
-                        
+                        /*
+                         * we want to bound check the buffer sent by the sensor.
+                         */
+                        if ( p[i].len != sizeof(tcphdr_t) )
+                                return -1;
+
+                        sport = extract_uint16(&p[i].p.tcp->th_sport);
+                        dport = extract_uint16(&p[i].p.tcp->th_dport);
+                                          
                         ret = gather_protocol_infos(alert, sport, dport, "tcp");
                         if ( ret < 0 )
                                 return -1;
                 }
                 else if ( p[i].proto == p_udp ) {
-                        extract_int(uint16, &p[i].p.udp_hdr->uh_sport, sizeof(uint16_t), sport);
-                        extract_int(uint16, &p[i].p.udp_hdr->uh_dport, sizeof(uint16_t), dport);
+
+                        if ( p[i].len != sizeof(udphdr_t) )
+                                return -1;
+                        
+                        sport = extract_uint16(&p[i].p.udp_hdr->uh_sport);
+                        dport = extract_uint16(&p[i].p.udp_hdr->uh_dport);
                         
                         ret = gather_protocol_infos(alert, sport, dport, "udp");
                         if ( ret < 0 )

@@ -116,11 +116,17 @@ static int handle_plaintext_account_creation(prelude_io_t *fd, prelude_msg_t *ms
                 switch (tag) {
                         
                 case PRELUDE_MSG_AUTH_USERNAME:
-                        extract_string(buf, len, user);
+                        ret = extract_string_safe(&user, buf, len);
+                        if ( ret < 0 )
+                                return -1;
+                        
                         break;
                         
                 case PRELUDE_MSG_AUTH_PASSWORD:
-                        extract_string(buf, len, pass);
+                        ret = extract_string_safe(&pass, buf, len);
+                        if ( ret < 0 )
+                                return -1;
+                        
                         break;
                         
                 default:

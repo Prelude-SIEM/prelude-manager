@@ -2,7 +2,7 @@ SUBDIRS = manager-adduser src plugins docs
 
 EXTRA_DIST = prelude-manager.conf config.h 		\
              AUTHORS COPYING INSTALL NEWS README 	\
-             ChangeLog
+             ChangeLog prelude-create-db.sh
 
 install-data-local:
 	$(INSTALL) -d -m 700 $(configdir);

@@ -29,6 +29,7 @@
 #include "packet.h"
 
 #include <libprelude/list.h>
+#include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/idmef-tree-func.h>
@@ -74,11 +75,7 @@ static char buf[1024], *payload = NULL;
 
 static const char *get_address(struct in_addr *addr) 
 {
-        struct in_addr tmp;
-        
-        extract_ipv4_addr(&tmp, addr);
-
-        return inet_ntoa(tmp);
+        return inet_ntoa(extract_ipv4_addr(addr));
 }
 
 
@@ -206,7 +203,7 @@ static int ether_dump(idmef_additional_data_t *data, packet_t *packet)
         const char *type;
         etherhdr_t *hdr = packet->p.ether_hdr;
 
-        extract_int(uint16, &hdr->ether_type, sizeof(uint16_t), t);
+        t = extract_uint16(&hdr->ether_type);
         
         i = snprintf(buf, sizeof(buf), "%s -> ",
                      etheraddr_string(hdr->ether_shost));
@@ -262,8 +259,8 @@ static int arp_dump(idmef_additional_data_t *data, packet_t *packet)
                 { 0, NULL },
         };
         
-        extract_int(uint16, &arp->arp_op, sizeof(uint16_t), op);
-        extract_int(uint16, &arp->arp_hrd, sizeof(uint16_t), hrd);
+        op = extract_uint16(&arp->arp_op);
+        hrd = extract_uint16(&arp->arp_hrd);
         
         for ( i = 0; type_tbl[i].name != NULL; i++ ) {
                 if ( op == type_tbl[i].type )
@@ -329,10 +326,10 @@ static int ip_dump(idmef_additional_data_t *data, packet_t *packet)
         char *src, *dst;
         uint16_t off, len, id;
         iphdr_t *ip = packet->p.ip;        
-
-        extract_int(uint16, &ip->ip_id, sizeof(uint16_t), id);
-        extract_int(uint16, &ip->ip_off, sizeof(uint16_t), off);
-        extract_int(uint16, &ip->ip_len, sizeof(uint16_t), len);
+        
+        id = extract_uint16(&ip->ip_id);
+        off = extract_uint16(&ip->ip_off);
+        len = extract_uint16(&ip->ip_len);
         
         src = strdup(get_address(&ip->ip_src));
         dst = strdup(get_address(&ip->ip_dst));
@@ -375,13 +372,13 @@ static int tcp_dump(idmef_additional_data_t *data, packet_t *packet)
         uint32_t seq, ack;
         tcphdr_t *tcp = packet->p.tcp;
         uint16_t urp, win, sport, dport;
-
-        extract_int(uint16, &tcp->th_win, sizeof(uint16_t), win);
-        extract_int(uint16, &tcp->th_urp, sizeof(uint16_t), urp);
-        extract_int(uint16, &tcp->th_sport, sizeof(uint16_t), sport);
-        extract_int(uint16, &tcp->th_dport, sizeof(uint16_t), dport);
-        extract_int(uint32, &tcp->th_seq, sizeof(uint32_t), seq);
-        extract_int(uint32, &tcp->th_ack, sizeof(uint32_t), ack);
+        
+        win = extract_uint16(&tcp->th_win);
+        urp = extract_uint16(&tcp->th_urp);
+        sport = extract_uint16(&tcp->th_sport);
+        dport = extract_uint16(&tcp->th_dport);
+        seq = extract_uint32(&tcp->th_seq);
+        ack = extract_uint32(&tcp->th_ack);
         
         blen = sizeof(buf);
 
@@ -430,9 +427,9 @@ static int udp_dump(idmef_additional_data_t *data, packet_t *packet)
         uint16_t sport, dport, len;
         udphdr_t *udp = packet->p.udp_hdr;
         
-        extract_int(uint16, &udp->uh_ulen, sizeof(uint16_t), len);
-        extract_int(uint16, &udp->uh_sport, sizeof(uint16_t), sport);
-        extract_int(uint16, &udp->uh_dport, sizeof(uint16_t), dport);
+        len = extract_uint16(&udp->uh_ulen);
+        sport = extract_uint16(&udp->uh_sport);
+        dport = extract_uint16(&udp->uh_dport);
         
         ret = snprintf(buf, sizeof(buf), "%d -> %d [len=%d]", sport, dport, len);
 
@@ -481,7 +478,6 @@ static int igmp_dump(idmef_additional_data_t *data, packet_t *packet)
 {
         int ret;
         const char *type;
-        struct in_addr igmp_group;
         igmphdr_t *igmp = packet->p.igmp_hdr;
         
         switch (igmp->igmp_type) {
@@ -501,11 +497,9 @@ static int igmp_dump(idmef_additional_data_t *data, packet_t *packet)
                 type = "Unknow Igmp type";
                 break;
         }        
-
-        extract_int(uint32, &igmp->igmp_group.s_addr, sizeof(igmp->igmp_group.s_addr), igmp_group.s_addr);
         
         ret = snprintf(buf, sizeof(buf), "type=%s code=%d group=%s",
-                       type, igmp->igmp_code, inet_ntoa(igmp_group));
+                       type, igmp->igmp_code, get_address(&igmp->igmp_group));
 
         idmef_string(&data->data) = packet->data = strdup(buf);
         idmef_string_len(&data->data) = ret;
@@ -520,7 +514,8 @@ static int icmp_dump(idmef_additional_data_t *data, packet_t *packet)
 {
         int ret;
         icmphdr_t *icmp = packet->p.icmp_hdr;
-        
+
+                
         ret = snprintf(buf, sizeof(buf), "type=%d code=%d", icmp->icmp_type, icmp->icmp_code);
 
         idmef_string(&data->data) = packet->data = strdup(buf);
@@ -543,19 +538,20 @@ int nids_packet_dump(idmef_alert_t *alert, packet_t *p)
                 char *name;
                 proto_enum_t proto;
                 dump_func_t *func;
+                int size;
         } tbl[] = {
-                { "Ethernet header", p_ether, (dump_func_t *) ether_dump },
-                { "Arp header", p_arp, (dump_func_t *) arp_dump  },
-                { "Rarp header", p_rarp, (dump_func_t *) arp_dump },
-                { "Ip header", p_ip, (dump_func_t *) ip_dump },
-                { "Ip encapsulated header", p_ipencap, (dump_func_t *) ip_dump },
-                { "Icmp header", p_icmp, (dump_func_t *) icmp_dump },
-                { "Igmp header", p_igmp, (dump_func_t *) igmp_dump },
-                { "Tcp header", p_tcp, (dump_func_t *) tcp_dump },
-                { "Udp header", p_udp, (dump_func_t *) udp_dump },
-                { "Tcp options", p_tcpopts, (dump_func_t *) tcpopts_dump },
-                { "Ip options", p_ipopts, (dump_func_t *) ipopts_dump },
-                { "Payload header", p_data, (dump_func_t *) data_dump },
+                { "Ethernet header", p_ether, (dump_func_t *) ether_dump, sizeof(etherhdr_t) },
+                { "Arp header", p_arp, (dump_func_t *) arp_dump, sizeof(etherarphdr_t)  },
+                { "Rarp header", p_rarp, (dump_func_t *) arp_dump, sizeof(etherarphdr_t) },
+                { "Ip header", p_ip, (dump_func_t *) ip_dump, sizeof(iphdr_t) },
+                { "Ip encapsulated header", p_ipencap, (dump_func_t *) ip_dump, sizeof(iphdr_t) },
+                { "Icmp header", p_icmp, (dump_func_t *) icmp_dump, sizeof(icmphdr_t) },
+                { "Igmp header", p_igmp, (dump_func_t *) igmp_dump, sizeof(igmphdr_t) },
+                { "Tcp header", p_tcp, (dump_func_t *) tcp_dump, sizeof(tcphdr_t) },
+                { "Udp header", p_udp, (dump_func_t *) udp_dump, sizeof(udphdr_t) },
+                { "Tcp options", p_tcpopts, (dump_func_t *) tcpopts_dump, -1 },
+                { "Ip options", p_ipopts, (dump_func_t *) ipopts_dump, -1 },
+                { "Payload header", p_data, (dump_func_t *) data_dump, -1 },
                 { NULL, },
         };
 
@@ -566,6 +562,12 @@ int nids_packet_dump(idmef_alert_t *alert, packet_t *p)
                 for ( j = 0; tbl[j].name != NULL; j++ ) {
                         
                         if ( p[i].proto == tbl[j].proto ) {
+
+                                if ( tbl[j].size > 0 && tbl[j].size != p[i].len ) {
+                                        log(LOG_ERR, "received len isn't equal to specified len!\n");
+                                        return -1;
+                                }
+                                
                                 data = idmef_alert_additional_data_new(alert);
                                 if ( ! data ) 
                                         return -1;

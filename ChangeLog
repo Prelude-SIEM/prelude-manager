@@ -1,3 +1,34 @@
+2002-03-25  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server-generic.c (handle_plaintext_authentication): 
+	use extract_string_safe().
+
+	* src/sensor-server.c (handle_declare_ident): 
+	use extract_uint64_safe().
+
+	* src/idmef-message-read.c (extract_idmef_string): 
+	use extract_string_safe, and implicitly return if needed.
+	(idmef_message_read): use extract_uint8_safe().
+
+	(extract_int): use the needed extract_ function.
+
+	* plugins/decodes/prelude-nids/packet-decode.c (get_address): 
+	(ether_dump): 
+	(arp_dump): 
+	(ip_dump): 
+	(tcp_dump): 
+	(udp_dump): 
+
+	update to use the new extract_* functions.
+	
+	(nids_packet_dump): Include the header size in the table, 
+	and bound check provided len with the header size. 
+
+	* plugins/decodes/prelude-nids/decode.c (get_address): 
+	(packet_to_idmef): 
+	* manager-adduser/manager-adduser.c (handle_plaintext_account_creation): 
+	
+
 2002-03-22  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/db-plugins.c (db_plugins_available): 
