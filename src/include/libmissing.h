@@ -30,8 +30,16 @@
 #define _PRELUDE_MANAGER_LIBMISSING_H
 
 #include "config.h"
-#include "poll.h"
+
+#include <alloca.h>
+#include "getaddrinfo.h"
+#include "gettext.h"
+#include "minmax.h"
+#include <poll.h>
 #include "snprintf.h"
+#include <stdbool.h>
+#include "vasnprintf.h"
 #include "vsnprintf.h"
+#include "xsize.h"
 
 #endif /* _PRELUDE_MANAGER_LIBMISSING_H */
