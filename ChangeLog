@@ -1,5 +1,29 @@
 2001-12-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/idmef-db-output.c: new file containing the, now generic,
+	code contained by the old mysql plugins. This code call db plugin
+	in order to output to the database...
+
+	* src/db-plugins.c (db_plugins_run): new function,
+	only call idmef_db_output() if at least one db plugin 
+	is enabled.
+	
+	* src/idmef-db-output.c (idmef_db_output): 
+
+	Use db_plugins_insert_id().
+	
+	* src/include/plugin-db.h: 
+	* src/db-plugins.c (db_plugins_insert_id): 
+	* plugins/db/mysql/mysql.c (db_insert_id): 
+
+	plugin-db have an insert_id function permitting the Manager to
+	pass a generated ID, or to tell the plugin to use auto increment
+	(and gather the value).
+	
+	* src/decode-plugins.c (decode_plugins_run): 
+	* src/report-plugins.c (report_plugins_run): specify the
+	member to run in the plugin_run() macro call.
+
 	* plugins/db/mysql/mysql.c: first cut at a mysql plugin
 	done the right way(tm).
 

@@ -63,7 +63,7 @@ void report_plugins_run(idmef_alert_t *alert)
 
         list_for_each(tmp, &report_plugins_list) {
                 pc = list_entry(tmp, plugin_container_t, ext_list);
-                plugin_run(pc, plugin_report_t, alert);
+                plugin_run(pc, plugin_report_t, run, alert);
         }
 }
 

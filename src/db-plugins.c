@@ -32,10 +32,12 @@
 
 #include <libprelude/list.h>
 #include <libprelude/common.h>
+#include <libprelude/idmef-tree.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>
 
 #include "plugin-db.h"
+#include "idmef-db-output.h"
 
 
 static LIST_HEAD(db_plugins_list);
@@ -66,10 +68,35 @@ void db_plugins_insert(char *table, char *fields, char *value)
 
         list_for_each(tmp, &db_plugins_list) {
                 pc = list_entry(tmp, plugin_container_t, ext_list);
-                plugin_run_with_return_value(pc, &ret, plugin_db_t, table, fields, value);
+                plugin_run_with_return_value(pc, plugin_db_t, db_insert,
+                                             ret, table, fields, value);
         }
 }
 
+
+
+void db_plugins_insert_id(char *table, char *fields, unsigned long *id)
+{
+        int ret;
+        struct list_head *tmp;
+        plugin_container_t *pc;
+
+        list_for_each(tmp, &db_plugins_list) {
+                pc = list_entry(tmp, plugin_container_t, ext_list);
+                plugin_run_with_return_value(pc, plugin_db_t,
+                                             db_insert_id, ret, table, fields, id);
+        }
+}
+
+
+
+void db_plugins_run(idmef_alert_t *alert) 
+{
+        if ( list_empty(&db_plugins_list) )
+                return;
+
+        idmef_db_output(alert);
+}
 
 
 

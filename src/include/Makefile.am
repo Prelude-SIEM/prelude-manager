@@ -8,6 +8,7 @@ noinst_HEADERS = 		\
 
 include_HEADERS = 			\
 		plugin-db.h		\
+		db.h			\
 		plugin-decode.h		\
 		plugin-report.h		\
 		report.h		\

@@ -77,14 +77,35 @@ static char *db_escape(const char *string)
 }
 
 
+
 static int db_query(char * query)
 {
-        int ret = -1;
-
-        ret = mysql_query(&mysql, query);
-
-        return ret;
+        return mysql_query(&mysql, query);
 }
+
+
+
+static int db_insert_id(char *table, char *field, unsigned long *id) 
+{
+        int ret;
+        char query[MAX_QUERY_LENGTH];
+        
+        if ( *id == DB_INSERT_AUTOINC_ID ) {
+                *id = mysql_insert_id(&mysql);
+                return (*id == 0) ? -1 : 0;
+        }
+        
+        snprintf(query, sizeof(query), "INSER_INTO %s (ident) VALUES(%ld)", table, *id);
+        
+        ret = db_query(query);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "db_query \"%s\" returned %d\n", query, ret);
+                return -1;
+        }
+
+        return 0;
+}
+
 
 
 
@@ -95,21 +116,18 @@ static int db_insert(char *table, char *fields, char *values)
 {
         int ret = 0;
         char query[MAX_QUERY_LENGTH];
-
+        
         snprintf(query, sizeof(query),
                  "INSERT INTO %s (%s) VALUES(%s)", table, fields, values);
-
                 
         ret = db_query(query);
         if ( ret ) {
                 log(LOG_ERR, "db_query \"%s\" returned %d\n", query, ret);
                 ret = -1;
         }
-
+        
         return ret;
 }
-
-
 
 
 /*
@@ -209,7 +227,8 @@ int plugin_init(unsigned int id)
 
         plugin_set_name(&plugin, "MySQL");
         plugin_set_desc(&plugin, "Will log all alert to a MySQL database.");
-        plugin_set_running_func(&plugin, db_insert);
+        plugin_set_insert_func(&plugin, db_insert);
+        plugin_set_insert_id_func(&plugin, db_insert_id);
         plugin_set_closing_func(&plugin, db_close);
         
         plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_MANAGER_CONF);

@@ -87,7 +87,7 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_alert_t *ale
                 if ( p->decode_id != plugin_id )
                         continue;
 
-                plugin_run_with_return_value(pc, &ret, plugin_decode_t, msg, alert);
+                plugin_run_with_return_value(pc, plugin_decode_t, run, ret, msg, alert);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "%s couldn't decode sensor data.\n", p->name);
                         return -1;
