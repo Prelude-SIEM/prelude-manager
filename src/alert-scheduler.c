@@ -41,6 +41,8 @@
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "pconfig.h"
+#include "idmef.h"
+
 
 #define MAX_ALERT_IN_MEMORY 200
 
@@ -184,12 +186,9 @@ static void process_message(prelude_msg_t *msg)
 /*
  * This is the function responssible for handling queued alert.
  */
-static void process_alert(void *arg) 
+static void *process_alert(void *arg) 
 {
-        int ret;
         prelude_msg_t *msg;
-        idmef_message_t *idmef;
-        
 
         while ( 1 ) {
                 
@@ -304,7 +303,7 @@ void alert_schedule(prelude_msg_t *msg, prelude_io_t *src)
 
 int alert_scheduler_init(void) 
 {
-        int ret, fd;
+        int ret;
 
         ret = init_file_output(MID_PRIORITY_ALERT_FILENAME, &mid_priority_output);
         if ( ret < 0 )

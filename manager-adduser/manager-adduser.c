@@ -29,6 +29,7 @@
 #include <libprelude/prelude-auth.h>
 
 #include "config.h"
+#include "ssl-register-client.h"
 
 
 int config_quiet = 0;

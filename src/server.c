@@ -47,11 +47,12 @@
 
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
+#include <libprelude/prelude-auth.h>
 
 #include "pconfig.h"
 #include "server.h"
 #include "server-logic.h"
-
+#include "alert-scheduler.h"
 
 
 #define UNIX_SOCK "/var/lib/prelude/socket"
@@ -64,8 +65,6 @@ extern struct report_config config;
 static int server_read_connection_cb(prelude_io_t *src, void **clientdata) 
 {
         int ret;
-        uint32_t dlen;
-        uint8_t tag, priority;
         
         ret = prelude_msg_read((prelude_msg_t **) clientdata, src);
         if ( ret < 0 )
@@ -92,7 +91,7 @@ static int server_close_connection_cb(prelude_io_t *pio, void *clientdata)
         
         log(LOG_INFO, "closing connection with %s.\n", "");
 
-        prelude_io_close(pio);
+        ret = prelude_io_close(pio);
         prelude_io_destroy(pio);
 
         if ( clientdata )

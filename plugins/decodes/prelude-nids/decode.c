@@ -153,7 +153,6 @@ static void gather_payload_infos(idmef_alert_t *alert, unsigned char *data, size
 static void packet_to_idmef(idmef_alert_t *alert, packet_t *p) 
 {
         int i;
-        uint8_t proto;
         
         for ( i = 0; p[i].proto != p_end; i++ ) {
                 
@@ -296,7 +295,6 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert)
 
 int plugin_init(unsigned int id)
 {
-        int ret;
         static plugin_decode_t plugin;
         
         plugin_set_name(&plugin, "Prelude NIDS data decoder");

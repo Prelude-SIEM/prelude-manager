@@ -46,6 +46,9 @@
 #include <libprelude/ssl-registration-msg.h>
 
 
+#include "ssl-register-client.h"
+
+
 #define ACKMSGLEN ACKLENGTH + SHA_DIGEST_LENGTH + HEADLENGTH + PADMAXSIZE
 
 
@@ -137,23 +140,22 @@ static int wait_install_request(prelude_io_t *pio,
         certlen = prelude_ssl_recv_cert(pio, cert, BUFMAXSIZE, skey1, skey2);
         if ( certlen < 0 ) {
                 log(LOG_ERR, "couldn't receive Manager certificate.\n");
-                return -1;
+                goto err;
         }
 
         ret = prelude_ssl_send_cert(pio, MANAGER_KEY, skey1, skey2);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't send Sensor certificate.\n");
-                return -1;
+                goto err;
         }
 
         len = recv_ack(pio, skey1, skey2);
         if ( len < 0 ) {
                 log(LOG_ERR, "didn't receive Manager acknowledgment.\n");
-                return -1;
+                goto err;
         }
         
         prelude_io_close(pio);
-        
         
         
         fprintf(stderr, "Writing Prelude certificate to %s\n", SENSORS_CERT);
@@ -244,7 +246,7 @@ static int create_manager_key_if_needed(void)
 
 int ssl_register_client(void)
 {
-        int sock, ret;
+        int sock;
         prelude_io_t *pio;
         des_key_schedule skey1, skey2;
 

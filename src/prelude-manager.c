@@ -42,6 +42,7 @@
 #include "pconfig.h"
 #include "server.h"
 #include "plugin-decode.h"
+#include "plugin-report.h"
 
 
 extern struct report_config config;

@@ -1,5 +1,7 @@
 2001-11-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* Kill warning everywhere.
+
 	* plugins/reports/mysql/mysql.c: quote passed argument.
 	Now do what it is supposed to do : Insert data in a MySQL database.
 

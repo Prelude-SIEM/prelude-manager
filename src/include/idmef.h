@@ -455,7 +455,7 @@ idmef_message_t *idmef_alert_new(void);
 
 idmef_message_t *idmef_heartbeat_new(void);
 
-void idmef_message_fee(idmef_message_t *msg);
+void idmef_message_free(idmef_message_t *msg);
 
 idmef_additional_data_t *idmef_additional_data_new(idmef_alert_t *alert);
 
