@@ -246,14 +246,16 @@ static int handle_fd_event(server_fd_set_t *set, int cnx_key)
                 dprint("thread=%ld - Data available (ret=%d)\n", pthread_self(), ret);       
                 if ( ret < 0 )
                         remove_connection(set, cnx_key);
+                return 0;
         }
         
         else if ( set->pfd[cnx_key].revents & (POLLERR|POLLHUP|POLLNVAL) ) {
                 dprint("thread=%ld - Hanging up.\n", pthread_self());
                 remove_connection(set, cnx_key);
+                return 0;
         }
 
-        return 0;
+        return -1;
 }
 
 
