@@ -118,7 +118,7 @@ static int try_recovering_from_failover(prelude_plugin_instance_t *pi, plugin_fa
         prelude_plugin_generic_t *plugin;
         unsigned int available, count = 0;
         
-        ret = prelude_plugin_instance_call_init_func(pi);
+        ret = prelude_plugin_instance_call_commit_func(pi);
         if ( ret < 0 )
                 return -1;
         
@@ -175,7 +175,7 @@ static int setup_plugin_failover(prelude_plugin_instance_t *pi)
 
         get_failover_filename(pi, filename, sizeof(filename));
         
-        if ( ! prelude_plugin_instance_have_init_func(pi) ) {
+        if ( ! prelude_plugin_instance_has_commit_func(pi) ) {
                 log(LOG_ERR, "plugin %s doesn't support failover.\n", plugin->name);
                 return -1;
         }
@@ -422,7 +422,3 @@ int report_plugin_activate_failover(const char *plugin)
 
         return setup_plugin_failover(pi);
 }
-
-
-
-
