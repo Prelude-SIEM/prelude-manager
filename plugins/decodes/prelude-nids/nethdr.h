@@ -33,6 +33,7 @@
 #include <netinet/in_systm.h>
 #include <net/if.h>
 
+
 #include "config.h"
 
 #define ETH_ALEN 6
@@ -174,12 +175,12 @@ typedef struct {
 #define IP_MAXPACKET    65535           /* maximum packet size */
 #define IP_MSS          576             /* default maximum segment size */
 
-typedef struct {        
-#ifdef WORDS_BIGENDIAN
-        uint8_t ip_v:4, ip_hl:4;     
-#else
-        uint8_t ip_hl:4, ip_v:4;
-#endif
+typedef struct {
+        uint8_t ip_vhl;         /* header length, version */
+
+#define IP_V(ip)  ((ip)->ip_vhl & 0xf0) >> 4
+#define IP_HL(ip) ((ip)->ip_vhl & 0x0f)
+
         uint8_t ip_tos;
         uint16_t ip_len;
         uint16_t ip_id;
@@ -200,9 +201,11 @@ typedef struct {
 #define TH_FIN  0x01
 #define TH_SYN  0x02
 #define TH_RST  0x04
-#define TH_PUSH 0x08
+#define TH_PSH  0x08
 #define TH_ACK  0x10
 #define TH_URG  0x20
+#define TH_RES1 0x40
+#define TH_RES2 0x80
 
 
 typedef struct {
@@ -210,11 +213,12 @@ typedef struct {
         uint16_t th_dport;
         uint32_t th_seq;
         uint32_t th_ack;
-#ifdef WORDS_BIGENDIAN
-        uint8_t th_off:4, th_x2:4;
-#else
-        uint8_t th_x2:4, th_off:4;
-#endif
+
+        uint8_t th_offx2; /* th_off and th_x2 */
+
+#define TH_OFF(tcp) ((tcp)->th_offx2 & 0xf0) >> 4
+#define TH_X2(tcp)  ((tcp)->th_offx2 & 0x0f)
+        
         uint8_t th_flags;
         uint16_t th_win;
         uint16_t th_sum;

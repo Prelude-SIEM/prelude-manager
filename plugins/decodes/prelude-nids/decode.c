@@ -49,13 +49,10 @@ static packet_t packet[MAX_PKTDEPTH + 1];
 
 static const char *get_address(struct in_addr *addr) 
 {
-#ifdef NEED_ALIGNED_ACCESS
         struct in_addr tmp;
-        
-        memmove(&tmp, addr, sizeof(*addr));
-        addr = &tmp;
-#endif
-        return inet_ntoa(*addr);        
+
+        extract_ipv4_addr(&tmp, addr);
+        return inet_ntoa(tmp);        
 }
 
 

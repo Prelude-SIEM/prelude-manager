@@ -74,14 +74,11 @@ static char buf[1024], *payload = NULL;
 
 static const char *get_address(struct in_addr *addr) 
 {
-#ifdef NEED_ALIGNED_ACCESS
         struct in_addr tmp;
         
-        memmove(&tmp, addr, sizeof(*addr));
-        addr = &tmp;
-#endif
-        return inet_ntoa(*addr);
-        
+        extract_ipv4_addr(&tmp, addr);
+
+        return inet_ntoa(tmp);
 }
 
 
@@ -342,7 +339,7 @@ static int ip_dump(idmef_additional_data_t *data, packet_t *packet)
         
         r = snprintf(buf, sizeof(buf),
                      "%s -> %s [hl=%d,version=%d,tos=%d,len=%d,id=%d,ttl=%d",
-                     src, dst, ip->ip_hl * 4, ip->ip_v, ip->ip_tos, len, id, ip->ip_ttl);
+                     src, dst, IP_HL(ip) * 4, IP_V(ip), ip->ip_tos, len, id, ip->ip_ttl);
 
         if ( off & 0x3fff ) {
                 r += snprintf(buf + r, sizeof(buf) - r, ",frag=[offset=%d",  (off & 0x1fff) * 8);
@@ -392,14 +389,14 @@ static int tcp_dump(idmef_additional_data_t *data, packet_t *packet)
               
         flags = tcp->th_flags;
 
-        if ( flags & (TH_SYN|TH_FIN|TH_RST|TH_PUSH|TH_ACK|TH_URG) ) {
+        if ( flags & (TH_SYN|TH_FIN|TH_RST|TH_PSH|TH_ACK|TH_URG) ) {
                 if (flags & TH_SYN)
                         r += snprintf(&buf[r], blen - r, "SYN ");
                 if (flags & TH_FIN)
                         r += snprintf(&buf[r], blen - r, "FIN ");
                 if (flags & TH_RST)
                         r += snprintf(&buf[r], blen - r, "RST ");
-                if (flags & TH_PUSH)
+                if (flags & TH_PSH)
                         r += snprintf(&buf[r], blen - r, "PUSH ");
                 if (flags & TH_ACK)
                         r += snprintf(&buf[r], blen - r, "ACK ");
