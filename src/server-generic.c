@@ -129,7 +129,7 @@ static prelude_msg_status_t handle_ssl_authentication(server_generic_client_t *c
         
         ret = ssl_auth_client(client->fd);
         if ( ret < 0 ) {
-                log(LOG_INFO, "[%s] - SSL authentication failed.\n", client->addr);
+                log_client(client, "SSL authentication failed.\n");
                 return -1;
         }
         
@@ -140,11 +140,11 @@ static prelude_msg_status_t handle_ssl_authentication(server_generic_client_t *c
                 return 0;
 
         client->is_authenticated = 1;
-        log(LOG_INFO, "[%s] - SSL authentication succeed.\n", client->addr);
+        log_client(client, "SSL authentication succeed.\n");
         
         return 1;
 #else
-        log(LOG_INFO, "[%s] - requested unavailable option : SSL.\n");
+        log_client(client, "requested unavailable option : SSL.\n");
         return -1;
 #endif
 }
@@ -181,28 +181,28 @@ static int handle_plaintext_authentication(prelude_msg_t *msg, server_generic_cl
                         break;
                         
                 default:
-                        log(LOG_INFO, "[%s] - invalid authentication message.\n", client->addr);
+                        log_client(client, "invalid authentication message.\n");
                         return -1;
                 }
         }
         
         if ( ! user || ! pass || ret < 0 ) {
-                log(LOG_INFO, "[%s] - invalid authentication message.\n", client->addr);
+                log_client(client, "invalid authentication message.\n");
                 return -1;
         }
         
         ret = prelude_auth_check(MANAGER_AUTH_FILE, user, pass);
         if ( ret < 0 ) {
-                log(LOG_INFO, "[%s] - plaintext authentication failed.\n", client->addr);
+                log_client(client, "plaintext authentication failed.\n");
                 send_plaintext_authentication_result(client->fd, PRELUDE_MSG_AUTH_FAILED);
                 return -1;
         }
 
-        log(LOG_INFO, "[%s] - plaintext authentication succeed.\n", client->addr);
+        log_client(client, "plaintext authentication succeed.\n");
 
         ret = send_plaintext_authentication_result(client->fd, PRELUDE_MSG_AUTH_SUCCEED);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error sending authentication result.\n");
+                log_client(client, "error sending authentication result.\n");
                 return -1;
         }
         
@@ -228,7 +228,7 @@ static int handle_authentication(prelude_msg_t *msg, server_generic_client_t *cl
         tag = prelude_msg_get_tag(msg);
 
         if ( tag != PRELUDE_MSG_AUTH ) {
-                log(LOG_INFO, "[%s] - expected authentication tag got (%d).\n", client->addr, tag);
+                log_client(client, "expected authentication tag got (%d).\n", tag);
                 return -1;
         }
 
@@ -249,7 +249,7 @@ static int handle_authentication(prelude_msg_t *msg, server_generic_client_t *cl
                 break;
 
         default:
-                log(LOG_INFO, "[%s] - invalid authentication tag (%d).\n", client->addr, tag);
+                log_client(client, "invalid authentication tag (%d).\n", tag);
                 return -1;
         }
 
@@ -354,9 +354,8 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
          * layer above server-generic are permited to set fd to NULL so
          * that they can take control over the connection FD.
          */
-        if ( client->fd ) {        
-                log(LOG_INFO, "[%s] - closing connection.\n", client->addr);
-
+        if ( client->fd ) {
+                log_client(client, "closing connection.\n");
                 prelude_io_close(client->fd);
                 prelude_io_destroy(client->fd);
         }
@@ -396,11 +395,11 @@ static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock)
 
         ret = hosts_access(&request);
         if ( ! ret ) {
-                log(LOG_INFO, "[%s] - tcp wrapper refused connection.\n", cdata->addr);
+                log_client(cdata, "tcp wrapper refused connection.\n", cdata->addr);
                 return -1;
         }
 
-        log(LOG_INFO, "[%s] - tcp wrapper accepted connection.\n", cdata->addr);
+        log_client(cdata, "tcp wrapper accepted connection.\n");
         
         return 0;
 }
@@ -427,9 +426,9 @@ static int setup_client_socket(server_generic_t *server,
                 if ( ret < 0 )
                         return -1;
         } else
-                log(LOG_INFO, "[%s] - accepted connection.\n", cdata->addr);
+                log_client(cdata, "accepted connection.\n");
 #else
-        log(LOG_INFO, "[%s] - accepted connection.\n", cdata->addr);
+        log_client(cdata, "accepted connection.\n");
 #endif
         /*
          * set client socket non blocking.
@@ -470,14 +469,18 @@ static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg)
                 log(LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
+
+        cdata->client_type = "unknown";
         
         if ( server->unix_srvr ) {
                 client = accept(server->sock, NULL, NULL);
                 cdata->addr = strdup("127.0.0.1");
         } else {
                 client = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
-                if ( client > 0 )
+                if ( client > 0 ) {
                         cdata->addr = strdup(inet_ntoa(addr.sin_addr));
+                        cdata->port = ntohs(addr.sin_port);
+                }
         }
         
         if ( client < 0 ) {

@@ -1,3 +1,56 @@
+2002-11-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/sensor-server.c: 
+	we now have differents kind of connections list :
+	the admins connection list, the managers connection list,
+	and the sensors connection list.
+	
+	(close_connection_cb): only delete the client from it's 
+	list if the client was added to a list.
+
+	(read_connection_cb): handle PRELUDE_MSG_OPTION_REQUEST
+	and PRELUDE_MSG_OPTION_REPLY messages.
+
+	(read_client_type): handle PRELUDE_CLIENT_TYPE_ADMIN.
+
+	(handle_declare_admin): add the client to the admins list.
+
+	(handle_declare_sensor): add the client to the sensors list.
+
+	(handle_declare_child_relay): add the client to the managers list.
+
+	(handle_declare_ident): this function is now used for any kind
+	of client registration (sensors, admins, but not yet managers).
+	Don't add the client to it's list here.
+
+	(reply_sensor_option): read the option reply message emited
+	by a sensor, and forward this message to the destination
+	administrative client using forward_option_reply_to_admin().
+
+	(request_sensor_option): read the option request message
+	emited by an administrative client, and forward this message
+	to the destination sensors using forward_option_request_to_sensor().
+
+	(forward_option_request_to_sensor): implemented. Forward an
+	admin option request message to the sensors this message is
+	addressed to.
+
+	(forward_option_reply_to_admin): implemented. Forward a sensor
+	option reply message, to the admin that emited the option request.
+
+	(forward_to_all_managers): implemented. Forward a message
+	to all connected managers.
+
+	(search_cnx): implemented. Search a connection in the given
+	list, with the given analyzerid.
+
+	* src/server-generic.c: use log_client() macro where needed.
+
+	* src/include/server-generic.h (SERVER_GENERIC_OBJECT): 
+	include client_type and client port.
+
+	(log_client): new macro, to automate logging of activity.
+
 2002-11-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/Makefile.am: 

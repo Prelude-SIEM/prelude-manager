@@ -24,7 +24,19 @@
 #ifndef _MANAGER_SERVER_GENERIC_H
 #define _MANAGER_SERVER_GENERIC_H
 
+
 #include <inttypes.h>
+
+
+#define log_client(cnx, args...) do {                                                                    \
+        if ( cnx->port )                                                                                 \
+               log(LOG_INFO, "[%s:%u, %s:%llu] - ", cnx->addr, cnx->port, cnx->client_type, cnx->ident); \
+        else                                                                                             \
+               log(LOG_INFO, "[unix, %s:%llu] - ", cnx->client_type, cnx->ident);                        \
+                                                                                                         \
+        log(LOG_INFO, args);                                                                             \
+} while (0)
+
 
 
 #define SERVER_GENERIC_OBJECT        \
@@ -33,6 +45,9 @@
         int is_authenticated;        \
         int is_ssl;                  \
         char *addr;                  \
+        uint16_t port;               \
+        char *client_type;           \
+        uint64_t ident;              \
         prelude_client_t *client
 
 

@@ -35,7 +35,6 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-message-id.h>
-#include <libprelude/prelude-getopt-wide.h>
 #include <libprelude/prelude-ident.h>
 #include <libprelude/extract.h>
 #include <libprelude/prelude-client.h>
@@ -52,12 +51,112 @@
 typedef struct {
         SERVER_GENERIC_OBJECT;
         struct list_head list;
-        uint64_t analyzerid;
+        pthread_mutex_t *list_mutex;
 } sensor_fd_t;
 
 
-static LIST_HEAD(sensor_cnx_list);
-static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static LIST_HEAD(admins_cnx_list);
+static LIST_HEAD(sensors_cnx_list);
+static LIST_HEAD(managers_cnx_list);
+static pthread_mutex_t admins_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t sensors_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t managers_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+
+
+static sensor_fd_t *search_cnx(struct list_head *head, uint64_t analyzerid) 
+{
+        sensor_fd_t *cnx;
+        struct list_head *tmp;
+
+        list_for_each(tmp, head) {
+                cnx = list_entry(tmp, sensor_fd_t, list);
+
+                if ( cnx->ident == analyzerid )
+                        return cnx;
+        }
+
+        return NULL;
+}
+
+
+
+
+static int forward_to_all_managers(prelude_msg_t *msg) 
+{
+        sensor_fd_t *cnx;
+        struct list_head *tmp;
+
+        pthread_mutex_lock(&managers_list_mutex);
+        
+        list_for_each(tmp, &managers_cnx_list) {
+                cnx = list_entry(tmp, sensor_fd_t, list);
+                prelude_msg_write(msg, cnx->fd);
+        }
+        
+        pthread_mutex_unlock(&managers_list_mutex);
+
+        return 0;
+}
+
+
+
+
+static int forward_option_reply_to_admin(sensor_fd_t *cnx, uint64_t analyzerid, prelude_msg_t *msg) 
+{
+        int ret;
+        sensor_fd_t *admin;
+        
+        pthread_mutex_lock(&admins_list_mutex);
+
+        admin = search_cnx(&admins_cnx_list, analyzerid);
+        if ( ! admin ) {
+                pthread_mutex_unlock(&admins_list_mutex);
+                return forward_to_all_managers(msg);
+        }
+
+        if ( admin->port )
+                log_client(cnx, "option reply forwarded to sid %llu (%s:%d).\n", analyzerid, admin->addr, admin->port);
+        else
+                log_client(cnx, "option reply forwarded to sid %llu (unix).\n", analyzerid);
+                
+        ret = prelude_msg_write(msg, admin->fd);
+        pthread_mutex_unlock(&admins_list_mutex);
+
+        return ret;
+}
+
+
+
+
+static int forward_option_request_to_sensor(sensor_fd_t *cnx, uint64_t analyzerid, prelude_msg_t *msg)
+{
+        int ret;
+        sensor_fd_t *sensor;
+        
+        pthread_mutex_lock(&sensors_list_mutex);
+
+        sensor = search_cnx(&sensors_cnx_list, analyzerid);
+        if ( ! sensor ) {
+                pthread_mutex_unlock(&sensors_list_mutex);
+                return forward_to_all_managers(msg);
+        }
+
+        if ( sensor->port )
+                log_client(cnx, "option request forwarded to sid %llu (%s:%d).\n", analyzerid, sensor->addr, sensor->port);
+        else
+                log_client(cnx, "option request forwarded to sid %llu (unix).\n", analyzerid);
+                
+        ret = prelude_msg_write(msg, sensor->fd);
+        
+        pthread_mutex_unlock(&sensors_list_mutex);
+
+        return ret;
+}
+
+
 
 
 static int option_list_to_xml(sensor_fd_t *cnx, prelude_msg_t *msg) 
@@ -114,10 +213,87 @@ static int option_list_to_xml(sensor_fd_t *cnx, prelude_msg_t *msg)
                 /*
                  * for compatibility purpose, don't return an error on unknow tag.
                  */
-                log(LOG_INFO, "[%s] - unknow option tag %d.\n", cnx->addr, tag);
+                log_client(cnx, "unknow option tag %d.\n", tag);
         }
 
         return option_list_to_xml(cnx, msg);
+}
+
+
+
+static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        uint64_t target_sensor_ident = 0;
+
+        while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) > 0 ) {
+
+                 /*
+                  * We just need the target ident, so that we know
+                  * where to forward this message.
+                  */
+                if ( tag != PRELUDE_MSG_OPTION_TARGET_ID )
+                        continue;
+                
+                ret = extract_uint64_safe(&target_sensor_ident, buf, len);
+                if ( ret < 0 )
+                        return -1;
+        }
+        
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error decoding message.\n");
+                return -1;
+        }
+        
+        ret = forward_option_request_to_sensor(client, target_sensor_ident, msg);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error broadcasting option to sensor id %llu.\n", target_sensor_ident);
+                return -1;
+        }
+        
+        return 0;
+}
+
+
+
+
+static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        uint64_t target_admin_ident = 0;
+
+        while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) > 0 ) {
+
+                 /*
+                  * We just need the target ident, so that we know
+                  * where to forward this message.
+                  */
+                if ( tag != PRELUDE_MSG_OPTION_TARGET_ID )
+                        continue;
+                
+                ret = extract_uint64_safe(&target_admin_ident, buf, len);
+                if ( ret < 0 )
+                        return -1;
+        }
+        
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error decoding message.\n");
+                return -1;
+        }
+        
+        ret = forward_option_reply_to_admin(client, target_admin_ident, msg);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error broadcasting option to sensor id %llu.\n", target_admin_ident);
+                return -1;
+        }
+        
+        return 0;
 }
 
 
@@ -127,26 +303,11 @@ static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen)
 {
         int ret;
 
-        ret = extract_uint64_safe(&cnx->analyzerid, buf, blen);
+        ret = extract_uint64_safe(&cnx->ident, buf, blen);
         if ( ret < 0 )
                 return -1;
-                
-        if ( cnx->analyzerid != 0 ) {
-                log(LOG_INFO, "[%s] - sensor declared ident %llu.\n", cnx->addr, cnx->analyzerid);
-                return 0;
-        }
         
-        /*
-         * our client is a relaying Manager.
-         * we want relaying Manager to be at the end of our list (see
-         * sensor_server_broadcast_admin_command).
-         */
-        pthread_mutex_lock(&list_mutex);
-
-        list_del(&cnx->list);
-        list_add_tail(&cnx->list, &sensor_cnx_list);
-
-        pthread_mutex_unlock(&list_mutex);
+        log_client(cnx, "declared ident %llu.\n", cnx->ident);
                 
         return 0;
 }
@@ -161,14 +322,14 @@ static int handle_declare_child_relay(sensor_fd_t *cnx)
          * we want relaying Manager to be at the end of our list (see
          * sensor_server_broadcast_admin_command).
          */
-        pthread_mutex_lock(&list_mutex);
+        pthread_mutex_lock(&managers_list_mutex);
+        list_add_tail(&cnx->list, &managers_cnx_list);
+        pthread_mutex_unlock(&managers_list_mutex);
 
-        list_del(&cnx->list);
-        list_add_tail(&cnx->list, &sensor_cnx_list);
+        cnx->list_mutex = &managers_list_mutex;
 
-        pthread_mutex_unlock(&list_mutex);
-
-        log(LOG_INFO, "[%s] - client declared to be a children relay (relaying to us).\n", cnx->addr);
+        cnx->client_type = "child-manager";
+        log_client(cnx, "client declared to be a children relay (relaying to us).\n");
 
         return 0;
 }
@@ -208,7 +369,7 @@ static int handle_declare_parent_relay(sensor_fd_t *cnx)
         state = prelude_client_get_state(client) | PRELUDE_CLIENT_CONNECTED;
         prelude_client_set_state(client, state);
         
-        log(LOG_INFO, "[%s] - client declared to be a parent relay (we relay to him).\n", cnx->addr);
+        log_client(cnx, "client declared to be a parent relay (we relay to him).\n");
 
         manager_parent_tell_alive(client);
 
@@ -226,36 +387,37 @@ static int handle_declare_parent_relay(sensor_fd_t *cnx)
 
 
 
-
-static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg) 
+static int handle_declare_sensor(sensor_fd_t *cnx) 
 {
-        int ret;        
-        void *buf;
-        uint8_t tag;
-        uint32_t dlen;
-
-        ret = prelude_msg_get(msg, &tag, &dlen, &buf);
-        if ( ret < 0 ) {
-                log(LOG_INFO, "[%s] - error decoding message.\n", cnx->addr);
-                return -1;
-        }
-
-        if ( ret == 0 ) 
-                return 0;
+        cnx->client_type = "sensor";
         
-        switch (tag) {
-                
-        case PRELUDE_MSG_ID_DECLARE:
-                ret = handle_declare_ident(cnx, buf, dlen);
-                break;
-                
-        default:
-                log(LOG_INFO, "[%s] - unknow ID tag: %d.\n", cnx->addr, tag);
-                ret = -1;
-                break;
-        }
+        log_client(cnx, "client declared to be a sensor.\n");
+
+        pthread_mutex_lock(&sensors_list_mutex);
+        list_add_tail(&cnx->list, &sensors_cnx_list);
+        pthread_mutex_unlock(&sensors_list_mutex);
+
+        cnx->list_mutex = &sensors_list_mutex;
         
-        return ret;
+        return 0;
+}
+
+
+
+
+static int handle_declare_admin(sensor_fd_t *cnx) 
+{
+        cnx->client_type = "admin";
+        
+        log_client(cnx, "client declared to be an administrative client.\n");
+
+        pthread_mutex_lock(&admins_list_mutex);
+        list_add_tail(&cnx->list, &admins_cnx_list);
+        pthread_mutex_unlock(&admins_list_mutex);
+
+        cnx->list_mutex = &admins_list_mutex;
+        
+        return 0;
 }
 
 
@@ -270,7 +432,7 @@ static int read_client_type(sensor_fd_t *cnx, prelude_msg_t *msg)
         
         ret = prelude_msg_get(msg, &tag, &dlen, &buf);
         if ( ret < 0 ) {
-                log(LOG_INFO, "[%s] - error decoding message.\n", cnx->addr);
+                log_client(cnx, "error decoding message.\n");
                 return -1;
         }
         
@@ -281,6 +443,14 @@ static int read_client_type(sensor_fd_t *cnx, prelude_msg_t *msg)
         
         switch (tag) {
 
+        case PRELUDE_CLIENT_TYPE_SENSOR:
+                ret = handle_declare_sensor(cnx);
+                break;
+                
+        case PRELUDE_CLIENT_TYPE_ADMIN:
+                ret = handle_declare_admin(cnx);
+                break;
+            
         case PRELUDE_CLIENT_TYPE_MANAGER_CHILDREN:
                 ret = handle_declare_child_relay(cnx);
                 break;
@@ -291,6 +461,40 @@ static int read_client_type(sensor_fd_t *cnx, prelude_msg_t *msg)
                 
         default:
                 return 0;
+        }
+        
+        return ret;
+}
+
+
+
+
+static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg) 
+{
+        int ret;        
+        void *buf;
+        uint8_t tag;
+        uint32_t dlen;
+
+        ret = prelude_msg_get(msg, &tag, &dlen, &buf);
+        if ( ret < 0 ) {
+                log_client(cnx, "error decoding message.\n");
+                return -1;
+        }
+
+        if ( ret == 0 ) 
+                return 0;
+        
+        switch (tag) {
+                
+        case PRELUDE_MSG_ID_DECLARE:
+                ret = handle_declare_ident(cnx, buf, dlen);
+                break;
+                
+        default:
+                log_client(cnx, "unknow ID tag: %d.\n", tag);
+                ret = -1;
+                break;
         }
         
         return ret;
@@ -343,15 +547,22 @@ static int read_connection_cb(server_generic_client_t *client)
                 ret = read_client_type(cnx, msg);
                 break;
                 
-        case PRELUDE_MSG_OPTION_LIST:
-                                
+        case PRELUDE_MSG_OPTION_LIST: 
                 ret = option_list_to_xml(cnx, msg);
                 if ( ret == 0 )
                         manager_relay_msg_if_needed(msg);
                 break;
 
+        case PRELUDE_MSG_OPTION_REQUEST:  
+                ret = request_sensor_option(cnx, msg);
+                break;
+
+        case PRELUDE_MSG_OPTION_REPLY:
+                ret = reply_sensor_option(cnx, msg);
+                break;
+
         default:
-                log(LOG_INFO, "[%s] - unknow message id %d\n", cnx->addr, prelude_msg_get_tag(msg));
+                log_client(cnx, "unknow message id %d\n", prelude_msg_get_tag(msg));
                 ret = 0;
                 break;
         }
@@ -385,10 +596,12 @@ static void close_connection_cb(server_generic_client_t *ptr)
                 if ( type == PRELUDE_CLIENT_TYPE_MANAGER_PARENT ) 
                         manager_children_tell_dead(cnx->client);
         }
-        
-        pthread_mutex_lock(&list_mutex);
-        list_del(&cnx->list);
-        pthread_mutex_unlock(&list_mutex);
+
+        if ( cnx->list_mutex ) {
+                pthread_mutex_lock(cnx->list_mutex);
+                list_del(&cnx->list);
+                pthread_mutex_unlock(cnx->list_mutex);
+        }
 
         /*
          * If cnx->msg is not NULL, it mean the sensor
@@ -403,21 +616,7 @@ static void close_connection_cb(server_generic_client_t *ptr)
 
 
 static int accept_connection_cb(server_generic_client_t *ptr) 
-{
-        sensor_fd_t *client = (sensor_fd_t *) ptr;
-        
-        /*
-         * set the analyzer id to -1, because at this time,
-         * the analyzer (or relay manager) didn't declared it's ID.
-         * and in case of admin request, we don't want to think it's
-         * a relay Manager.
-         */
-        client->analyzerid = (uint64_t) -1;
-        
-        pthread_mutex_lock(&list_mutex);
-        list_add(&client->list, &sensor_cnx_list);
-        pthread_mutex_unlock(&list_mutex);
-        
+{        
         return 0;
 }
 
@@ -449,53 +648,6 @@ server_generic_t *sensor_server_new(const char *addr, uint16_t port)
 void sensor_server_close(server_generic_t *server) 
 {
         server_generic_close(server);
-}
-
-
-
-
-int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *msg) 
-{
-        int ret, ok = -1;
-        sensor_fd_t *cnx;
-        struct list_head *tmp;
-        
-        if ( ! analyzerid )
-                return -1;
-
-        /*
-         * the list is sorted with :
-         * - real analyzer first (analyzerid != 0).
-         * - then relay manager (analyzerid == 0).
-         */
-        pthread_mutex_lock(&list_mutex);
-        
-        list_for_each(tmp, &sensor_cnx_list) {
-                cnx = list_entry(tmp, sensor_fd_t, list);
-                
-                if ( cnx->analyzerid == *analyzerid ) {
-                        ok = 1;
-                        ret = prelude_msg_write(msg, cnx->fd);
-                        break;
-                }
-
-                /*
-                 * no luck, the analyzer we want to send admin command to
-                 * isn't directly connected here. So we have to broadcast the
-                 * message to all there relay being connected to us.
-                 */
-                if ( cnx->analyzerid == 0 ) {
-                        ok = 1;
-                        ret = prelude_msg_write(msg, cnx->fd);
-                }
-        }
-        
-        pthread_mutex_unlock(&list_mutex);
-
-        if ( ok < 0 )
-                log(LOG_ERR, "couldn't find sensor with ID %llu and no relay connected\n", *analyzerid);
-
-        return -1;
 }
 
 
