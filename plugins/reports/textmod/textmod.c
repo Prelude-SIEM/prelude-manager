@@ -69,6 +69,20 @@ static void print(int depth, const char *fmt, ...)
 
 
 
+static void process_string_list(const char *type, int depth, const struct list_head *list) 
+{
+        struct list_head *tmp;
+        idmef_string_item_t *item;
+
+        print(depth, "%s: ", type);
+        
+        list_for_each(tmp, list) {
+                item = list_entry(tmp, idmef_string_item_t, list);
+                print(depth, "%s ", idmef_string(&item->string));
+        }
+}
+
+
 static void process_time(const char *type, const idmef_time_t *time) 
 {
         char utc_time[MAX_UTC_DATETIME_SIZE], ntpstamp[MAX_NTP_TIMESTAMP_SIZE];
@@ -188,6 +202,9 @@ static void process_process(int depth, const idmef_process_t *process)
         if ( idmef_string(&process->path) )
                 print(0, " path=%s", idmef_string(&process->path));
 
+        process_string_list("arg", depth, &process->arg_list);
+        process_string_list("env", depth, &process->env_list);
+        
         print(0, "\n");
 }
 
@@ -280,11 +297,12 @@ static void process_file_access(int depth, const struct list_head *head)
 {
         struct list_head *tmp;
         idmef_file_access_t *access;
-
+        
         list_for_each(tmp, head) {
                 access = list_entry(tmp, idmef_file_access_t, list);
-
-                print(depth, "Access: %s", access->permission);
+                
+                print(depth, "Access: ");
+                process_string_list("permission", depth, &access->permission_list);
                 process_userid(0, &access->userid);
         }
 }
@@ -336,7 +354,7 @@ static void process_inode(int depth, const idmef_inode_t *inode)
         if ( inode->c_minor_device )
                 print(0, " c_minor=%d", inode->c_minor_device);
         
-        process_time(" ctime=", &inode->change_time);
+        process_time(" ctime=", inode->change_time);
 }
 
 

@@ -52,7 +52,9 @@ static void dump_idmef_list_idmef_alertident_t_func(const char *name, const stru
 static void dump_idmef_list_idmef_source_t_func(const char *name, const struct list_head *list);
 static void dump_idmef_list_idmef_target_t_func(const char *name, const struct list_head *list);
 static void dump_idmef_list_idmef_file_access_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_file_access_permission_t_func(const char *name, const struct list_head *list);
 static void dump_idmef_list_idmef_linkage_t_func(const char *name, const struct list_head *list);
+
 
 
 typedef struct {
@@ -523,7 +525,7 @@ static void dump_idmef_inode_func(const char *name, const idmef_inode_t *inode)
                 return;
         }
         
-        dump_member(name, inode, idmef_time, change_time); 
+        dump_member_ptr(name, inode, idmef_time, change_time); 
         dump_member(name, inode, uint32, number); 
         dump_member(name, inode, uint32, major_device); 
         dump_member(name, inode, uint32, minor_device); 
@@ -541,9 +543,8 @@ static void dump_idmef_file_access_func(const char *name, const idmef_file_acces
         }
         
         dump_member(name, fa, idmef_userid, userid);
-        dump_member(name, fa, idmef_string, permission);
+        dump_idmef_list(concat(name, ".permission_list"), idmef_file_access_permission_t, fa->permission_list); 
 }
-
 
 
 
@@ -973,6 +974,7 @@ static void dump_idmef_message_func(const char *name, const idmef_message_t *msg
 
 
 /* create_list_func(idmef_string_item_t, dump_idmef_string_item_func); */
+create_list_func(idmef_file_access_permission_t, dump_idmef_string_item_func);
 create_list_func(idmef_address_t, dump_idmef_address_func);
 create_list_func(idmef_process_env_t, dump_idmef_string_item_func);
 create_list_func(idmef_process_arg_t, dump_idmef_string_item_func);

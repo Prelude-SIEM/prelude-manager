@@ -1,3 +1,25 @@
+2002-06-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/idmef-message-read.c (file_linkage_get): 
+	(file_access_get): (inode_get): (file_get): implemented.
+	(target_get): handle MSG_FILE_TAG.
+
+	* src/idmef-db-output.c (insert_file_access): 
+	don't dump permission as our database schemas is not
+	suitable for this right now.
+
+	* plugins/reports/textmod/textmod.c (process_string_list): 
+	new function, work on idmef_string_item_t object.
+	(process_file_access): dump permission list.
+	(process_process): dump env and arg list.
+
+	* plugins/reports/debug/debug.c (dump_idmef_inode_func): 
+	use dump_member_ptr for the change_time member. Which is
+	a pointer.
+	
+	(dump_idmef_file_access_func): use dump_idmef_list() for
+	the permission list.
+
 2002-06-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* Makefile.am (install-data-local): 

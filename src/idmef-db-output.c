@@ -436,15 +436,12 @@ static int insert_linkage(uint64_t alert_ident, uint64_t target_ident,
 static int insert_file_access(uint64_t alert_ident, uint64_t target_ident,
                               uint64_t file_ident, idmef_file_access_t *access)
 {
-        char *permission;
+        db_plugin_insert("Prelude_FileAccess", "alert_ident, target_ident, file_ident",
+                         "%llu, %llu, %llu", alert_ident, target_ident, file_ident);
 
-        permission = db_plugin_escape(idmef_string(&access->permission));
-        if ( ! permission )
-                return -1;
-        
-        db_plugin_insert("Prelude_FileAccess", "alert_ident, target_ident, file_ident, permission",
-                         "%llu, %llu, %llu, '%s'", alert_ident, target_ident, file_ident, permission);
-        free(permission);
+        /*
+         * FIXME: access permission ?
+         */
         
         return insert_userid(alert_ident, target_ident, 'F', &access->userid);
 }

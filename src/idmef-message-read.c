@@ -65,6 +65,10 @@
 } while (0)
 
 
+static int time_get(prelude_msg_t *msg, idmef_time_t *time);
+static int file_get(prelude_msg_t *msg, idmef_file_t *file);
+
+
 
 static int additional_data_get(prelude_msg_t *msg, idmef_additional_data_t *data) 
 {
@@ -479,6 +483,241 @@ static int service_get(prelude_msg_t *msg, idmef_service_t *service)
 
 
 
+
+static int file_linkage_get(prelude_msg_t *msg, idmef_linkage_t *linkage) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);
+        if ( ret <= 0 )
+                return -1; /* Message should always terminate by END OF TAG */
+
+        switch(tag) {
+
+        case MSG_LINKAGE_CATEGORY:
+                extract_int(uint32, buf, len, linkage->category);
+                break;
+
+        case MSG_LINKAGE_NAME:
+                extract_idmef_string(buf, len, linkage->name);
+                break;
+
+        case MSG_LINKAGE_PATH:
+                extract_idmef_string(buf, len, linkage->path);
+                break;
+
+        case MSG_FILE_TAG:
+                idmef_linkage_file_new(linkage);
+
+                ret = file_get(msg, linkage->file);
+                if ( ret < 0 )
+                        return -1;
+
+                break;
+                
+        case MSG_END_OF_TAG:
+                return 0;
+        }
+
+        return file_linkage_get(msg, linkage);
+}
+
+
+
+
+static int file_access_get(prelude_msg_t *msg, idmef_file_access_t *access) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        idmef_file_access_permission_t *perm;
+        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);
+        if ( ret <= 0 )
+                return -1; /* Message should always terminate by END OF TAG */
+
+        switch(tag) {
+
+        case MSG_USERID_TAG:
+                
+                ret = userid_get(msg, &access->userid);
+                if ( ret < 0 )
+                        return ret;
+                break;
+
+        case MSG_ACCESS_PERMISSION:
+                perm = idmef_file_access_permission_new(access);
+                if ( ! perm )
+                        return -1;
+                
+                extract_idmef_string(buf, len, perm->string);
+                break;
+
+        case MSG_END_OF_TAG:
+                return 0;
+        }
+
+        return file_access_get(msg, access);
+}
+
+
+
+static int inode_get(prelude_msg_t *msg, idmef_inode_t *inode) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;        
+        idmef_time_t *time;
+        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);
+        if ( ret <= 0 )
+                return -1; /* Message should always terminate by END OF TAG */
+
+        switch(tag) {
+
+        case MSG_INODE_CHANGE_TIME:
+                time = idmef_inode_change_time_new(inode);
+                if ( ! time )
+                        return -1;
+
+                ret = time_get(msg, time);
+                if ( ret < 0 )
+                        return -1;
+                
+                break;
+
+        case MSG_INODE_NUMBER:
+                extract_int(uint32, buf, len, inode->number);
+                break;
+
+        case MSG_INODE_MAJOR_DEVICE:
+                extract_int(uint32, buf, len, inode->major_device);
+                break;
+
+        case MSG_INODE_MINOR_DEVICE:
+                extract_int(uint32, buf, len, inode->minor_device);
+                break;
+
+        case MSG_END_OF_TAG:
+                return 0;
+        }
+
+        return inode_get(msg, inode);
+}
+
+
+
+
+static int file_get(prelude_msg_t *msg, idmef_file_t *file) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        idmef_time_t *time;
+        idmef_linkage_t *linkage;
+        idmef_file_access_t *access;
+        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);
+        if ( ret <= 0 )
+                return -1; /* Message should always terminate by END OF TAG */
+
+        switch (tag) {
+                
+        case MSG_FILE_CATEGORY:
+                extract_int(uint32, buf, len, file->category);
+                break;
+
+        case MSG_FILE_FSTYPE:
+                extract_idmef_string(buf, len, file->fstype);
+                break;
+
+        case MSG_FILE_NAME:
+                extract_idmef_string(buf, len, file->name);
+                break;
+
+        case MSG_FILE_PATH:
+                extract_idmef_string(buf, len, file->path);
+                break;
+
+        case MSG_FILE_CREATE_TIME_TAG:
+                time = idmef_file_create_time_new(file);
+                if ( ! time )
+                        return -1;
+
+                ret = time_get(msg, time);
+                if ( ret < 0 )
+                        return -1;
+
+                break;
+                
+        case MSG_FILE_MODIFY_TIME_TAG:
+                time = idmef_file_modify_time_new(file);
+                if ( ! time )
+                        return -1;
+
+                ret = time_get(msg, time);
+                if ( ret < 0 )
+                        return -1;
+
+                break;
+                
+        case MSG_FILE_ACCESS_TIME_TAG:
+                time = idmef_file_access_time_new(file);
+                if ( ! time )
+                        return -1;
+
+                ret = time_get(msg, time);
+                if ( ret < 0 )
+                        return -1;
+
+                break;
+
+        case MSG_FILE_DATASIZE:
+                extract_int(uint32, buf, len, file->data_size);
+                break;
+
+        case MSG_FILE_DISKSIZE:
+                extract_int(uint32, buf, len, file->disk_size);
+                break;
+
+        case MSG_ACCESS_TAG:
+                access = idmef_file_access_new(file);
+                if ( ! access )
+                        return -1;
+
+                ret = file_access_get(msg, access);
+                if ( ret < 0 )
+                        return -1;
+
+                break;
+                
+        case MSG_LINKAGE_TAG:
+                linkage = idmef_file_linkage_new(file);
+                if ( ! linkage )
+                        return -1;
+
+                ret = file_linkage_get(msg, linkage);
+                if ( ret < 0 )
+                        return -1;
+
+                break;
+                
+        case MSG_END_OF_TAG:
+                return 0;
+        }
+
+        return file_get(msg, file);
+}
+
+
+
+
 static int node_get(prelude_msg_t *msg, idmef_node_t *node) 
 {
         int ret;
@@ -677,6 +916,7 @@ static int target_get(prelude_msg_t *msg, idmef_target_t *dst)
         void *buf;
         uint8_t tag;
         uint32_t len;
+        idmef_file_t *file;
 
         ret = prelude_msg_get(msg, &tag, &len, &buf);
         if ( ret <= 0 )
@@ -696,6 +936,17 @@ static int target_get(prelude_msg_t *msg, idmef_target_t *dst)
                 extract_idmef_string(buf, len, dst->interface);
                 break;
 
+        case MSG_FILE_TAG:
+                file = idmef_target_file_new(dst);
+                if ( ! file )
+                        return -1;
+
+                ret = file_get(msg, file);
+                if ( ret < 0 )
+                        return -1;
+                
+                break;
+                
         case MSG_NODE_TAG:
                 idmef_target_node_new(dst);
                 
@@ -743,8 +994,7 @@ static int target_get(prelude_msg_t *msg, idmef_target_t *dst)
 
 
 
-static int time_get(prelude_msg_t *msg, idmef_time_t *time,
-                    char *ctime, size_t csize, char *ntptime, size_t nsize)
+static int time_get(prelude_msg_t *msg, idmef_time_t *time)
 {
         int ret;
         void *buf;
@@ -773,30 +1023,27 @@ static int time_get(prelude_msg_t *msg, idmef_time_t *time,
                 return -1;
         }
         
-        return time_get(msg, time, ctime, csize, ntptime, nsize);
+        return time_get(msg, time);
 }
 
 
 
 static int create_time_get(prelude_msg_t *msg, idmef_time_t *time)
 {
-        static char ctime[MAX_UTC_DATETIME_SIZE], ntptime[MAX_NTP_TIMESTAMP_SIZE];
-        return time_get(msg, time, ctime, sizeof(ctime), ntptime, sizeof(ntptime));
+        return time_get(msg, time);
 }
 
 
 
 static int analyzer_time_get(prelude_msg_t *msg, idmef_time_t *time) 
 {
-        static char ctime[MAX_UTC_DATETIME_SIZE], ntptime[MAX_NTP_TIMESTAMP_SIZE];
-        return time_get(msg, time, ctime, sizeof(ctime), ntptime, sizeof(ntptime));
+        return time_get(msg, time);
 }
 
 
 static int detect_time_get(prelude_msg_t *msg, idmef_time_t *time) 
 {
-        static char ctime[MAX_UTC_DATETIME_SIZE], ntptime[MAX_NTP_TIMESTAMP_SIZE];
-        return time_get(msg, time, ctime, sizeof(ctime), ntptime, sizeof(ntptime));
+        return time_get(msg, time);
 }
 
 
