@@ -154,7 +154,7 @@ int idmef_get_db_timestamp(const idmef_time_t *time, char *outptr, size_t size)
  */
 int idmef_get_idmef_timestamp(const idmef_time_t *time, char *outptr, size_t size)
 {
-        int ret;
+        int ret, len = 0;
         struct tm utc, local;
                 
         /*
@@ -173,20 +173,22 @@ int idmef_get_idmef_timestamp(const idmef_time_t *time, char *outptr, size_t siz
         /*
          * Format as the IDMEF draft tell us to.
          */
-        ret = strftime(outptr, size, "%Y-%m-%dT%H:%M:%S", &utc);
+        len += ret = strftime(outptr, size, "%Y-%m-%dT%H:%M:%S", &utc);
         if ( ret == 0 ) {
                 log(LOG_ERR, "error converting UTC time to string.\n");
                 return -1;
         }
 
+        len += ret = snprintf(outptr + len, size - len, ".%u", time->usec / 1000);
+
         if ( local.tm_hour > utc.tm_hour )
-                snprintf(outptr + ret, size - ret, "+%.2d:00", local.tm_hour - utc.tm_hour);
+                snprintf(outptr + len, size - len, "+%.2d:00", local.tm_hour - utc.tm_hour);
 
         else if ( local.tm_hour < utc.tm_hour )
-                snprintf(outptr + ret, size - ret, "-%.2d:00", utc.tm_hour - local.tm_hour);
+                snprintf(outptr + len, size - len, "-%.2d:00", utc.tm_hour - local.tm_hour);
 
         else if ( local.tm_hour == utc.tm_hour )
-                snprintf(outptr + ret, size - ret, "Z");
+                snprintf(outptr + len, size - len, "Z");
 
         return 0;
 }
@@ -220,7 +222,7 @@ int idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size)
                 return -1;
         }
 
-        len += ret = snprintf(outptr + len, size - len, ".%u", time->usec / 10000);
+        len += ret = snprintf(outptr + len, size - len, ".%u", time->usec / 1000);
         
         len += ret = strftime(outptr + len, size - len, "%z", &lt);
         if ( ret == 0 ) {
