@@ -33,6 +33,7 @@
 #include <libprelude/idmef.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/idmef-criteria.h>
+#include <libprelude/prelude-error.h>
 
 #include "plugin-filter.h"
 
