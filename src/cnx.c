@@ -42,6 +42,7 @@
 #include "cnx.h"
 #include "pconfig.h"
 #include "ssl.h"
+#include "report-infos.h"
 
 
 static ssize_t (*my_read)(int fd, void *buf, size_t count);
@@ -54,7 +55,6 @@ extern struct report_config config;
  */
 static int wait_raw_report(int socket) 
 {
-#if 0
         int ret;
         alert_t alert;
         report_infos_t rinfos;
@@ -74,7 +74,6 @@ static int wait_raw_report(int socket)
                 alert_free(&alert, 1);
 
         }
-#endif
 
         return 0;
 }

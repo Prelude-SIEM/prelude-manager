@@ -24,12 +24,10 @@
 
 typedef struct {
         char *date_start, *date_end;
-        char **hexdump;
-        char **pktdump;
         char *sh, *dh;
         const char *kind;
-        
         uint16_t sp, dp;
+        const char *sensor_data;
 } report_infos_t;
 
 

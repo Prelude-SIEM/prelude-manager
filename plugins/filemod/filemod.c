@@ -58,17 +58,9 @@ static void filemod_run(alert_t *alert, report_infos_t *rinfos) {
         fprintf(fd, "received\t: %d time%s\n", alert_count(alert), plural(alert_count(alert)));
         fprintf(fd, "message\t\t: %s\n\n", alert_message(alert));
         
-        if ( rinfos->pktdump ) 
-                for ( i = 0; rinfos->pktdump[i] != NULL; i++) 
-                        fprintf(fd, "%s\n", rinfos->pktdump[i]);
+        if ( rinfos->sensor_data )
+                fprintf(fd, "%s\n", rinfos->sensor_data);
         
-        if ( rinfos->hexdump ) {
-                fprintf(fd, "\nData hexadecimal dump follow :\n");
-                
-                for ( i = 0; rinfos->hexdump[i] != NULL; i++ ) 
-                        fprintf(fd, "%s\n", rinfos->hexdump[i]);
-        }
-
         fflush(fd);
 }
 
