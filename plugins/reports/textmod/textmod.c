@@ -827,9 +827,13 @@ static int textmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
                 prelude_string_sprintf(out, "no logfile specified");
                 return -1;
         }
+        
+        if ( strcmp(plugin->logfile, "stdout") == 0 )
+                fd = stdout;
 
-        if ( strcmp(plugin->logfile, "stderr") == 0 )
+        else if ( strcmp(plugin->logfile, "stderr") == 0 )
                 fd = stderr;
+        
         else {
                 fd = fopen(plugin->logfile, "a+");
                 if ( ! fd ) {

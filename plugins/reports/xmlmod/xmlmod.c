@@ -903,8 +903,11 @@ static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
                 return -1;
         }
 
-        ret = strcmp(plugin->logfile, "stderr");
-        if ( ret == 0 )
+        
+        if ( strcmp(plugin->logfile, "stdout") == 0 )
+                fd = stdout;
+
+        else if ( strcmp(plugin->logfile, "stderr") == 0 )
                 fd = stderr;
         
         else if ( ! (fd = fopen(plugin->logfile, "a+")) ) {
