@@ -9,7 +9,7 @@
 # </IMPORTANT>
 
 
-include = @libprelude_prefix@/prelude/default/global.conf
+include = @libprelude_prefix@/etc/prelude/default/global.conf
 
 
 # Address where the sensors server is listening on.
