@@ -61,7 +61,7 @@ dnl * Check for the MySQL library (MySQL plugin       *
 dnl ***************************************************
 
 AC_CHECK_PROG(MYSQL_CONFIG, mysql_config, true, false)
-AM_CONDITIONAL(HAVE_MYSQL, $MYSQL_CONFIG)
+AM_CONDITIONAL(HAVE_MYSQL, x$MYSQL_CONFIG = xtrue)
 AC_SUBST(HAVE_MYSQL)
 
 if test x$MYSQL_CONFIG = xtrue; then
@@ -78,7 +78,7 @@ dnl * Check for the PostgreSQL library (PostgreSQL plugin) *
 dnl ********************************************************
 
 AC_CHECK_PROG(PGSQL_CONFIG, pg_config, true, false)
-AM_CONDITIONAL(HAVE_PGSQL, $PGSQL_CONFIG)
+AM_CONDITIONAL(HAVE_PGSQL, test x$PGSQL_CONFIG = xtrue)
 AC_SUBST(HAVE_PGSQL)
 
 if test x$PGSQL_CONFIG = xtrue; then

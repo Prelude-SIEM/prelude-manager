@@ -1,3 +1,5 @@
 #undef HAVE_GETOPT_LONG
 #undef HAVE_SSL
 #undef PRELUDE_MANAGER_CONF
+#undef HAVE_PGSQL
+#undef HAVE_MYSQL
