@@ -169,7 +169,8 @@ int pconfig_init(int argc, char **argv)
         opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'f', "failover",
                                  "Enable failover for specified report plugin", required_argument,
                                  set_report_plugin_failover, NULL);
-        prelude_option_set_priority(opt, prelude_option_run_last);
+
+        prelude_option_set_priority(opt, option_run_last);
         
         prelude_set_program_name("prelude-manager");
         
