@@ -1,3 +1,15 @@
+2001-10-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server.c: deal with prelude-auth API change.
+	Stop using deprecated socket-op function. Use prelude-io
+	instead.
+
+	* manager-adduser/manager-adduser.c: Handle the case
+	when the openssl library is not installed.
+
+	* src/server.c: socket-op interface is replaced by
+	prelude-io interface.
+
 2001-10-23  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/prelude-manager.c (main): 

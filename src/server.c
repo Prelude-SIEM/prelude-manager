@@ -38,7 +38,6 @@
 #include <assert.h>
 
 #include <libprelude/common.h>
-#include <libprelude/socket-op.h>
 #include <libprelude/alert-id.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/plugin-common.h>
@@ -105,55 +104,43 @@ static int server_close_connection_cb(prelude_io_t *pio, void *clientdata)
 
 
 
-static prelude_io_t *handle_normal_connection(int fd, const char *addr) 
+static int handle_normal_connection(prelude_io_t *fd, const char *addr) 
 {
         int ret;
-        prelude_io_t *pio;
 
         ret = prelude_auth_recv(fd, addr);
         if ( ret < 0 ) {
                 log(LOG_INFO, "Plaintext authentication failed with %s.\n", addr);
-                return NULL;
+                return -1;
         }
 
         log(LOG_INFO, "Plaintext authentication succeed with %s.\n", addr);
 
-        pio = prelude_io_new();
-        if ( ! pio )
-                return NULL;
-
-        prelude_io_set_socket_io(pio, fd);
-
-        return pio;
+        return 0;
 }
 
 
 
 
-static prelude_io_t *handle_ssl_connection(int sock, const char *addr) 
+static int handle_ssl_connection(prelude_io_t *fd, const char *addr) 
 {
 #ifdef HAVE_SSL
         SSL *ssl;
-        prelude_io_t *pio;
         
-        ssl = ssl_auth_client(sock);
+        ssl = ssl_auth_client(prelude_io_get_fd(fd));
         if ( ! ssl ) {
                 log(LOG_INFO, "SSL authentication failed with %s.\n", addr);
-                return NULL;
+                return -1;
         }
         
         log(LOG_INFO, "SSL authentication succeed with %s.\n", addr);
-
-        pio = prelude_io_new();
-        if ( ! pio )
-                return NULL;
-
-        prelude_io_set_ssl_io(pio, ssl);
         
-        return pio;
+        prelude_io_set_ssl_io(fd, ssl);
+        
+        return 0;
 #else
         log(LOG_INFO, "Client requested unavailable option : SSL.\n");
-        return NULL;
+        return -1;
 #endif
 }
 
@@ -162,11 +149,10 @@ static prelude_io_t *handle_ssl_connection(int sock, const char *addr)
 
 
 
-static prelude_io_t *setup_connection(int sock, const char *addr) 
+static int setup_connection(prelude_io_t *fd, const char *addr) 
 {
         int ret, len;
         const char *ssl;
-        prelude_io_t *pio;
         char *ptr, buf[1024];
         
 #ifdef HAVE_SSL
@@ -177,27 +163,26 @@ static prelude_io_t *setup_connection(int sock, const char *addr)
         
         len = snprintf(buf, sizeof(buf), "ssl=%s;\n", ssl);
 
-        
-        ret = socket_write_delimited(sock, buf, ++len, write);
+        ret = prelude_io_write_delimited(fd, buf, ++len);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error writing config to Prelude client.\n");
-                return NULL;
+                return -1;
         }
-        
-        ret = socket_read_delimited(sock, (void **)&ptr, read);
+
+        ret = prelude_io_read_delimited(fd, (void **)&ptr);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error reading Prelude client config string.\n");
-                return NULL;
+                return -1;
         }
         
         if ( strstr(ptr, "use_ssl=yes;") ) 
-                pio = handle_ssl_connection(sock, addr);
+                ret = handle_ssl_connection(fd, addr);
         else 
-                pio = handle_normal_connection(sock, addr);
+                ret = handle_normal_connection(fd, addr);
         
         free(ptr);
 
-        return pio;
+        return ret;
 }
 
 
@@ -256,9 +241,17 @@ static prelude_io_t *setup_inet_connection(int sock, struct sockaddr_in *addr)
         
         log(LOG_INFO, "new connection from %s.\n", from);
 
-        pio = setup_connection(sock, from);
-        if ( ! pio ) {
+        pio = prelude_io_new();
+        if ( ! pio )
+                return NULL;
+
+        prelude_io_set_socket_io(pio, sock);
+        
+        ret = setup_connection(pio, from);
+        if ( ret < 0  ) {
                 log(LOG_INFO, "closing connection with %s.\n", from);
+                prelude_io_close(pio);
+                prelude_io_destroy(pio);
                 return NULL;
         }
         
@@ -273,14 +266,25 @@ static prelude_io_t *setup_inet_connection(int sock, struct sockaddr_in *addr)
  */
 static prelude_io_t *setup_unix_connection(int sock, struct sockaddr_un *addr)
 {
+        int ret;
         prelude_io_t *pio;
         
         log(LOG_INFO, "new UNIX connection.\n");
-        
-        pio = handle_normal_connection(sock, "unix");
-        if ( ! pio )
-                log(LOG_INFO, "closing unix connection.\n");
 
+        pio = prelude_io_new();
+        if ( ! pio )
+                return NULL;
+
+        prelude_io_set_socket_io(pio, sock);
+        
+        ret = handle_normal_connection(pio, "unix");
+        if ( ret < 0 ) {
+                log(LOG_INFO, "closing unix connection.\n");
+                prelude_io_close(pio);
+                prelude_io_destroy(pio);
+                return NULL;
+        }
+        
         return pio;
 }
 

@@ -20,7 +20,12 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 #include <stdio.h>
+#include <unistd.h>
+#include <inttypes.h>
+
+#include <libprelude/prelude-io.h>
 #include <libprelude/prelude-auth.h>
 
 
@@ -40,8 +45,14 @@ int main(void)
         ret = strcmp(buf, "plaintext");
         if ( ret == 0 )
                 ret = prelude_auth_create_account(MANAGER_AUTH_FILE);
-        else
+        else {
+#ifdef HAVE_SSL
                 ret = ssl_register_client();
+#else
+                ret = -1;
+                fprintf(stderr, "SSL support not compiled in.\n");
+#endif
+        }
 
         exit(ret);
 }
