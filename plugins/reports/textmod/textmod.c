@@ -120,13 +120,13 @@ static void process_node(int depth, const idmef_node_t *node)
 
         if ( idmef_string(&node->location) )
                 print(depth, " location:%s", idmef_string(&node->location));
-
+        
+        print(0, "\n");
+        
         list_for_each(tmp, &node->address_list) {
                 addr = list_entry(tmp, idmef_address_t, list);
                 process_address(depth + 1, addr);
         }
-
-        print(0, "\n");
 }
 
 
