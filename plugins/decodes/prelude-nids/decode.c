@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -72,10 +72,12 @@ static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip)
                 return -1;
         
         saddr->category = ipv4_addr;
-        saddr->address = shost_data = strdup(inet_ntoa(ip->ip_src));
+        shost_data = strdup(inet_ntoa(ip->ip_src));
+        idmef_string_set(&saddr->address, shost_data);
         
         daddr->category = ipv4_addr;
-        daddr->address = dhost_data = strdup(inet_ntoa(ip->ip_dst));
+        dhost_data = strdup(inet_ntoa(ip->ip_dst));
+        idmef_string_set(&daddr->address, dhost_data);
 
         return 0;
 }
@@ -96,21 +98,20 @@ static int gather_protocol_infos(idmef_alert_t *alert, uint16_t sport, uint16_t 
                 sport_data = (ptr) ? strdup(ptr->s_name) : NULL;
 
                 idmef_source_service_new(source);
-                source->service->name = sport_data;
+                idmef_string(&source->service->name) = sport_data;
+                idmef_string(&source->service->protocol) = proto;
                 source->service->port = ntohs(sport);
-                source->service->protocol = proto;
         }
 
         if ( ! list_empty(&alert->target_list) ) {
                 
                 target = list_entry(alert->target_list.prev, idmef_target_t, list);
                 ptr = getservbyport(dport, proto);
-                dport_data = (ptr) ? strdup(ptr->s_name) : NULL;
-
+                
                 idmef_target_service_new(target);
-                target->service->name = dport_data;
                 target->service->port = ntohs(dport);
-                target->service->protocol = proto;
+                idmef_string(&target->service->protocol) = proto;
+                idmef_string(&target->service->name) = dport_data = (ptr) ? strdup(ptr->s_name) : NULL;
         }
 
         return 0;
@@ -128,10 +129,10 @@ static int gather_payload_infos(idmef_alert_t *alert, unsigned char *data, size_
                 return -1;
         
         pdata->type = string;
-        pdata->meaning = "Packet Payload";
+        idmef_string_set_constant(&pdata->meaning, "Packet Payload");
         
-        pdata->data = hex_data = prelude_string_to_hex(data, len);
-        if ( ! pdata->data )
+        idmef_string(&pdata->data) = hex_data = prelude_string_to_hex(data, len);
+        if ( ! hex_data )
                 return -1;
 
         return 0;

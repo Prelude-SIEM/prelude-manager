@@ -108,11 +108,11 @@ static void display_address(type_t type, idmef_address_t *addr)
 	}
 	
 	switch (type) {
-		case source: 
-			add_address(&source_list, addr->address, addr->netmask);
+		case source:
+			add_address(&source_list, idmef_string(&addr->address), idmef_string(&addr->netmask));
 			break;
 		case target:
-			add_address(&target_list, addr->address, addr->netmask);
+			add_address(&target_list, idmef_string(&addr->address), idmef_string(&addr->netmask));
 			break;
 		default: 
 			log(LOG_INFO, "unsupported address type\n");

@@ -29,6 +29,8 @@
 #include "report.h"
 #include "idmef-util.h"
 
+static void process_file(int depth, const idmef_file_t *file);
+
 
 static FILE *out_fd = NULL;
 static plugin_report_t plugin;
@@ -85,14 +87,14 @@ static void process_address(int depth, const idmef_address_t *addr)
 {
         print(0, "* Addr[%s]:", idmef_address_category_to_string(addr->category));
         
-        if ( addr->address )
-                print(0, " %s", addr->address);
+        if ( idmef_string(&addr->address) )
+                print(0, " %s", idmef_string(&addr->address));
 
-        if ( addr->netmask )
-                print(0, "/%s", addr->netmask);
+        if ( idmef_string(&addr->netmask) )
+                print(0, "/%s", idmef_string(&addr->netmask));
 
-        if ( addr->vlan_name )
-                print(0, " vlan=%s", addr->vlan_name);
+        if ( idmef_string(&addr->vlan_name) )
+                print(0, " vlan=%s", idmef_string(&addr->vlan_name));
 
         if ( addr->vlan_num )
                 print(0, " vnum=%d", addr->vlan_num);
@@ -111,11 +113,11 @@ static void process_node(int depth, const idmef_node_t *node)
         if ( ! node )
                 return;
 
-        if ( node->name )
-                print(depth, " name:%s", node->name);
+        if ( idmef_string(&node->name) )
+                print(depth, " name:%s", idmef_string(&node->name));
 
-        if ( node->location )
-                print(depth, " location:%s", node->location);
+        if ( idmef_string(&node->location) )
+                print(depth, " location:%s", idmef_string(&node->location));
 
         list_for_each(tmp, &node->address_list) {
                 addr = list_entry(tmp, idmef_address_t, list);
@@ -128,14 +130,20 @@ static void process_node(int depth, const idmef_node_t *node)
 
 static void process_userid(int depth, const idmef_userid_t *uid) 
 {
+        const char *type;
+        
         print(0, "*");
         print(depth, "");
         
-        if ( uid->name )
-                print(0, " name=%s", uid->name);
+        if ( idmef_string(&uid->name) )
+                print(0, " name=%s", idmef_string(&uid->name));
         
         print(0, " number=%d", uid->number);
-        print(0, " type=%s\n", idmef_userid_type_to_string(uid->type));
+
+
+        type = idmef_userid_type_to_string(uid->type);
+        if ( type )
+                print(0, " type=%s\n", type);
 }
 
 
@@ -143,13 +151,16 @@ static void process_userid(int depth, const idmef_userid_t *uid)
 static void process_user(int depth, const idmef_user_t *user) 
 {
         idmef_userid_t *uid;
+        const char *category;
         struct list_head *tmp;
         
         if ( ! user )
                 return;
 
-        print(0, "* %s user: \n", idmef_user_category_to_string(user->category));
-
+        category = idmef_user_category_to_string(user->category);
+        if ( category )
+                print(0, "* %s user: \n", category);
+        
         list_for_each(tmp, &user->userid_list) {
                 uid = list_entry(tmp, idmef_userid_t, list);
                 process_userid(depth + 1, uid);
@@ -166,11 +177,11 @@ static void process_process(int depth, const idmef_process_t *process)
 
         print(depth, "* Process: pid=%u", process->pid);
         
-        if ( process->name )
-                print(0, " name=%s", process->name);
+        if ( idmef_string(&process->name) )
+                print(0, " name=%s", idmef_string(&process->name));
         
-        if ( process->path )
-                print(0, " path=%s", process->path);
+        if ( idmef_string(&process->path) )
+                print(0, " path=%s", idmef_string(&process->path));
 
         print(0, "\n");
 }
@@ -180,14 +191,14 @@ static void process_process(int depth, const idmef_process_t *process)
 
 static void process_snmp_service(const idmef_snmpservice_t *snmp) 
 {
-        if ( snmp->oid )
-                print(0, " oid=%s", snmp->oid);
+        if ( idmef_string(&snmp->oid) )
+                print(0, " oid=%s", idmef_string(&snmp->oid));
 
-        if ( snmp->command )
-                print(0, " command=%s", snmp->command);
+        if ( idmef_string(&snmp->command) )
+                print(0, " command=%s", idmef_string(&snmp->command));
 
-        if ( snmp->community )
-                print(0, " community=%s", snmp->community);
+        if ( idmef_string(&snmp->community) )
+                print(0, " community=%s", idmef_string(&snmp->community));
 }
 
 
@@ -198,14 +209,14 @@ static void process_web_service(const idmef_webservice_t *web)
         if ( ! web )
                 return;
 
-        if ( web->url )
-                print(0, " url=%s", web->url);
+        if ( idmef_string(&web->url) )
+                print(0, " url=%s", idmef_string(&web->url));
 
-        if ( web->cgi )
-                print(0, " cgi=%s", web->cgi);
+        if ( idmef_string(&web->cgi) )
+                print(0, " cgi=%s", idmef_string(&web->cgi));
 
-        if ( web->http_method )
-                print(0, " http method=%s", web->http_method);
+        if ( idmef_string(&web->http_method) )
+                print(0, " http method=%s", idmef_string(&web->http_method));
 }
 
 
@@ -217,11 +228,11 @@ static void process_service(int depth, const idmef_service_t *service)
 
         print(depth, "* Service: port=%d", service->port);
         
-        if ( service->name )
-                print(0, " (%s)", service->name);
+        if ( idmef_string(&service->name) )
+                print(0, " (%s)", idmef_string(&service->name));
         
-        if ( service->protocol )
-                print(0, " protocol=%s", service->protocol);
+        if ( idmef_string(&service->protocol) )
+                print(0, " protocol=%s", idmef_string(&service->protocol));
         
         switch (service->type) {
         case web_service:
@@ -243,10 +254,14 @@ static void process_service(int depth, const idmef_service_t *service)
 
 static void process_source(int depth, const idmef_source_t *source)
 {
-        print(depth, "* Source spoofed: %s\n", idmef_source_spoofed_to_string(source->spoofed));
+        const char *spoofed;
 
-        if ( source->interface )
-                print(depth, "* Source interface=%s", source->interface);
+        spoofed = idmef_source_spoofed_to_string(source->spoofed);
+        if ( spoofed )
+                print(depth, "* Source spoofed: %s\n", spoofed);
+
+        if ( idmef_string(&source->interface) )
+                print(depth, "* Source interface=%s", idmef_string(&source->interface));
         
         process_node(depth, source->node);
         process_service(depth, source->service);
@@ -281,15 +296,15 @@ static void process_file_linkage(int depth, const struct list_head *head)
 
                 print(depth, "Linkage: %s", idmef_linkage_category_to_string(linkage->category));
 
-                if ( linkage->name )
-                        print(0, " name=%s", linkage->name);
+                if ( idmef_string(&linkage->name) )
+                        print(0, " name=%s", idmef_string(&linkage->name));
 
-                if ( linkage->path )
-                        print(0, " path=%s", linkage->path);
+                if ( idmef_string(&linkage->path) )
+                        print(0, " path=%s", idmef_string(&linkage->path));
 
                 if ( linkage->file )
-                        print(0, " file=%d", linkage->file);
-
+                        process_file(depth, linkage->file);
+                
                 print(0, "\n");
         }
 }
@@ -327,14 +342,14 @@ static void process_file(int depth, const idmef_file_t *file)
         print(0, "* ");
         print(depth, "File %s: ", idmef_file_category_to_string(file->category));
 
-        if ( file->fstype )
-                print(0, " fstype=%s", file->fstype);
+        if ( idmef_string(&file->fstype) )
+                print(0, " fstype=%s", idmef_string(&file->fstype));
 
-        if ( file->name )
-                print(0, " name=%s", file->name);
+        if ( idmef_string(&file->name) )
+                print(0, " name=%s", idmef_string(&file->name));
 
-        if ( file->path )
-                print(0, " path=%s", file->path);
+        if ( idmef_string(&file->path) )
+                print(0, " path=%s", idmef_string(&file->path));
 
         process_time(" ctime=", file->create_time);
         process_time(" mtime=", file->modify_time);
@@ -361,8 +376,8 @@ static void process_target(int depth, const idmef_target_t *target)
         
         print(0, "* Target decoy: %s\n", idmef_target_decoy_to_string(target->decoy));
         
-        if ( target->interface )
-                print(0, "* Target Interface: %s\n", target->interface);
+        if ( idmef_string(&target->interface) )
+                print(0, "* Target Interface: %s\n", idmef_string(&target->interface));
         
         process_node(0, target->node);
         process_service(0, target->service);
@@ -379,17 +394,17 @@ static void process_target(int depth, const idmef_target_t *target)
 
 static void process_analyzer(const idmef_analyzer_t *analyzer) 
 {
-        if ( analyzer->model )
-                print(0, "* Analyzer model: %s\n", analyzer->model);
+        if ( idmef_string(&analyzer->model) )
+                print(0, "* Analyzer model: %s\n", idmef_string(&analyzer->model));
 
-        if ( analyzer->version )
-                print(0, "* Analyzer version: %s\n", analyzer->version);
+        if ( idmef_string(&analyzer->version) )
+                print(0, "* Analyzer version: %s\n", idmef_string(&analyzer->version));
 
-        if ( analyzer->class )
-                print(0, "* Analyzer class: %s\n", analyzer->class);
+        if ( idmef_string(&analyzer->class) )
+                print(0, "* Analyzer class: %s\n", idmef_string(&analyzer->class));
         
-        if ( analyzer->manufacturer )
-                print(0, "* Analyzer manufacturer: %s\n", analyzer->manufacturer);
+        if ( idmef_string(&analyzer->manufacturer) )
+                print(0, "* Analyzer manufacturer: %s\n", idmef_string(&analyzer->manufacturer));
 }
 
 
@@ -397,20 +412,20 @@ static void process_analyzer(const idmef_analyzer_t *analyzer)
 static void process_classification(const idmef_classification_t *class) 
 {
         print(0, "* Classification type: %s\n", idmef_classification_origin_to_string(class->origin));
-        print(0, "* Classification: %s\n", class->name);
+        print(0, "* Classification: %s\n", idmef_string(&class->name));
         
-        if ( class->url )
-                print(0, "* Classification URL: %s\n", class->url);
+        if ( idmef_string(&class->url) )
+                print(0, "* Classification URL: %s\n", idmef_string(&class->url));
 }
 
 
 
 static void process_data(const idmef_additional_data_t *ad) 
 {
-        if ( strlen(ad->data) <= 80 )
-                print(0, "* %s: %s\n", ad->meaning, ad->data);
+        if ( idmef_string_len(&ad->data) <= 80 )
+                print(0, "* %s: %s\n", idmef_string(&ad->meaning), idmef_string(&ad->data));
         else
-                print(0, "* %s:\n%s\n", ad->meaning, ad->data);
+                print(0, "* %s:\n%s\n", idmef_string(&ad->meaning), idmef_string(&ad->data));
 }
 
 
@@ -424,7 +439,7 @@ static void process_impact(const idmef_impact_t *impact)
         print(0, "* Impact severity: %s\n", idmef_impact_severity_to_string(impact->severity));
         print(0, "* Impact completion: %s\n", idmef_impact_completion_to_string(impact->completion));
         print(0, "* Impact type: %s\n", idmef_impact_type_to_string(impact->type));
-        print(0, "* Impact description: %s\n", impact->description);
+        print(0, "* Impact description: %s\n", idmef_string(&impact->description));
 }
 
 
@@ -446,7 +461,7 @@ static void process_confidence(const idmef_confidence_t *confidence)
 static void process_action(const idmef_action_t *action) 
 {
         print(0, "* Action category: %s\n", idmef_action_category_to_string(action->category));
-        print(0, "* Action description: %s\n", action->description);
+        print(0, "* Action description: %s\n", idmef_string(&action->description));
 }
 
 

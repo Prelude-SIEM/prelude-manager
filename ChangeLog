@@ -1,3 +1,18 @@
+2002-01-25  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/idmef-util.c: never assert() here. Return NULL
+	and dump a warning.
+
+	* src/idmef-db-output.c: 
+	use provided macro to access idmef_string.
+	Handle error better.
+	
+	* src/idmef-message-read.c: 
+	* plugins/reports/textmod/textmod.c: 
+	* plugins/reports/debug/debug.c: 
+	* plugins/decodes/prelude-nids/decode.c: 
+	use provided macro to access idmef_string.
+
 2002-01-23  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/reports/textmod/textmod.c: 

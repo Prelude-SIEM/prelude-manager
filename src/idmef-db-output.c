@@ -29,10 +29,12 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/idmef-tree.h>
+#include <libprelude/idmef-tree-func.h>
 
 #include "plugin-db.h"
 #include "idmef-util.h"
 #include "idmef-db-output.h"
+
 
 static int insert_file(const uint64_t *alert_ident, const uint64_t *parent_ident,
                        char parent_type, const idmef_file_t *file);
@@ -42,19 +44,24 @@ static int insert_address(const uint64_t *alert_ident, const uint64_t *parent_id
                           char parent_type, const uint64_t *node_ident,
                           const idmef_address_t *addr) 
 {
+        const char *category;
         char *vlan_name, *address, *netmask;
 
-        address = db_plugin_escape(addr->address);
+        category = idmef_address_category_to_string(addr->category);
+        if ( ! category )
+                return -1;
+        
+        address = db_plugin_escape(idmef_string(&addr->address));
         if ( ! address )
                 return -1;
         
-        netmask = db_plugin_escape(addr->netmask);
+        netmask = db_plugin_escape(idmef_string(&addr->netmask));
         if ( ! netmask ) {
                 free(address);
                 return -1;
         }
         
-        vlan_name = db_plugin_escape(addr->vlan_name);
+        vlan_name = db_plugin_escape(idmef_string(&addr->vlan_name));
         if ( ! vlan_name ) {
                 free(address);
                 free(netmask);
@@ -65,8 +72,7 @@ static int insert_address(const uint64_t *alert_ident, const uint64_t *parent_id
                           "category, vlan_name, vlan_num, address, netmask",
                           "%llu, '%c', %llu, %llu, %llu, '%s', '%s', '%d', '%s', '%s'",
                           *alert_ident, parent_type, *parent_ident, *node_ident, addr->ident,
-                          idmef_address_category_to_string(addr->category), vlan_name, addr->vlan_num,
-                          address, netmask);
+                          category, vlan_name, addr->vlan_num, address, netmask);
         
         free(address);
         free(netmask);
@@ -82,18 +88,23 @@ static int insert_node(const uint64_t *alert_ident, const uint64_t *parent_ident
                        char parent_type, const idmef_node_t *node) 
 {
         int ret;
+        const char *category;
         idmef_address_t *addr;
         struct list_head *tmp;
         char *location, *name;
 
         if ( ! node )
                 return 0;
+
+        category = idmef_node_category_to_string(node->category);
+        if ( ! category )
+                return -1;
         
-        name = db_plugin_escape(node->name);
+        name = db_plugin_escape(idmef_string(&node->name));
         if ( ! name )
                 return -1;
         
-        location = db_plugin_escape(node->location);
+        location = db_plugin_escape(idmef_string(&node->location));
         if ( ! location ) {
                 free(name);
                 return -1;
@@ -101,7 +112,7 @@ static int insert_node(const uint64_t *alert_ident, const uint64_t *parent_ident
         
         db_plugin_insert("Prelude_Node", "alert_ident, parent_type, parent_ident, ident, category, location, name",
                          "%llu, '%c', %llu, %llu, '%s', '%s', '%s'", *alert_ident, parent_type, *parent_ident,
-                         node->ident, idmef_node_category_to_string(node->category), location, name);
+                         node->ident, category, location, name);
         
         free(name);
         free(location);
@@ -124,14 +135,19 @@ static int insert_userid(const uint64_t *alert_ident, const uint64_t *parent_ide
                          char parent_type, const idmef_userid_t *uid) 
 {
         char *name;
+        const char *type;
 
-        name = db_plugin_escape(uid->name);
+        type = idmef_userid_type_to_string(uid->type);
+        if ( ! type )
+                return -1;
+        
+        name = db_plugin_escape(idmef_string(&uid->name));
         if ( ! name )
                 return -1;
         
         db_plugin_insert("Prelude_UserId", "alert_ident, parent_type, parent_ident, ident, type, name, number",
                          "%llu, '%c', %llu, %llu, '%s', '%s', '%u'", *alert_ident, parent_type, *parent_ident,
-                         uid->ident, idmef_userid_type_to_string(uid->type), name, uid->number);
+                         uid->ident, type, name, uid->number);
 
         free(name);
         
@@ -145,14 +161,19 @@ static int insert_user(const uint64_t *alert_ident, const uint64_t *parent_ident
 {
         int ret;
         idmef_userid_t *uid;
+        const char *category;
         struct list_head *tmp;
-
+        
         if ( ! user )
                 return 0;
+
+        category = idmef_user_category_to_string(user->category);
+        if ( ! category )
+                return -1;
         
         db_plugin_insert("Prelude_User", "alert_ident, parent_type, parent_ident, ident, category",
                          "%llu, '%c', %llu, %llu, '%s'", *alert_ident, parent_type, *parent_ident,
-                         user->ident, idmef_user_category_to_string(user->category));
+                         user->ident, category);
         
         list_for_each(tmp, &user->userid_list) {
                 uid = list_entry(tmp, idmef_userid_t, list);
@@ -175,11 +196,11 @@ static int insert_process(const uint64_t *alert_ident, const uint64_t *parent_id
         if ( ! process )
                 return 0;
         
-        name = db_plugin_escape(process->name);
+        name = db_plugin_escape(idmef_string(&process->name));
         if ( ! name )
                 return -1;
         
-        path = db_plugin_escape(process->path);
+        path = db_plugin_escape(idmef_string(&process->path));
         if ( ! path ) {
                 free(name);
                 return -1;
@@ -202,17 +223,17 @@ static int insert_snmp_service(const uint64_t *alert_ident, const uint64_t *serv
 {
         char *oid, *community, *command;
 
-        oid = db_plugin_escape(snmp->oid);
+        oid = db_plugin_escape(idmef_string(&snmp->oid));
         if (! oid )
                 return -1;
         
-        command = db_plugin_escape(snmp->command);
+        command = db_plugin_escape(idmef_string(&snmp->command));
         if ( ! command ) {
                 free(oid);
                 return -1;
         }
         
-        community = db_plugin_escape(snmp->community);
+        community = db_plugin_escape(idmef_string(&snmp->community));
         if ( ! community ) {
                 free(oid);
                 free(command);
@@ -240,17 +261,17 @@ static int insert_web_service(const uint64_t *alert_ident, const uint64_t *servi
         if ( ! web )
                 return 0;
 
-        url = db_plugin_escape(web->url);
+        url = db_plugin_escape(idmef_string(&web->url));
         if ( ! url )
                 return -1;
         
-        cgi = db_plugin_escape(web->cgi);
+        cgi = db_plugin_escape(idmef_string(&web->cgi));
         if ( ! cgi ) {
                 free(url);
                 return -1;
         }
         
-        method = db_plugin_escape(web->http_method);
+        method = db_plugin_escape(idmef_string(&web->http_method));
         if ( ! method ) {
                 free(url);
                 free(cgi);
@@ -279,11 +300,11 @@ static int insert_service(const uint64_t *alert_ident, const uint64_t *parent_id
         if ( ! service )
                 return 0;
         
-        name = db_plugin_escape(service->name);
+        name = db_plugin_escape(idmef_string(&service->name));
         if ( ! name )
                 return -1;
         
-        protocol = db_plugin_escape(service->protocol);
+        protocol = db_plugin_escape(idmef_string(&service->protocol));
         if ( ! protocol ) {
                 free(name);
                 return -1;
@@ -305,7 +326,7 @@ static int insert_service(const uint64_t *alert_ident, const uint64_t *parent_id
                 ret = insert_snmp_service(alert_ident, &service->ident, parent_ident, parent_type, service->specific.snmp);
                 break;
 
-        case default_service:
+        case no_specific_service:
                 ret = 0;
                 break;
                 
@@ -323,19 +344,24 @@ static int insert_linkage(const uint64_t *alert_ident, const uint64_t *parent_id
                           char parent_type, const idmef_linkage_t *linkage) 
 {
         char *name, *path;
+        const char *category;
 
-        name = db_plugin_escape(linkage->name);
+        category = idmef_linkage_category_to_string(linkage->category);
+        if ( ! category )
+                return -1;
+        
+        name = db_plugin_escape(idmef_string(&linkage->name));
         if (! name )
                 return -1;
         
-        path = db_plugin_escape(linkage->path);
+        path = db_plugin_escape(idmef_string(&linkage->path));
         if ( ! path ) {
                 free(name);
                 return -1;
         }
                 
         db_plugin_insert("Prelude_Linkage", "category, name, path", "%s, %s, %s",
-                         idmef_linkage_category_to_string(linkage->category), name, path);
+                         category, name, path);
         
         free(name);
         free(path);
@@ -355,7 +381,7 @@ static int insert_file_access(const uint64_t *alert_ident, const uint64_t *paren
          * FIXME
          */
         
-        permission = db_plugin_escape(access->permission);
+        permission = db_plugin_escape(idmef_string(&access->permission));
         if ( ! permission )
                 return -1;
         
@@ -373,6 +399,7 @@ static int insert_file(const uint64_t *alert_ident, const uint64_t *parent_ident
 {
         int ret;
         char *name, *path;
+        const char *category;
         struct list_head *tmp;
         idmef_linkage_t *linkage;
         idmef_file_access_t *access;
@@ -380,12 +407,16 @@ static int insert_file(const uint64_t *alert_ident, const uint64_t *parent_ident
 
         if ( ! file )
                 return 0;
+
+        category = idmef_file_category_to_string(file->category);
+        if ( ! category )
+                return -1;
         
-        name = db_plugin_escape(file->name);
+        name = db_plugin_escape(idmef_string(&file->name));
         if ( ! name )
                 return -1;
         
-        path = db_plugin_escape(file->path);
+        path = db_plugin_escape(idmef_string(&file->path));
         if ( ! path ) {
                 free(name);
                 return -1;
@@ -398,8 +429,7 @@ static int insert_file(const uint64_t *alert_ident, const uint64_t *parent_ident
         db_plugin_insert("Prelude_File", "alert_ident, parent_type, parent_ident, ident, category, name, path, "
                          "create_time, modify_time, access_time, data_size, disk_size", "%llu, %c, %llu, %llu, "
                          "%s, %s, %s, %s, %s, %s, %d, %d", *alert_ident, parent_type, *parent_ident, file->ident,
-                         idmef_file_category_to_string(file->category), name, path,
-                         ctime, mtime, atime, file->data_size, file->disk_size);
+                         category, name, path, ctime, mtime, atime, file->data_size, file->disk_size);
 
         free(name);
         free(path);
@@ -430,17 +460,21 @@ static int insert_source(const uint64_t *alert_ident, const idmef_source_t *sour
 {
         int ret;
         char *interface;
+        const char *spoofed;
 
         if ( ! source )
                 return 0;
-        
-        interface = db_plugin_escape(source->interface);
+
+        spoofed = idmef_source_spoofed_to_string(source->spoofed);
+        if ( ! spoofed )
+                return -1;
+
+        interface = db_plugin_escape(idmef_string(&source->interface));
         if ( ! interface )
                 return -1;
         
         db_plugin_insert("Prelude_Source", "alert_ident, ident, spoofed, interface",
-                          "%llu, %llu, '%s', '%s'", *alert_ident, source->ident,
-                          idmef_source_spoofed_to_string(source->spoofed), interface);
+                          "%llu, %llu, '%s', '%s'", *alert_ident, source->ident, spoofed, interface);
         
         free(interface);
         
@@ -469,17 +503,24 @@ static int insert_target(const uint64_t *alert_ident, const idmef_target_t *targ
 {
         int ret;
         char *interface;
+        const char *decoy;
         idmef_file_t *file;
         struct list_head *tmp;
         
         if ( ! target )
                 return 0;
+
+        decoy = idmef_target_decoy_to_string(target->decoy);
+        if ( ! decoy )
+                return -1;
         
-        interface = db_plugin_escape(target->interface);
+        interface = db_plugin_escape(idmef_string(&target->interface));
+        if ( ! interface )
+                return -1;
         
         db_plugin_insert("Prelude_Target", "alert_ident, ident, decoy, interface",
-                          "%llu, %llu, '%s', '%s'", *alert_ident, target->ident,
-                          idmef_target_decoy_to_string(target->decoy), interface);
+                         "%llu, %llu, '%s', '%s'", *alert_ident, target->ident,
+                         decoy, interface);
         
         ret = insert_node(alert_ident, &target->ident, 'T', target->node);
         ret = insert_user(alert_ident, &target->ident, 'T', target->user);
@@ -506,24 +547,24 @@ static int insert_analyzer(const uint64_t *parent_ident, char parent_type, const
         int ret;
         char *manufacturer, *model, *version, *class;
 
-        class = db_plugin_escape(analyzer->class);
+        class = db_plugin_escape(idmef_string(&analyzer->class));
         if ( ! class )
                 return -1;
         
-        model = db_plugin_escape(analyzer->model);
+        model = db_plugin_escape(idmef_string(&analyzer->model));
         if ( ! model ) {
                 free(class);
                 return -1;
         }
         
-        version = db_plugin_escape(analyzer->version);
+        version = db_plugin_escape(idmef_string(&analyzer->version));
         if ( ! version ) {
                 free(class);
                 free(model);
                 return -1;
         }
         
-        manufacturer = db_plugin_escape(analyzer->manufacturer);
+        manufacturer = db_plugin_escape(idmef_string(&analyzer->manufacturer));
         if ( ! manufacturer ) {
                 free(class);
                 free(model);
@@ -557,20 +598,24 @@ static int insert_analyzer(const uint64_t *parent_ident, char parent_type, const
 static int insert_classification(const uint64_t *alert_ident, const idmef_classification_t *class) 
 {
         char *name, *url;
+        const char *origin;
 
-        url = db_plugin_escape(class->url);
+        origin = idmef_classification_origin_to_string(class->origin);
+        if ( ! origin )
+                return -1;
+
+        url = db_plugin_escape(idmef_string(&class->url));
         if ( ! url )
                 return -1;
         
-        name = db_plugin_escape(class->name);
+        name = db_plugin_escape(idmef_string(&class->name));
         if ( ! name ) {
                 free(url);
                 return -1;
         }
         
         db_plugin_insert("Prelude_Classification", "alert_ident, origin, name, url",
-                          "%llu, '%s', '%s', '%s'", *alert_ident,
-                          idmef_classification_origin_to_string(class->origin), name, url);
+                         "%llu, '%s', '%s', '%s'", *alert_ident, origin, name, url);
 
         free(url);
         free(name);
@@ -582,21 +627,25 @@ static int insert_classification(const uint64_t *alert_ident, const idmef_classi
 
 static int insert_data(const uint64_t *parent_ident, char parent_type, const idmef_additional_data_t *ad) 
 {
+        const char *type;
         char *meaning, *data;
 
-        data = db_plugin_escape(ad->data);
+        type = idmef_additional_data_type_to_string(ad->type);
+        if ( ! type )
+                return -1;
+        
+        data = db_plugin_escape(idmef_string(&ad->data));
         if ( ! data )
                 return -1;
         
-        meaning = db_plugin_escape(ad->meaning);
+        meaning = db_plugin_escape(idmef_string(&ad->meaning));
         if ( ! meaning ) {
                 free(data);
                 return -1;
         }
         
         db_plugin_insert("Prelude_AdditionalData", "parent_ident, parent_type, type, meaning, data",
-                          "%llu, '%c', '%s', '%s', '%s'", *parent_ident, parent_type,
-                          idmef_additional_data_type_to_string(ad->type), meaning, data);
+                          "%llu, '%c', '%s', '%s', '%s'", *parent_ident, parent_type, type, meaning, data);
 
         free(data);
         free(meaning);
@@ -701,18 +750,29 @@ static int insert_analyzertime(const uint64_t *parent_ident, char parent_type, c
 static int insert_impact(const uint64_t *alert_ident, const idmef_impact_t *impact) 
 {
         char *desc;
+        const char *completion, *type, *severity;
 
         if ( ! impact )
                 return 0;
-                
-        desc = db_plugin_escape(impact->description);
+
+        completion = idmef_impact_completion_to_string(impact->completion);
+        if ( ! completion )
+                return -1;
+
+        type = idmef_impact_type_to_string(impact->type);
+        if ( ! type )
+                return -1;
+
+        severity = idmef_impact_severity_to_string(impact->severity);
+        if ( ! severity )
+                return -1;
+        
+        desc = db_plugin_escape(idmef_string(&impact->description));
         if ( ! desc )
                 return -1;
         
         db_plugin_insert("Prelude_Impact", "alert_ident, severity, completion, type, description",
-                         "%llu, '%s', '%s', '%s', '%s'", *alert_ident, idmef_impact_severity_to_string(impact->severity),
-                         idmef_impact_completion_to_string(impact->completion), idmef_impact_type_to_string(impact->type),
-                         desc);
+                         "%llu, '%s', '%s', '%s', '%s'", *alert_ident, severity, completion, type, desc);
 
         free(desc);
         
@@ -725,14 +785,18 @@ static int insert_impact(const uint64_t *alert_ident, const idmef_impact_t *impa
 static int insert_action(const uint64_t *alert_ident, const idmef_action_t *action)
 {
         char *desc;
+        const char *category;
+
+        category = idmef_action_category_to_string(action->category);
+        if ( ! category )
+                return -1;
         
-        desc = db_plugin_escape(action->description);
+        desc = db_plugin_escape(idmef_string(&action->description));
         if ( ! desc )
                 return -1;
         
         db_plugin_insert("Prelude_Action", "alert_ident, category, description",
-                         "%llu, '%s', '%s'", *alert_ident, idmef_action_category_to_string(action->category),
-                         action->description);
+                         "%llu, '%s', '%s'", *alert_ident, category, desc);
 
         free(desc);
 

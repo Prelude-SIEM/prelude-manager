@@ -20,8 +20,8 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 #include <stdio.h>
-#include <assert.h>
 #include <time.h>
 #include <sys/time.h>
 #include <inttypes.h>
@@ -115,6 +115,7 @@ const char *idmef_additional_data_type_to_string(idmef_additional_data_type_t ty
 {
         static const char *tbl[] = {
                 "string",
+                "boolean", 
                 "byte",
                 "character",
                 "date-time",
@@ -122,14 +123,13 @@ const char *idmef_additional_data_type_to_string(idmef_additional_data_type_t ty
                 "ntpstamps",
                 "portlist",
                 "real",
-                "boolean",
                 "xml",
         };
-
-        /*
-         * Assert on read overflow.
-         */
-        assert( type < (sizeof(tbl) / sizeof(void *)) );
+        
+        if ( type >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid additional data type requested.\n");
+                return NULL;
+        }
 
         return tbl[type];        
 }
@@ -145,11 +145,11 @@ const char *idmef_classification_origin_to_string(idmef_classification_origin_t 
                 "cve",
                 "vendor-specific",
         };
-        
-        /*
-         * Assert on read overflow.
-         */
-        assert( origin < (sizeof(tbl) / sizeof(void *)) );
+
+        if ( origin >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid classification origin requested.\n");
+                return NULL;
+        }
 
         return tbl[origin];  
 }
@@ -176,9 +176,11 @@ const char *idmef_address_category_to_string(idmef_address_category_t category)
                 "ipv6-net",
                 "ipv6-net-mask",
         };
-        
 
-        assert( category < (sizeof(tbl) / sizeof(void *)) );
+        if ( category >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid address category requested.\n");
+                return NULL;
+        }
         
         return tbl[category];
 }
@@ -204,7 +206,10 @@ const char *idmef_node_category_to_string(idmef_node_category_t category)
                 "wfw",
         };
 
-        assert( category < (sizeof(tbl) / sizeof(void *)) );
+        if ( category >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid node category requested.\n");
+                return NULL;
+        }
 
         return tbl[category];
 }
@@ -219,8 +224,11 @@ const char *idmef_user_category_to_string(idmef_user_category_t category)
                 "os-device",
         };
 
-        assert( category < (sizeof(tbl) / sizeof(void *)) );
-
+        if ( category >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid user category requested.\n");
+                return NULL;
+        }
+        
         return tbl[category];
 }
 
@@ -230,15 +238,19 @@ const char *idmef_user_category_to_string(idmef_user_category_t category)
 const char *idmef_userid_type_to_string(idmef_userid_type_t type) 
 {
         static const char *tbl[] = {
-                "current-user",
                 "original-user",
+                "current-user",
                 "target-user",
                 "user-privs",
                 "current-group",
                 "group-privs",
+                "others-privs",
         };
-        
-        assert( type < (sizeof(tbl) / sizeof(void *)) );
+
+        if ( type >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid userid type requested.\n");
+                return NULL;
+        }
 
         return tbl[type];
 }
@@ -253,7 +265,10 @@ const char *idmef_source_spoofed_to_string(idmef_spoofed_t spoofed)
                 "no",
         };
 
-        assert( spoofed < (sizeof(tbl) / sizeof(void *)) );
+        if ( spoofed >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid source spoofed requested.\n");
+                return NULL;
+        }
 
         return tbl[spoofed];
 }
@@ -268,7 +283,10 @@ const char *idmef_target_decoy_to_string(idmef_spoofed_t decoy)
                 "no",
         };
 
-        assert( decoy < (sizeof(tbl) / sizeof(void *)) );
+        if ( decoy >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid target decoy requested.\n");
+                return NULL;
+        }
 
         return tbl[decoy];
 }
@@ -278,13 +296,17 @@ const char *idmef_target_decoy_to_string(idmef_spoofed_t decoy)
 const char *idmef_impact_severity_to_string(idmef_impact_severity_t severity) 
 {
         static const char *tbl[] = {
+                "NULL",
                 "low",
                 "medium",
                 "high",
         };
-
-        assert( severity < (sizeof(tbl) / sizeof(void *)) );
-
+        
+        if ( severity >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid impact severity requested.\n");
+                return NULL;
+        }
+        
         return tbl[severity];
 }
 
@@ -293,13 +315,16 @@ const char *idmef_impact_severity_to_string(idmef_impact_severity_t severity)
 const char *idmef_impact_completion_to_string(idmef_impact_completion_t completion) 
 {
         static const char *tbl[] = {
-                "unknown", 
+                "NULL",
                 "failed",
                 "succeeded",
         };
 
-        assert( completion < (sizeof(tbl) / sizeof(void *)) );
-
+        if ( completion >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid impact completion requested.\n");
+                return NULL;
+        }
+        
         return tbl[completion];
 }
 
@@ -308,16 +333,19 @@ const char *idmef_impact_completion_to_string(idmef_impact_completion_t completi
 const char *idmef_impact_type_to_string(idmef_impact_type_t type)
 {
         static const char *tbl[] = {
+                "other",
                 "admin",
                 "dos",
                 "file",
                 "recon",
                 "user",
-                "other",
         };
 
-        assert( type < (sizeof(tbl) / sizeof(void *)) );
-
+        if ( type >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid impact type requested.\n");
+                return NULL;
+        }
+        
         return tbl[type];
 }
 
@@ -326,6 +354,7 @@ const char *idmef_impact_type_to_string(idmef_impact_type_t type)
 const char *idmef_linkage_category_to_string(idmef_linkage_category_t category) 
 {
         static const char *tbl[] = {
+                "NULL",
                 "hard-link",
                 "mount-point",
                 "reparse-point",
@@ -334,7 +363,10 @@ const char *idmef_linkage_category_to_string(idmef_linkage_category_t category)
                 "symbolic-link",
         };
 
-        assert( category < (sizeof(tbl) / sizeof(void *)) );
+        if ( category >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid linkage category requested.\n");
+                return NULL;
+        }
 
         return tbl[category];
 }
@@ -344,12 +376,16 @@ const char *idmef_linkage_category_to_string(idmef_linkage_category_t category)
 const char *idmef_file_category_to_string(idmef_file_category_t category) 
 {
         static const char *tbl[] = {
+                "NULL",
                 "current",
                 "original",
         };
 
-        assert( category < (sizeof(tbl) / sizeof(void *)) );
-
+        if ( category >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid file category requested.\n");
+                return NULL;
+        }
+        
         return tbl[category];
 }
 
@@ -358,14 +394,17 @@ const char *idmef_file_category_to_string(idmef_file_category_t category)
 const char *idmef_confidence_rating_to_string(idmef_confidence_rating_t rating) 
 {
         static const char *tbl[] = {
+                "numeric",
                 "low",
                 "medium",
                 "high",
-                "numeric",
         };
 
-        assert( rating < (sizeof(tbl) / sizeof(void *)) );
-
+        if ( rating >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid confidence rating requested.\n");
+                return NULL;
+        }
+        
         return tbl[rating];
 }
 
@@ -373,13 +412,16 @@ const char *idmef_confidence_rating_to_string(idmef_confidence_rating_t rating)
 const char *idmef_action_category_to_string(idmef_action_category_t category)
 {
         static const char *tbl[] = {
+                "other",
                 "block-installed",
                 "notification-sent",
                 "taken-offline",
-                "other",
         };
 
-        assert( category < (sizeof(tbl) / sizeof(void *)) );
-
+        if ( category >= (sizeof(tbl) / sizeof(char *)) ) {
+                log(LOG_ERR, "invalid action category requested.\n");
+                return NULL;
+        }
+        
         return tbl[category];
 }

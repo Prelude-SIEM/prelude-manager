@@ -26,6 +26,7 @@
 
 
 #include <libprelude/idmef-tree.h>
+#include <libprelude/idmef-tree-func.h>
 
 typedef struct {
         PLUGIN_GENERIC;

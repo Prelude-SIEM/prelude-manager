@@ -43,6 +43,9 @@
 #include "config.h"
 
 
+#define extract_idmef_string(buf, len, dst) \
+        extract_string(buf, len, dst.string)
+
 
 static int additional_data_get(prelude_msg_t *msg, idmef_additional_data_t *data) 
 {
@@ -63,11 +66,11 @@ static int additional_data_get(prelude_msg_t *msg, idmef_additional_data_t *data
                 break;
 
         case MSG_ADDITIONALDATA_MEANING:
-                extract_string(buf, len, data->meaning);
+                extract_idmef_string(buf, len, data->meaning);
                 break;
 
         case MSG_ADDITIONALDATA_DATA:
-                extract_string(buf, len, data->data);
+                extract_idmef_string(buf, len, data->data);
                 break;
 
         case MSG_END_OF_TAG:
@@ -102,11 +105,11 @@ static int classification_get(prelude_msg_t *msg, idmef_classification_t *class)
                 break;
 
         case MSG_CLASSIFICATION_NAME:
-                extract_string(buf, len, class->name);
+                extract_idmef_string(buf, len, class->name);
                 break;
 
         case MSG_CLASSIFICATION_URL:
-                extract_string(buf, len, class->url);
+                extract_idmef_string(buf, len, class->url);
                 break;
 
         case MSG_END_OF_TAG:
@@ -141,7 +144,7 @@ static int userid_get(prelude_msg_t *msg, idmef_userid_t *uid)
                 break;
 
         case MSG_USERID_NAME:
-                extract_string(buf, len, uid->name);
+                extract_idmef_string(buf, len, uid->name);
                 break;
 
         case MSG_USERID_NUMBER:
@@ -219,7 +222,7 @@ static int process_get(prelude_msg_t *msg, idmef_process_t *process)
         switch (tag) {
 
         case MSG_PROCESS_NAME:
-                extract_string(buf, len, process->name);
+                extract_idmef_string(buf, len, process->name);
                 break;
 
         case MSG_PROCESS_PID:
@@ -227,7 +230,7 @@ static int process_get(prelude_msg_t *msg, idmef_process_t *process)
                 break;
 
         case MSG_PROCESS_PATH:
-                extract_string(buf, len, process->path);
+                extract_idmef_string(buf, len, process->path);
                 break;
 
         case MSG_PROCESS_ARG:
@@ -235,7 +238,7 @@ static int process_get(prelude_msg_t *msg, idmef_process_t *process)
                 if ( ! arg )
                         return -1;
                 
-                extract_string(buf, len, arg->string);
+                extract_idmef_string(buf, len, arg->string);
                 break;
 
         case MSG_PROCESS_ENV:
@@ -243,7 +246,7 @@ static int process_get(prelude_msg_t *msg, idmef_process_t *process)
                 if ( ! env )
                         return -1;
                 
-                extract_string(buf, len, env->string);
+                extract_idmef_string(buf, len, env->string);
                 break;
 
         case MSG_END_OF_TAG:
@@ -277,7 +280,7 @@ static int address_get(prelude_msg_t *msg, idmef_address_t *addr)
                 break;
 
         case MSG_ADDRESS_VLAN_NAME:
-                extract_string(buf, len, addr->vlan_name);
+                extract_idmef_string(buf, len, addr->vlan_name);
                 break;
 
         case MSG_ADDRESS_VLAN_NUM:
@@ -285,11 +288,11 @@ static int address_get(prelude_msg_t *msg, idmef_address_t *addr)
                 break;
 
         case MSG_ADDRESS_ADDRESS:
-                extract_string(buf, len, addr->address);
+                extract_idmef_string(buf, len, addr->address);
                 break;
 
         case MSG_ADDRESS_NETMASK:
-                extract_string(buf, len, addr->netmask);
+                extract_idmef_string(buf, len, addr->netmask);
                 break;
 
         case MSG_END_OF_TAG:
@@ -319,15 +322,15 @@ static int snmp_service_get(prelude_msg_t *msg, idmef_snmpservice_t *snmp)
         switch (tag) {
                 
         case MSG_SNMPSERVICE_OID:
-                extract_string(buf, len, snmp->oid);
+                extract_idmef_string(buf, len, snmp->oid);
                 break;
 
         case MSG_SNMPSERVICE_COMMUNITY:
-                extract_string(buf, len, snmp->community);
+                extract_idmef_string(buf, len, snmp->community);
                 break;
 
         case MSG_SNMPSERVICE_COMMAND:
-                extract_string(buf, len, snmp->command);
+                extract_idmef_string(buf, len, snmp->command);
                 break;
 
         case MSG_END_OF_TAG:
@@ -357,19 +360,19 @@ static int web_service_get(prelude_msg_t *msg, idmef_webservice_t *web)
         switch (tag) {
 
         case MSG_WEBSERVICE_URL:
-                extract_string(buf, len, web->url);
+                extract_idmef_string(buf, len, web->url);
                 break;
 
         case MSG_WEBSERVICE_CGI:
-                extract_string(buf, len, web->cgi);
+                extract_idmef_string(buf, len, web->cgi);
                 break;
 
         case MSG_WEBSERVICE_HTTP_METHOD:
-                extract_string(buf, len, web->http_method);
+                extract_idmef_string(buf, len, web->http_method);
                 break;
 
         case MSG_WEBSERVICE_ARG:
-                extract_string(buf, len, web->arg);
+                extract_idmef_string(buf, len, web->arg);
                 break;
 
         case MSG_END_OF_TAG:
@@ -404,7 +407,7 @@ static int service_get(prelude_msg_t *msg, idmef_service_t *service)
         switch (tag) {
 
         case MSG_SERVICE_NAME:
-                extract_string(buf, len, service->name);
+                extract_idmef_string(buf, len, service->name);
                 break;
 
         case MSG_SERVICE_PORT:
@@ -412,11 +415,11 @@ static int service_get(prelude_msg_t *msg, idmef_service_t *service)
                 break;
 
         case MSG_SERVICE_PORTLIST:
-                extract_string(buf, len, service->portlist);
+                extract_idmef_string(buf, len, service->portlist);
                 break;
 
         case MSG_SERVICE_PROTOCOL:
-                extract_string(buf, len, service->protocol);
+                extract_idmef_string(buf, len, service->protocol);
                 break;
 
         case MSG_WEBSERVICE_TAG:
@@ -471,11 +474,11 @@ static int node_get(prelude_msg_t *msg, idmef_node_t *node)
                 break;
 
         case MSG_NODE_LOCATION:
-                extract_string(buf, len, node->location);
+                extract_idmef_string(buf, len, node->location);
                 break;
 
         case MSG_NODE_NAME:
-                extract_string(buf, len, node->name);
+                extract_idmef_string(buf, len, node->name);
                 break;
 
         case MSG_ADDRESS_TAG:
@@ -517,19 +520,19 @@ static int analyzer_get(prelude_msg_t *msg, idmef_analyzer_t *analyzer)
         switch (tag) {
 
         case MSG_ANALYZER_MANUFACTURER:
-                extract_string(buf, len, analyzer->manufacturer);
+                extract_idmef_string(buf, len, analyzer->manufacturer);
                 break;
 
         case MSG_ANALYZER_MODEL:
-                extract_string(buf, len, analyzer->model);
+                extract_idmef_string(buf, len, analyzer->model);
                 break;
 
         case MSG_ANALYZER_VERSION:
-                extract_string(buf, len, analyzer->version);
+                extract_idmef_string(buf, len, analyzer->version);
                 break;
 
         case MSG_ANALYZER_CLASS:
-                extract_string(buf, len, analyzer->class);
+                extract_idmef_string(buf, len, analyzer->class);
                 break;
 
         case MSG_NODE_TAG:                
@@ -583,7 +586,7 @@ static int source_get(prelude_msg_t *msg, idmef_source_t *src)
                 break;
 
         case MSG_SOURCE_INTERFACE:
-                extract_string(buf, len, src->interface);
+                extract_idmef_string(buf, len, src->interface);
                 break;
 
         case MSG_NODE_TAG:
@@ -651,7 +654,7 @@ static int target_get(prelude_msg_t *msg, idmef_target_t *dst)
                 break;
 
         case MSG_TARGET_INTERFACE:
-                extract_string(buf, len, dst->interface);
+                extract_idmef_string(buf, len, dst->interface);
                 break;
 
         case MSG_NODE_TAG:
@@ -809,11 +812,11 @@ static int tool_alert_get(prelude_msg_t *msg, idmef_tool_alert_t *tool)
         switch (tag) {
 
         case MSG_TOOL_ALERT_NAME:
-                extract_string(buf, len, tool->name);
+                extract_idmef_string(buf, len, tool->name);
                 break;
 
         case MSG_TOOL_ALERT_COMMAND:
-                extract_string(buf, len, tool->command);
+                extract_idmef_string(buf, len, tool->command);
                 break;
 
         case MSG_ALERTIDENT_TAG:
@@ -853,7 +856,7 @@ static int correlation_alert_get(prelude_msg_t *msg, idmef_correlation_alert_t *
         switch (tag) {
 
         case MSG_CORRELATION_ALERT_NAME:
-                extract_string(buf, len, correlation->name);
+                extract_idmef_string(buf, len, correlation->name);
                 break;
 
         case MSG_ALERTIDENT_TAG:
@@ -891,7 +894,7 @@ static int overflow_alert_get(prelude_msg_t *msg, idmef_overflow_alert_t *overfl
         switch (tag) {
 
         case MSG_OVERFLOW_ALERT_PROGRAM:
-                extract_string(buf, len, overflow->program);
+                extract_idmef_string(buf, len, overflow->program);
                 break;
 
         case MSG_OVERFLOW_ALERT_SIZE:
@@ -944,7 +947,7 @@ static int impact_get(prelude_msg_t *msg, idmef_impact_t *impact)
                 break;
 
         case MSG_IMPACT_DESCRIPTION:
-                extract_string(buf, len, impact->description);
+                extract_idmef_string(buf, len, impact->description);
                 break;
 
         case MSG_END_OF_TAG:
@@ -1014,7 +1017,7 @@ static int action_get(prelude_msg_t *msg, idmef_action_t *action)
                 break;
 
         case MSG_ACTION_DESCRIPTION:
-                extract_string(buf, len, action->description);
+                extract_idmef_string(buf, len, action->description);
                 break;
                 
         case MSG_END_OF_TAG:
@@ -1321,8 +1324,7 @@ int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg)
 
         case MSG_OWN_FORMAT:
                 extract_int(uint8, buf, len, tag);
-                
-                ret = decode_plugins_run(tag, msg, idmef);
+                ret = decode_plugins_run(tag, msg, idmef);                
                 if ( ret < 0 ) 
                         return ret;
                 
