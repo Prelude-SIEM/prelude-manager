@@ -98,7 +98,7 @@ static void init_manager_server(void)
         
         ret = server_generic_bind((server_generic_t *) sensor_server, config.addr, config.port);
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "- couldn't start sensor server.\n");
+                prelude_log(PRELUDE_LOG_WARN, "Error initializing prelude-manager server.\n");
                 exit(1);
         }
 }
@@ -215,6 +215,16 @@ int main(int argc, char **argv)
         if ( ret < 0 )
                 exit(1);
         
+        ret = prelude_client_new(&manager_client, 0, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "error creating prelude-client object");
+                
+                if ( prelude_client_is_setup_needed(manager_client, ret) )
+                        prelude_client_print_setup_error(manager_client);
+                
+                return -1;
+        }
+        
         ret = prelude_option_parse_arguments(manager_client, manager_root_optlist, &cfgfile, &argc, argv, &err);
         if ( ret < 0 ) {
                 if ( err )
@@ -222,16 +232,6 @@ int main(int argc, char **argv)
 
                 else if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
                         prelude_perror(ret, "error processing prelude-manager options");
-                
-                return -1;
-        }
-        
-        ret = prelude_client_new(&manager_client, 0, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF);
-        if ( ret < 0 ) {
-                prelude_perror(ret, "error creating prelude-client object");
-                
-                if ( prelude_client_is_setup_needed(manager_client, ret) )
-                        prelude_client_print_setup_error(manager_client);
                 
                 return -1;
         }
