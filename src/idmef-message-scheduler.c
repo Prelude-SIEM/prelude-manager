@@ -318,11 +318,6 @@ static int process_message(prelude_msg_t *msg)
                 return -1;
         }
 
-	ret = idmef_message_enable_cache(idmef);
-	if ( ret < 0 )
-		log(LOG_ERR, "cannot enable IDMEF cache\n");
-		
-
         if ( relay_filter_available == 0 && filter_plugins_run_by_category(idmef, FILTER_CATEGORY_RELAYING) == 0 )
                 manager_relay_msg_if_needed(msg);
 

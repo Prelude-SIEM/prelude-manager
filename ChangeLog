@@ -1,3 +1,9 @@
+2004-01-07  Nicolas Delon  <delon.nicolas@wanadoo.fr>
+
+	* src/idmef-message-scheduler.c:
+	(process_message)
+	fit idmef_message changes
+
 2004-01-01  Nicolas Delon  <delon.nicolas@wanadoo.fr>
 
 	* plugins/reports/textmod/textmod.c:
