@@ -1,3 +1,8 @@
+2002-04-01  Laurent Oudot <oudot.laurent@wanadoo.fr>
+
+        * prelude-db-create.sh:
+	Added postgresql support for the IDMEF database
+		
 2002-03-29  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/server-logic.c (server_logic_process_requests): 
