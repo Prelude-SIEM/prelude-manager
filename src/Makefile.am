@@ -16,9 +16,13 @@ if HAVE_XML2
  XML_OBJS= -dlopen $(top_builddir)/plugins/reports/xmlmod/xmlmod.la
 endif
 
-if HAVE_LIBPRELUDEDB
- DB_OBJS= -dlopen $(top_builddir)/plugins/reports/db/db.la
-endif
+#
+# FIXME: to be done once libtool support dlpreopening with shared library
+# (libtool 2). Will break in case of static build otherwise.
+#
+#if HAVE_LIBPRELUDEDB
+# DB_OBJS= -dlopen $(top_builddir)/plugins/reports/db/db.la
+#endif
 
 DLOPENED_OBJS=$(XML_OBJS) $(DB_OBJS)
 
