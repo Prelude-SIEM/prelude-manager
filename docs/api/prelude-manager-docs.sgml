@@ -1,0 +1,45 @@
+<!doctype book PUBLIC "-//Davenport//DTD DocBook V3.0//EN" [
+<!ENTITY prelude-manager-plugin-db SYSTEM "sgml/plugin-db.sgml">
+<!ENTITY prelude-manager-ntp SYSTEM "sgml/ntp.sgml">
+<!ENTITY prelude-manager-ssl SYSTEM "sgml/ssl.sgml">
+<!ENTITY prelude-manager-plugin-report SYSTEM "sgml/plugin-report.sgml">
+<!ENTITY prelude-manager-plugin-util SYSTEM "sgml/plugin-util.sgml">
+<!ENTITY prelude-manager-idmef-message-read SYSTEM "sgml/idmef-message-read.sgml">
+<!ENTITY prelude-manager-auth SYSTEM "sgml/auth.sgml">
+<!ENTITY prelude-manager-idmef-db-output SYSTEM "sgml/idmef-db-output.sgml">
+<!ENTITY prelude-manager-plugin-decode SYSTEM "sgml/plugin-decode.sgml">
+<!ENTITY prelude-manager-sensor-server SYSTEM "sgml/sensor-server.sgml">
+<!ENTITY prelude-manager-pconfig SYSTEM "sgml/pconfig.sgml">
+<!ENTITY prelude-manager-idmef-util SYSTEM "sgml/idmef-util.sgml">
+<!ENTITY prelude-manager-server-generic SYSTEM "sgml/server-generic.sgml">
+<!ENTITY prelude-manager-server-logic SYSTEM "sgml/server-logic.sgml">
+<!ENTITY prelude-manager-report-infos SYSTEM "sgml/report-infos.sgml">
+<!ENTITY prelude-manager-idmef-message-scheduler SYSTEM "sgml/idmef-message-scheduler.sgml">
+<!ENTITY prelude-manager-admin-server SYSTEM "sgml/admin-server.sgml">
+]>
+<book id="index">
+  <bookinfo>
+    <title>[Insert name here] Reference Manual</title>
+  </bookinfo>
+
+  <chapter>
+    <title>[Insert title here]</title>
+    &prelude-manager-plugin-db;
+    &prelude-manager-ntp;
+    &prelude-manager-ssl;
+    &prelude-manager-plugin-report;
+    &prelude-manager-plugin-util;
+    &prelude-manager-idmef-message-read;
+    &prelude-manager-auth;
+    &prelude-manager-idmef-db-output;
+    &prelude-manager-plugin-decode;
+    &prelude-manager-sensor-server;
+    &prelude-manager-pconfig;
+    &prelude-manager-idmef-util;
+    &prelude-manager-server-generic;
+    &prelude-manager-server-logic;
+    &prelude-manager-report-infos;
+    &prelude-manager-idmef-message-scheduler;
+    &prelude-manager-admin-server;
+  </chapter>
+</book>
