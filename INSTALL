@@ -62,7 +62,8 @@ have to know that no report plugin nor database plugin will be enabled.
 You may enable available plugin throught the command line, or the
 configuration file (located in $prefix/etc/prelude-manager/prelude-manager.conf)
 
-
+Most command line option are available in the configuration file, 
+but command line option have the priority.
 
 
 
