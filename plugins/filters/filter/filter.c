@@ -129,9 +129,24 @@ static int set_filter_rule(void *context, prelude_option_t *opt, const char *arg
 
 static int get_filter_rule(void *context, prelude_option_t *opt, char *buf, size_t size)
 {
+        int ret;
+        prelude_string_t *out;
         filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+
+        out = prelude_string_new();
+        if ( ! out )
+                return -1;
         
-        return idmef_criteria_to_string(plugin->criteria, buf, size);
+        ret = idmef_criteria_to_string(plugin->criteria, out);
+        if ( ret < 0 ) {
+                prelude_string_destroy(out);
+                return -1;
+        }
+
+        snprintf(buf, size, "%s", prelude_string_get_string(out));
+        prelude_string_destroy(out);
+
+        return 0;
 }
 
 
