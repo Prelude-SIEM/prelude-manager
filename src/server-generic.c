@@ -742,7 +742,7 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
                 server->unix_srvr = 0;
                 addr.sin_family = AF_INET;
                 addr.sin_port = htons(port);
-                memset(&addr.sin_zero, 0, sizeof(addr.sin_zero));
+                memset(addr.sin_zero, 0, sizeof(addr.sin_zero));
                 ret = inet_server_start(server, saddr, &addr);
         }
 
