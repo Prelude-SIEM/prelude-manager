@@ -206,7 +206,7 @@ static void process_address(xmlNodePtr parent, idmef_address_t *address)
         if ( ! new )
                 return;
 
-        idmef_attr_uint64(new, "ident", idmef_address_get_ident(address));
+        idmef_attr_string(new, "ident", idmef_address_get_ident(address));
         idmef_attr_enum(new, "category", idmef_address_get_category(address), idmef_address_category_to_string);
         idmef_attr_string(new, "vlan-name", idmef_address_get_vlan_name(address));
         
@@ -231,7 +231,7 @@ static void process_node(xmlNodePtr parent, idmef_node_t *node)
         if ( ! new )
                 return;
         
-        idmef_attr_uint64(new, "ident", idmef_node_get_ident(node));
+        idmef_attr_string(new, "ident", idmef_node_get_ident(node));
         idmef_attr_enum(new, "category", idmef_node_get_category(node), idmef_node_category_to_string);
         idmef_content_string(new, "name", idmef_node_get_name(node));
         idmef_content_string(new, "location", idmef_node_get_location(node));
@@ -254,7 +254,7 @@ static void process_user_id(xmlNodePtr parent, idmef_user_id_t *user_id)
         if ( ! new )
                 return;
 
-        idmef_attr_uint64(new, "ident", idmef_user_id_get_ident(user_id));
+        idmef_attr_string(new, "ident", idmef_user_id_get_ident(user_id));
         idmef_attr_enum(new, "type", idmef_user_id_get_type(user_id), idmef_user_id_type_to_string);
         idmef_content_string(new, "name", idmef_user_id_get_name(user_id));
         idmef_content_generic_optional(new, "number", "%" PRIu32, idmef_user_id_get_number(user_id));
@@ -274,7 +274,7 @@ static void process_user(xmlNodePtr parent, idmef_user_t *user)
         if ( ! new )
                 return;
 
-        idmef_attr_uint64(new, "ident", idmef_user_get_ident(user));
+        idmef_attr_string(new, "ident", idmef_user_get_ident(user));
         idmef_attr_enum(new, "category", idmef_user_get_category(user), idmef_user_category_to_string);
 
 	user_id = NULL;
@@ -297,7 +297,7 @@ static void process_process(xmlNodePtr parent, idmef_process_t *process)
         if ( ! new )
                 return;
 
-        idmef_attr_uint64(new, "ident", idmef_process_get_ident(process));
+        idmef_attr_string(new, "ident", idmef_process_get_ident(process));
         idmef_content_string(new, "name", idmef_process_get_name(process));
         idmef_content_generic_optional(new, "pid", "%" PRIu32, idmef_process_get_pid(process));
         idmef_content_string(new, "path", idmef_process_get_path(process));
@@ -368,7 +368,7 @@ static void process_service(xmlNodePtr parent, idmef_service_t *service)
         if ( ! new )
                 return;
 
-        idmef_attr_uint64(new, "ident", idmef_service_get_ident(service));
+        idmef_attr_string(new, "ident", idmef_service_get_ident(service));
 	idmef_content_generic_optional(new, "ip_version", "%" PRIu8, idmef_service_get_ip_version(service));
         idmef_content_string(new, "name", idmef_service_get_name(service));
         idmef_content_generic_optional(new, "port", "%" PRIu16, idmef_service_get_port(service));
@@ -405,7 +405,7 @@ static void process_source(xmlNodePtr parent, idmef_source_t *source)
         if ( ! new )
                 return;
         
-        idmef_attr_uint64(new, "ident", idmef_source_get_ident(source));
+        idmef_attr_string(new, "ident", idmef_source_get_ident(source));
         idmef_attr_enum(new, "spoofed", idmef_source_get_spoofed(source), idmef_source_spoofed_to_string);
         idmef_attr_string(new, "interface", idmef_source_get_interface(source));
         
@@ -495,7 +495,7 @@ static void process_file(xmlNodePtr parent, idmef_file_t *file)
         if ( ! new )
                 return;
 
-        idmef_attr_uint64(new, "ident", idmef_file_get_ident(file));
+        idmef_attr_string(new, "ident", idmef_file_get_ident(file));
         idmef_attr_enum(new, "category", idmef_file_get_category(file), idmef_file_category_to_string);
 	idmef_attr_enum_optional(new, "fstype", idmef_file_get_fstype(file), idmef_file_fstype_to_string);
         idmef_content_string(new, "name", idmef_file_get_name(file));
@@ -532,7 +532,7 @@ static void process_target(xmlNodePtr parent, idmef_target_t *target)
         if ( ! new )
                 return;
 
-        idmef_attr_uint64(new, "ident", idmef_target_get_ident(target));
+        idmef_attr_string(new, "ident", idmef_target_get_ident(target));
         idmef_attr_enum(new, "decoy", idmef_target_get_decoy(target), idmef_target_decoy_to_string);
         idmef_attr_string(new, "interface", idmef_target_get_interface(target));
 
@@ -559,7 +559,7 @@ static void process_analyzer(xmlNodePtr parent, idmef_analyzer_t *analyzer)
         if ( ! new )
                 return;
         
-        idmef_attr_uint64(new, "analyzerid", idmef_analyzer_get_analyzerid(analyzer));
+        idmef_attr_string(new, "analyzerid", idmef_analyzer_get_analyzerid(analyzer));
         idmef_attr_string(new, "name", idmef_analyzer_get_name(analyzer));
         idmef_attr_string(new, "manufacturer", idmef_analyzer_get_manufacturer(analyzer));
         idmef_attr_string(new, "model", idmef_analyzer_get_model(analyzer));
@@ -605,7 +605,7 @@ static void process_classification(xmlNodePtr parent, idmef_classification_t *cl
         if ( ! new )
                 return;
 
-        idmef_attr_generic(new, "ident", "%" PRIu64, idmef_classification_get_ident(classification));
+        idmef_attr_string(new, "ident", idmef_classification_get_ident(classification));
         
         idmef_attr_string(new, "text", idmef_classification_get_text(classification));
 
@@ -678,9 +678,8 @@ static void process_confidence(xmlNodePtr parent, idmef_confidence_t *confidence
         if ( ! confidence )
                 return;
 
-        if ( idmef_confidence_get_rating(confidence) == IDMEF_CONFIDENCE_RATING_NUMERIC &&
-	     idmef_confidence_get_confidence(confidence) ) {
-                snprintf(buf, sizeof(buf), "%f", * idmef_confidence_get_confidence(confidence));
+        if ( idmef_confidence_get_rating(confidence) == IDMEF_CONFIDENCE_RATING_NUMERIC ) {
+                snprintf(buf, sizeof(buf), "%f", idmef_confidence_get_confidence(confidence));
                 new = xmlNewChild(parent, NULL, "Confidence", buf);
         } else
                 new = xmlNewChild(parent, NULL, "Confidence", NULL);
@@ -755,7 +754,7 @@ static void process_alert(xmlNodePtr root, idmef_alert_t *alert)
         if ( ! new )
                 return;
         
-        idmef_attr_uint64(new, "messageid", idmef_alert_get_messageid(alert));
+        idmef_attr_string(new, "messageid", idmef_alert_get_messageid(alert));
 
         process_analyzer(new, idmef_alert_get_analyzer(alert));
         process_time(new, "CreateTime", idmef_alert_get_create_time(alert));
@@ -785,7 +784,6 @@ static void process_alert(xmlNodePtr root, idmef_alert_t *alert)
 
 static void process_heartbeat(xmlNodePtr idmefmsg, idmef_heartbeat_t *heartbeat) 
 {
-        char buf[256];
         xmlNodePtr hb;
         idmef_additional_data_t *additional_data;
 
@@ -795,9 +793,8 @@ static void process_heartbeat(xmlNodePtr idmefmsg, idmef_heartbeat_t *heartbeat)
         hb = xmlNewChild(idmefmsg, NULL, "Heartbeat", NULL);
         if ( ! hb )
                 return;
-        
-        snprintf(buf, sizeof(buf), "%" PRIu64, idmef_heartbeat_get_messageid(heartbeat));
-        xmlSetProp(hb, "messageid", buf);
+
+	idmef_attr_string(hb, "messageid", idmef_heartbeat_get_messageid(heartbeat));
         
         process_analyzer(hb, idmef_heartbeat_get_analyzer(heartbeat));
         process_time(hb, "CreateTime", idmef_heartbeat_get_create_time(heartbeat));

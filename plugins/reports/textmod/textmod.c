@@ -533,7 +533,7 @@ static void process_analyzer(textmod_plugin_t *plugin, idmef_analyzer_t *analyze
         if ( ! analyzer )
                 return;
         
-	print(plugin, 0, "* Analyzer ID: %" PRIu64 "\n", idmef_analyzer_get_analyzerid(analyzer));
+	print_string(plugin, 0, "* Analyzer ID: %s\n", idmef_analyzer_get_analyzerid(analyzer));
         print_string(plugin, 0, "* Analyzer name: %s\n", idmef_analyzer_get_name(analyzer));
 	print_string(plugin, 0, "* Analyzer model: %s\n", idmef_analyzer_get_model(analyzer));
 	print_string(plugin, 0, "* Analyzer version: %s\n", idmef_analyzer_get_version(analyzer));
@@ -572,7 +572,7 @@ static void process_classification(textmod_plugin_t *plugin, idmef_classificatio
         if ( ! classification )
                 return;
         
-        print(plugin, 0, "* Classification ident: %" PRIu64 "\n", idmef_classification_get_ident(classification));
+        print_string(plugin, 0, "* Classification ident: %s\n", idmef_classification_get_ident(classification));
 
         print_string(plugin, 0, "* Classification text: %s\n", idmef_classification_get_text(classification));
 
@@ -710,7 +710,7 @@ static void process_alert(textmod_plugin_t *plugin, idmef_alert_t *alert)
                 return;
         
         print(plugin, 0, "********************************************************************************\n");
-        print(plugin, 0, "* Alert: ident=%" PRIu64 "\n", idmef_alert_get_messageid(alert));
+        print_string(plugin, 0, "* Alert: ident=%s\n", idmef_alert_get_messageid(alert));
         
         process_classification(plugin, idmef_alert_get_classification(alert));
         
@@ -772,7 +772,7 @@ static void process_heartbeat(textmod_plugin_t *plugin, idmef_heartbeat_t *heart
                 return;
         
         print(plugin, 0, "********************************************************************************\n");
-        print(plugin, 0, "* Heartbeat: ident=%" PRIu64 "\n", idmef_heartbeat_get_messageid(heartbeat));
+        print_string(plugin, 0, "* Heartbeat: ident=%s\n", idmef_heartbeat_get_messageid(heartbeat));
         
         process_analyzer(plugin, idmef_heartbeat_get_analyzer(heartbeat));
         process_time(plugin, "* Creation time", idmef_heartbeat_get_create_time(heartbeat));
