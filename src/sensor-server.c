@@ -58,6 +58,8 @@ typedef struct {
         
         pthread_mutex_t *list_mutex;
         prelude_msg_t *options_list;
+        
+        prelude_client_capability_t capability;
 } sensor_fd_t;
 
 
@@ -414,15 +416,12 @@ static int read_client_type(sensor_fd_t *cnx, prelude_msg_t *msg)
         uint32_t dlen;
         
         ret = prelude_msg_get(msg, &tag, &dlen, &buf);
-        if ( ret < 0 ) {
+        if ( ret <= 0 ) {
                 log_client(cnx, "error decoding message.\n");
                 return -1;
         }
-        
-        if ( ret == 0 ) 
-                return 0;
 
-        prelude_msg_destroy(msg);
+        cnx->capability = tag;
 
         if ( tag & PRELUDE_CLIENT_CAPABILITY_RECV_IDMEF && tag & PRELUDE_CLIENT_CAPABILITY_SEND_IDMEF )
                 return handle_declare_child_relay(cnx);
@@ -502,23 +501,24 @@ static int read_connection_cb(server_generic_client_t *client)
 
         msg = cnx->msg;
         cnx->msg = NULL;
-
+        
         tag = prelude_msg_get_tag(msg);
         
         /*
          * If we get there, we have a whole message.
          */        
         switch ( tag ) {
+
         case PRELUDE_MSG_IDMEF:
                 ret = idmef_message_schedule(cnx->queue, msg);
                 return ret;
                 
         case PRELUDE_MSG_ID:
-                ret = read_ident_message(cnx, msg);
+                ret = (cnx->ident) ? -1 : read_ident_message(cnx, msg);
                 break;
 
         case PRELUDE_MSG_CLIENT_CAPABILITY:
-                ret = read_client_type(cnx, msg);
+                ret = (cnx->capability) ? -1 : read_client_type(cnx, msg);
                 break;
                 
         case PRELUDE_MSG_OPTION_LIST:
@@ -532,18 +532,16 @@ static int read_connection_cb(server_generic_client_t *client)
         case PRELUDE_MSG_OPTION_REPLY:
                 ret = reply_sensor_option(cnx, msg);
                 break;
-
+                
         default:
-                log_client(cnx, "unknow message id %d\n", prelude_msg_get_tag(msg));
-                ret = 0;
+                ret = -1;
                 break;
         }
 
-        if ( tag != PRELUDE_MSG_CLIENT_CAPABILITY && tag != PRELUDE_MSG_OPTION_LIST )
-                /*
-                 * msg will be destroyed before for this kind of message.
-                 */
-                prelude_msg_destroy(msg);
+        if ( ret < 0 )
+                log_client(cnx, "invalid message sent by the client.\n");
+        
+        prelude_msg_destroy(msg);
 
         return ret;
 }
@@ -588,7 +586,6 @@ static int accept_connection_cb(server_generic_client_t *ptr)
 
 server_generic_t *sensor_server_new(const char *addr, uint16_t port) 
 {
-        int ret;
         server_generic_t *server;
         
         server = server_generic_new(addr, port, sizeof(sensor_fd_t), accept_connection_cb,
