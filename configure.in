@@ -86,71 +86,6 @@ AM_CONDITIONAL(HAVE_XML2, test x$enable_xmlmod = xyes)
 AC_SUBST(HAVE_XML2)
 
 
-dnl **************************************************
-dnl * Do we need aligned access ? (from tcpdump)     *
-dnl **************************************************
-
-AC_MSG_CHECKING(if unaligned accesses fail)
-
-AC_CACHE_VAL(ac_cv_lbl_unaligned_fail,
-        [case "$host_cpu" in
-
-        # XXX: should also check that they don't do weird things (like on arm)
-        alpha*|arm*|hp*|mips*|sparc*|ia64)
-                ac_cv_lbl_unaligned_fail=yes
-                ;;
-
-        *)
-                cat >conftest.c <<EOF
-#               include <sys/types.h>
-#               include <sys/wait.h>
-#               include <stdio.h>
-                unsigned char a[[5]] = { 1, 2, 3, 4, 5 };
-                main() {
-                unsigned int i;
-                pid_t pid;
-                int status;
-                /* avoid "core dumped" message */
-                pid = fork();
-                if (pid <  0)
-                        exit(2);
-                if (pid > 0) {
-                        /* parent */
-                        pid = waitpid(pid, &status, 0);
-                        if (pid < 0)
-                                exit(3);
-                        exit(!WIFEXITED(status));
-                }
-                /* child */
-                i = *(unsigned int *)&a[[1]];
-                printf("%d\n", i);
-                exit(0);
-                }
-EOF
-                ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS \
-                    conftest.c $LIBS >/dev/null 2>&1
-                if test ! -x conftest ; then
-                        dnl failed to compile for some reason
-                        ac_cv_lbl_unaligned_fail=yes
-                else
-                        ./conftest >conftest.out
-                        if test ! -s conftest.out ; then
-                                ac_cv_lbl_unaligned_fail=yes
-                        else
-                                ac_cv_lbl_unaligned_fail=no
-                        fi
-                fi
-                rm -f conftest* core core.conftest
-                ;;
-        esac])
-    
-AC_MSG_RESULT($ac_cv_lbl_unaligned_fail)
-if test $ac_cv_lbl_unaligned_fail = yes ; then
-	AC_DEFINE_UNQUOTED(NEED_ALIGNED_ACCESS, , Define wether your system require memory aligned access)
-fi
-
-
-
 
 dnl **************************************************
 dnl * Check for GTK-DOC                              *
@@ -283,7 +218,7 @@ dnl **************************************************
 dnl * Check for Ipv6.                                *
 dnl **************************************************
 
-AC_CHECK_TYPES([struct sockaddr_in], have_ipv6_type=yes,, [
+AC_CHECK_TYPES([struct sockaddr_in6], have_ipv6_type=yes,, [
  #include <sys/types.h>
  #include <sys/socket.h>
  #include <netinet/in.h>
