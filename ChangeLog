@@ -1,5 +1,10 @@
 2002-07-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/idmef-message-scheduler.c (process_message): 
+	check that relay_filter_available is 0. Fix a bug
+	where a relay manager would relay the same message
+	2 times.
+
 	* plugins/reports/textmod/textmod.c (print): 
 	call va_start() / va_end() once by do_print() call.
 	Avoid a SIGSEGV on some architecture (like PPC).

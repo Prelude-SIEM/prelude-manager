@@ -275,7 +275,7 @@ static int process_message(prelude_msg_t *msg)
                 return -1;
         }
 
-        if ( relay_filter_available && filter_plugins_run_by_category(idmef, FILTER_CATEGORY_RELAYING) == 0 )
+        if ( relay_filter_available == 0 && filter_plugins_run_by_category(idmef, FILTER_CATEGORY_RELAYING) == 0 )
                 manager_relay_msg_if_needed(msg);
 
         /*
