@@ -1,6 +1,7 @@
 /*****
 *
 * Copyright (C) 2002 Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>
+* Copyright (C) 2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -33,84 +34,96 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <libprelude/list.h>
+#include <libprelude/prelude-list.h>
 #include <libprelude/idmef.h>
 
 #include "config.h"
 #include "report.h"
-#include "idmef-util.h"
-
-
-typedef struct {
-	struct list_head list;
-	char *name;
-	idmef_object_t *object;
-} object_t;
-
-LIST_HEAD(object_list);
-
-plugin_report_t plugin;
-
-static int enabled = 0;
 
 #define BUFSIZE 32768
 
+
+prelude_plugin_generic_t *debug2_LTX_prelude_plugin_init(void);
+
+
+typedef struct {
+	prelude_list_t list;
+	char *name;
+	idmef_object_t *object;
+} debug_object_t;
+
+
+typedef struct {
+        prelude_list_t object_list;
+} debug_plugin_t;
+
+
+static plugin_report_t debug_plugin;
+
+
 static int iterator(idmef_value_t *val, void *extra)
 {
+        int ret;
 	char buf[BUFSIZE];
 	char *name = extra;
-	int ret;
 	
-	ret = idmef_value_to_string(val, buf, BUFSIZE);
+	ret = idmef_value_to_string(val, buf, sizeof(buf));
 	printf("%s: %s\n", name, ( ret < 0 ) ? "cannot convert to char *" : buf);
 	
 	return 0;	
 }
 
 
-static void handle_alert (const idmef_message_t *msg)
+static int debug_run(prelude_plugin_instance_t *pi, idmef_message_t *msg)
 {
-	struct list_head *tmp;
-	object_t *entry;
-	idmef_value_t *val;
-	
+        idmef_value_t *val;
+	prelude_list_t *tmp;
+	debug_object_t *entry;
+	debug_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        
 	printf("debug2: --- START OF MESSAGE\n");
 
-	list_for_each(tmp, &object_list) {
-		entry = list_entry(tmp, object_t, list);
+	prelude_list_for_each(tmp, &plugin->object_list) {
+		entry = prelude_list_entry(tmp, debug_object_t, list);
 
-		val = idmef_message_get(msg, entry->name);
-		if ( val )
-			idmef_value_iterate(val, entry->name, iterator);
-		else
-			printf("%s = NULL!\n", entry->name);
-			
-		idmef_value_destroy(val);
-	}
+		val = idmef_message_get(msg, entry->object);
+                if ( ! val ) {
+                        printf("%s = NULL!\n", entry->name);
+                        continue;
+                }
+                
+                idmef_value_iterate(val, entry->name, iterator);
+                idmef_value_destroy(val);
+        }
 	
 	printf("debug2: --- END OF MESSAGE\n");
+
+        return 0;
 }
 
-static int set_object(prelude_option_t *opt, const char *arg)
-{
-	object_t *object;
-	char *numeric;
 
-	object = calloc(1, sizeof(object_t));
+
+static int debug_set_object(void *context, prelude_option_t *option, const char *arg)
+{
+	char *numeric;
+	debug_object_t *object;
+        debug_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+
+	object = calloc(1, sizeof(*object));
 	if ( ! object ) {
-		log(LOG_ERR, "out of memory\n");
+		log(LOG_ERR, "memory exhausted.\n");
 		return prelude_option_error;
 	}
 
 	object->name = strdup(arg);
 	
 	object->object = idmef_object_new("%s", arg);
-	if (! object->object) {
+	if ( ! object->object ) {
 		log(LOG_ERR, "object \"%s\" not found", arg);
 		return prelude_option_error;
 	}
 	
-	list_add_tail(&object->list, &object_list);
+	prelude_list_add_tail(&object->list, &plugin->object_list);
 
 	printf("debug2: object %s [%s]\n", 
 		idmef_object_get_name(object->object),
@@ -121,57 +134,72 @@ static int set_object(prelude_option_t *opt, const char *arg)
 	return prelude_option_success;
 }
 
-static int set_debug_state(prelude_option_t *opt, const char *arg) 
+
+
+static int debug_new(void *context, prelude_option_t *opt, const char *arg) 
 {
-        int ret;
+        debug_plugin_t *new;
         
-        if ( enabled ) {   
+        new = malloc(sizeof(*new));
+        if ( ! new ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return prelude_option_error;
+        }
 
-                ret = plugin_unsubscribe((plugin_generic_t *) &plugin);
-                if ( ret < 0 )
-                        return prelude_option_error;
+        PRELUDE_INIT_LIST_HEAD(&new->object_list);
+        prelude_plugin_instance_set_data(context, new);
 
-                enabled = 0;
-        } else {                
-                ret = plugin_subscribe((plugin_generic_t *) &plugin);
-                if ( ret < 0 )
-                        return prelude_option_error;
+        prelude_plugin_subscribe(context);
+        
+        return prelude_option_success;
+}
 
-                enabled = 1;
+
+
+static void debug_destroy(prelude_plugin_instance_t *pi)
+{
+        debug_object_t *object;
+        prelude_list_t *tmp, *bkp;
+        debug_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+
+        prelude_list_for_each_safe(tmp, bkp, &plugin->object_list) {
+                object = prelude_list_entry(tmp, debug_object_t, list);
+
+                prelude_list_del(&object->list);
+                
+                free(object->name);
+                idmef_object_destroy(object->object);
+                
+                free(object);
         }
         
-        return prelude_option_success;
+        
+        free(plugin);
 }
 
 
 
-static int get_debug_state(char *buf, size_t size) 
-{
-        snprintf(buf, size, "%s", (enabled == 1) ? "enabled" : "disabled");
-        return prelude_option_success;
-}
 
-
-
-plugin_generic_t *plugin_init(int argc, char **argv)
+prelude_plugin_generic_t *debug2_LTX_prelude_plugin_init(void)
 {
 	prelude_option_t *opt;
         
         opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "debug2",
-                                 "Option for the debug plugin", no_argument,
-                                 set_debug_state, get_debug_state);
+                                 "Option for the debug plugin", optionnal_argument,
+                                 debug_new, NULL);
 
-	prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'o', "object",
-	                           "IDMEF object name", required_argument,
-	                                   set_object, NULL); 
+        prelude_plugin_set_activation_option((void *) &debug_plugin, opt, NULL);
+        
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'o', "object",
+                           "IDMEF object name", required_argument,
+                           debug_set_object, NULL);
 
-        plugin_set_name(&plugin, "Debug2");
-        plugin_set_desc(&plugin, "Test plugin.");
-	plugin_set_running_func(&plugin, handle_alert);
-	
-	printf("BUFSIZE=%d\n", BUFSIZE);
+        prelude_plugin_set_name(&debug_plugin, "Debug2");
+        prelude_plugin_set_desc(&debug_plugin, "Test plugin.");
+        prelude_plugin_set_destroy_func(&debug_plugin, debug_destroy);
+        report_plugin_set_running_func(&debug_plugin, debug_run);
 	     
-	return (plugin_generic_t *) &plugin;
+	return (void *) &debug_plugin;
 }
 
 
