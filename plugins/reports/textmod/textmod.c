@@ -661,7 +661,7 @@ static int set_logfile(prelude_option_t *opt, const char *arg)
                 return prelude_option_error;
         }
         
-        logfile = arg;
+        logfile = strdup(arg);
         
         return prelude_option_success;
 }

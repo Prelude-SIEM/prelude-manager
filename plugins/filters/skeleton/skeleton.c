@@ -114,7 +114,7 @@ static int set_skeleton_hook(prelude_option_t *opt, const char *arg)
 
 static int set_skeleton_rule(prelude_option_t *opt, const char *arg) 
 {
-        filter_rule = arg;
+        filter_rule = strdup(arg);
         return prelude_option_success;
 }
 

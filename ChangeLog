@@ -1,5 +1,14 @@
 2002-07-23  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/pconfig.c (set_pidfile): 
+	strdup pidfile.
+
+	* plugins/filters/skeleton/skeleton.c (set_skeleton_rule): 
+	strdup filter_rule.
+
+	* plugins/reports/textmod/textmod.c (set_logfile): 
+	strdup logfile.
+
 	* prelude-manager-db-create.sh (manager_user): 
 	moved to prelude-manager-db-create.sh.in, to include
 	absolute path to the SQL scripts.
