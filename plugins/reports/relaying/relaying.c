@@ -138,6 +138,18 @@ static int relaying_get_manager(prelude_option_t *opt, prelude_string_t *out, vo
 
 
 
+static void relaying_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
+{
+        relaying_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
+
+        if ( plugin->conn_pool )
+                prelude_connection_pool_destroy(plugin->conn_pool);
+        
+        free(plugin);
+}
+
+
+
 int relaying_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
 {
         int ret;
@@ -160,6 +172,8 @@ int relaying_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
                 return ret;
         
         prelude_plugin_set_name(&relaying_plugin, "Relaying");
+        prelude_plugin_set_destroy_func(&relaying_plugin, relaying_destroy);
+        
         manager_report_plugin_set_running_func(&relaying_plugin, relaying_process);
         
         prelude_plugin_entry_set_plugin(pe, (void *) &relaying_plugin);
