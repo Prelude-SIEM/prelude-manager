@@ -1,5 +1,9 @@
 2003-12-28  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
+	* src/server-generic.c (setup_client_socket): 
+	* manager-adduser/manager-adduser.c (handle_client_connection): 
+	s/socket_io/sys_io/
+
 	* src/prelude-manager.c (main): 
 	ignore SIGPIPE.
 

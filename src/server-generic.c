@@ -452,7 +452,7 @@ static int setup_client_socket(server_generic_t *server,
         if ( ! cdata->fd ) 
                 return -1;
 
-        prelude_io_set_socket_io(cdata->fd, client);
+        prelude_io_set_sys_io(cdata->fd, client);
                
         cdata->msg = NULL;
         cdata->is_ssl = 0;

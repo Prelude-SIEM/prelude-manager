@@ -340,7 +340,7 @@ static int handle_client_connection(int sock, char *buf, prelude_msg_t *config)
         if ( ! fd )
                 return -1;
         
-        prelude_io_set_socket_io(fd, sock);
+        prelude_io_set_sys_io(fd, sock);
                 
         ret = prelude_msg_write(config, fd);
         if ( ret < 0 )
