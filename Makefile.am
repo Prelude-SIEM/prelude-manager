@@ -7,18 +7,18 @@ EXTRA_DIST = prelude-manager.conf config.h 		\
              ChangeLog prelude-manager-db-create.sh
 
 install-data-local:
-	$(INSTALL) -d -m 700 $(configdir);
-	$(INSTALL) -d -m 700 $(manager_fifo_dir)
-	@if test -f $(configdir)/prelude-manager.conf; then                                                  \
-		$(INSTALL) -m 600 $(top_srcdir)/prelude-manager.conf $(configdir)/prelude-manager.conf-dist; \
-		echo "********************************************************************************";     \
-		echo;											     \
-		echo "$(configdir)/prelude-manager.conf already exist...";                                   \
-		echo "Installing default configuration in $(configdir)/prelude-manager.conf-dist";           \
-		echo;                                                                                        \
-		echo "********************************************************************************";     \
-	else                                                                                                 \
-		$(INSTALL) -m 600 $(top_srcdir)/prelude-manager.conf $(configdir)/;                          \
+	$(INSTALL) -d -m 700 $(DESTDIR)/$(configdir);
+	$(INSTALL) -d -m 700 $(DESTDIR)/$(manager_fifo_dir)
+	@if test -f $(DESTDIR)/$(configdir)/prelude-manager.conf; then                                                  \
+		$(INSTALL) -m 600 $(top_srcdir)/prelude-manager.conf $(DESTDIR)/$(configdir)/prelude-manager.conf-dist; \
+		echo "********************************************************************************";     		\
+		echo;											     		\
+		echo "$(DESTDIR)/$(configdir)/prelude-manager.conf already exist...";                                   \
+		echo "Installing default configuration in $(DESTDIR)/$(configdir)/prelude-manager.conf-dist";           \
+		echo;                                                                                        		\
+		echo "********************************************************************************";     		\
+	else                                                                                                 		\
+		$(INSTALL) -m 600 $(top_srcdir)/prelude-manager.conf $(DESTDIR)/$(configdir)/;                          \
 	fi                                                                                                   
 
 

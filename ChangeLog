@@ -1,3 +1,8 @@
+2002-06-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* Makefile.am (install-data-local): 
+	use $(DESTDIR) as the top prefix for installing stuff.
+
 2002-06-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/idmef-db-output.c (insert_process): fix
