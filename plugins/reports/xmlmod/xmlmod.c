@@ -793,9 +793,12 @@ static int xmlmod_init(prelude_plugin_instance_t *pi)
                 log(LOG_ERR, "no logfile specified.\n");
                 return -1;
         }
+
+        ret = strcmp(plugin->logfile, "stderr");
+        if ( ret == 0 )
+                fd = stderr;
         
-        fd = fopen(plugin->logfile, "a+");
-        if ( ! fd ) {
+        else if ( ! (fd = fopen(plugin->logfile, "a+")) ) {
                 log(LOG_ERR, "error opening %s for writing.\n", plugin->logfile);
                 return -1;
         }
