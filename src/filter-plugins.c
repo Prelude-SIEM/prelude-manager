@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2002-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -35,19 +35,19 @@
 #include <libprelude/list.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/plugin-common.h>
-#include <libprelude/plugin-common-prv.h>
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
 
 #include "plugin-filter.h"
 
 
 typedef struct {
         struct list_head list;
-        
-        void *private_data;
-        plugin_container_t *filter;
-        plugin_generic_t *filtered_plugin;
 
+        void *data;
+        prelude_plugin_instance_t *filter;
+        prelude_plugin_instance_t *filtered_plugin;
+        
 } filter_plugin_entry_t;
 
 
@@ -56,30 +56,22 @@ static struct list_head filter_category_list[FILTER_CATEGORY_END];
 
 
 
-static int add_filter_entry(plugin_container_t *filter, filter_category_t cat, plugin_generic_t *filtered_plugin, void *data) 
+static filter_plugin_entry_t *new_filter_entry(prelude_plugin_instance_t *filter,
+                                               prelude_plugin_instance_t *plugin, void *data) 
 {
         filter_plugin_entry_t *new;
-
+        
         new = malloc(sizeof(*new));
         if ( ! new ) {
                 log(LOG_ERR, "memory exhausted.\n");
-                return -1;
+                return NULL;
         }
 
+        new->data = data;
         new->filter = filter;
-        new->private_data = data;
-        new->filtered_plugin = filtered_plugin;
+        new->filtered_plugin = plugin;
         
-        list_add_tail(&new->list, &filter_category_list[cat]);
-
-        if ( filtered_plugin )
-                log(LOG_INFO, "- Subscribing %s to filtering plugins with plugin hook %s.\n",
-                    filter->plugin->name, filtered_plugin->name);
-        else
-                log(LOG_INFO, "- Subscribing %s to filtering plugins with category hook %d.\n",
-                    filter->plugin->name, cat);
-        
-        return 0;
+        return new;
 }
 
 
@@ -88,53 +80,85 @@ static int add_filter_entry(plugin_container_t *filter, filter_category_t cat, p
 /*
  *
  */
-static int subscribe(plugin_container_t *pc) 
+static int subscribe(prelude_plugin_instance_t *pi) 
 {
-        filter_entry_t *entry;
-        plugin_filter_t *filter = (plugin_filter_t *) pc->plugin;
-
-        for ( entry = filter->category; entry->category != FILTER_CATEGORY_END; entry++ ) {
-                
-                if ( entry->plugin )
-                        add_filter_entry(pc, FILTER_CATEGORY_PLUGIN, entry->plugin, entry->private_data);
-                else
-                        add_filter_entry(pc, entry->category, NULL, entry->private_data);
-        }
-
         return 0;
 }
 
 
-static void unsubscribe(plugin_container_t *pc) 
+static void unsubscribe(prelude_plugin_instance_t *pi) 
 {
-        log(LOG_INFO, "- Un-subscribing %s from active reporting plugins.\n", pc->plugin->name);
-        plugin_del(pc);
+        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
+        
+        log(LOG_INFO, "- Un-subscribing %s from active reporting plugins.\n", plugin->name);
+        prelude_plugin_del(pi);
 }
 
 
 
+int filter_plugins_add_plugin(prelude_plugin_instance_t *filter,
+                              prelude_plugin_instance_t *plugin, void *data)
+{
+        filter_plugin_entry_t *new;
+        prelude_plugin_generic_t *pf, *pp;
 
-int filter_plugins_run_by_category(const idmef_message_t *msg, filter_category_t cat) 
+        new = new_filter_entry(filter, plugin, data);
+        if ( ! new )
+                return -1;
+        
+        pf = prelude_plugin_instance_get_plugin(filter);
+        pp = prelude_plugin_instance_get_plugin(plugin);
+
+        log(LOG_INFO, "- Subscribing %s[%s] to filtering plugin with plugin hook %s[%s].\n",
+            pf->name, prelude_plugin_instance_get_name(filter),
+            pp->name, prelude_plugin_instance_get_name(plugin));
+        
+        list_add_tail(&new->list, &filter_category_list[FILTER_CATEGORY_PLUGIN]);
+        
+        return 0;
+}
+
+
+
+int filter_plugins_add_category(prelude_plugin_instance_t *filter, filter_category_t cat, void *data)
+{
+        filter_plugin_entry_t *new;
+        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(filter);
+
+        new = new_filter_entry(filter, NULL, data);
+        if ( ! new )
+                return -1;
+        
+        log(LOG_INFO, "- Subscribing %s to filtering plugin with category hook %d.\n", plugin->name, cat);
+
+        list_add_tail(&new->list, &filter_category_list[cat]);
+        
+        return 0;
+}
+
+
+
+int filter_plugins_run_by_category(idmef_message_t *msg, filter_category_t cat) 
 {
         int ret;
         struct list_head *tmp;
         filter_plugin_entry_t *entry;
-        
+
         list_for_each(tmp, &filter_category_list[cat]) {
                 entry = list_entry(tmp, filter_plugin_entry_t, list);
                 
-                plugin_run_with_return_value(entry->filter, plugin_filter_t, run, ret, msg, entry->private_data);
+                ret = prelude_plugin_run(entry->filter, plugin_filter_t, run, msg, entry->data);
                 if ( ret < 0 )
                         return -1;
         }
-
+        
         return 0;
 }
 
 
 
 
-int filter_plugins_run_by_plugin(const idmef_message_t *msg, plugin_generic_t *plugin) 
+int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t *plugin) 
 {
         int ret;
         struct list_head *tmp;
@@ -147,7 +171,7 @@ int filter_plugins_run_by_plugin(const idmef_message_t *msg, plugin_generic_t *p
                 if ( entry->filtered_plugin != plugin )
                         continue;
                 
-                plugin_run_with_return_value(entry->filter, plugin_filter_t, run, ret, msg, entry->private_data);
+                ret = prelude_plugin_run(entry->filter, plugin_filter_t, run, msg, entry->data);
                 if ( ret < 0 )
                         return -1;
         }
@@ -178,7 +202,7 @@ int filter_plugins_init(const char *dirname, int argc, char **argv)
 		return -1;
 	}
         
-        ret = plugin_load_from_dir(dirname, argc, argv, subscribe, unsubscribe);
+        ret = prelude_plugin_load_from_dir(dirname, subscribe, unsubscribe);
 
         /*
          * don't return an error if the report directory doesn't exist.

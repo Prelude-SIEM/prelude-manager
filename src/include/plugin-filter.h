@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2002-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -25,13 +25,17 @@
 #define _MANAGER_PLUGIN_FILTER_H
 
 
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
+#include <libprelude/prelude-plugin.h>
+
 
 typedef enum {
         FILTER_CATEGORY_REPORTING = 0,
-        FILTER_CATEGORY_DATABASE  = 1, /* soon to go with reporting thought libpreludedb */
-        FILTER_CATEGORY_RELAYING  = 2,
-        FILTER_CATEGORY_PLUGIN    = 3,
-        FILTER_CATEGORY_END       = 4, /* should be the latest, do not remove */
+        FILTER_CATEGORY_RELAYING  = 1,
+        FILTER_CATEGORY_PLUGIN    = 2,
+        FILTER_CATEGORY_END       = 3, /* should be the latest, do not remove */
 } filter_category_t;
 
 
@@ -41,7 +45,7 @@ typedef struct {
          * What category/plugin should this entry be hooked at.
          */
         filter_category_t category;
-        plugin_generic_t *plugin;
+        prelude_plugin_generic_t *plugin;
         
         /*
          * private data associated with an entry.
@@ -52,31 +56,34 @@ typedef struct {
 
 
 typedef struct {
-        PLUGIN_GENERIC;
+        PRELUDE_PLUGIN_GENERIC;
         filter_entry_t *category;
-        int (*run)(const idmef_message_t *message, void *data);
+        int (*run)(idmef_message_t *message, void *data);
 } plugin_filter_t;
 
 
 
-#define plugin_run_func(p) (p)->run
+#define prelude_plugin_run_func(p) (p)->run
 
-#define plugin_close_func(p) (p)->close
+#define prelude_plugin_close_func(p) (p)->close
 
-#define plugin_set_running_func(p, f) plugin_run_func(p) = (f)
+#define prelude_plugin_set_running_func(p, f) prelude_plugin_run_func(p) = (f)
 
-#define plugin_set_closing_func(p, f) plugin_close_func(p) = (f)
+#define prelude_plugin_set_closing_func(p, f) prelude_plugin_close_func(p) = (f)
 
 
 int filter_plugins_available(filter_category_t type);
 
 int filter_plugins_init(const char *dirname, int argc, char **argv);
 
-int filter_plugins_run_by_category(const idmef_message_t *msg, filter_category_t cat);
+int filter_plugins_run_by_category(idmef_message_t *msg, filter_category_t cat);
 
-int filter_plugins_run_by_plugin(const idmef_message_t *message, plugin_generic_t *plugin);
+int filter_plugins_run_by_plugin(idmef_message_t *message, prelude_plugin_instance_t *plugin);
 
-plugin_generic_t *plugin_init(int argc, char **argv);
+int filter_plugins_add_plugin(prelude_plugin_instance_t *filter,
+                              prelude_plugin_instance_t *filtered, void *data);
+
+int filter_plugins_add_category(prelude_plugin_instance_t *filter, filter_category_t cat, void *data);
 
 #endif /* _MANAGER_PLUGIN_FILTER_H */
 
