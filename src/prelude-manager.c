@@ -133,7 +133,7 @@ int main(int argc, char **argv)
         ret = idmef_message_scheduler_init(manager_client);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't initialize alert scheduler.\n");
-                return NULL;
+                return -1;
         }
         
         ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, argc, argv);
