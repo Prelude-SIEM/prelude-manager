@@ -110,12 +110,13 @@ static int set_filter_hook(void *context, prelude_option_t *opt, const char *opt
 
 static int set_filter_rule(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
 {
+	int ret;
         idmef_criteria_t *new;
         filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);
 
-        new = idmef_criteria_new_string(optarg);
-        if ( ! new ) 
-                return -1;
+        ret = idmef_criteria_new_string(&new, optarg);
+        if ( ret < 0 ) 
+                return ret;
         
         if ( ! plugin->criteria )
                 plugin->criteria = new;
