@@ -557,7 +557,7 @@ int nids_packet_dump(idmef_alert_t *alert, packet_t *p)
                 { "Rarp header", p_rarp, (dump_func_t *) arp_dump, sizeof(etherarphdr_t) },
                 { "Ip header", p_ip, (dump_func_t *) ip_dump, sizeof(iphdr_t) },
                 { "Ip encapsulated header", p_ipencap, (dump_func_t *) ip_dump, sizeof(iphdr_t) },
-                { "Icmp header", p_icmp, (dump_func_t *) icmp_dump, sizeof(icmphdr_t) },
+                { "Icmp header", p_icmp, (dump_func_t *) icmp_dump, ICMP_MINLEN },
                 { "Igmp header", p_igmp, (dump_func_t *) igmp_dump, sizeof(igmphdr_t) },
                 { "Tcp header", p_tcp, (dump_func_t *) tcp_dump, sizeof(tcphdr_t) },
                 { "Udp header", p_udp, (dump_func_t *) udp_dump, sizeof(udphdr_t) },
@@ -576,7 +576,8 @@ int nids_packet_dump(idmef_alert_t *alert, packet_t *p)
                         if ( p[i].proto == tbl[j].proto ) {
 
                                 if ( tbl[j].size > 0 && tbl[j].size != p[i].len ) {
-                                        log(LOG_ERR, "received len isn't equal to specified len!\n");
+                                        log(LOG_ERR, "[%s] received len (%d) isn't equal to specified len (%d)!\n",
+                                            tbl[j].name, p[i].len, tbl[j].size);
                                         return -1;
                                 }
                                 
