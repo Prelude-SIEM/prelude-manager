@@ -1,3 +1,19 @@
+2002-04-07  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+
+	* plugins/reports/debug/debug.c: totally rewritten.
+	The purpose of this plugin is to walk the IDMEF tree, find
+	and report found inconsistencies in data structures. It is
+	designed for people writing sensors / decode plugins to check
+	if they generate the structures correctly, so Manager or some
+	unaware report plugin will not crash.
+
+	Note that this plugin may even crash (especially when run with
+	-a option), so it should _not_ be used in a production environment
+	(e.g. for logging alerts).
+
+	Thanks to Yoann Vandoorselaere <yoann@mandrakesoft.com> for helping
+	with the code.
+
 2002-04-07  Baptiste Malguy <baptiste@malguy.net>
 
 	* src/db-plugins.c (generate_dynamic_query): 
