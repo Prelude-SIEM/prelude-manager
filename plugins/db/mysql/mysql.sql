@@ -346,8 +346,7 @@ CREATE TABLE Prelude_ServicePortlist (
  alert_ident INT(8) NOT NULL,
  parent_type VARCHAR(1) NOT NULL, # T=Target S=Source
  parent_ident INT(8) NOT NULL,
- portmin INTEGER NULL,
- portmax INTEGER NULL,
+ portlist VARCHAR(255),
 INDEX (alert_ident,parent_type,parent_ident)
 );
 

@@ -308,8 +308,7 @@ create table Prelude_ServicePortlist (
 alert_ident          INT4                 not null,
 parent_type          VARCHAR(1)           not null,
 parent_ident         INT4                 not null,
-portmin              INT4                 null,
-portmax              INT4                 null /*,*/
+portlist	     VARCHAR(255)         not null,
 /* INDEX                (alert_ident,parent_type,parent_ident) null */
 );
 
