@@ -83,6 +83,39 @@ static volatile sig_atomic_t continue_processing = 1;
 
 
 
+static int send_auth_result(server_generic_client_t *client, int result)
+{
+        prelude_msg_status_t ret;
+                
+        if ( ! client->msg ) {
+                client->msg = prelude_msg_new(1, 0, PRELUDE_MSG_AUTH, 0);
+                if ( ! client->msg )
+                        return -1;
+
+                prelude_msg_set(client->msg, result, 0, NULL);
+        }
+        
+        ret = prelude_msg_write(client->msg, client->fd);        
+        if ( ret == prelude_msg_error ) {
+                prelude_msg_destroy(client->msg);
+                return -1;
+        }
+
+        if ( ret == prelude_msg_unfinished ) {
+                server_logic_notify_write_enable((server_logic_client_t *) client);
+                return 0;
+        }
+        
+        prelude_msg_destroy(client->msg);
+
+        client->msg = NULL;
+                
+        return (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ? 0 : -1;
+}
+
+
+
+
 /*
  * Read the message sent by the Prelude Manager client.
  * This message should contain information about the kind of
@@ -94,18 +127,23 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
 {
         int ret;
 
-        if ( ! (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ) {
+        if ( ! client->msg && ! (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ) {
                 ret = manager_auth_client(client, client->fd);
                 if ( ret == 0 )
                         return ret;
                 
                 if ( ret < 0 ) {
                         server_generic_log_client(client, "TLS authentication failed.\n");
-                        return ret;
+                        return send_auth_result(client, PRELUDE_MSG_AUTH_FAILED);
                 }
                 
                 client->state |= SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED;
+                
+                return send_auth_result(client, PRELUDE_MSG_AUTH_SUCCEED);
         }
+
+        if ( client->msg )
+                return send_auth_result(client, -1);
         
         if ( server->sa->sa_family == AF_UNIX && ! (client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED) ) {
                 ret = manager_auth_disable_encryption(client, client->fd);
