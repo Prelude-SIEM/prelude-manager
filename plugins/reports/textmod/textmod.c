@@ -98,17 +98,15 @@ static void print_string(textmod_plugin_t *plugin, int depth, const char *format
 
 static void process_time(textmod_plugin_t *plugin, const char *type, idmef_time_t *time) 
 {
-	char ntpstamp[IDMEF_TIME_MAX_NTPSTAMP_SIZE];
         char time_human[64];
 	time_t t;
 	struct tm tm;
 	int ret, len = 0;
-
+        prelude_string_t *ntpstamp;
+        
         if ( ! time )
                 return;
         
-        idmef_time_to_ntpstamp(time, ntpstamp, sizeof(ntpstamp));
-
 	t = idmef_time_get_sec(time);
 
 	if ( ! localtime_r( (const time_t *) &t, &tm) ) {
@@ -133,7 +131,15 @@ static void process_time(textmod_plugin_t *plugin, const char *type, idmef_time_
                 return;
         }
 
-        print(plugin, 0, "%s: %s (%s)\n", type, ntpstamp, time_human);
+        
+        ntpstamp = prelude_string_new();
+        if ( ! ntpstamp )
+                return;
+        
+        idmef_time_to_ntpstamp(time, ntpstamp);
+
+        print(plugin, 0, "%s: %s (%s)\n", type, prelude_string_get_string(ntpstamp), time_human);
+        prelude_string_destroy(ntpstamp);
 }
 
 
@@ -586,25 +592,30 @@ static void process_classification(textmod_plugin_t *plugin, idmef_classificatio
 
 static void process_data(textmod_plugin_t *plugin, idmef_additional_data_t *ad) 
 {
-        size_t dlen;
-        const char *tmp;
-        char buf[128];
+        int ret;
+        prelude_string_t *out;
 
         if ( ! ad )
                 return;
-        
-        dlen = sizeof(buf);
-        
-        tmp = idmef_additional_data_data_to_string(ad, buf, &dlen);
-        if ( ! tmp )
+
+        out = prelude_string_new();
+        if ( ! out )
                 return;
+        
+        ret = idmef_additional_data_data_to_string(ad, out);
+        if ( ret < 0 ) {
+                prelude_string_destroy(out);
+                return;
+        }
 
 	print_string(plugin, 0, "* %s:", idmef_additional_data_get_meaning(ad));
         
-	if ( dlen <= 80 )
-                print(plugin, 0, " %s\n", tmp);
+	if ( prelude_string_get_len(out) <= 80 )
+                print(plugin, 0, " %s\n", prelude_string_get_string(out));
         else
-                print(plugin, 0, "\n%s\n",  tmp);
+                print(plugin, 0, "\n%s\n", prelude_string_get_string(out));
+
+        prelude_string_destroy(out);
 }
 
 
@@ -798,9 +809,9 @@ static int textmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
                 log(LOG_ERR, "unknow message type: %d.\n", idmef_message_get_type(message));
                 break;
         }
-
+        
         fflush(plugin->fd);
-
+        
         return 0;
 }
 
@@ -809,6 +820,7 @@ static int textmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 
 static int textmod_init(prelude_plugin_instance_t *pi)
 {
+        int ret;
         FILE *fd;
         textmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
         
@@ -826,9 +838,9 @@ static int textmod_init(prelude_plugin_instance_t *pi)
                         return -1;
                 }
         }
-
+        
         plugin->fd = fd;
-
+        
         return 0;
 }
 

@@ -61,12 +61,17 @@ extern prelude_option_t *manager_root_optlist;
 static int iterator(idmef_value_t *val, void *extra)
 {
         int ret;
-	char buf[BUFSIZE];
 	char *name = extra;
-	
-	ret = idmef_value_to_string(val, buf, sizeof(buf));
-	printf("%s: %s\n", name, ( ret < 0 ) ? "cannot convert to char *" : buf);
-	
+	prelude_string_t *out;
+
+        out = prelude_string_new();
+        if ( ! out )
+                return -1;
+        
+	ret = idmef_value_to_string(val, out);
+        printf("%s: %s\n", name, (ret < 0) ? "cannot convert to char *" : prelude_string_get_string(out));
+	prelude_string_destroy(out);
+        
 	return 0;	
 }
 
@@ -145,8 +150,6 @@ static int debug_new(void *context, prelude_option_t *opt, const char *arg)
 
         PRELUDE_INIT_LIST_HEAD(&new->object_list);
         prelude_plugin_instance_set_data(context, new);
-
-        prelude_plugin_subscribe(context);
         
         return 0;
 }

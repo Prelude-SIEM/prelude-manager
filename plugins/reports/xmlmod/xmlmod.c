@@ -163,21 +163,39 @@ static void _idmef_attr_enum_optional(xmlNodePtr node, const char *attr, int *va
 
 static void process_time(xmlNodePtr parent, const char *type, idmef_time_t *time) 
 {
+        int ret;
         xmlNodePtr new;
-        char time_idmef[IDMEF_TIME_MAX_STRING_SIZE];
-	char ntpstamp[IDMEF_TIME_MAX_NTPSTAMP_SIZE];
-
+        prelude_string_t *out;
+        
         if ( ! time )
                 return;
 
-        idmef_time_to_string(time, time_idmef, sizeof(time_idmef));
-        idmef_time_to_ntpstamp(time, ntpstamp, sizeof(ntpstamp));
-
-        new = xmlNewChild(parent, NULL, type, time_idmef);
-        if ( ! new )
+        out = prelude_string_new();
+        if ( ! out )
                 return;
+        
+        ret = idmef_time_to_string(time, out);
+        if ( ret < 0 ) {
+                prelude_string_destroy(out);
+                return;
+        }
+        
+        new = xmlNewChild(parent, NULL, type, prelude_string_get_string(out));
+        if ( ! new ) {
+                prelude_string_destroy(out);
+                return;
+        }
 
-        xmlSetProp(new, "ntpstamp", ntpstamp);
+        prelude_string_clear(out);
+
+        ret = idmef_time_to_ntpstamp(time, out);
+        if ( ret < 0 ) {
+                prelude_string_destroy(out);
+                return;
+        }
+        
+        xmlSetProp(new, "ntpstamp", prelude_string_get_string(out));
+        prelude_string_destroy(out);
 }
 
 
@@ -605,21 +623,25 @@ static void process_classification(xmlNodePtr parent, idmef_classification_t *cl
 
 static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *ad) 
 {
-        size_t dlen;
+        int ret;
         xmlNodePtr new;
-        const char *tmp;
-        char buf[128];
+        prelude_string_t *out;
 
         if ( ! ad )
                 return;
         
-        dlen = sizeof(buf);
+        out = prelude_string_new();
+        if ( ! out )
+                return;
         
-	tmp = idmef_additional_data_data_to_string(ad, buf, &dlen);
-	if ( ! tmp )
+	ret = idmef_additional_data_data_to_string(ad, out);
+	if ( ret < 0 ) {
+                prelude_string_destroy(out);
 		return;
-
-        new = xmlNewChild(parent, NULL, "AdditionalData", tmp);
+        }
+        
+        new = xmlNewChild(parent, NULL, "AdditionalData", prelude_string_get_string(out));
+        prelude_string_destroy(out);
         if ( ! new )
                 return;
 
