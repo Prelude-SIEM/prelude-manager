@@ -148,7 +148,7 @@ static int set_dh_regenerate(prelude_option_t *opt, const char *arg, prelude_str
 
 static int print_help(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
-        prelude_option_print(NULL, PRELUDE_OPTION_TYPE_CLI, 25);
+        prelude_option_print(NULL, PRELUDE_OPTION_TYPE_CLI, 25, stderr);
         return prelude_error(PRELUDE_ERROR_EOF);
 }
 
@@ -156,11 +156,7 @@ static int print_help(prelude_option_t *opt, const char *arg, prelude_string_t *
 
 int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv) 
 {
-        int ret;
-        prelude_string_t *err;
         prelude_option_t *opt;
-        prelude_option_t *init_first;
-        prelude_option_warning_t old_warnings;
         
         /* Default */
         config.addr = NULL;
@@ -168,15 +164,15 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         config.pidfile = NULL;
         config.dh_regenerate = 24 * 60 * 60;
         config.config_file = PRELUDE_MANAGER_CONF;
-
-        prelude_option_new_root(&init_first);
         
-        prelude_option_add(init_first, NULL, PRELUDE_OPTION_TYPE_CLI, 'h', "help",
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 'h', "help",
                            "Print this help", PRELUDE_OPTION_ARGUMENT_NONE, print_help, NULL);
+        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
         
-        prelude_option_add(init_first, NULL, PRELUDE_OPTION_TYPE_CLI, 0, "config",
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 0, "config",
                            "Configuration file to use", PRELUDE_OPTION_ARGUMENT_REQUIRED,
                            set_conf_file, NULL);
+        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
         
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI, 'v', "version",
                            "Print version number", PRELUDE_OPTION_ARGUMENT_NONE, print_version, NULL);
@@ -186,7 +182,7 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
 
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 'D', "debug-level",
                            "Run in debug mode", PRELUDE_OPTION_ARGUMENT_OPTIONAL, set_debug_mode, NULL);
-        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
+        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
         
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'P',
                            "pidfile", "Write Prelude PID to pidfile", PRELUDE_OPTION_ARGUMENT_REQUIRED,
@@ -219,10 +215,6 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_report_plugin_failover, NULL);
         
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
-        
-        prelude_option_set_warnings(0, &old_warnings);
-        ret = prelude_option_read(init_first, NULL, argc, argv, &err, NULL);
-        prelude_option_set_warnings(old_warnings, NULL);
-                
-        return ret;
+                        
+        return 0;
 }
