@@ -312,8 +312,6 @@ static void *child_reader(void *ptr)
         }
 
         dprint("killing thread %ld on exit request.\n", set->thread);
-        pthread_mutex_lock(&set->parent->mutex);
-        
         pthread_exit(NULL);
 }
 
