@@ -65,15 +65,20 @@ typedef struct {
 struct list_head source_list;
 struct list_head target_list;
 
-u_int32_t get_address(address_t *addr) 
+
+
+static uint32_t get_address(address_t *addr) 
 {
 	return addr->ipv4_addr.addr;
 }
 
-char *get_address_as_text(address_t *addr) 
+
+static char *get_address_as_text(address_t *addr) 
 {
 	return inet_ntoa(addr->ipv4_addr.s_in_addr);
 }
+
+
 
 /* FIXME: netmask parameter ignored */
 static int add_address(struct list_head *list, const char *address, const char *netmask) 
@@ -92,6 +97,8 @@ static int add_address(struct list_head *list, const char *address, const char *
 	
 	return 1;
 } 
+
+
 
 static void display_address(type_t type, idmef_address_t *addr) 
 {
@@ -125,6 +132,8 @@ static void display_node(type_t type, idmef_node_t *node)
 	}
 }
 
+
+
 static void display_source(idmef_source_t *src) 
 {
 	type_t type;
@@ -134,6 +143,8 @@ static void display_source(idmef_source_t *src)
 	if (src->node) display_node(type, src->node);
 	else log(LOG_INFO, "unsupported source type\n");
 }
+
+
 
 static void display_target(idmef_target_t *tgt) 
 {
@@ -224,21 +235,20 @@ static void handle_alert(const idmef_message_t *msg) {
 
 }
 
-static void cleanup(void) {
+
+
+static void cleanup(void)
+{
 }
 
-static void enable_plugin(const char *optarg) {
-	enabled = 1;
-}
 
-static void make_verbose(const char *optarg) {
+static int make_verbose(const char *optarg)
+{
 	verbose = 1;
+        return prelude_option_success;
 }
 
-static void print_help(const char *optarg) {
-    fprintf(stderr, "Usage for mydebug:\n");
-    fprintf(stderr, "-v --verbose verbose mode");
-}
+
 
 static int set_debug_state(const char *arg) 
 {
@@ -272,7 +282,8 @@ static int get_debug_state(char *buf, size_t size)
 
 
 
-plugin_generic_t *plugin_init(int argc, char **argv) {
+plugin_generic_t *plugin_init(int argc, char **argv)
+{
 	prelude_option_t *opt;
         
         opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "debug",
