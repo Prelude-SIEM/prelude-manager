@@ -1,5 +1,9 @@
 2002-03-07  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
 
+	* src/sensor-server.c: fix warnings on compilation
+
+2002-03-07  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+
 	* plugins/db/pgsql/Makefile.am: fixed linker flags
 
 2002-03-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>

@@ -26,6 +26,7 @@
 #include <inttypes.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <pthread.h>
 
 #include <libprelude/list.h>
@@ -42,7 +43,7 @@
 #include "server-generic.h"
 #include "sensor-server.h"
 #include "idmef-message-scheduler.h"
-
+#include "pconfig.h"
 
 
 typedef struct {
