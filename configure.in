@@ -408,11 +408,7 @@ AC_SUBST(decode_plugin_dir)
 AC_SUBST(db_plugin_dir)
 AC_SUBST(LIBWRAP_LIBS)
 
-if test x$enable_profiling = xno; then
-	CFLAGS="$CFLAGS -O2 -fomit-frame-pointer"
-fi
-
-CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
+CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wmissing-declarations \
 -Wbad-function-cast -Wcast-qual -Wcast-align -Wnested-externs -Wunused"
 
 AC_SUBST(CFLAGS)
