@@ -500,7 +500,7 @@ static int read_connection_cb(server_generic_client_t *client)
 
         case PRELUDE_MSG_IDMEF:
                 ret = idmef_message_schedule(cnx->queue, msg);
-                return ret;
+                break;
                 
         case PRELUDE_MSG_ID:
                 ret = (cnx->ident) ? -1 : read_ident_message(cnx, msg);
@@ -526,10 +526,11 @@ static int read_connection_cb(server_generic_client_t *client)
         if ( ret < 0 ) 
                 server_generic_log_client((server_generic_client_t *) cnx,
                                           "invalid message sent by the client.\n");
-        
-        prelude_msg_destroy(msg);
 
-        return ret;
+        if ( tag != PRELUDE_MSG_IDMEF )
+                prelude_msg_destroy(msg);
+
+        return (ret < 0) ? ret : read_connection_cb(client);
 }
 
 
