@@ -141,7 +141,7 @@ static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
         idmef_heartbeat_t *hb = idmef_message_get_heartbeat(idmef);
         prelude_ident_t *ident = prelude_client_get_unique_ident(client);
         
-        idmef_heartbeat_set_ident(hb, prelude_ident_inc(ident));
+        idmef_heartbeat_set_messageid(hb, prelude_ident_inc(ident));
         
         idmef_message_process(client, idmef);
 }
