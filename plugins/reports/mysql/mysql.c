@@ -1,6 +1,7 @@
 /*****
 *
 * Copyright (C) 1998 - 2000 Vandoorselaere Yoann <yoann@mandrakesoft.com>
+* Copyright (C) 2001 Sylvain GIL <prelude@tootella.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -28,8 +29,28 @@
 #include <time.h>
 #include <errno.h>
 
+#include <mysql/mysql.h>
 #include "config.h"
 #include "report.h"
+
+/* db stuff */
+/* TODO: get this from prelude-report.conf */
+#define DBHOST "localhost"
+#define DBNAME "prelude"
+#define DBUSER "db"
+#define DBPASS ""
+#define MAX_QUERY_LENGTH 8192
+
+static MYSQL *connection, mysql;
+
+/* ---------------------- Prototypes ------------------------------------ */
+
+char * db_escape(const char * string);
+int db_insert(char * table, char * fields, char * values);
+static void db_close(void);
+static int db_connect(void);
+
+/* ---------------------------------------------------------------------- */
 
 
 static void print_address(idmef_address_t *addr) 
@@ -165,14 +186,29 @@ static void print_classification(idmef_classification_t *class)
 
 static void print_alert(idmef_alert_t *alert) 
 {
+        char values[MAX_QUERY_LENGTH];
+        char * ident; char * impact; char * action;
+
         struct list_head *tmp;
         idmef_source_t *source;
         idmef_classification_t *class;
         
-        printf("Alert informations :\n");
-        printf(" Ident: %s\n", alert->ident);
-        printf(" Impact: %s\n", alert->impact);
-        printf(" Action: %s\n", alert->action);
+        /* escape SQL special chars */
+        ident = db_escape(alert->ident);
+        impact = db_escape(alert->impact);
+        action = db_escape(alert->action);
+
+        /* prepare values */
+        snprintf(values, MAX_QUERY_LENGTH,
+                 "%s, %s, %s", ident, impact, action);
+
+        /* insert into DB */
+        db_insert("Prelude_Alert", "ident, impact, action", values);
+
+        /* free memory allocated by db_escape() */
+        free(ident);
+        free(impact);
+        free(action);
 
         print_analyzer(&alert->analyzer);
         
@@ -194,42 +230,122 @@ static void print_alert(idmef_alert_t *alert)
 
 
 /*
- *
+ * plugin callback
  */
-static void mysql_run(idmef_alert_t *alert)
+static void db_run(idmef_alert_t *alert)
 {
         int i;
         print_alert(alert);
 }
 
 
-
-static void mysql_close(void) 
+/*
+ * Takes a string and create a legal SQL string from it.
+ * returns the escaped string.
+ */
+char * db_escape(const char * string)
 {
+        char * escaped;
+
+        escaped = (char *) malloc(strlen(string)*2+1);
+        if (! escaped)
+        {
+                log(LOG_ERR, "memory exhausted.\n");
+                return;
+        }
+
+        mysql_real_escape_string(&mysql, escaped, string, strlen(string));
+
+        return escaped;
 }
 
+
+/*
+ * insert the given values into the given db table.
+ */
+int db_insert(char * table, char * fields, char * values)
+{
+        char insert_query[MAX_QUERY_LENGTH];
+        int ret = 0;
+
+        snprintf(insert_query, MAX_QUERY_LENGTH,
+                 "INSERT INTO %s (%s) VALUES(%s)",
+                 table, fields, values);
+
+        if ((ret = db_query(insert_query)))
+        {
+                printf("db_query returned %d\n", ret);
+                ret = -1;
+        }
+
+        return ret;
+}
+
+
+/*
+ * closes the DB connection.
+ */
+static void
+db_close(void)
+{
+        mysql_close(connection);
+        printf("mysql connection closed\n");
+}
+
+
+/*
+ * Connect to the MySQL database
+ */
+static int
+db_connect()
+{
+        int state;
+
+        /* connect to the mySQL database */
+        connection = mysql_connect(&mysql, DBHOST, DBUSER, DBPASS);
+
+        /* check for a connection error */
+        if (connection == NULL)
+        {
+                /* print the error message stored in MsqlErrMsg */
+                printf(mysql_error(&mysql));
+                return (-1);
+        }
+
+        /* select which database to use on the server */
+        state = mysql_select_db(connection, DBNAME);
+
+        /* -1 means an error occurred */
+        if (state == -1)
+        {
+                printf(mysql_error(connection));
+
+                /* close up our connection before exiting */
+                mysql_close(connection);
+                return (-1);
+        }
+
+        return 1;
+}
 
 
 int plugin_init(unsigned int id)
 {
+        int ret;
         static plugin_report_t plugin;
         
         plugin_set_name(&plugin, "MySQL");
         plugin_set_desc(&plugin, "Will log all alert to a MySQL database.");
-        plugin_set_running_func(&plugin, mysql_run);
-        plugin_set_closing_func(&plugin, mysql_close);
-        
+        plugin_set_running_func(&plugin, db_run);
+        plugin_set_closing_func(&plugin, db_close);
+
+        /* connect to db or exit */
+        ret = db_connect();
+        if (!ret)
+        {
+                printf("db_connect returned %d\n", ret);
+                return -1;
+        }
+       
 	return plugin_register((plugin_generic_t *)&plugin);
 }
-
-
-
-
-
-
-
-
-
-
-
-
