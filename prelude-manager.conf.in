@@ -1,3 +1,15 @@
+# Prelude Manager configuration file.
+#
+# <IMPORTANT>
+#
+# Section are important, and thing won't work correctly if they are
+# not un-commented. For example you need to uncomment [MySQL] if you
+# want the MySQL plugin to be loaded.
+#
+# </IMPORTANT>
+
+
+
 # Address where the sensors server is listening on.
 # if value is 127.0.0.1 (or is resolved as being 127.0.0.1), 
 # it mean the Manager server will be listening via a local (UNIX) 
@@ -71,13 +83,13 @@ sensors-srvr = 127.0.0.1;
 # The default logfile for this plugin is /var/log/prelude.log
 #
 
-[TextMod]
+# [TextMod]
 #
 # Tell Textmod to output to stderr
 # stderr;
 #
-
-logfile = /var/log/prelude.log;
+#
+# logfile = /var/log/prelude.log;
 
 
 
@@ -88,7 +100,8 @@ logfile = /var/log/prelude.log;
 # The default logfile for this plugin is /var/log/prelude-xml.log
 #
 
-[XmlMod]
+
+# [XmlMod]
 #
 # Tell Xmlmod to output to stderr
 # stderr;
@@ -107,8 +120,8 @@ logfile = /var/log/prelude.log;
 # 
 # Tell Xmlmod to produce a pretty, human readable xml output
 # format;
-
-logfile = /var/log/prelude-xml.log;
+#
+# logfile = @prefix@/var/log/prelude-xml.log;
 
 
 
