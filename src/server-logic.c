@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -39,19 +39,20 @@
 #include "server-logic.h"
 
 
+#ifdef DEBUG
+ #define dprint(args...) fprintf(stderr, args)
+#else
+ #define dprint(args...)
+#endif
+
+
+
 /*
- * If modifying this value, beside 256, carefull
+ * If modifying this value beside 256, carefull
  * to not use an uint8_t for the free_tbl and free_index members
  * to avoid wrap arround.
  */
 #define MAX_FD_BY_THREAD 100
-
-
-#ifdef DEBUG
- #define dprint(args...) printf(args)
-#else
- #define dprint(args...)
-#endif
 
 
 
@@ -67,8 +68,7 @@ typedef struct {
         /*
          * Thread handling this set of file descriptor.
          */
-        pthread_t thread;        
-        pthread_mutex_t set_mutex;
+        pthread_t thread;
 
         /*
          * Array containing client / file descriptor polling related data.
@@ -81,7 +81,8 @@ typedef struct {
          */
         uint8_t used_index;
         uint8_t free_tbl[MAX_FD_BY_THREAD];
-        
+
+        server_logic_t *parent;
 } server_fd_set_t;
 
 
@@ -95,13 +96,8 @@ struct server_logic {
         /*
          * List of connection set associated with this server.
          */
+        pthread_mutex_t mutex;
         struct list_head free_set_list;
-        pthread_mutex_t free_set_list_mutex;
-
-        /*
-         * Only to be used uppon new thread creation.
-         */
-        server_fd_set_t *new_set;
 };
 
 
@@ -111,8 +107,8 @@ static void restart_poll(int signo)
 {
         /*
          * do nothing here.
-         * this is the signal handler for sigIO which we
-         * manually use.
+         * this is the signal handler for SIGUSR1 which we use in order to
+         * interrupte poll, for new connection notification.
          */
         dprint("thread=%ld - interrupted by signal %d.\n", pthread_self(), signo);
 }
@@ -121,11 +117,12 @@ static void restart_poll(int signo)
 
 
 
-static void remove_connection(server_logic_t *server, server_fd_set_t *set, int cnx_key) 
-{        
+static void remove_connection(server_fd_set_t *set, int cnx_key) 
+{
+        server_logic_t *server = set->parent;
+        
         /*
          * Close the file descriptor associated with this set.
-         * Handle the case where close could be interrupted.
          */
         server->close(server->sdata, set->client[cnx_key]);
         
@@ -141,63 +138,56 @@ static void remove_connection(server_logic_t *server, server_fd_set_t *set, int 
 
         
         /*
-         * Lock the list before locking the thread mutex,
-         * to prevent a race with a connection on the way to be added
-         * (list already locked and this set obtained from the list,
-         * then add_connection() waiting on this set mutex while we are killing
-         * the set because there is no more FD used.
+         * As of now we need to obtain the server lock because
+         * we may modify shared data
          */
-        pthread_mutex_lock(&server->free_set_list_mutex);
-        pthread_mutex_lock(&set->set_mutex);
+        pthread_mutex_lock(&server->mutex);
         
         /*
          * Decrease the used index *before* adding our connection
-         * index to the free connection array. So that used_index
+         * index to the free connection table. So that used_index
          * point to a free entry after the change.
          */
         set->free_tbl[--set->used_index] = cnx_key;
         
-        
         /*
-         * If we can accept connection again,
-         * put this set into our free FD list.
+         * If we can accept connection again, put this set into our free set list.
          */
-        if ( set->used_index < (MAX_FD_BY_THREAD - 1) ) {
+        if ( set->used_index == (MAX_FD_BY_THREAD - 1) ) {
                 dprint("thread=%ld, Adding to list.\n", pthread_self());
                 list_add_tail(&set->list, &server->free_set_list);
         }
 
+        
         /*
          * If there is no more used fd, kill this set.
+         * FIXME: we should keep it arround.
          */
-        else if ( set->used_index == (MAX_FD_BY_THREAD - 1) ) {
-                
+        else if ( set->used_index == 0 ) {
                 list_del(&set->list);
+                pthread_mutex_unlock(&server->mutex);
                 
-                pthread_mutex_unlock(&set->set_mutex);
-                pthread_mutex_unlock(&server->free_set_list_mutex);
-                
-                pthread_mutex_destroy(&set->set_mutex);
-
-                free(set);
-
                 dprint("Killing thread %ld\n", pthread_self());
+                pthread_detach(set->thread);
+                
+                free(set);
                 pthread_exit(NULL);
         }
-        
-        pthread_mutex_unlock(&set->set_mutex);
-        pthread_mutex_unlock(&server->free_set_list_mutex);
+
+        pthread_mutex_unlock(&server->mutex);
 }
 
 
 
-
-static void add_connection(server_fd_set_t *set, server_logic_client_t *client)
+/*
+ * This function should be called with the server lock held.
+ * Uppon return, the lock will be released.
+ */
+static void add_connection(server_logic_t *server, server_fd_set_t *set, server_logic_client_t *client)
 {
         int key;
 
-        
-        pthread_mutex_lock(&set->set_mutex);
+        dprint("Adding connection to %ld\n", set->thread);
         
         /*
          * We should never enter here if there is no free fd.
@@ -205,8 +195,7 @@ static void add_connection(server_fd_set_t *set, server_logic_client_t *client)
         assert(set->used_index < MAX_FD_BY_THREAD);
 
         /*
-         * get a free connection entry then increase used
-         * connection index index.
+         * get a free connection entry then increase used connection index.
          */
         key = set->free_tbl[set->used_index++];
         
@@ -214,16 +203,15 @@ static void add_connection(server_fd_set_t *set, server_logic_client_t *client)
          * Are we still able to accept connection ?
          */
         if ( set->used_index == MAX_FD_BY_THREAD ) {
-                dprint("Max connection for this thread reached (%d).\n", set->used_index);
-
+                dprint("[%ld][%p] Max connection for this thread reached (%d).\n", set->thread, set, set->used_index);
+                
                 /*
                  * We are not, remove this set from our list.
                  * The list should be locked when this function is called !
                  */
                 list_del(&set->list);
         }
-        
-        pthread_mutex_unlock(&set->set_mutex);
+        pthread_mutex_unlock(&server->mutex);
 
         /*
          * Client fd / data should always be -1 / NULL at this time.
@@ -242,11 +230,11 @@ static void add_connection(server_fd_set_t *set, server_logic_client_t *client)
 
 
 
-static int handle_fd_event(server_logic_t *server, server_fd_set_t *set, int cnx_key) 
+static int handle_fd_event(server_fd_set_t *set, int cnx_key) 
 {
         if ( set->pfd[cnx_key].revents & (POLLERR|POLLHUP|POLLNVAL) ) {
                 dprint("thread=%ld - Hanging up.\n", pthread_self());
-                remove_connection(server, set, cnx_key);
+                remove_connection(set, cnx_key);
                 return 0;
         }
                 
@@ -254,16 +242,18 @@ static int handle_fd_event(server_logic_t *server, server_fd_set_t *set, int cnx
          * Data is available on this fd,
          * call the user provided callback.
          */        
-        else {
+        else if ( set->pfd[cnx_key].revents & POLLIN ) {
                 int ret;
-                
-                ret = server->read(server->sdata, set->client[cnx_key]);
+
+                ret = set->parent->read(set->parent->sdata, set->client[cnx_key]);
                 dprint("thread=%ld - Data available (ret=%d)\n", pthread_self(), ret);       
                 if ( ret < 0 )
-                        remove_connection(server, set, cnx_key);
+                        remove_connection(set, cnx_key);
 
                 return 0;
         }
+
+        return -1;
 }
 
 
@@ -272,14 +262,20 @@ static int handle_fd_event(server_logic_t *server, server_fd_set_t *set, int cnx
 
 static void *child_reader(void *ptr) 
 {
+        sigset_t sigset;
         struct sigaction act;
-        server_logic_t *server = ptr;
-        int i, ret, active_fd, used_index;
-        server_fd_set_t *set = server->new_set;
+        int i, ret, active_fd;
+        server_fd_set_t *set = ptr;
         
         /*
-         * We want to caught SIGUSR1,
-         * so that we know a new fd is in our set.
+         * the caller have to handle SIGPIPE.
+         */
+        sigemptyset(&sigset);
+        sigaddset(&sigset, SIGPIPE);
+        pthread_sigmask(SIG_BLOCK, &sigset, NULL);
+        
+        /*
+         * We want to catch SIGUSR1, so that we know a new fd is in our set.
          */
         act.sa_flags = 0;
         sigemptyset(&act.sa_mask);
@@ -292,11 +288,8 @@ static void *child_reader(void *ptr)
         }
 
         while ( 1 ) {
-                pthread_mutex_lock(&set->set_mutex);
-                used_index = set->used_index;
-                pthread_mutex_unlock(&set->set_mutex);
                 
-                active_fd = poll(set->pfd, used_index, -1);                
+                active_fd = poll(set->pfd, MAX_FD_BY_THREAD, -1);                
                 if ( active_fd < 0 ) {
                         if ( errno == EINTR ) 
                                 continue;
@@ -304,15 +297,15 @@ static void *child_reader(void *ptr)
                         log(LOG_ERR, "error polling FDs set.\n");
                 }
                 
-                for ( i = 0; i < used_index && active_fd > 0; i++ ) {
+                for ( i = 0; i < MAX_FD_BY_THREAD && active_fd > 0; i++ ) {
                         
                         /*
-                         * This fd is ignored (-1) or nothing occured.
+                         * This fd is currently ignored (-1).
                          */
-                        if ( set->pfd[i].fd < 0 || set->pfd[i].revents == 0)
+                        if ( set->pfd[i].fd < 0 )
                                 continue;
                                                 
-                        ret = handle_fd_event(server, set, i);
+                        ret = handle_fd_event(set, i);
                         if ( ret == 0 )
                                 active_fd--;
                 }
@@ -333,20 +326,16 @@ static server_fd_set_t *create_fd_set(server_logic_t *server)
                 return NULL;
         }
 
-        new->used_index = 0;        
-        server->new_set = new;
-
+        new->used_index = 0;
+        new->parent = server;
+        
         for ( i = 0; i < MAX_FD_BY_THREAD; i++ ) {
                 new->pfd[i].fd = -1;
                 new->client[i] = NULL;
                 new->free_tbl[i] = i;
         }
-
-        pthread_mutex_init(&new->set_mutex, NULL);
         
-        pthread_mutex_lock(&server->free_set_list_mutex);
         list_add_tail(&new->list, &server->free_set_list);
-        pthread_mutex_unlock(&server->free_set_list_mutex);
         
         return new;
 }
@@ -375,12 +364,21 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
          * the content of the list. (while a connection could be removed. Same
          * side effect).
          */
-        pthread_mutex_lock(&server->free_set_list_mutex);
-        
-        if ( list_empty(&server->free_set_list) ) {
+        pthread_mutex_lock(&server->mutex);
                 
-                pthread_mutex_unlock(&server->free_set_list_mutex);
+        if ( ! list_empty(&server->free_set_list) ) {
+                set = list_entry(server->free_set_list.next, server_fd_set_t, list);
+                add_connection(server, set, client);
                 
+                /*
+                 * Notify the thread that may be polling our set that a new connection
+                 * is arrived into the set and should be taken into account.
+                 */
+                pthread_kill(set->thread, SIGUSR1);
+                
+                
+        } else {
+                             
                 set = create_fd_set(server);
                 if ( ! set ) 
                         return -1;
@@ -389,28 +387,18 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
                  * add_connection should never call
                  * list_del() at this time, so we don't need locking.
                  */
-                add_connection(set, client);
-
-                ret = pthread_create(&set->thread, NULL, &child_reader, server);
+                
+                ret = pthread_create(&set->thread, NULL, &child_reader, set);
+                dprint("Created thread %ld (used=%d)\n", set->thread, set->used_index);
+                
                 if ( ret < 0 ) {
                         log(LOG_ERR, "couldn't create thread.\n");
                         return -1;
                 }
-                
-                pthread_detach(set->thread);
 
-        } else {
-                set = list_entry(server->free_set_list.next, server_fd_set_t, list);
-                add_connection(set, client);
-                pthread_mutex_unlock(&server->free_set_list_mutex);
+                add_connection(server, set, client);
+        } 
                 
-                /*
-                 * Notify the thread that may be polling our set that a new connection
-                 * is arrived into the set and should be taken into account.
-                 */
-                pthread_kill(set->thread, SIGUSR1);
-        }
-        
         return 0;
 }
 
@@ -434,7 +422,7 @@ server_logic_t *server_logic_new(void *sdata,
                 return NULL;
 
         INIT_LIST_HEAD(&new->free_set_list);
-        pthread_mutex_init(&new->free_set_list_mutex, NULL);
+        pthread_mutex_init(&new->mutex, NULL);
 
         new->sdata = sdata;
         new->read = s_read;
