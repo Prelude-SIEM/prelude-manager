@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2002, 2004 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 *
 * All Rights Reserved
 *
@@ -517,13 +517,17 @@ static void process_classification(xmlNodePtr parent, idmef_classification_t *cl
 
 static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *ad) 
 {
-        const char *tmp;
         xmlNodePtr new;
-
-	tmp = idmef_additionaldata_data_to_string(ad);
+        const char *tmp;
+        unsigned char buf[128];
+        
+	tmp = idmef_additionaldata_data_to_string(ad, buf, sizeof(buf));
 	if ( ! tmp )
 		return;
 
+        if ( idmef_additional_data_get_type(ad) == byte )
+                tmp = "<FIXME: binary data>";
+        
         new = xmlNewChild(parent, NULL, "AdditionalData", tmp);
         if ( ! new )
                 return;

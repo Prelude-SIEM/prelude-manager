@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002, 2003 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2002, 2003, 2004 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -496,20 +496,27 @@ static void process_classification(idmef_classification_t *classification)
 
 
 
-static void process_data(idmef_additional_data_t *data) 
+static void process_data(idmef_additional_data_t *ad) 
 {
         const char *tmp;
-
-	tmp = idmef_additionaldata_data_to_string(data);
-	if ( ! tmp )
-		return;
-
-	if ( strlen(tmp) <= 80 )
+        idmef_data_t *data;
+        unsigned char buf[128];
+        
+        data = idmef_additional_data_get_data(ad);
+        
+        tmp = idmef_additionaldata_data_to_string(ad, buf, sizeof(buf));
+        if ( ! tmp )
+                return;
+        
+        if ( idmef_additional_data_get_type(ad) == byte )
+                tmp = "<FIXME: binary data>";
+        
+	if ( idmef_data_get_len(data) <= 80 )
                 print(0, "* %s: %s\n", 
-		      idmef_string(idmef_additional_data_get_meaning(data)), tmp);
+		      idmef_string(idmef_additional_data_get_meaning(ad)), tmp);
         else
                 print(0, "* %s:\n%s\n", 
-		      idmef_string(idmef_additional_data_get_meaning(data)), tmp);
+		      idmef_string(idmef_additional_data_get_meaning(ad)), tmp);
 }
 
 
