@@ -20,7 +20,7 @@ prelude_manager_SOURCES =			\
 			server-logic.c		\
 			server-generic.c	\
 			sensor-server.c		\
-			ssl.c			\
+			tls-auth.c		\
 			decode-plugins.c	\
 			idmef-message-scheduler.c \
 			plugins-util.c		\

@@ -41,7 +41,6 @@
 
 #include "config.h"
 #include "pconfig.h"
-#include "ssl.h"
 #include "server-generic.h"
 #include "reverse-relaying.h"
 #include "plugin-report.h"

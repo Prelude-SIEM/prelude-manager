@@ -2,15 +2,14 @@ includedir = $(prefix)/include/prelude-manager
 
 
 noinst_HEADERS = 			\
+	idmef-message-scheduler.h 	\
 	pconfig.h			\
 	pmsg-to-idmef.h			\
-	ssl.h 				\
+	reverse-relaying.h		\
 	server-logic.h			\
 	server-generic.h		\
 	sensor-server.h			\
-	idmef-message-scheduler.h 	\
-	auth.h				\
-	reverse-relaying.h
+	tls-auth.h			\
 
 include_HEADERS = 			\
 		plugin-decode.h		\

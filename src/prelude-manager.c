@@ -45,6 +45,7 @@
 #include "plugin-filter.h"
 #include "idmef-message-scheduler.h"
 #include "reverse-relaying.h"
+#include "tls-auth.h"
 #include "config.h"
 
 
@@ -78,12 +79,15 @@ static void cleanup(int sig)
 
 
 static void init_manager_server(void) 
-{        
-        /*
-         * Initialize the sensors server.
-         */
+{
+        int ret;
+        
         nserver++;
-
+        
+        ret = tls_auth_init(manager_client);
+	if ( ret < 0 )
+                return;
+        
         sensor_server = sensor_server_new(config.addr, config.port);
         if ( ! sensor_server ) {
                 log(LOG_INFO, "- couldn't start sensor server.\n");

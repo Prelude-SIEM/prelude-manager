@@ -22,6 +22,7 @@
 *****/
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -50,12 +51,10 @@
 #include <libprelude/prelude-inet.h>
 
 #include "config.h"
-#include "ssl.h"
-#include "auth.h"
+#include "tls-auth.h"
 #include "pconfig.h"
 #include "server-logic.h"
 #include "server-generic.h"
-
 
 
 struct server_generic {
@@ -73,7 +72,6 @@ struct server_generic {
 };
 
 
-
 struct server_generic_client {
         SERVER_GENERIC_OBJECT;
 };
@@ -82,187 +80,6 @@ struct server_generic_client {
 
 static volatile sig_atomic_t continue_processing = 1;
 
-
-
-/*
- * Generate a configuration message containing
- * the kind of connection the Manager support.
- */
-static prelude_msg_t *generate_config_message(void)
-{
-        prelude_msg_t *msg;
-
-        msg = prelude_msg_new(2, 0, PRELUDE_MSG_AUTH, 0);
-        if ( ! msg )
-                return NULL;
-        
-#ifdef HAVE_SSL
-        prelude_msg_set(msg, PRELUDE_MSG_AUTH_HAVE_SSL, 0, NULL);
-#endif
-        prelude_msg_set(msg, PRELUDE_MSG_AUTH_HAVE_PLAINTEXT, 0, NULL);
-        
-        return msg;
-}
-
-
-
-
-static int send_plaintext_authentication_result(prelude_io_t *fd, uint8_t tag)
-{
-        int ret;
-        prelude_msg_t *msg;
-        
-        msg = prelude_msg_new(1, 0, PRELUDE_MSG_AUTH, 0);
-        if ( ! msg )
-                return -1;
-        
-        prelude_msg_set(msg, tag, 0, NULL);
-        ret = prelude_msg_write(msg, fd);
-        prelude_msg_destroy(msg);
-
-        return ret;
-}
-
-
-
-
-/*
- * Start the SSL authentication process.
- */
-static prelude_msg_status_t handle_ssl_authentication(server_generic_client_t *client) 
-{
-#ifdef HAVE_SSL
-        int ret;
-        
-        ret = ssl_auth_client(client->fd);
-        if ( ret < 0 ) {
-                log_client(client, "SSL authentication failed.\n");
-                return -1;
-        }
-        
-        if ( ret == 0 )
-                /*
-                 * unfinished because of non blocking.
-                 */
-                return 0;
-
-        client->is_authenticated = 1;
-        log_client(client, "SSL authentication succeed.\n");
-        
-        return 1;
-#else
-        log_client(client, "requested unavailable option : SSL.\n");
-        return -1;
-#endif
-}
-
-
-
-
-/*
- * Read authentication information contained in the passed message.
- * Then try to authenticate the peer.
- */
-static int handle_plaintext_authentication(prelude_msg_t *msg, server_generic_client_t *client)
-{
-        int ret;
-        void *buf;
-        uint8_t tag;
-        uint32_t len;
-        const char *user = NULL, *pass = NULL;
-
-        while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) > 0 ) {
-                
-                switch (tag) {
-                        
-                case PRELUDE_MSG_AUTH_USERNAME:
-                        ret = extract_characters_safe(&user, buf, len);
-                        if ( ret < 0 )
-                                return -1;
-                        break;
-                        
-                case PRELUDE_MSG_AUTH_PASSWORD:
-                        ret = extract_characters_safe(&pass, buf, len);
-                        if ( ret < 0 )
-                                return -1;
-                        break;
-                        
-                default:
-                        log_client(client, "invalid authentication message.\n");
-                        return -1;
-                }
-        }
-        
-        if ( ! user || ! pass || ret < 0 ) {
-                log_client(client, "invalid authentication message.\n");
-                return -1;
-        }
-        
-        ret = prelude_auth_check(MANAGER_AUTH_FILE, user, pass);
-        if ( ret < 0 ) {
-                log_client(client, "plaintext authentication failed.\n");
-                send_plaintext_authentication_result(client->fd, PRELUDE_MSG_AUTH_FAILED);
-                return -1;
-        }
-
-        log_client(client, "plaintext authentication succeed.\n");
-
-        ret = send_plaintext_authentication_result(client->fd, PRELUDE_MSG_AUTH_SUCCEED);
-        if ( ret < 0 ) {
-                log_client(client, "error sending authentication result.\n");
-                return -1;
-        }
-        
-        client->is_authenticated = 1;
-        
-        return 0;
-}
-
-
-
-
-/*
- * Either plaintext, either SSL.
- * call the necessary authentication function.
- */
-static int handle_authentication(prelude_msg_t *msg, server_generic_client_t *client) 
-{
-        int ret;
-        void *buf;
-        uint8_t tag;
-        uint32_t dlen;
-        
-        tag = prelude_msg_get_tag(msg);
-
-        if ( tag != PRELUDE_MSG_AUTH ) {
-                log_client(client, "expected authentication tag got (%d).\n", tag);
-                return -1;
-        }
-
-        ret = prelude_msg_get(msg, &tag, &dlen, &buf);
-        if ( ret <= 0 )
-                return -1;
-        
-        switch (tag) {
-
-        case PRELUDE_MSG_AUTH_SSL:
-                client->is_ssl = 1;
-                ret = handle_ssl_authentication(client);
-                break;
-                
-        case PRELUDE_MSG_AUTH_PLAINTEXT:
-                client->is_ssl = 0;
-                ret = handle_plaintext_authentication(msg, client);                
-                break;
-
-        default:
-                log_client(client, "invalid authentication tag (%d).\n", tag);
-                return -1;
-        }
-
-
-        return ret;
-}
 
 
 
@@ -277,47 +94,42 @@ static int handle_authentication(prelude_msg_t *msg, server_generic_client_t *cl
 static int authenticate_client(server_generic_t *server, server_generic_client_t *client) 
 {
         int ret;
-        prelude_msg_status_t status;
-        
-        if ( client->is_ssl == 1 ) {
-                /*
-                 * FIXME:
-                 * 
-                 * handle_authentication() was previously called, and it was an
-                 * SSL kind of connection. Don't try to read a prelude-message:
-                 * directly call the SSL subsystem, so that we can finish
-                 * authenticating the connection.
-                 *
-                 * This is a hack, and using prelude-message for SSL authentication
-                 * would be a good thing (if possible).
-                 */
-                ret = handle_ssl_authentication(client);
-                if ( ret <= 0 )
+
+        if ( ! (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ) {
+                ret = tls_auth_client(client, client->fd, 0);
+                if ( ret == 0 )
                         return ret;
                 
-                return server->accept(client);
-        }
-
-        else {
-                status = prelude_msg_read(&client->msg, client->fd);        
-
-                if ( status == prelude_msg_finished ) {        
-                        ret = handle_authentication(client->msg, client);
-                        
-                        prelude_msg_destroy(client->msg);
-                        client->msg = NULL;
-                        
-                        if ( ret < 0 || (ret == 0 && client->is_ssl) )
-                                return ret;
-
-                        return server->accept(client);
+                if ( ret < 0 ) {
+                        server_generic_log_client(client, "TLS authentication failed.\n");
+                        return ret;
                 }
+
+                server_generic_log_client(client, "TLS authentication succeeded.\n");
                 
-                else if ( status == prelude_msg_unfinished )
-                        return 0;
-                
-                return -1;
+                client->state |= SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED;
         }
+        
+        if ( server->sa->sa_family == AF_UNIX && ! (client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED) ) {
+                ret = tls_auth_disable_encryption(client, client->fd);
+                if ( ret <= 0 )
+                        return ret;
+
+                server_generic_log_client(client, "disabled encryption on local UNIX connection.\n");
+        }
+
+        client->state |= SERVER_GENERIC_CLIENT_STATE_ACCEPTED;
+        
+        return server->accept(client);
+}
+
+
+
+
+static int write_connection_cb(void *sdata, server_logic_client_t *ptr)
+{        
+        server_logic_notify_write_disable(ptr);
+        return authenticate_client(sdata, (server_generic_client_t *) ptr);
 }
 
 
@@ -338,16 +150,16 @@ static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
         server_generic_client_t *client = (server_generic_client_t *) ptr;
 
         do {    
-                if ( client->is_authenticated )
+                if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
                         ret = server->read(client);
                 else
                         ret = authenticate_client(server, client);
-
+                
                 if ( ret == -2 )
                         return 0;
                 
         } while ( ret == 0 && prelude_io_pending(client->fd) > 0 );
-
+        
         return ret;
 }
 
@@ -368,14 +180,14 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
          * that they can take control over the connection FD.
          */
         if ( client->fd ) {
-                log_client(client, "closing connection.\n");
+                server_generic_log_client(client, "closing connection.\n");
                 prelude_io_close(client->fd);
                 prelude_io_destroy(client->fd);
         }
         
         free(client->addr);
         
-        if ( client->is_authenticated ) 
+        if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED ) 
                 server->close(client);
         
         free(ptr);
@@ -408,11 +220,11 @@ static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock)
 
         ret = hosts_access(&request);
         if ( ! ret ) {
-                log_client(cdata, "tcp wrapper refused connection.\n", cdata->addr);
+                server_generic_log_client(cdata, "tcp wrapper refused connection.\n", cdata->addr);
                 return -1;
         }
 
-        log_client(cdata, "tcp wrapper accepted connection.\n");
+        server_generic_log_client(cdata, "tcp wrapper accepted connection.\n");
         
         return 0;
 }
@@ -439,9 +251,9 @@ static int setup_client_socket(server_generic_t *server,
                 if ( ret < 0 )
                         return -1;
         } else
-                log_client(cdata, "accepted connection.\n");
+                server_generic_log_client(cdata, "accepted connection.\n");
 #else
-        log_client(cdata, "accepted connection.\n");
+        server_generic_log_client(cdata, "accepted connection.\n");
 #endif
         /*
          * set client socket non blocking.
@@ -459,8 +271,7 @@ static int setup_client_socket(server_generic_t *server,
         prelude_io_set_sys_io(cdata->fd, client);
                
         cdata->msg = NULL;
-        cdata->is_ssl = 0;
-        cdata->is_authenticated = 0;
+        cdata->state = 0;
         
         return 0;
 }
@@ -487,13 +298,17 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
                 return -1;
         }
         
-        if ( server->sa->sa_family == AF_UNIX )
+        if ( server->sa->sa_family == AF_UNIX ) {
+                printf("family is UNIX\n");
                 cdata->addr = strdup("unix");
-        else {         
+        } else {         
                 void *in_addr;
                 char out[128];
                 const char *str;
                 struct sockaddr *sa = (struct sockaddr *) &addr;
+
+                cdata->port = ntohs(addr.sin6_port);
+                printf("port=%d\n", cdata->port);
                 
                 in_addr = prelude_inet_sockaddr_get_inaddr(sa);
                 
@@ -515,7 +330,7 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
 
 
 
-static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg) 
+static int handle_connection(server_generic_t *server) 
 {
         int ret, client;
         server_generic_client_t *cdata;
@@ -541,17 +356,7 @@ static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg)
                 close(client);
                 return -1;
         }
-                
-        ret = prelude_msg_write(cfgmsg, cdata->fd);
-        if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't send configuration message.\n");
-                prelude_io_close(cdata->fd);
-                prelude_io_destroy(cdata->fd);
-                free(cdata->addr);
-                free(cdata);
-                return -1;
-        }
-
+        
         ret = server_logic_process_requests(server->logic, (server_logic_client_t *) cdata);
         if ( ret < 0 ) {
                 log(LOG_ERR, "queueing client FD for server logic processing failed.\n");
@@ -576,13 +381,8 @@ static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg)
 static int wait_connection(server_generic_t **server, size_t nserver)
 {
         int i, active_fd;
-        prelude_msg_t *cfgmsg;
         struct pollfd pfd[nserver];
-                
-        cfgmsg = generate_config_message();
-        if ( ! cfgmsg )
-                return -1;
-
+        
         for ( i = 0; i < nserver; i++ ) {                
                 pfd[i].events = POLLIN;
                 pfd[i].fd = server[i]->sock;
@@ -597,7 +397,7 @@ static int wait_connection(server_generic_t **server, size_t nserver)
                 for ( i = 0; i < nserver && active_fd > 0; i++ ) {
                         if ( pfd[i].revents & POLLIN ) {
                                 active_fd--;
-                                handle_connection(server[i], cfgmsg);
+                                handle_connection(server[i]);
                         }
                 }
         }
@@ -743,12 +543,6 @@ static int inet_server_start(server_generic_t *server,
         if ( ret < 0 )
                 goto err;
 
-#ifdef HAVE_SSL
-        ret = ssl_init_server();
-	if ( ret < 0 )
-                goto err;
-#endif
-
         return 0;
 
  err:
@@ -778,7 +572,7 @@ static int resolve_addr(server_generic_t *server, const char *addr, uint16_t por
                 log(LOG_ERR, "couldn't resolve %s.\n", addr);
                 return -1;
         }
-
+        
         ret = prelude_inet_addr_is_loopback(ai->ai_family, prelude_inet_sockaddr_get_inaddr(ai->ai_addr));
         if ( ret == 0 ) {
                 ai->ai_family = AF_UNIX;
@@ -821,7 +615,7 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
         char out[128];
         void *in_addr;
         server_generic_t *server;
-
+                
         server = malloc(sizeof(*server));
         if ( ! server ) {
                 log(LOG_ERR, "memory exhausted.\n");
@@ -839,7 +633,7 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
                 return NULL;
         }
         
-        server->logic = server_logic_new(server, read_connection_cb, NULL, close_connection_cb);
+        server->logic = server_logic_new(server, read_connection_cb, write_connection_cb, close_connection_cb);
         if ( ! server->logic ) {
                 log(LOG_ERR, "couldn't initialize server pool.\n");
                 free(server);
@@ -906,6 +700,36 @@ void server_generic_process_requests(server_generic_t *server, server_generic_cl
 
 
 
+void server_generic_log_client(server_generic_client_t *cnx, const char *fmt, ...)
+{
+        va_list ap;
+        char buf[1024];
+        
+        va_start(ap, fmt);
+        vsnprintf(buf, sizeof(buf), fmt, ap);
+        va_end(ap);
+        
+        if ( cnx->port )
+                log(LOG_INFO, "[%s:%u %s:0x%llx]: %s", cnx->addr, cnx->port, cnx->client_type, cnx->ident, buf);
+        else
+                log(LOG_INFO, "[unix %s:0x%llx]: %s", cnx->client_type, cnx->ident, buf);
+}
 
 
 
+
+const char *server_generic_get_addr_string(server_generic_client_t *client, char *buf, size_t size)
+{
+        int ret;
+
+        *buf = 0;
+        
+        ret = snprintf(buf, size, "%s", client->addr);
+        if ( ret < 0 || ret >= size )
+                return buf;
+        
+        if ( client->port )
+                snprintf(buf + ret, size - ret, ":%u", client->port);
+
+        return buf;
+}

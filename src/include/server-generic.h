@@ -28,22 +28,14 @@
 #include <inttypes.h>
 
 
-#define log_client(cnx, args...) do {                                                                    \
-        if ( cnx->port )                                                                                 \
-               log(LOG_INFO, "[%s:%u, %s:0x%llx] - ", cnx->addr, cnx->port, cnx->client_type, cnx->ident); \
-        else                                                                                             \
-               log(LOG_INFO, "[unix, %s:0x%llx] - ", cnx->client_type, cnx->ident);                        \
-                                                                                                         \
-        log(LOG_INFO, args);                                                                             \
-} while (0)
-
+#define SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED  0x01
+#define SERVER_GENERIC_CLIENT_STATE_ACCEPTED       0x02
 
 
 #define SERVER_GENERIC_OBJECT        \
         SERVER_LOGIC_CLIENT_OBJECT;  \
         prelude_msg_t *msg;          \
-        int is_authenticated;        \
-        int is_ssl;                  \
+        int state;                   \
         char *addr;                  \
         uint16_t port;               \
         char *client_type;           \
@@ -87,6 +79,10 @@ void server_generic_close(server_generic_t *server);
 void server_generic_stop(server_generic_t *server);
 
 void server_generic_process_requests(server_generic_t *server, server_generic_client_t *client);
+
+const char *server_generic_get_addr_string(server_generic_client_t *client, char *buf, size_t size);
+
+void server_generic_log_client(server_generic_client_t *cnx, const char *fmt, ...);
 
 #endif /* _MANAGER_SERVER_GENERIC_H */
 

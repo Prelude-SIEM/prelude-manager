@@ -1,12 +1,12 @@
 /*****
 *
-* Copyright (C) 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
 *
 * This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
+* it under the terms of the GNU General Public License as published by 
 * the Free Software Foundation; either version 2, or (at your option)
 * any later version.
 *
@@ -21,9 +21,18 @@
 *
 *****/
 
-#ifndef _MANAGER_AUTH
-#define _MANAGER_AUTH
+#ifndef _MANAGER_TLS_AUTH_H
+#define _MANAGER_TLS_AUTH_H
 
-#define MANAGER_AUTH_FILE CONFIG_DIR"/manager.auth"
+#include "server-logic.h"
+#include "server-generic.h"
 
-#endif /* _MANAGER_AUTH */
+
+int tls_auth_disable_encryption(server_generic_client_t *client, prelude_io_t *pio);
+
+int tls_auth_client(server_generic_client_t *client, prelude_io_t *pio, int crypt);
+
+int tls_auth_init(prelude_client_t *client);
+
+
+#endif /* _MANAGER_TLS_AUTH_H */
