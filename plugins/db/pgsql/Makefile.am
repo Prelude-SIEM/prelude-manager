@@ -4,7 +4,7 @@ pgsql_la_LDFLAGS = -module -avoid-version
 if HAVE_PGSQL
 
 pgsql_la_SOURCES = pgsql.c
-pgsql_la_LIBADD = @PGSQL_LIBDIR@ -lpq
+pgsql_la_LIBADD = -L@PGSQL_LIBDIR@ -lpq
 pgsqldir = $(db_plugin_dir)
 
 pgsql_LTLIBRARIES = pgsql.la
