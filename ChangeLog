@@ -1,3 +1,8 @@
+2002-01-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server-generic.c (handle_plaintext_connection): 
+	use the extract_string macro to verify that the string are ok.
+
 2002-01-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/pconfig.c (create_account): 
