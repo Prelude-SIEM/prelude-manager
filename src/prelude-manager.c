@@ -35,7 +35,8 @@
 #include <libprelude/common.h>
 #include <libprelude/daemonize.h>
 #include <libprelude/config-engine.h>
-#include <libprelude/alert-read.h>
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
 
 
 #include "pconfig.h"
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
                 do_init(daemon_start(config.pidfile),
                         "Starting Prelude Report as a daemon.");
 
-        do_init(1, "Starting report server");
+        do_init(1, "Starting Manager server");
         ret = manager_server_start();
         if ( ret == 0 )
                 manager_server_close();

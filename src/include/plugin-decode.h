@@ -28,7 +28,7 @@
 typedef struct {
         PLUGIN_GENERIC;
         uint8_t decode_id;
-        xmlNodePtr (*run)(alert_container_t *ac);
+        xmlNodePtr (*run)(prelude_msg_t *ac);
 } plugin_decode_t;
 
 
@@ -41,6 +41,6 @@ int plugin_init(unsigned int id);
 
 void decode_plugins_init(const char *dirname);
 
-xmlNodePtr decode_plugins_run(alert_container_t *alert, uint8_t tag);
+xmlNodePtr decode_plugins_run(prelude_msg_t *alert, uint8_t tag);
 
 #endif

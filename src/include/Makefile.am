@@ -1,6 +1,5 @@
 noinst_HEADERS = \
 	pconfig.h		\
-	auth.h			\
 	server.h		\
 	ethertype.h		\
 	ssl.h 			\

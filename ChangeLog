@@ -1,3 +1,9 @@
+2001-10-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+	
+        * A lot of modification. Complete API change, use
+        OOP model in non time critical place for maintainability
+        reason.
+
 2001-10-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/auth.c (get_account_infos): better error reporting.

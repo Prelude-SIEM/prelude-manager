@@ -28,7 +28,8 @@
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>
-#include <libprelude/alert-read.h>
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
 
 #include <libxml/parser.h>
 
@@ -54,7 +55,7 @@ static int decode_plugin_register(plugin_container_t *pc)
 /*
  *
  */
-xmlNodePtr decode_plugins_run(alert_container_t *ac, uint8_t tag) 
+xmlNodePtr decode_plugins_run(prelude_msg_t *alert, uint8_t tag) 
 {
         xmlNodePtr idmef;
         plugin_decode_t *p;
@@ -71,7 +72,7 @@ xmlNodePtr decode_plugins_run(alert_container_t *ac, uint8_t tag)
 
                 idmef = NULL;
                 
-                plugin_run_with_return_value(pc, &idmef, plugin_decode_t, ac);
+                plugin_run_with_return_value(pc, &idmef, plugin_decode_t, alert);
                 if ( ! idmef ) {
                         log(LOG_ERR, "%s couldn't decode sensor data.\n", p->name);
                         return NULL;

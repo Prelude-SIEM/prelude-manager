@@ -30,8 +30,9 @@
 
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
-#include <libprelude/alert-read.h>
 #include <libprelude/alert-id.h>
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
 
 #include <parser.h>
 #include <tree.h>
@@ -211,19 +212,18 @@ static char *build_alert_id(void)
 
 
 
-static xmlNodePtr nids_decode_run(alert_container_t *ac) 
+static xmlNodePtr nids_decode_run(prelude_msg_t *pmsg) 
 {
-        int ret;
-        int i = 0;
+        void *buf;
         uint8_t tag;
         uint32_t len;
-        packet_t packet[MAX_PKTDEPTH + 1];
-        void *buf;
-        struct timeval tv;
         char *alertid;
+        int ret, i = 0;
+        packet_t packet[MAX_PKTDEPTH + 1];
+        struct timeval tv;
         xmlNodePtr origin = NULL, msg = NULL, analyzer = NULL;
         xmlNodePtr alert, class = NULL, classname = NULL, refurl = NULL;
-
+        
         databuf = NULL;
         data = source = target = NULL;
         
@@ -236,7 +236,7 @@ static xmlNodePtr nids_decode_run(alert_container_t *ac)
         
         while ( 1 ) {
 
-                ret = prelude_alert_read_msg(ac, &tag, &len, &buf);
+                ret = prelude_msg_get(pmsg, &tag, &len, &buf);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "error decoding message.\n");
                         return NULL;
@@ -288,7 +288,7 @@ static xmlNodePtr nids_decode_run(alert_container_t *ac)
                         i = 0;
                         
                         do {    
-                                ret = prelude_alert_read_msg(ac, &tag, &len, &buf);
+                                ret = prelude_msg_get(pmsg, &tag, &len, &buf);
                                 if ( ret < 0 ) {
                                         log(LOG_ERR, "error decoding message.\n");
                                         return NULL;

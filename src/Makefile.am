@@ -13,12 +13,13 @@ prelude_manager_LDADD = @COMMON_LIBS@ @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@ @XML2_LIB
 prelude_manager_LDFLAGS = -export-dynamic 
 
 prelude_manager_SOURCES =			\
-			auth.c			\
 			pconfig.c		\
 			prelude-manager.c	\
 			report-plugins.c	\
 			server.c		\
 			server-logic.c		\
-			ssl-register-client.c	\
 			ssl.c			\
-			decode-plugins.c	
+			decode-plugins.c	\
+			alert-scheduler.c
+
+

@@ -40,100 +40,51 @@
 #include <libprelude/common.h>
 #include <libprelude/socket-op.h>
 #include <libprelude/alert-id.h>
-#include <libprelude/alert-read.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/plugin-common.h>
 
-#include "pconfig.h"
 #include "config.h"
+#include "ssl.h"
+
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
+
+#include "pconfig.h"
 #include "server.h"
 #include "server-logic.h"
 #include "auth.h"
 #include "plugin-decode.h"
-#include "ssl.h"
 
 
-typedef struct {
 
-        void *fd;
-        char *from;
-
-        int (*closefunc)(void *fd);
-        ssize_t (*readfunc)(void *fd, void *buf, size_t count);
-        
-} client_connection_t;
+#define UNIX_SOCK "/var/lib/prelude/socket"
 
         
 static server_t *manager_srvr;
 extern struct report_config config;
 
 
-
-static ssize_t read_cb(void *fd, void *buf, size_t count) 
-{
-        return read( *(int *) fd, buf, count);
-}
-
-
-static int close_cb(void *fd) 
-{
-        int ret;
-        
-        ret = close(*(int *) fd);
-        free(fd);
-}
-
-
-#ifdef HAVE_SSL
-
-static ssize_t ssl_read_cb(void *fd, void *buf, size_t count) 
-{
-        return SSL_read(fd, buf, count);
-}
-
-
-static int ssl_close_cb(void *fd) 
-{
-        int ret, rfd;
-
-        rfd = SSL_get_fd(fd);
-        assert(rfd != -1);
-        
-        ret = ssl_close_session(fd);
-        close(rfd);
-
-        return ret;
-}
-
-#endif
-
-
 static int server_read_connection_cb(int fd, void *clientdata) 
 {
-        uint8_t tag;
-        xmlNodePtr idmef_msg;
-        alert_container_t *ac;
-        client_connection_t *cnx;
-
-        cnx = clientdata;
-
-        ac = prelude_alert_read(cnx->fd, &tag, cnx->readfunc);
-        if ( ! ac )
-                return -1;
-
-        if ( tag == ID_IDMEF_ALERT ) {
-                /*
-                 * Special case where we should directly
-                 * contact the DB subsystem.
-                 */
-                free(ac);
-                return -1;
-        } else {
-                idmef_msg = decode_plugins_run(ac, tag);
-        }
+        int ret;
+        uint32_t dlen;
+        uint8_t tag, priority;
+        prelude_msg_t *msg;
+        prelude_io_t *src = clientdata;
         
-        free(ac);
+        msg = prelude_msg_read_header(src);
+        if ( ! msg )
+                return -1;
+        
+        /*
+         * Handle non alert request here.
+         */
 
+        /*
+         * This message is an alert. Queue it to the scheduler.
+         */
+        alert_schedule(msg, src);
+        
         return 0;
 }
 
@@ -143,71 +94,67 @@ static int server_read_connection_cb(int fd, void *clientdata)
 static int server_close_connection_cb(int fd, void *clientdata) 
 {
         int ret;
-        client_connection_t *cnx = clientdata;
         
-        cnx = clientdata;
-        
-        log(LOG_INFO, "closing connection with %s.\n", cnx->from);
+        log(LOG_INFO, "closing connection with %s.\n", "");
 
-        ret = cnx->closefunc(cnx->fd);
+        prelude_io_close(clientdata);
+        prelude_io_destroy(clientdata);
                 
-        free(cnx->from);
-        free(cnx);
-        
         return ret;
 }
 
 
 
 
-static int handle_normal_connection(int fd, client_connection_t *cnx) 
+static prelude_io_t *handle_normal_connection(int fd, const char *addr) 
 {
         int ret;
+        prelude_io_t *pio;
 
-        ret = auth_check(fd);
+        ret = prelude_auth_recv(fd, addr);
         if ( ret < 0 ) {
-                log(LOG_INFO, "Plaintext authentication failed with %s.\n", cnx->from);
-                return -1;
+                log(LOG_INFO, "Plaintext authentication failed with %s.\n", addr);
+                return NULL;
         }
 
-        log(LOG_INFO, "Plaintext authentication succeed with %s.\n", cnx->from);
-        
-        cnx->readfunc = read_cb;
-        cnx->closefunc = close_cb;
+        log(LOG_INFO, "Plaintext authentication succeed with %s.\n", addr);
 
-        cnx->fd = malloc(sizeof(int));
-        if ( ! cnx->fd ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return -1;
-        }
+        pio = prelude_io_new();
+        if ( ! pio )
+                return NULL;
 
-        memcpy(cnx->fd, &fd, sizeof(int));
-        
-        return 0;
+        prelude_io_set_socket_io(pio, fd);
+
+        return pio;
 }
 
 
 
 
-static int handle_ssl_connection(int sock, client_connection_t *cnx) 
+static prelude_io_t *handle_ssl_connection(int sock, const char *addr) 
 {
 #ifdef HAVE_SSL
-
-        cnx->fd = ssl_auth_client(sock);
-        if ( ! cnx->fd ) {
-                log(LOG_INFO, "SSL authentication failed with %s.", cnx->from);
-                return -1;
-        }
-
-        log(LOG_INFO, "SSL authentication succeed with %s.\n", cnx->from);
+        SSL *ssl;
+        prelude_io_t *pio;
         
-        cnx->readfunc = ssl_read_cb;
-        cnx->closefunc = ssl_close_cb;
+        ssl = ssl_auth_client(sock);
+        if ( ! ssl ) {
+                log(LOG_INFO, "SSL authentication failed with %s.\n", addr);
+                return NULL;
+        }
+        
+        log(LOG_INFO, "SSL authentication succeed with %s.\n", addr);
 
-        return 0;
+        pio = prelude_io_new();
+        if ( ! pio )
+                return NULL;
+
+        prelude_io_set_ssl_io(pio, ssl);
+        
+        return pio;
 #else
-        log(LOG_INFO, "Client requested unavailable option : SSL.");
-        return -1;
+        log(LOG_INFO, "Client requested unavailable option : SSL.\n");
+        return NULL;
 #endif
 }
 
@@ -216,10 +163,11 @@ static int handle_ssl_connection(int sock, client_connection_t *cnx)
 
 
 
-static int setup_connection(int sock, client_connection_t *cnx) 
+static prelude_io_t *setup_connection(int sock, const char *addr) 
 {
         int ret, len;
         const char *ssl;
+        prelude_io_t *pio;
         char *ptr, buf[1024];
         
 #ifdef HAVE_SSL
@@ -234,23 +182,23 @@ static int setup_connection(int sock, client_connection_t *cnx)
         ret = socket_write_delimited(sock, buf, ++len, write);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error writing config to Prelude client.\n");
-                return -1;
+                return NULL;
         }
         
         ret = socket_read_delimited(sock, (void **)&ptr, read);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error reading Prelude client config string.\n");
-                return -1;
+                return NULL;
         }
-
+        
         if ( strstr(ptr, "use_ssl=yes;") ) 
-                ret = handle_ssl_connection(sock, cnx);
+                pio = handle_ssl_connection(sock, addr);
         else 
-                ret = handle_normal_connection(sock, cnx);
+                pio = handle_normal_connection(sock, addr);
         
         free(ptr);
 
-        return ret;
+        return pio;
 }
 
 
@@ -293,42 +241,27 @@ static int tcpd_auth(int clnt_sock)
 /*
  *
  */
-static client_connection_t *setup_inet_connection(int sock, struct sockaddr_in *addr) 
+static prelude_io_t *setup_inet_connection(int sock, struct sockaddr_in *addr) 
 {
-        int ret, use_ssl;
+        int ret;
         const char *from;
-        client_connection_t *cnx;
-
-        cnx = malloc(sizeof(*cnx));
-        if ( ! cnx ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return NULL;
-        }
-
-        cnx->from = NULL;
+        prelude_io_t *pio;
         
         from = inet_ntoa(((struct sockaddr_in *)addr)->sin_addr);
-        cnx->from = strdup(from);        
-        
+              
 #ifdef HAVE_TCPD_H
         ret = tcpd_auth(sock);
         if ( ret < 0 )
-                goto err;
+                return NULL;
 #endif
         
-        log(LOG_INFO, "new connection from %s.\n", cnx->from);
+        log(LOG_INFO, "new connection from %s.\n", from);
 
-        ret = setup_connection(sock, cnx);
-        if ( ret < 0 )
-                goto err;  
+        pio = setup_connection(sock, from);
+        if ( ! pio )
+                return NULL;
         
-        return cnx;
-
- err:
-        free(cnx->from);
-        free(cnx);
-
-        return NULL;
+        return pio;
 }
 
 
@@ -337,33 +270,11 @@ static client_connection_t *setup_inet_connection(int sock, struct sockaddr_in *
 /*
  *
  */
-static client_connection_t *setup_unix_connection(int sock, struct sockaddr_un *addr)
-{
-        int ret;
-        client_connection_t *cnx;
-
-        cnx = malloc(sizeof(*cnx));
-        if ( ! cnx ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return NULL;
-        }
-
-        cnx->from = strdup(addr->sun_path);
-        if ( ! cnx->from ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                free(cnx);
-                return NULL;
-        }
+static prelude_io_t *setup_unix_connection(int sock, struct sockaddr_un *addr)
+{                
+        log(LOG_INFO, "new UNIX connection.\n");
         
-        log(LOG_INFO, "new connection from %s.\n", cnx->from);
-
-        ret = handle_normal_connection(sock, cnx);
-        if ( ret < 0 ) {
-                free(cnx);
-                return NULL;
-        }
-        
-        return cnx;
+        return handle_normal_connection(sock, "unix");
 }
 
 
@@ -375,7 +286,7 @@ static int wait_connection(int sock, struct sockaddr *addr, socklen_t addrlen, i
 {
         int ret;
         int client;
-        client_connection_t *cnx;
+        prelude_io_t *pio;
         
         while ( 1 ) {
                 
@@ -387,16 +298,18 @@ static int wait_connection(int sock, struct sockaddr *addr, socklen_t addrlen, i
                 }
                 
                 if ( unix_sock )
-                        cnx = setup_unix_connection(client, (struct sockaddr_un *)addr);
+                        pio = setup_unix_connection(client, (struct sockaddr_un *)addr);
                 else
-                        cnx = setup_inet_connection(client, (struct sockaddr_in *)addr);
+                        pio = setup_inet_connection(client, (struct sockaddr_in *)addr);
                 
-                if ( ! cnx ) {
+                if ( ! pio ) {
                         close(client);
                         continue;
                 }
+
+                printf("Queuing for processing.\n");
                 
-                ret = server_logic_process_requests(manager_srvr, client, cnx);
+                ret = server_logic_process_requests(manager_srvr, client, pio);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "queueing client FD for server logic processing failed.\n");
                         close(sock);
@@ -551,10 +464,6 @@ static int inet_server_start(void)
 	if ( ret < 0 )
                 goto err;
 #endif
-
-        ret = auth_init();
-        if ( ret < 0 )
-                goto err;
         
         return wait_connection(sock, (struct sockaddr *) &addr, sizeof(addr), 0);
 
@@ -572,21 +481,25 @@ static int inet_server_start(void)
 int manager_server_start(void)
 {
 	int ret;
-
+        
         manager_srvr = server_logic_new(server_read_connection_cb, server_close_connection_cb);
         if ( ! manager_srvr ) {
                 log(LOG_ERR, "couldn't setup Manager server.\n");
                 return -1;
         }
         
+        ret = alert_scheduler_init();
+        if ( ret < 0 ) {
+                log(LOG_ERR, "couldn't initialize alert scheduler.\n");
+                return -1;
+        }
         
         ret = strcmp(config.addr, "unix");
-
         if ( ret == 0 )
                 ret = unix_server_start();
         else 
                 ret = inet_server_start();
-        
+
         return ret;
 }
 
@@ -597,8 +510,10 @@ void manager_server_close(void)
         int ret;
         
         ret = strcmp(config.addr, "unix");
-        if (ret == 0 ) 
+        if (ret == 0 )
                 unlink(UNIX_SOCK);
+
+        alert_scheduler_exit();
 }
 
 

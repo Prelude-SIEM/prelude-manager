@@ -21,8 +21,6 @@
 *
 *****/
 
-#define UNIX_SOCK LOCALSTATEDIR"/prelude/socket"
-
 int manager_server_start(void);
 
 void manager_server_close(void);

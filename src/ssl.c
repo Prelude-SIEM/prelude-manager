@@ -34,7 +34,7 @@
 #include <libprelude/common.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/ssl-gencrypto.h>
-#include <libprelude/ssl-config.h>
+#include <libprelude/ssl.h>
 
 #include "pconfig.h"
 #include "ssl.h"
@@ -104,18 +104,7 @@ int ssl_close_session(SSL *ssl)
 int ssl_init_server(void)
 {
         int n;
-        config_t *cfg;
 	SSL_METHOD *method;
-
-        cfg = config_open(PRELUDE_MANAGER_CONF);
-        if ( ! cfg ) {
-                log(LOG_ERR, "couldn't open %s.\n", PRELUDE_MANAGER_CONF);
-                return -1;
-        }
-        
-        ssl_read_config(cfg, NULL);
-
-        config_close(cfg);
         
 	/*
          * Initialize OpenSSL.
@@ -140,7 +129,7 @@ int ssl_init_server(void)
 	SSL_CTX_set_verify(ctx,
                            SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 
-	n = SSL_CTX_load_verify_locations(ctx, SENSORS_CERTIFICATES, NULL);
+	n = SSL_CTX_load_verify_locations(ctx, SENSORS_CERT, NULL);
 	if (n <= 0) {
 		ERR_print_errors_fp(stderr);
 		return -1;
@@ -165,35 +154,6 @@ int ssl_init_server(void)
 	}
 
 	return 0;
-}
-
-
-
-
-/**
- * ssl_create_certificate:
- *
- * Create the Report server private key,
- * and it's certificate.
- *
- * Returns: 0 on success, -1 on error.
- */
-int ssl_create_certificate(config_t *cfg, int crypt_key)
-{
-        X509 *x509ss;
-        
-        ssl_read_config(cfg, NULL);
-
-        printf("\nBuilding report private key...\n");
-        
-        x509ss = ssl_gen_crypto(ssl_get_days(), ssl_get_key_length(),
-                                MANAGER_KEY, crypt_key);
-        if ( ! x509ss ) {
-                fprintf(stderr, "\nError building report private key\n");
-                return -1;
-        }
-
-        return 0;
 }
 
 #endif

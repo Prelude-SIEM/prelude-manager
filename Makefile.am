@@ -1,4 +1,4 @@
-SUBDIRS = libmissing src plugins
+SUBDIRS = libmissing manager-adduser src plugins
 
 preludeconfdir = $(sysconfdir)/prelude
 preludeconf_DATA = prelude-manager.conf

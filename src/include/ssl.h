@@ -24,11 +24,6 @@
 
 #include <openssl/ssl.h>
 
-
-#define MANAGER_KEY CONFIG_DIR"/prelude-manager.key"
-#define SENSORS_CERTIFICATES CONFIG_DIR"/sensors.certs"
-
-
 SSL *ssl_auth_client(int socket);
 
 int ssl_init_server(void);

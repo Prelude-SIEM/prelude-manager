@@ -144,7 +144,6 @@ int pconfig_init(int argc, char **argv)
 #endif
         struct option opts[] = {
                 { "version", no_argument, NULL, 'v'       },
-                { "user", no_argument, NULL, 'u'          },
                 { "quiet", no_argument, NULL, 'q'         },
                 { "daemonize", no_argument, NULL, 'd'     },
                 { "pidfile", required_argument, NULL, 'P' },
@@ -170,9 +169,7 @@ int pconfig_init(int argc, char **argv)
 	while ( (c = getopt_long(argc, argv, "l:p:uqdhvcnwm:P:", opts, NULL)) != -1 ) {
 
 		switch (c) {
-                case 'u':
-                        exit(auth_create_account(CONFIG_DIR"/prelude-manager.auth", 1));
-                        
+                    
                 case 'l':
                         config.addr = optarg;
                         break;
@@ -238,27 +235,6 @@ int pconfig_init(int argc, char **argv)
         configure_as_daemon(cfg);
         configure_quiet(cfg);
 
-#ifdef HAVE_SSL
-        if (! crypt_key && ! creat_cert ) {
-                fprintf(stderr, "-n (--not-crypt) option have to be used with the '-c' option\n");
-                return -1;
-        }
-
-        if ( creat_cert )
-                exit(ssl_create_certificate(cfg, crypt_key));
-                
-        if ( wait_cert ) {
-                if ( strcmp(config.addr, "unix") == 0 ) {
-                        fprintf(stderr, "SSL communication is only usefull when communicating\n"
-                                "to the Prelude Manager throught the network. The configured\n"
-                                "address is set to local UNIX socket.\n");
-                        return -1;
-                }
-                
-                exit(ssl_register_client(cfg));
-        }
-#endif
-        
         config_close(cfg);
         
         return 0;

@@ -279,7 +279,10 @@ AC_OUTPUT([
 
 Makefile 
 prelude-manager.conf
+
 libmissing/Makefile
+manager-adduser/Makefile
+
 src/Makefile 
 src/include/Makefile
 
