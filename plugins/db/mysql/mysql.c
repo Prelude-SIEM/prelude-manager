@@ -42,7 +42,7 @@
 static int is_enabled = 0;
 static plugin_db_t plugin;
 static char *dbhost = NULL;
-static chat *dbport = "3306";
+static char *dbport = "3306";
 static char *dbname = NULL;
 static char *dbuser = NULL;
 static char *dbpass = NULL;
