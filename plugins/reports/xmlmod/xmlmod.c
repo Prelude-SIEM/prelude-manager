@@ -1,6 +1,7 @@
 /*****
 *
 * Copyright (C) 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+*
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -38,6 +39,7 @@ static void process_file(xmlNodePtr parent, const idmef_file_t *file);
 
 static int format = 0;
 static int enabled = 0;
+static int no_buffering = 0;
 static plugin_report_t plugin;
 static xmlDtdPtr idmef_dtd = NULL;
 static xmlOutputBufferPtr out_fd = NULL, out_stderr;
@@ -801,14 +803,22 @@ static int get_xmlmod_state(char *buf, size_t size)
 
 static int set_output_file(prelude_option_t *option, const char *arg)
 {
+        int ret;
         FILE *fd;
-        
+
         fd = fopen(arg, "a+");
         if ( ! fd ) {
                 log(LOG_ERR, "error opening %s for writing.\n", arg);
                 return prelude_option_error;
         }
         
+
+        if ( no_buffering ) {
+                ret = setvbuf(fd, NULL, _IONBF, 0);
+                if ( ret != 0)
+                      log(LOG_ERR, "error opening %s for writing.\n", arg);
+        }
+
         out_fd = xmlAllocOutputBuffer(NULL);
         if ( ! out_fd ) {
                 log(LOG_ERR, "error creating an XML output buffer.\n");
@@ -856,6 +866,7 @@ static int set_dtd_check(prelude_option_t *option, const char *arg)
 }
 
 
+
 static int enable_formatting(prelude_option_t *option, const char *arg)
 {
         format = 1;
@@ -864,17 +875,32 @@ static int enable_formatting(prelude_option_t *option, const char *arg)
 
 
 
+static int disable_buffering(prelude_option_t *option, const char *arg)
+{
+        no_buffering = 1;
+        return prelude_option_success;
+}
+
+
+
 plugin_generic_t *plugin_init(int argc, char **argv)
 {
-	prelude_option_t *opt;
+	prelude_option_t *opt, *output_file_opt;
         
         opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "xmlmod",
                                  "Option for the xmlmod plugin", no_argument,
                                  set_xmlmod_state, get_xmlmod_state);
 
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'l', "logfile",
+        output_file_opt = prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'l', "logfile",
                            "Specify output file to use", required_argument,
                            set_output_file, NULL);
+
+        /* 
+         * Ensure that this option callback will be call last so that options that may change
+         * the behavior of the log file descriptor will be taken into account before actually
+         * opening it.
+         */
+        prelude_option_set_priority(output_file_opt, option_run_last);
 
         prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 's', "stderr",
                            "Dump alert to stderr", no_argument, set_output_stderr, NULL);
@@ -886,7 +912,11 @@ plugin_generic_t *plugin_init(int argc, char **argv)
         prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'f', "format",
                            "Format XML output so that it is readable", no_argument,
                            enable_formatting, NULL);
-        
+
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'd', "disable-buffering",
+                           "Disable output file buffering to prevent truncated tags", no_argument,
+                           disable_buffering, NULL);
+       
         plugin_set_name(&plugin, "XmlMod");
         plugin_set_author(&plugin, "Yoann Vandoorselaere");
         plugin_set_contact(&plugin, "yoann@mandrakesoft.com");

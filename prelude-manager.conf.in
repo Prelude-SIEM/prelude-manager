@@ -79,6 +79,14 @@ logfile = /var/log/prelude.log;
 # Tell Xmlmod to output to stderr
 # stderr;
 #
+#
+# Tell Xmlmod to disable output file buffering.
+# This will prevent XML alerts to be truncated and thus make real-time
+# parsing easier.
+#
+# disable-buffering;
+#
+#
 # Tell Xmlmod to check generated XML against IDMEF DTD
 # check-dtd;
 #
