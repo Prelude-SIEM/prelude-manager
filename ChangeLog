@@ -1,5 +1,12 @@
 2001-12-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/idmef-db-output.c (insert_snmp_service): 
+	(insert_web_service): 
+	(insert_service): implement snmp and web service.
+
+	All function take a pointer to the 64 bits id, avoid
+	copying.
+
 	* src/idmef-message-read.c (service_get): handle
 	snmp and web service.
 	(web_service_get): 

@@ -1,2 +1,2 @@
-void idmef_db_output(idmef_message_t *msg);
+void idmef_db_output(const idmef_message_t *msg);
 
