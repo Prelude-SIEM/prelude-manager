@@ -177,7 +177,7 @@ static int forward_option_request_to_sensor(sensor_fd_t *cnx, uint64_t analyzeri
 
 
 
-static int get_msg_target_ident(prelude_msg_t *msg, uint64_t *ident)
+static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg, uint64_t *ident)
 {
         void *buf;
         uint8_t tag;
@@ -195,6 +195,9 @@ static int get_msg_target_ident(prelude_msg_t *msg, uint64_t *ident)
                 return prelude_extract_uint64_safe(ident, buf, len);
         }
 
+        server_generic_log_client((server_generic_client_t *) client,
+                                  "option request does not carry a target: closing connection.\n");
+
         return -1;
 }
 
@@ -206,11 +209,9 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         int ret;
         uint64_t target_sensor_ident = 0;
 
-        ret = get_msg_target_ident(msg, &target_sensor_ident);
-        if ( ret < 0 ) {
-                log(LOG_INFO, "option request does not contain a target.\n");
+        ret = get_msg_target_ident(client, msg, &target_sensor_ident);
+        if ( ret < 0 )
                 return -1;
-        }
         
         if ( target_sensor_ident == prelude_client_get_analyzerid(manager_client) ) {
                 server_generic_log_client((server_generic_client_t *) client,
@@ -221,7 +222,7 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         }
         
         ret = forward_option_request_to_sensor(client, target_sensor_ident, msg);
-        if ( ret < 0 ) {
+        if ( ret < 0 ) {                
                 log(LOG_ERR, "error broadcasting option to sensor id 0x%" PRIx64 ".\n", target_sensor_ident);
                 return -1;
         }
@@ -237,11 +238,9 @@ static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         int ret;
         uint64_t target_admin_ident = 0;
 
-        ret = get_msg_target_ident(msg, &target_admin_ident);
-        if ( ret < 0 ) {
-                log(LOG_ERR, "error decoding message.\n");
+        ret = get_msg_target_ident(client, msg, &target_admin_ident);
+        if ( ret < 0 ) 
                 return -1;
-        }
         
         ret = forward_option_reply_to_admin(client, target_admin_ident, msg);
         if ( ret < 0 ) {
@@ -419,8 +418,9 @@ static int read_client_type(sensor_fd_t *cnx, prelude_msg_t *msg)
 
         if ( tag & PRELUDE_CLIENT_CAPABILITY_SEND_ADMIN )
                 return handle_declare_admin(cnx);
-        
-        log(LOG_ERR, "- client declared unknow capability: closing connection.\n");
+
+        server_generic_log_client((server_generic_client_t *) cnx,
+                                  "client declared unknow capability: closing connection.\n");
         
         return -1;
 }
