@@ -30,11 +30,9 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-auth.h>
 
+#include "auth.h"
 #include "config.h"
 #include "ssl-register-client.h"
-
-
-int config_quiet = 0;
 
 
 int main(void) 

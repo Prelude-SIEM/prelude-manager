@@ -38,14 +38,13 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#include <libprelude/ssl.h>
 #include <libprelude/common.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/ssl-gencrypto.h>
 #include <libprelude/ssl-registration-msg.h>
 
-
+#include "ssl.h"
 #include "ssl-register-client.h"
 
 

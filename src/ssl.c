@@ -1,4 +1,5 @@
 #include "config.h"
+
 #ifdef HAVE_SSL
 
 /*****
@@ -33,8 +34,6 @@
 
 #include <libprelude/common.h>
 #include <libprelude/config-engine.h>
-#include <libprelude/ssl-gencrypto.h>
-#include <libprelude/ssl.h>
 
 #include "ssl.h"
 
@@ -131,6 +130,8 @@ int ssl_init_server(void)
 	n = SSL_CTX_load_verify_locations(ctx, SENSORS_CERT, NULL);
 	if (n <= 0) {
 		ERR_print_errors_fp(stderr);
+                log(LOG_INFO, "\nNo Sensors certificate available. Please run the "
+                    "\"manager-adduser\" program.\n\n");
 		return -1;
 	}
 

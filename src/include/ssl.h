@@ -21,8 +21,17 @@
 *
 *****/
 
+#include "config.h"
+
+#ifdef HAVE_SSL
 
 #include <openssl/ssl.h>
+#include <libprelude/ssl-gencrypto.h>
+
+
+#define MANAGER_KEY CONFIG_DIR"/manager.key"
+#define SENSORS_CERT CONFIG_DIR"/sensors.certs"
+
 
 SSL *ssl_auth_client(int socket);
 
@@ -32,4 +41,5 @@ int ssl_close_session(SSL *ssl);
 
 int ssl_create_certificate(config_t *cfg, int crypt_key);
 
+#endif
 

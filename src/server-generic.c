@@ -42,6 +42,7 @@
 #include <libprelude/plugin-common.h>
 
 #include "config.h"
+#include "auth.h"
 #include "ssl.h"
 
 #include <libprelude/prelude-io.h>
@@ -98,7 +99,7 @@ static int handle_normal_connection(prelude_io_t *fd, const char *addr)
 {
         int ret;
 
-        ret = prelude_auth_recv(fd, addr);
+        ret = prelude_auth_recv(MANAGER_AUTH_FILE, fd, addr);
         if ( ret < 0 ) {
                 log(LOG_INFO, "Plaintext authentication failed with %s.\n", addr);
                 return -1;

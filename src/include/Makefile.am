@@ -8,7 +8,8 @@ noinst_HEADERS = 		\
 	admin-server.h		\
 	idmef-message-scheduler.h \
 	idmef-message-read.h	\
-	idmef-db-output.h
+	idmef-db-output.h	\
+	auth.h
 
 include_HEADERS = 			\
 		plugin-db.h		\
