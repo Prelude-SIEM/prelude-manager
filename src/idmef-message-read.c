@@ -535,6 +535,14 @@ static int analyzer_get(prelude_msg_t *msg, idmef_analyzer_t *analyzer)
                 extract_idmef_string(buf, len, analyzer->class);
                 break;
 
+        case MSG_ANALYZER_OSTYPE:
+                extract_idmef_string(buf, len, analyzer->ostype);
+                break;
+
+        case MSG_ANALYZER_OSVERSION:
+                extract_idmef_string(buf, len, analyzer->osversion);
+                break;
+                
         case MSG_NODE_TAG:                
                 idmef_analyzer_node_new(analyzer);
                 ret = node_get(msg, analyzer->node);

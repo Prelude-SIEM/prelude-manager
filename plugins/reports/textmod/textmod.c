@@ -405,6 +405,12 @@ static void process_analyzer(const idmef_analyzer_t *analyzer)
         
         if ( idmef_string(&analyzer->manufacturer) )
                 print(0, "* Analyzer manufacturer: %s\n", idmef_string(&analyzer->manufacturer));
+
+        if ( idmef_string(&analyzer->ostype) )
+                print(0, "* Analyzer OS type: %s\n", idmef_string(&analyzer->ostype));
+        
+        if ( idmef_string(&analyzer->osversion) )
+                print(0, "* Analyzer OS version: %s\n", idmef_string(&analyzer->osversion));
 }
 
 
