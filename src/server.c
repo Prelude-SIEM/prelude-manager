@@ -113,7 +113,7 @@ static int wait_connection(struct sockaddr *addr, unsigned int addrlen, int unix
                                 continue;
                         }
                 }
-#endif/*
+#endif
 		ret = fork();
                 if ( ret < 0 ) {
                         log(LOG_ERR, "couldn't fork.\n");
@@ -121,13 +121,13 @@ static int wait_connection(struct sockaddr *addr, unsigned int addrlen, int unix
                         return -1;
                 }
                 
-                if ( ret == 0 ) { */
+                if ( ret == 0 ) {
                         close(sock);
                         ret = handle_connection(client, addr, &addrlen);
                         close(client);
                         exit(ret);
-/*                }
-                  close(client);*/
+                }
+                close(client);
         }
         
         return 0;

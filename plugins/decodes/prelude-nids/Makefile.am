@@ -6,5 +6,5 @@ INCLUDES = -I$(top_srcdir)/libmissing -I$(top_srcdir) \
 
 prelude_nids_la_SOURCES = decode.c
 prelude_nids_la_LDFLAGS = -module -avoid-version
-prelude_nidsdir = $(libdir)/prelude/decode
+prelude_nidsdir = $(libdir)/prelude/decodes
 prelude_nids_LTLIBRARIES = prelude-nids.la

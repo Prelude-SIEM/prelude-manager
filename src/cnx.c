@@ -78,22 +78,8 @@ static int wait_raw_report(int socket)
                         return -1;
                 } else {
                         idmef_msg = decode_plugins_run(ac, tag);
-                        if ( ! idmef_msg ) {
-                                free(ac);
-                                return -1;
-                        }
                 }
 
-                /*
-                 * Commented out report infos call / report plugins
-                 * call, as with the protocol change, we now need to
-                 * modify the plugin to get IDMEF messages.
-                 */
-#if 0
-                report_infos_get(&alert, &rinfos);
-                report_plugins_run(&alert, &rinfos);
-                report_infos_free(&rinfos);
-#endif           
                 free(ac);
         }
 
@@ -110,7 +96,7 @@ static int set_options(const char *optbuf)
 {
         if ( strstr(optbuf, "use_ssl=yes;") ) {
 #ifndef HAVE_SSL
-                goto unavaillable;
+                goto unavailable;
 #else
                 log(LOG_INFO, "\t- Client requested SSL communication.\n");
                 config.use_ssl = 1;
@@ -125,8 +111,8 @@ static int set_options(const char *optbuf)
         return 0;
         
 #if ! defined(HAVE_SSL)
- unavaillable:
-        log(LOG_INFO, "\t- Client requested unavaillable option.\n");
+ unavailable:
+        log(LOG_INFO, "\t- Client requested unavailable option.\n");
         return -1;
 #endif
 }
