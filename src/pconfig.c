@@ -50,14 +50,15 @@ struct report_config config;
 prelude_client_mgr_t *relay_managers = NULL;
 
 
+#if 0
 static int create_account(const char *arg) 
 {
         int ret;
         
-        ret = ssl_add_certificate();
+        ssl_add_certificate();
         exit(ret);
 }
-
+#endif
 
 
 static int print_version(const char *arg) 
@@ -162,9 +163,11 @@ int pconfig_init(int argc, char **argv)
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'd', "daemon",
                            "Run in daemon mode", no_argument, set_daemon_mode, NULL);
 
+#if 0
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'c', "create-account",
                            "Create an account to be used by this sensor", no_argument,
                            create_account, NULL);
+#endif
         
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'P', "pidfile",
                            "Write Prelude PID to pidfile", required_argument, set_pidfile, NULL);
