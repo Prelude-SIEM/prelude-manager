@@ -41,7 +41,6 @@
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-timer.h>
 
-
 #include <gcrypt.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -339,17 +338,64 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
                 gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_EXPIRED);
                 return -1;
         }
-        
-        server_generic_log_client(client, "TLS authentication succeed: client certificate is trusted.\n");
-
+                
         return 0;
 }
+
+
+
+static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnutls_session session, uint64_t *analyzerid)
+{
+        char buf[1024];
+        gnutls_x509_crt cert;
+        size_t size = sizeof(buf);
+        int cert_list_size = 0, ret;
+        const gnutls_datum_t *cert_list;
+        
+        cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
+        if ( ! cert_list || cert_list_size != 1 ) {
+                server_generic_log_client(client, "invalid number of peer certificate: %d.\n", cert_list_size);
+                return -1;
+        }
+        
+        ret = gnutls_x509_crt_init(&cert);
+        if ( ret < 0 ) {
+                server_generic_log_client(client, "error initializing tls certificate: %s.\n", gnutls_strerror(ret));
+                return -1;
+        }
+        
+        ret = gnutls_x509_crt_import(cert, &cert_list[0], GNUTLS_X509_FMT_DER);
+        if ( ret < 0) {
+                server_generic_log_client(client, "error importing certificate: %s.\n", gnutls_strerror(ret));
+                goto err;
+        }
+
+        size = sizeof(buf);
+        ret = gnutls_x509_crt_get_dn(cert, buf, &size);
+        if ( ret < 0 ) {
+                server_generic_log_client(client, "error getting certificate DN: %s.\n", gnutls_strerror(ret));
+                goto err;
+        }
+
+        ret = sscanf(buf, "CN=%" PRIu64, analyzerid);
+        if ( ret != 1 ) {
+                ret = -1;
+                server_generic_log_client(client, "error parsing certificate.\n");
+                goto err;
+        }
+
+ err:
+        gnutls_x509_crt_deinit(cert);   
+        return ret;
+}
+
 
 
 
 int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
 {
         int ret;
+        uint64_t analyzerid;
         gnutls_session session;
         int fd = prelude_io_get_fd(pio);
         
@@ -383,6 +429,13 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
         ret = verify_certificate(client, session);
         if ( ret < 0 ) 
                 return -1;
+
+        ret = certificate_get_peer_analyzerid(client, session, &analyzerid);
+        if ( ret < 0 )
+                return -1;
+        
+        server_generic_client_set_analyzerid(client, analyzerid);
+        server_generic_log_client(client, "TLS authentication succeed: client certificate is trusted.\n");
         
         return 1;
 }
