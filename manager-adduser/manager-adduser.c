@@ -28,6 +28,7 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-auth.h>
 
+#include "config.h"
 
 
 int config_quiet = 0;
