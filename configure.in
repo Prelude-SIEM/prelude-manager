@@ -358,7 +358,6 @@ docs/Makefile
 docs/api/Makefile
 
 prelude-manager.conf
-prelude-manager-db-create.sh
 
 manager-adduser/Makefile
 
@@ -381,8 +380,6 @@ plugins/reports/textmod/Makefile
 plugins/reports/xmlmod/Makefile
 
 ])
-
-AC_CONFIG_COMMANDS([default],[[ chmod +x prelude-manager-db-create.sh ]],[[]])
 
 dnl **** TODO add the following lines in above section ****
 dnl docs/Makefile

@@ -1,10 +1,8 @@
 SUBDIRS = manager-adduser src plugins docs
 
-bin_SCRIPTS = prelude-manager-db-create.sh
-
 EXTRA_DIST = prelude-manager.conf config.h 				\
              AUTHORS COPYING COPYING.OpenSSL INSTALL NEWS README 	\
-             ChangeLog prelude-manager-db-create.sh
+             ChangeLog
 
 install-data-local:
 	$(INSTALL) -d -m 700 $(DESTDIR)$(configdir);
