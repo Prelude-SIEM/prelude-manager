@@ -31,10 +31,12 @@
 #include <sys/types.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/crypto.h>
 #include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <pthread.h>
 
 #include <libprelude/prelude-log.h>
 #include <libprelude/config-engine.h>
@@ -45,6 +47,50 @@
 
 
 static SSL_CTX *ctx;
+static pthread_mutex_t *lock;
+
+
+/*
+ * functions needed for OpenSSL thread safety.
+ * I'm not sure this is the right way to do it, we lack
+ * good documentation for this.
+ */
+static unsigned long thread_id_cb(void) 
+{
+        return (unsigned long) pthread_self();
+}
+
+
+
+static void thread_lock_cb(int mode, int type, const char *file, int line) 
+{
+        if ( mode & CRYPTO_LOCK ) 
+                pthread_mutex_lock(&lock[type]);
+        else 
+                pthread_mutex_unlock(&lock[type]);
+}
+
+
+
+static int setup_openssl_thread(void) 
+{
+        int i;
+        
+        lock = malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
+        if ( ! lock ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return -1;
+        }
+
+        for ( i = 0; i < CRYPTO_num_locks(); i++ )
+                pthread_mutex_init(&lock[i], NULL);
+
+        CRYPTO_set_id_callback(thread_id_cb);
+        CRYPTO_set_locking_callback(thread_lock_cb);
+
+        return 0;
+}
+
 
 
 
@@ -148,17 +194,6 @@ int ssl_auth_client(prelude_io_t *pio)
 
 
 
-int ssl_close_session(SSL *ssl)
-{
-        int ret;
-        
-	ret = SSL_shutdown(ssl);
-	SSL_free(ssl);
-
-        return ret;
-}
-
-
 
 /**
  * ssl_init_server;
@@ -171,6 +206,15 @@ int ssl_init_server(void)
 {
         int ret;
         SSL_METHOD *method;
+
+        /*
+         * Initialize threading.
+         */
+        ret = setup_openssl_thread();
+        if ( ret < 0 ) {
+                log(LOG_ERR, "couldn't initialize threaded OpenSSL.\n");
+                return -1;
+        }
         
 	/*
          * Initialize OpenSSL.

@@ -1,3 +1,28 @@
+2002-03-19  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/ssl.c (ssl_close_session): 
+	this is done by prelude-io. Removed.
+	
+	(ssl_init_server): 
+	call setup_openssl_thread().
+	
+	(setup_openssl_thread): 
+	malloc the OpenSSL array of mutexs, and initialize them.
+	Setup the OpenSSL callback function.
+	
+	(thread_lock_cb): 
+	OpenSSL callback for locking / unlocking a mutex.
+
+	(thread_id_cb): 
+	OpenSSL callback to get ID of the calling thread.
+
+
+	Theses change aim to avoid problem by using the same SSL
+	context from multiple thread. The OpenSSL documentation is 
+	very small (almost inexistant) on this subject thought, so 
+	anyone with knowledge of how OpenSSL and thread cohabitate 
+	is welcome to review the code.
+	
 2002-03-19  Laurent Oudot  <oudot.laurent@wanadoo.fr>
 
 	* db-inst.sh (file added):

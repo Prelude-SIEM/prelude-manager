@@ -36,8 +36,6 @@ int ssl_auth_client(prelude_io_t *fd);
 
 int ssl_init_server(void);
 
-int ssl_close_session(SSL *ssl);
-
 int ssl_create_certificate(config_t *cfg, int crypt_key);
 
 #endif
