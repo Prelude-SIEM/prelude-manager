@@ -101,14 +101,18 @@ static sensor_fd_t *search_cnx(prelude_list_t *head, uint64_t analyzerid)
 static int forward_message_to_all(sensor_fd_t *client, prelude_msg_t *msg,
                                   prelude_list_t *head, pthread_mutex_t *list_mutex) 
 {
+        int ret;
         sensor_fd_t *cnx;
         prelude_list_t *tmp;
 
         pthread_mutex_lock(list_mutex);
         
         prelude_list_for_each(tmp, head) {
-                cnx = prelude_list_entry(tmp, sensor_fd_t, list);                        
-                prelude_msg_write(msg, cnx->fd);
+                cnx = prelude_list_entry(tmp, sensor_fd_t, list);
+                        
+                do {
+                        ret = prelude_msg_write(msg, cnx->fd);
+                } while ( ret == prelude_msg_unfinished );
         }
         
         pthread_mutex_unlock(list_mutex);
@@ -137,7 +141,10 @@ static int forward_option_reply_to_admin(sensor_fd_t *cnx, uint64_t analyzerid, 
         server_generic_log_client((server_generic_client_t *) cnx,
                                   "option reply forwarded to [%s].\n", buf);
                 
-        ret = prelude_msg_write(msg, admin->fd);
+        do {
+                ret = prelude_msg_write(msg, admin->fd);
+        } while ( ret == prelude_msg_unfinished );
+        
         pthread_mutex_unlock(&admins_list_mutex);
 
         return ret;
@@ -165,9 +172,11 @@ static int forward_option_request_to_sensor(sensor_fd_t *cnx, uint64_t analyzeri
         server_generic_get_addr_string((server_generic_client_t *) sensor, buf, sizeof(buf));
         server_generic_log_client((server_generic_client_t *) cnx,
                                   "option request forwarded to [%s].\n", buf);
-                
-        ret = prelude_msg_write(msg, sensor->fd);
-
+        
+        do {
+                ret = prelude_msg_write(msg, sensor->fd);
+        } while ( ret == prelude_msg_unfinished );
+        
         return ret;
 }
 
@@ -219,7 +228,7 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         
         ret = forward_option_request_to_sensor(client, target_sensor_ident, msg);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error broadcasting option to sensor id 0x%llx.\n", target_sensor_ident);
+                log(LOG_ERR, "error broadcasting option to sensor id 0x%" PRIx64 ".\n", target_sensor_ident);
                 return -1;
         }
         
@@ -242,7 +251,7 @@ static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         
         ret = forward_option_reply_to_admin(client, target_admin_ident, msg);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error broadcasting option to sensor id 0x%llx.\n", target_admin_ident);
+                log(LOG_ERR, "error broadcasting option to sensor id 0x%" PRIx64 ".\n", target_admin_ident);
                 return -1;
         }
         
@@ -260,7 +269,8 @@ static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen)
         if ( ret < 0 )
                 return -1;
         
-        server_generic_log_client((server_generic_client_t *) cnx, "declared ident 0x%llx.\n", cnx->ident);
+        server_generic_log_client((server_generic_client_t *) cnx,
+                                  "declared ident 0x%" PRIx64 ".\n", cnx->ident);
                 
         return 0;
 }
