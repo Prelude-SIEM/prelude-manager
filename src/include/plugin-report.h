@@ -42,7 +42,7 @@ typedef struct {
 #define report_plugin_set_closing_func(p, f) (p)->close = (f)
 
 
-int report_plugins_available(void);
+prelude_bool_t report_plugins_available(void);
 
 int report_plugin_activate_failover(const char *plugin);
 

@@ -1,1 +1,1 @@
-SUBDIRS=prelude-nids
+SUBDIRS=

@@ -61,7 +61,7 @@ typedef struct {
 extern prelude_client_t *manager_client;
 
 
-static PRELUDE_LIST_HEAD(sensors_cnx_list);
+static PRELUDE_LIST(sensors_cnx_list);
 static pthread_mutex_t sensors_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -111,9 +111,7 @@ static int forward_message_to_analyzerid(sensor_fd_t *cnx, uint64_t analyzerid, 
         ret = prelude_msg_write(msg, analyzer->fd);
         if ( ret < 0 ) {
                 if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
-                        prelude_linked_object_add_tail((prelude_linked_object_t *) msg,
-                                                       &analyzer->write_msg_list);
-
+                        prelude_linked_object_add_tail(&analyzer->write_msg_list, (prelude_linked_object_t *) msg);
                         server_logic_notify_write_enable((server_logic_client_t *) analyzer);
                         return 0;
                 }
@@ -310,8 +308,7 @@ static int handle_declare_parent_relay(sensor_fd_t *cnx)
                  */
                 ret = prelude_connection_new(&pc, cnx->addr, cnx->port);
                 if ( ret < 0 ) {
-                        log(LOG_INFO, "%s: creating connection for %s:%d: %s.\n",
-                            prelude_strsource(ret), prelude_strerror(ret));
+                        prelude_perror(ret, "error creating connection for %s:%d");
                         return -1;
                 }
                 
@@ -346,7 +343,7 @@ static int handle_declare_client(sensor_fd_t *cnx)
                 return -1;
         
         pthread_mutex_lock(&sensors_list_mutex);
-        prelude_list_add_tail(&cnx->list, &sensors_cnx_list);
+        prelude_list_add_tail(&sensors_cnx_list, &cnx->list);
         pthread_mutex_unlock(&sensors_list_mutex);
         
         return 0;
@@ -499,10 +496,10 @@ static int write_connection_cb(server_generic_client_t *ptr)
         prelude_msg_t *cur = NULL;
         sensor_fd_t *client = (sensor_fd_t *) ptr;
         
-        assert(! prelude_list_empty(&client->write_msg_list));
+        assert(! prelude_list_is_empty(&client->write_msg_list));
 
-        prelude_list_for_each(tmp, &client->write_msg_list) {
-                cur = prelude_linked_object_get_object(tmp, prelude_msg_t);
+        prelude_list_for_each(&client->write_msg_list, tmp) {
+                cur = prelude_linked_object_get_object(tmp);
                 break;
         }
 
@@ -516,7 +513,7 @@ static int write_connection_cb(server_generic_client_t *ptr)
 
         prelude_linked_object_del((prelude_linked_object_t *) cur);
 
-        if ( prelude_list_empty(&client->write_msg_list) )
+        if ( prelude_list_is_empty(&client->write_msg_list) )
                 server_logic_notify_write_disable((server_logic_client_t *) client);
         
         return 0;
@@ -534,7 +531,7 @@ static void close_connection_cb(server_generic_client_t *ptr)
                 reverse_relay_tell_dead(cnx->cnx, cnx->capability);
         }
         
-        if ( ! prelude_list_empty(&cnx->list) ) {
+        if ( ! prelude_list_is_empty(&cnx->list) ) {
                 pthread_mutex_lock(&sensors_list_mutex);
                 prelude_list_del(&cnx->list);
                 pthread_mutex_unlock(&sensors_list_mutex);
@@ -559,7 +556,7 @@ static int accept_connection_cb(server_generic_client_t *ptr)
 {
         sensor_fd_t *fd = (sensor_fd_t *) ptr;
 
-        PRELUDE_INIT_LIST_HEAD(&fd->list);
+        prelude_list_init(&fd->list);
         
         return 0;
 }
@@ -573,7 +570,7 @@ server_generic_t *sensor_server_new(void)
         server = server_generic_new(sizeof(sensor_fd_t), accept_connection_cb,
                                     read_connection_cb, write_connection_cb, close_connection_cb);
         if ( ! server ) {
-                log(LOG_ERR, "error creating a generic server.\n");
+                prelude_log(PRELUDE_LOG_WARN, "error creating a generic server.\n");
                 return NULL;
         }
                 
@@ -596,7 +593,7 @@ int sensor_server_add_client(server_generic_t *server, prelude_connection_t *cnx
         
         cdata = calloc(1, sizeof(*cdata));
         if ( ! cdata ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
         
@@ -615,8 +612,7 @@ int sensor_server_add_client(server_generic_t *server, prelude_connection_t *cnx
         cdata->client_type = "parent-manager";
         cdata->ident = prelude_connection_get_peer_analyzerid(cnx);
 
-        prelude_list_add(&cdata->list, &sensors_cnx_list);
-        
+        prelude_list_add(&sensors_cnx_list, &cdata->list);
         server_generic_process_requests(server, (server_generic_client_t *) cdata);
         
         return 0;

@@ -32,7 +32,7 @@
 #include "plugin-decode.h"
 
 
-static PRELUDE_LIST_HEAD(decode_plugins_instance);
+static PRELUDE_LIST(decode_plugins_instance);
 
 
 /*
@@ -42,7 +42,7 @@ static int subscribe(prelude_plugin_instance_t *pi)
 {
         prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
 
-        log(LOG_INFO, "- Subscribing %s to active decoding plugins.\n", plugin->name);
+        prelude_log(PRELUDE_LOG_INFO, "- Subscribing %s to active decoding plugins.\n", plugin->name);
 
         return prelude_plugin_add(pi, &decode_plugins_instance, NULL);
 }
@@ -52,7 +52,7 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
 {        
         prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
 
-        log(LOG_INFO, "- Un-subscribing %s from active decoding plugins.\n", plugin->name);
+        prelude_log(PRELUDE_LOG_INFO, "- Un-subscribing %s from active decoding plugins.\n", plugin->name);
 
         prelude_plugin_del(pi);
 }
@@ -69,9 +69,9 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *i
         prelude_list_t *tmp;
         prelude_plugin_instance_t *pi;
         
-        prelude_list_for_each(tmp, &decode_plugins_instance) {
+        prelude_list_for_each(&decode_plugins_instance, tmp) {
 
-                pi = prelude_linked_object_get_object(tmp, prelude_plugin_instance_t);
+                pi = prelude_linked_object_get_object(tmp);
                                 
                 p = (plugin_decode_t *) prelude_plugin_instance_get_plugin(pi);
                 if ( p->decode_id != plugin_id )
@@ -79,14 +79,14 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *i
 
                 ret = prelude_plugin_run(pi, plugin_decode_t, run, msg, idmef);
                 if ( ret < 0 ) {
-                        log(LOG_ERR, "%s couldn't decode sensor data.\n", p->name);
+                        prelude_log(PRELUDE_LOG_WARN, "%s couldn't decode sensor data.\n", p->name);
                         return -1;
                 }
                 
                 return 0;
         }
         
-        log(LOG_ERR, "No decode plugin for handling sensor id %d.\n", plugin_id);
+        prelude_log(PRELUDE_LOG_WARN, "No decode plugin for handling sensor id %d.\n", plugin_id);
         
         return -1;
 }
@@ -105,13 +105,14 @@ int decode_plugins_init(const char *dirname, int argc, char **argv)
 	if ( ret < 0 ) {
 		if ( errno == ENOENT )
 			return 0;
-		log(LOG_ERR, "can't access %s.\n", dirname);
+                
+		prelude_log(PRELUDE_LOG_ERR, "can't access %s.\n", dirname);
 		return -1;
 	}
 
         ret = prelude_plugin_load_from_dir(dirname, subscribe, unsubscribe);
         if ( ret < 0 )
-                log(LOG_ERR, "couldn't load plugin subsystem.\n");
+                prelude_log(PRELUDE_LOG_WARN, "couldn't load plugin subsystem.\n");
         
         return ret;
 }

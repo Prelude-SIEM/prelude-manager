@@ -16,6 +16,5 @@ include_HEADERS = \
         plugin-decode.h \
         plugin-report.h \
         plugin-filter.h \
-        plugin-util.h \
         report.h \
         decode.h                

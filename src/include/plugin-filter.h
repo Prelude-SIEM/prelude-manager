@@ -65,7 +65,7 @@ typedef struct {
 #define filter_plugin_set_running_func(p, f) (p)->run = (f)
 
 
-int filter_plugins_available(filter_category_t type);
+prelude_bool_t filter_plugins_available(filter_category_t type);
 
 int filter_plugins_init(const char *dirname, int argc, char **argv);
 

@@ -108,8 +108,8 @@ static int send_auth_result(server_generic_client_t *client, int result)
 			return 0;
 		}
 
-		log(LOG_INFO, "%s: error writing auth result message: %s.\n",
-                    prelude_strsource(ret), prelude_strerror(ret));
+		prelude_log(PRELUDE_LOG_WARN, "%s: error writing auth result message: %s.\n",
+                            prelude_strsource(ret), prelude_strerror(ret));
 		prelude_msg_destroy(client->msg);
 		return -1;
         }
@@ -307,7 +307,7 @@ static int setup_client_socket(server_generic_t *server,
          */
         ret = fcntl(client, F_SETFL, O_NONBLOCK);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't set non blocking mode for client.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't set non blocking mode for client.\n");
                 return -1;
         }
 
@@ -341,7 +341,7 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
         
         sock = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
         if ( sock < 0 ) {
-                log(LOG_ERR, "accept returned an error.\n");
+                prelude_log(PRELUDE_LOG_ERR, "accept returned an error.\n");
                 return -1;
         }
         
@@ -385,7 +385,7 @@ static int handle_connection(server_generic_t *server)
         
         cdata = calloc(1, server->clientlen);
         if ( ! cdata ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
 
@@ -393,7 +393,7 @@ static int handle_connection(server_generic_t *server)
 
         client = accept_connection(server, cdata);                
         if ( client < 0 ) {
-                log(LOG_ERR, "couldn't accept connection.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't accept connection.\n");
                 free(cdata);
                 return -1;
         }
@@ -407,7 +407,7 @@ static int handle_connection(server_generic_t *server)
         
         ret = server_logic_process_requests(server->logic, (server_logic_client_t *) cdata);
         if ( ret < 0 ) {
-                log(LOG_ERR, "queueing client FD for server logic processing failed.\n");
+                prelude_log(PRELUDE_LOG_ERR, "queueing client FD for server logic processing failed.\n");
                 prelude_io_close(cdata->fd);
                 prelude_io_destroy(cdata->fd);
                 free(cdata->addr);
@@ -464,13 +464,13 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
         
         ret = bind(sock, addr, alen);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't bind to socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't bind to socket.\n");
                 return -1;
         }
         
         ret = listen(sock, 10);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't listen on socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't listen on socket.\n");
                 return -1;
         }
         
@@ -500,7 +500,7 @@ static int is_unix_socket_already_used(int sock, struct sockaddr_un *sa, int add
         
         ret = connect(sock, (struct sockaddr *) sa, addrlen);
         if ( ret == 0 ) {
-                log(LOG_INFO, "Prelude Manager UNIX socket is already used. Exiting.\n");
+                prelude_log(PRELUDE_LOG_WARN, "Prelude Manager UNIX socket is already used. Exiting.\n");
                 return 1;
         }
         
@@ -510,7 +510,7 @@ static int is_unix_socket_already_used(int sock, struct sockaddr_un *sa, int add
          */
         ret = unlink(sa->sun_path);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't delete UNIX socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't delete UNIX socket.\n");
                 return -1;
         }
         
@@ -529,7 +529,7 @@ static int unix_server_start(server_generic_t *server)
         
         server->sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if ( server->sock < 0 ) {
-                log(LOG_ERR, "couldn't create socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't create socket.\n");
 		return -1;
 	}
         
@@ -551,7 +551,7 @@ static int unix_server_start(server_generic_t *server)
          */
         ret = chmod(sa->sun_path, S_IRWXU|S_IRWXG|S_IRWXO);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't set permission for UNIX socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't set permission for UNIX socket.\n");
                 return -1;
         }
         
@@ -571,19 +571,19 @@ static int inet_server_start(server_generic_t *server,
         
         server->sock = socket(server->sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
         if ( server->sock < 0 ) {
-                log(LOG_ERR, "couldn't create socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't create socket.\n");
                 return -1;
         }
         
         ret = setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't set SO_REUSEADDR socket option.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't set SO_REUSEADDR socket option.\n");
                 goto err;
         }
 
         ret = setsockopt(server->sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(int));
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't set SO_KEEPALIVE socket option.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't set SO_KEEPALIVE socket option.\n");
                 goto err;
         }
         
@@ -617,7 +617,7 @@ static int resolve_addr(server_generic_t *server, const char *addr, uint16_t por
         
         ret = prelude_inet_getaddrinfo(addr, service, &hints, &ai);        
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't resolve %s.\n", addr);
+                prelude_log(PRELUDE_LOG_ERR, "couldn't resolve %s.\n", addr);
                 return -1;
         }
         
@@ -629,7 +629,7 @@ static int resolve_addr(server_generic_t *server, const char *addr, uint16_t por
         
         server->sa = malloc(ai->ai_addrlen);
         if ( ! server->sa ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 prelude_inet_freeaddrinfo(ai);
                 return -1;
         }
@@ -664,7 +664,7 @@ server_generic_t *server_generic_new(size_t clientlen, server_generic_accept_fun
                 
         server = malloc(sizeof(*server));
         if ( ! server ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return NULL;
         }
 
@@ -676,7 +676,7 @@ server_generic_t *server_generic_new(size_t clientlen, server_generic_accept_fun
         
         server->logic = server_logic_new(server, read_connection_cb, write_connection_cb, close_connection_cb);
         if ( ! server->logic ) {
-                log(LOG_ERR, "couldn't initialize server pool.\n");
+                prelude_log(PRELUDE_LOG_WARN, "couldn't initialize server pool.\n");
                 free(server);
                 return NULL;
         }
@@ -694,7 +694,7 @@ int server_generic_bind(server_generic_t *server, const char *saddr, uint16_t po
         
         ret = resolve_addr(server, saddr, port);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't resolve %s.\n", saddr);
+                prelude_log(PRELUDE_LOG_WARN, "couldn't resolve %s.\n", saddr);
                 return -1;
         }
         
@@ -716,7 +716,7 @@ int server_generic_bind(server_generic_t *server, const char *saddr, uint16_t po
                 prelude_inet_ntop(server->sa->sa_family, in_addr, out, sizeof(out));
         }
         
-        log(LOG_INFO, "- sensors server started (listening on %s port %d).\n", out, port);
+        prelude_log(PRELUDE_LOG_INFO, "- sensors server started (listening on %s port %d).\n", out, port);
 
         return 0;
 }
@@ -766,11 +766,11 @@ void server_generic_log_client(server_generic_client_t *cnx, const char *fmt, ..
         va_end(ap);
         
         if ( cnx->port )
-                log(LOG_INFO, "[%s:%u %s:0x%" PRIx64 "]: %s",
-                    cnx->addr, cnx->port, cnx->client_type, cnx->ident, buf);
+                prelude_log(PRELUDE_LOG_WARN, "[%s:%u %s:0x%" PRIx64 "]: %s",
+                            cnx->addr, cnx->port, cnx->client_type, cnx->ident, buf);
         else
-                log(LOG_INFO, "[unix %s:0x%" PRIx64 "]: %s",
-                    cnx->client_type, cnx->ident, buf);
+                prelude_log(PRELUDE_LOG_WARN, "[unix %s:0x%" PRIx64 "]: %s",
+                            cnx->client_type, cnx->ident, buf);
 }
 
 

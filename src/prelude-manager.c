@@ -68,7 +68,7 @@ static const char *cfgfile = PRELUDE_MANAGER_CONF;
  */
 static void handle_signal(int sig) 
 {        
-        log(LOG_INFO, "Caught signal %d.\n", sig);
+        prelude_log(PRELUDE_LOG_INFO, "Caught signal %d.\n", sig);
 
         /*
          * stop the sensor server.
@@ -98,7 +98,7 @@ static void init_manager_server(void)
         
         ret = server_generic_bind((server_generic_t *) sensor_server, config.addr, config.port);
         if ( ret < 0 ) {
-                log(LOG_INFO, "- couldn't start sensor server.\n");
+                prelude_log(PRELUDE_LOG_WARN, "- couldn't start sensor server.\n");
                 exit(1);
         }
 }
@@ -110,26 +110,43 @@ static void restart_manager(void)
 {
         int ret;
         
-        log(LOG_INFO, "- Restarting Prelude Manager (%s).\n", global_argv[0]);
+        prelude_log(PRELUDE_LOG_WARN, "- Restarting Prelude Manager (%s).\n", global_argv[0]);
         
         ret = execvp(global_argv[0], global_argv);
         if ( ret < 0 ) 
-                log(LOG_ERR, "Error restating Prelude Manager (%s).\n", global_argv[0]);
+                prelude_log(LOG_ERR, "Error restarting Prelude Manager (%s).\n", global_argv[0]);
 }
 
 
 
-static void fill_analyzer_infos(void)
+static int fill_analyzer_infos(void)
 {
+        int ret;
+        prelude_string_t *str;
         idmef_analyzer_t *local = NULL;
 
         local = prelude_client_get_analyzer(manager_client);
         assert(local);
-                
-        idmef_analyzer_set_version(local, prelude_string_new_constant(VERSION));
-        idmef_analyzer_set_model(local, prelude_string_new_constant(MANAGER_MODEL));
-        idmef_analyzer_set_class(local, prelude_string_new_constant(MANAGER_CLASS));
-        idmef_analyzer_set_manufacturer(local, prelude_string_new_constant(MANAGER_MANUFACTURER));
+
+        ret = prelude_string_new_constant(&str, VERSION);
+        if ( ret < 0 )
+                return ret;
+        idmef_analyzer_set_version(local, str);
+        
+        ret = prelude_string_new_constant(&str, MANAGER_MODEL);
+        if ( ret < 0 )
+                return ret;
+        idmef_analyzer_set_model(local, str);
+
+        ret = prelude_string_new_constant(&str, MANAGER_CLASS);
+        if ( ret < 0 )
+                return ret;
+        idmef_analyzer_set_class(local, str);
+
+        ret = prelude_string_new_constant(&str, MANAGER_MANUFACTURER);
+        if ( ret < 0 )
+                return ret;
+        idmef_analyzer_set_manufacturer(local, str);
 }
 
 
@@ -172,25 +189,25 @@ int main(int argc, char **argv)
 
         ret = report_plugins_init(REPORT_PLUGIN_DIR, argc, argv);
         if ( ret < 0 ) {
-                log(LOG_INFO, "error initializing reporting plugins.\n");
+                prelude_log(PRELUDE_LOG_WARN, "error initializing reporting plugins.\n");
                 return -1;
         }
-        log(LOG_INFO, "- Initialized %d reporting plugins.\n", ret);
+        prelude_log(PRELUDE_LOG_INFO, "- Initialized %d reporting plugins.\n", ret);
 
         ret = decode_plugins_init(DECODE_PLUGIN_DIR, argc, argv);
         if ( ret < 0 ) {
-                log(LOG_INFO, "error initializing decoding plugins.\n");
+                prelude_log(PRELUDE_LOG_WARN, "error initializing decoding plugins.\n");
                 return -1;
         }
-        log(LOG_INFO, "- Initialized %d decoding plugins.\n", ret);
+        prelude_log(PRELUDE_LOG_INFO, "- Initialized %d decoding plugins.\n", ret);
 
         ret = filter_plugins_init(FILTER_PLUGIN_DIR, argc, argv);
         if ( ret < 0 ) {
-                log(LOG_INFO, "error initializing filtering plugins.\n");
+                prelude_log(PRELUDE_LOG_WARN, "error initializing filtering plugins.\n");
                 return -1;
         }
-        log(LOG_INFO, "- Initialized %d filtering plugins.\n", ret);
-
+        prelude_log(PRELUDE_LOG_INFO, "- Initialized %d filtering plugins.\n", ret);
+        
         reverse_relay_init();
         sensor_server = sensor_server_new();
         
@@ -201,10 +218,10 @@ int main(int argc, char **argv)
         ret = prelude_option_parse_arguments(manager_client, manager_root_optlist, &cfgfile, &argc, argv, &err);
         if ( ret < 0 ) {
                 if ( err )
-                        log(LOG_INFO, "error parsing options: %s.\n", prelude_string_get_string(err));
+                        prelude_log(PRELUDE_LOG_WARN, "error parsing options: %s.\n", prelude_string_get_string(err));
 
                 else if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
-                        prelude_perror(ret, "error parsing options (%d != %d)", prelude_error_get_code(ret), PRELUDE_ERROR_EOF);
+                        prelude_perror(ret, "error processing prelude-manager options");
                 
                 return -1;
         }
@@ -230,7 +247,7 @@ int main(int argc, char **argv)
                 
         ret = idmef_message_scheduler_init(manager_client);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't initialize alert scheduler.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't initialize alert scheduler.\n");
                 return -1;
         }
         

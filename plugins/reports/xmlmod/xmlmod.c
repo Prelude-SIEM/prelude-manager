@@ -170,9 +170,11 @@ static void process_time(xmlNodePtr parent, const char *type, idmef_time_t *time
         if ( ! time )
                 return;
 
-        out = prelude_string_new();
-        if ( ! out )
+        ret = prelude_string_new(&out);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "error creating object");
                 return;
+        }
         
         ret = idmef_time_to_string(time, out);
         if ( ret < 0 ) {
@@ -630,9 +632,11 @@ static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *
         if ( ! ad )
                 return;
         
-        out = prelude_string_new();
-        if ( ! out )
+        ret = prelude_string_new(&out);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "error creating object");
                 return;
+        }
         
 	ret = idmef_additional_data_data_to_string(ad, out);
 	if ( ret < 0 ) {
@@ -856,7 +860,7 @@ static int xmlmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
         
         document = xmlNewDoc("1.0");
         if ( ! document ) {
-                log(LOG_ERR, "error creating XML document.\n");
+                prelude_log(PRELUDE_LOG_ERR, "error creating XML document.\n");
                 return -1;
         }
         
@@ -879,7 +883,7 @@ static int xmlmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
                 break;
 
         default:
-                log(LOG_ERR, "unknow message type: %d.\n", idmef_message_get_type(message));
+                prelude_log(PRELUDE_LOG_ERR, "unknow message type: %d.\n", idmef_message_get_type(message));
                 xmlFreeDoc(document);
                 return -1;
         }
@@ -918,7 +922,7 @@ static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         if ( plugin->no_buffering ) {
                 ret = setvbuf(fd, NULL, _IONBF, 0);
                 if ( ret != 0)
-                        log(LOG_ERR, "error opening %s for writing.\n", plugin->logfile);
+                        prelude_log(PRELUDE_LOG_ERR, "error opening %s for writing.\n", plugin->logfile);
         }
         
         plugin->fd = xmlAllocOutputBuffer(NULL);

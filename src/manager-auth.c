@@ -79,7 +79,7 @@ static int dh_check_elapsed(void)
                 if ( errno == ENOENT )
                         return -1;
                 
-                log(LOG_ERR, "could not state %s.\n", DH_FILENAME);
+                prelude_log(PRELUDE_LOG_ERR, "could not state %s.\n", DH_FILENAME);
                 return -1;
         }
 
@@ -102,7 +102,7 @@ static int dh_params_load(gnutls_dh_params dh, uint16_t req_bits)
         fd = fopen(DH_FILENAME, "r");
         if ( ! fd ) {
                 if ( errno != ENOENT )
-                        log(LOG_ERR, "could not open %s for reading.\n", DH_FILENAME);
+                        prelude_log(PRELUDE_LOG_ERR, "could not open %s for reading.\n", DH_FILENAME);
 
                 return -1;
         }
@@ -117,7 +117,7 @@ static int dh_params_load(gnutls_dh_params dh, uint16_t req_bits)
         
         size = prelude_io_read_delimited(pfd, (void *) &bits);
         if ( size < 0 || size != sizeof(*bits) ) {
-                log(LOG_ERR, "error reading prime length.\n");
+                prelude_perror(size, "error reading dh-prime length");
                 goto err;
         }
 
@@ -126,19 +126,19 @@ static int dh_params_load(gnutls_dh_params dh, uint16_t req_bits)
                 
         prime.size = size = prelude_io_read_delimited(pfd, &prime.data);
         if ( size < 0 ) {
-                log(LOG_ERR, "error reading prime.\n");
+                prelude_perror(size, "error reading dh-prime");
                 goto err;
         }
 
         generator.size = size = prelude_io_read_delimited(pfd, &generator.data);
         if ( size < 0 ) {
-                log(LOG_ERR, "error reading generator.\n");
+                prelude_perror(size, "error reading dh generator.\n");
                 goto err;
         }
         
         ret = gnutls_dh_params_import_raw(dh, &prime, &generator);
         if ( ret < 0 )
-                log(LOG_ERR, "error importing Diffie-Hellman parameters.\n");
+                prelude_log(PRELUDE_LOG_WARN, "error importing Diffie-Hellman parameters: %s.\n", gnutls_strerror(ret));
 
         free(bits);
         free(prime.data);
@@ -166,13 +166,13 @@ static int dh_params_save(gnutls_dh_params dh, uint16_t dh_bits)
         
         ret = gnutls_dh_params_export_raw(dh, &prime, &generator, NULL);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error exporting Diffie-Hellman parameters: %s.\n", gnutls_strerror(ret));
+                prelude_log(PRELUDE_LOG_WARN, "error exporting Diffie-Hellman parameters: %s.\n", gnutls_strerror(ret));
                 return -1;
         }
 
         fd = open(DH_FILENAME, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR);
         if ( ! fd ) {
-                log(LOG_ERR, "error opening %s for writing.\n", DH_FILENAME);
+                prelude_log(PRELUDE_LOG_ERR, "error opening %s for writing.\n", DH_FILENAME);
                 free(prime.data);
                 free(generator.data);
                 return -1;
@@ -213,7 +213,7 @@ static void dh_params_regenerate(void *data)
          */
         ret = gnutls_dh_params_init(&new);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error initializing dh parameters object.\n");
+                prelude_log(PRELUDE_LOG_WARN, "error initializing dh parameters object: %s.\n", gnutls_strerror(ret));
                 return;
         }
 
@@ -229,7 +229,7 @@ static void dh_params_regenerate(void *data)
          */
         gnutls_dh_params_deinit(tmp);
 
-        log(LOG_INFO, "- Regenerated %d bits Diffie-Hellman key for TLS.\n", global_dh_bits);
+        prelude_log(PRELUDE_LOG_INFO, "- Regenerated %d bits Diffie-Hellman key for TLS.\n", global_dh_bits);
 
         dh_params_save(cur_dh_params, global_dh_bits);
         prelude_timer_set_expire(&dh_param_regeneration_timer, global_dh_lifetime);
@@ -248,7 +248,7 @@ static int get_params(gnutls_session session, gnutls_params_type type, gnutls_pa
 
         ret = gnutls_dh_params_init(&cpy);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error creating a new dh parameters object.\n");
+                prelude_log(PRELUDE_LOG_WARN, "error creating a new dh parameters object: %s.\n", gnutls_strerror(ret));
                 return -1;
         }
         
@@ -256,7 +256,7 @@ static int get_params(gnutls_session session, gnutls_params_type type, gnutls_pa
         
         ret = gnutls_dh_params_cpy(cpy, cur_dh_params);
         if ( ret < 0 ) {
-                log(LOG_ERR, "could not copy dh params for sessions: %s.\n", gnutls_strerror(ret));
+                prelude_log(PRELUDE_LOG_WARN, "could not copy dh params for sessions: %s.\n", gnutls_strerror(ret));
                 gnutls_dh_params_deinit(cpy);
                 return -1;
         }
@@ -444,7 +444,7 @@ int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
         if ( ret != -1 && dh_params_load(cur_dh_params, dh_bits) == 0 )
                 prelude_timer_set_expire(&dh_param_regeneration_timer, dh_lifetime - ret);
         else {
-                log(LOG_INFO, "- Generating %d bits Diffie-Hellman key for TLS...\n", dh_bits);
+                prelude_log(PRELUDE_LOG_INFO, "- Generating %d bits Diffie-Hellman key for TLS...\n", dh_bits);
 
                 gnutls_dh_params_generate2(cur_dh_params, dh_bits);
                 dh_params_save(cur_dh_params, dh_bits);

@@ -100,7 +100,7 @@ struct idmef_queue {
 };
 
 
-static PRELUDE_LIST_HEAD(message_queue);
+static PRELUDE_LIST(message_queue);
 static unsigned int global_id = 0;
 static pthread_mutex_t queue_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -184,7 +184,7 @@ static int clear_fifo(file_output_t *out)
                 
         ret = ftruncate(prelude_io_get_fd(out->wfd), 0);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error truncating fifo to 0.\n");
+                prelude_log(PRELUDE_LOG_ERR, "error truncating fifo to 0.\n");
                 return -1;
         }
 
@@ -235,8 +235,8 @@ static prelude_msg_t *get_message_from_file(file_output_t *out)
                 /*
                  * unfinished and error should never happen 
                  */
-                log(LOG_ERR, "on disk message fifo is corrupted: %s %s.\n",
-                    prelude_strsource(ret), prelude_strerror(ret));
+                prelude_log(PRELUDE_LOG_ERR, "on disk message fifo is corrupted: %s %s.\n",
+                            prelude_strsource(ret), prelude_strerror(ret));
                 exit(1);
         }
 
@@ -251,7 +251,7 @@ static int process_message(prelude_msg_t *msg)
         int ret;
         idmef_message_t *idmef;
         
-        ret = pmsg_to_idmef(&idmef, msg);
+        ret = pmsg_to_idmef(&idmef, msg);        
         if ( ret < 0 ) {
                 prelude_msg_destroy(msg);
                 return ret;
@@ -294,10 +294,10 @@ static prelude_msg_t *get_message(idmef_queue_t *queue, message_queue_t *mqueue)
 {
         prelude_msg_t *msg = NULL;
                 
-        if ( ! prelude_list_empty(&mqueue->message_list) ) {
-                msg = prelude_linked_object_get_object(mqueue->message_list.next, prelude_msg_t);
+        if ( ! prelude_list_is_empty(&mqueue->message_list) ) {
+                msg = prelude_linked_object_get_object(mqueue->message_list.next);
 
-                prelude_linked_object_del( (prelude_linked_object_t *) msg);
+                prelude_linked_object_del((prelude_linked_object_t *) msg);
                 mqueue->in_memory_count--;
         }
         
@@ -312,9 +312,9 @@ static int is_queue_dirty(idmef_queue_t *queue)
         
         pthread_mutex_lock(&queue->mutex);
         
-        ret =   ! prelude_list_empty(&queue->high.message_list) +
-                ! prelude_list_empty(&queue->mid.message_list) +
-                ! prelude_list_empty(&queue->low.message_list) +
+        ret =   ! prelude_list_is_empty(&queue->high.message_list) +
+                ! prelude_list_is_empty(&queue->mid.message_list) +
+                ! prelude_list_is_empty(&queue->low.message_list) +
                 queue->high.disk_message_list.input_available +
                 queue->mid.disk_message_list.input_available +
                 queue->low.disk_message_list.input_available;
@@ -378,7 +378,7 @@ static void read_message_scheduled(idmef_queue_t *queue)
                         /*
                          * FIXME: need a way to close connection on invalid message.
                          */
-                        log(LOG_ERR, "Invalid message received.\n");
+                        prelude_log(PRELUDE_LOG_ERR, "Invalid message received.\n");
                 }
                 
                 msg_count = (msg_count + 1) % (ROUND_ROBBIN_HIGH + ROUND_ROBBIN_MID + ROUND_ROBBIN_LOW);
@@ -398,7 +398,7 @@ static void schedule_queued_message(void)
                 
                 while ( 1 ) {
                         pthread_mutex_lock(&queue_list_mutex);
-                        queue = prelude_list_get_next_safe(queue, bkp, &message_queue, idmef_queue_t, list);
+                        queue = prelude_list_get_next_safe(&message_queue, queue, bkp, idmef_queue_t, list);
                         pthread_mutex_unlock(&queue_list_mutex);
 
                         if ( ! queue )
@@ -432,7 +432,7 @@ static void *message_reader(void *arg)
         
         ret = pthread_sigmask(SIG_SETMASK, &set, NULL);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't set thread signal mask.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't set thread signal mask.\n");
                 return NULL;
         }
         
@@ -464,7 +464,7 @@ static int queue_message_to_fd(file_output_t *out, prelude_msg_t *msg)
         
         ret = prelude_msg_write(msg, out->wfd);
         if ( ret <= 0 )
-                log(LOG_ERR, "couldn't write message to file.\n");
+                prelude_perror(ret, "couldn't write message to fifo");
 
         out->input_available = 1;
         
@@ -490,7 +490,7 @@ static void queue_message(idmef_queue_t *queue, message_queue_t *mqueue, prelude
 
         if ( mqueue->in_memory_count < MAX_MESSAGE_IN_MEMORY ) {
                 mqueue->in_memory_count++;
-                prelude_linked_object_add_tail((prelude_linked_object_t *) msg, &mqueue->message_list);
+                prelude_linked_object_add_tail(&mqueue->message_list, (prelude_linked_object_t *) msg);
         } else
                 queue_to_fd = 1;
 
@@ -510,7 +510,7 @@ static int flush_existing_fifo(const char *filename, file_output_t *out, off_t s
         int num = 0, ret;
         prelude_msg_t *msg;
         
-        log(LOG_INFO, "%s contain unflushed message (%d bytes). Flushing.\n", filename, size);
+        prelude_log(PRELUDE_LOG_WARN, "%s contain unflushed message (%d bytes). Flushing.\n", filename, size);
         
         while ( 1 ) {
                 
@@ -525,7 +525,7 @@ static int flush_existing_fifo(const char *filename, file_output_t *out, off_t s
                 num++;
         }
         
-        log(LOG_INFO, "Done - %d messages flushed.\n", num);
+        prelude_log(PRELUDE_LOG_WARN, "Done - %d messages flushed.\n", num);
                                 
         return 0;
 }
@@ -558,19 +558,19 @@ static int init_file_output(const char *filename, file_output_t *out)
 
         out->filename = strdup(filename);
         if ( ! out->filename ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
         
         wfd = prelude_open_persistant_tmpfile(filename, O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);
         if ( wfd < 0 ) {
-                log(LOG_ERR, "couldn't open %s in append mode.\n", filename);
+                prelude_perror(wfd, "couldn't open %s in append mode", filename);
                 return -1;
         }
         
         rfd = open(filename, O_RDONLY);
         if ( rfd < 0 ) {
-                log(LOG_ERR, "couldn't open %s for reading.\n", filename);
+                prelude_log(PRELUDE_LOG_ERR, "couldn't open %s for reading.\n", filename);
                 close(wfd);
                 return -1;
         }
@@ -607,7 +607,7 @@ static int flush_orphan_fifo(const char *filename)
         ret = stat(filename, &st);
         if ( ret < 0 ) {
                 if ( errno != ENOENT )
-                        log(LOG_ERR, "couldn't stats %s.\n", filename);
+                        prelude_log(PRELUDE_LOG_ERR, "couldn't stats %s.\n", filename);
 
                 return -1;
         }
@@ -673,13 +673,13 @@ idmef_queue_t *idmef_message_scheduler_queue_new(void)
         
         queue = calloc(1, sizeof(*queue));
         if ( ! queue ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return NULL;
         }
         
-        PRELUDE_INIT_LIST_HEAD(&queue->high.message_list);
-        PRELUDE_INIT_LIST_HEAD(&queue->mid.message_list);
-        PRELUDE_INIT_LIST_HEAD(&queue->low.message_list);
+        prelude_list_init(&queue->high.message_list);
+        prelude_list_init(&queue->mid.message_list);
+        prelude_list_init(&queue->low.message_list);
 
         snprintf(buf, sizeof(buf), "%s.%u", HIGH_PRIORITY_MESSAGE_FILENAME, global_id);        
         ret = init_file_output(buf, &queue->high.disk_message_list);
@@ -709,7 +709,7 @@ idmef_queue_t *idmef_message_scheduler_queue_new(void)
         pthread_mutex_lock(&queue_list_mutex);
         
         global_id++;
-        prelude_list_add_tail(&queue->list, &message_queue);
+        prelude_list_add_tail(&message_queue, &queue->list);
 
         pthread_mutex_unlock(&queue_list_mutex);
         
@@ -759,7 +759,7 @@ int idmef_message_scheduler_init(prelude_client_t *client)
 
         ret = pthread_create(&thread, NULL, &message_reader, NULL);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't create message processing thread.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't create message processing thread.\n");
                 return -1;
         }
         
@@ -781,13 +781,13 @@ void idmef_message_scheduler_exit(void)
 
         pthread_mutex_unlock(&input_mutex);
         
-        log(LOG_INFO, "- Waiting queued message to be processed.\n");
+        prelude_log(PRELUDE_LOG_WARN, "- Waiting queued message to be processed.\n");
         pthread_join(thread, NULL);
         
         pthread_cond_destroy(&input_cond);
         pthread_mutex_destroy(&input_mutex);
 
-        prelude_list_for_each_safe(tmp, bkp, &message_queue) {
+        prelude_list_for_each_safe(&message_queue, tmp, bkp) {
                 queue = prelude_list_entry(tmp, idmef_queue_t, list);
                 queue_destroy(queue);
         }

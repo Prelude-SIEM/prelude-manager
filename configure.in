@@ -312,7 +312,6 @@ src/include/Makefile
 plugins/Makefile
 
 plugins/decodes/Makefile
-plugins/decodes/prelude-nids/Makefile
 
 plugins/filters/Makefile
 plugins/filters/filter/Makefile

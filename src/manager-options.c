@@ -63,7 +63,7 @@ static int print_version(void *context, prelude_option_t *opt, const char *arg, 
 static int set_daemon_mode(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         prelude_daemonize(config.pidfile);
-        prelude_log_use_syslog();
+        prelude_log_set_flags(prelude_log_get_flags() | PRELUDE_LOG_FLAGS_SYSLOG);
         return 0;
 }
 
@@ -108,7 +108,7 @@ static int set_report_plugin_failover(void *context, prelude_option_t *opt, cons
         
         ret = report_plugin_activate_failover(arg);
         if ( ret == 0 )
-                log(LOG_INFO, "- Failover capability enabled for reporting plugin %s.\n", arg);
+                prelude_log(PRELUDE_LOG_INFO, "- Failover capability enabled for reporting plugin %s.\n", arg);
 
         return ret;
 }

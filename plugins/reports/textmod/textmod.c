@@ -98,10 +98,10 @@ static void print_string(textmod_plugin_t *plugin, int depth, const char *format
 
 static void process_time(textmod_plugin_t *plugin, const char *type, idmef_time_t *time) 
 {
-        char time_human[64];
 	time_t t;
 	struct tm tm;
 	int ret, len = 0;
+        char time_human[64];
         prelude_string_t *ntpstamp;
         
         if ( ! time )
@@ -110,13 +110,13 @@ static void process_time(textmod_plugin_t *plugin, const char *type, idmef_time_
 	t = idmef_time_get_sec(time);
 
 	if ( ! localtime_r( (const time_t *) &t, &tm) ) {
-                log(LOG_ERR, "error converting timestamp to local time.\n");
+                prelude_log(PRELUDE_LOG_ERR, "error converting timestamp to local time.\n");
                 return;
         }
 
         len += ret = strftime(time_human, sizeof (time_human), "%Y-%m-%d %H:%M:%S", &tm);
         if ( ret == 0 ) {
-                log(LOG_ERR, "error converting UTC time to string.\n");
+                prelude_log(PRELUDE_LOG_ERR, "error converting UTC time to string.\n");
                 return;
         }
 
@@ -127,14 +127,16 @@ static void process_time(textmod_plugin_t *plugin, const char *type, idmef_time_
 
         len += ret = strftime(time_human + len, sizeof (time_human) - len, "%z", &tm);
         if ( ret == 0 ) {
-                log(LOG_ERR, "error converting UTC time to string.\n");
+                prelude_log(PRELUDE_LOG_ERR, "error converting UTC time to string.\n");
                 return;
         }
 
         
-        ntpstamp = prelude_string_new();
-        if ( ! ntpstamp )
+        ret = prelude_string_new(&ntpstamp);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "error creating object");
                 return;
+        }
         
         idmef_time_to_ntpstamp(time, ntpstamp);
 
@@ -598,9 +600,11 @@ static void process_data(textmod_plugin_t *plugin, idmef_additional_data_t *ad)
         if ( ! ad )
                 return;
 
-        out = prelude_string_new();
-        if ( ! out )
+        ret = prelude_string_new(&out);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "error creating object");
                 return;
+        }
         
         ret = idmef_additional_data_data_to_string(ad, out);
         if ( ret < 0 ) {
@@ -806,7 +810,7 @@ static int textmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
                 break;
 
         default:
-                log(LOG_ERR, "unknow message type: %d.\n", idmef_message_get_type(message));
+                prelude_log(PRELUDE_LOG_WARN, "unknow message type: %d.\n", idmef_message_get_type(message));
                 break;
         }
         

@@ -61,7 +61,7 @@ static int connection_event_cb(prelude_connection_mgr_t *mgr,
         
         ret = sensor_server_add_client(sensor_server, cnx);
         if ( ret < 0 )
-                log(LOG_ERR, "error adding new client to reverse relay list.\n");
+                prelude_log(PRELUDE_LOG_WARN, "error adding new client to reverse relay list.\n");
 
         return 0;
 }
@@ -145,7 +145,7 @@ prelude_connection_t *reverse_relay_search_receiver(uint64_t analyzerid)
         pthread_mutex_lock(&receiver.mutex);
         
         prelude_list_for_each(tmp, head) {
-                cnx = prelude_linked_object_get_object(tmp, prelude_connection_t);
+                cnx = prelude_linked_object_get_object(tmp);
                 
                 if ( analyzerid == prelude_connection_get_peer_analyzerid(cnx) ) {
                         pthread_mutex_unlock(&receiver.mutex);

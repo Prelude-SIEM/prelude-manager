@@ -27,7 +27,6 @@ endif
 DLOPENED_OBJS=$(XML_OBJS) $(DB_OBJS)
 
 prelude_manager_LDFLAGS = -export-dynamic \
-        -dlopen $(top_builddir)/plugins/decodes/prelude-nids/prelude-nids.la \
         -dlopen $(top_builddir)/plugins/filters/filter/filter.la \
         -dlopen $(top_builddir)/plugins/reports/debug2/debug2.la \
         -dlopen $(top_builddir)/plugins/reports/relaying/relaying.la \
@@ -46,5 +45,4 @@ prelude_manager_SOURCES = \
         sensor-server.c \
         decode-plugins.c \
         idmef-message-scheduler.c \
-        plugins-util.c \
         reverse-relaying.c

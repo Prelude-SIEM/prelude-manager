@@ -171,7 +171,7 @@ static int setup_sigusr1_action(sigset_t *set)
 
         ret = sigaction(SIGUSR1, &act, NULL);
         if ( ret < 0 ) 
-                log(LOG_ERR, "failed to register thread handler for SIGUSR1.\n");
+                prelude_log(PRELUDE_LOG_ERR, "failed to register thread handler for SIGUSR1.\n");
 
         return ret;
 }
@@ -262,7 +262,7 @@ static inline void add_set_to_free_list(server_logic_t *server, server_fd_set_t 
                set->thread, set->used_index, server->thread_num);
 
         prelude_list_del(&set->list);
-        prelude_list_add_tail(&set->list, &server->free_set_list);
+        prelude_list_add_tail(&server->free_set_list, &set->list);
 }
 
 
@@ -326,7 +326,7 @@ static void add_connection(server_logic_t *server, server_fd_set_t *set, server_
         if ( set->used_index == server->thread_max_fd ) {
                 dprint("[%ld][%p] Max connection for this thread reached (%d).\n", set->thread, set, set->used_index);
                 prelude_list_del(&set->list);
-                prelude_list_add_tail(&set->list, &server->used_set_list);
+                prelude_list_add_tail(&server->used_set_list, &set->list);
         }
 }
 
@@ -380,7 +380,7 @@ static void poll_fd_set(server_fd_set_t *set)
                 if ( errno == EINTR ) 
                         return;
                 
-                log(LOG_ERR, "error polling FDs set.\n");
+                prelude_log(PRELUDE_LOG_ERR, "error polling FDs set.\n");
         }
                 
         for ( i = 0; i < set->parent->thread_max_fd && active_fd > 0; i++ ) {
@@ -482,20 +482,20 @@ static server_fd_set_t *create_fd_set(server_logic_t *server)
         
         new = malloc(sizeof(*new));
         if ( ! new ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return NULL;
         }
 
         new->pfd = malloc(sizeof(struct pollfd) * server->thread_max_fd);
         if ( ! new->pfd ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 free(new);
                 return NULL;
         }
 
         new->client = malloc(sizeof(new->client) * server->thread_max_fd);
         if ( ! new->client ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 free(new->pfd);
                 free(new);
                 return NULL;
@@ -514,7 +514,7 @@ static server_fd_set_t *create_fd_set(server_logic_t *server)
         }
 
         pthread_mutex_lock(&server->mutex);
-        prelude_list_add_tail(&new->list, &server->free_set_list);
+        prelude_list_add_tail(&server->free_set_list, &new->list);
         pthread_mutex_unlock(&server->mutex);
         
         return new;
@@ -531,7 +531,7 @@ static int start_fd_set_thread(server_logic_t *server, server_fd_set_t *set)
         ret = pthread_create(&set->thread, NULL, &child_reader, set);                
         if ( ret < 0 ) {
                 pthread_mutex_unlock(&set->startup_mutex);
-                log(LOG_ERR, "couldn't create thread.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't create thread.\n");
                 return -1;
         }
 
@@ -583,7 +583,7 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
                 return -1;
         }
         
-        if ( ! prelude_list_empty(&server->free_set_list) ) {
+        if ( ! prelude_list_is_empty(&server->free_set_list) ) {
                 set = prelude_list_entry(server->free_set_list.next, server_fd_set_t, list);
                 add_connection(server, set, client);
 
@@ -706,8 +706,8 @@ server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read,
         if ( ! new )
                 return NULL;
 
-        PRELUDE_INIT_LIST_HEAD(&new->free_set_list);
-        PRELUDE_INIT_LIST_HEAD(&new->used_set_list);
+        prelude_list_init(&new->free_set_list);
+        prelude_list_init(&new->used_set_list);
         pthread_mutex_init(&new->mutex, NULL);
 
         new->sdata = sdata;

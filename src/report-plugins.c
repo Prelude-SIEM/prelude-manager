@@ -53,7 +53,7 @@
 
 
 static prelude_msgbuf_t *msgbuf;
-static PRELUDE_LIST_HEAD(report_plugins_instance);
+static PRELUDE_LIST(report_plugins_instance);
 
 
 typedef struct {
@@ -119,16 +119,18 @@ static int try_recovering_from_failover(prelude_plugin_instance_t *pi, plugin_fa
         prelude_plugin_generic_t *plugin;
         unsigned int available, count = 0;
 
-        err = prelude_string_new();
-        if ( ! err )
+        ret = prelude_string_new(&err);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "error creating object");
                 return -1;
+        }
         
         ret = prelude_plugin_instance_call_commit_func(pi, err);
         if ( ret < 0 ) {
                 if ( ! prelude_string_is_empty(err) )
-                        log(LOG_INFO, "error recovering from failover: %s.\n", prelude_string_get_string(err));
+                        prelude_log(PRELUDE_LOG_WARN, "error recovering from failover: %s.\n", prelude_string_get_string(err));
                 else
-                        log(LOG_INFO, "error recovering from failover: %s.\n", prelude_strerror(ret));
+                        prelude_log(PRELUDE_LOG_WARN, "error recovering from failover: %s.\n", prelude_strerror(ret));
 
                 prelude_string_destroy(err);
                 return -1;
@@ -141,9 +143,9 @@ static int try_recovering_from_failover(prelude_plugin_instance_t *pi, plugin_fa
         
         plugin = prelude_plugin_instance_get_plugin(pi);
         
-        log(LOG_INFO, "- Plugin %s[%s]: flushing %u message (%u erased due to quota)...\n",
-            plugin->name,prelude_plugin_instance_get_name(pi),
-            available, prelude_failover_get_deleted_msg_count(pf->failover));
+        prelude_log(PRELUDE_LOG_WARN, "- Plugin %s[%s]: flushing %u message (%u erased due to quota)...\n",
+                    plugin->name,prelude_plugin_instance_get_name(pi),
+                    available, prelude_failover_get_deleted_msg_count(pf->failover));
          
         count = recover_from_failover(pi, pf, &totsize);
 
@@ -154,8 +156,8 @@ static int try_recovering_from_failover(prelude_plugin_instance_t *pi, plugin_fa
                 pf->failover_enabled = 0;
         }
 
-        log(LOG_INFO, "- Plugin %s[%s]: %s from failover: %u/%u message flushed (%u bytes).\n",
-            plugin->name, prelude_plugin_instance_get_name(pi), text, count, available, totsize);
+        prelude_log(PRELUDE_LOG_WARN, "- Plugin %s[%s]: %s from failover: %u/%u message flushed (%u bytes).\n",
+                    plugin->name, prelude_plugin_instance_get_name(pi), text, count, available, totsize);
 
         return (count == available) ? 0 : -1;
 }
@@ -190,13 +192,13 @@ static int setup_plugin_failover(prelude_plugin_instance_t *pi)
         get_failover_filename(pi, filename, sizeof(filename));
         
         if ( ! prelude_plugin_instance_has_commit_func(pi) ) {
-                log(LOG_ERR, "plugin %s doesn't support failover.\n", plugin->name);
+                prelude_log(PRELUDE_LOG_WARN, "plugin %s doesn't support failover.\n", plugin->name);
                 return -1;
         }
 
         pf = calloc(1, sizeof(*pf));
         if ( ! pf ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
         
@@ -228,8 +230,8 @@ static int subscribe(prelude_plugin_instance_t *pi)
 {
         prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
         
-        log(LOG_INFO, "- Subscribing %s[%s] to active reporting plugins.\n",
-            plugin->name, prelude_plugin_instance_get_name(pi));
+        prelude_log(PRELUDE_LOG_WARN, "- Subscribing %s[%s] to active reporting plugins.\n",
+                    plugin->name, prelude_plugin_instance_get_name(pi));
 
         prelude_plugin_add(pi, &report_plugins_instance, NULL);
 
@@ -241,8 +243,8 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
 {
         prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
         
-        log(LOG_INFO, "- Un-subscribing %s[%s] from active reporting plugins.\n",
-            plugin->name, prelude_plugin_instance_get_name(pi));
+        prelude_log(PRELUDE_LOG_WARN, "- Un-subscribing %s[%s] from active reporting plugins.\n",
+                    plugin->name, prelude_plugin_instance_get_name(pi));
 
         prelude_plugin_del(pi);
 }
@@ -253,7 +255,8 @@ static void failover_init(prelude_plugin_generic_t *pg, prelude_plugin_instance_
 {
         pf->failover_enabled = 1;
                         
-        log(LOG_INFO, "- Plugin %s[%s]: failure. Enabling failover.\n", pg->name, prelude_plugin_instance_get_name(pi));
+        prelude_log(PRELUDE_LOG_WARN, "- Plugin %s[%s]: failure. Enabling failover.\n",
+                    pg->name, prelude_plugin_instance_get_name(pi));
 
         prelude_timer_set_data(&pf->timer, pi);
         prelude_timer_set_expire(&pf->timer, FAILOVER_RETRY_TIMEOUT);
@@ -316,9 +319,9 @@ void report_plugins_run(idmef_message_t *idmef)
         if ( ret < 0 ) 
                 return;
         
-        prelude_list_for_each(tmp, &report_plugins_instance) {
+        prelude_list_for_each(&report_plugins_instance, tmp) {
 
-                pi = prelude_linked_object_get_object(tmp, prelude_plugin_instance_t);
+                pi = prelude_linked_object_get_object(tmp);
                 pg = prelude_plugin_instance_get_plugin(pi);
                 pf = prelude_plugin_instance_get_private_data(pi);
                 
@@ -351,8 +354,8 @@ void report_plugins_close(void)
         plugin_report_t *plugin;
         prelude_plugin_instance_t *pi;
                 
-        prelude_list_for_each(tmp, &report_plugins_instance) {
-                pi = prelude_linked_object_get_object(tmp, prelude_plugin_instance_t);
+        prelude_list_for_each(&report_plugins_instance, tmp) {
+                pi = prelude_linked_object_get_object(tmp);
                 plugin = (plugin_report_t *) prelude_plugin_instance_get_plugin(pi);
                 
                 if ( plugin->close )
@@ -375,7 +378,7 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
 		if ( errno == ENOENT )
 			return 0;
                 
-		log(LOG_ERR, "could not access %s.\n", dirname);
+		prelude_log(PRELUDE_LOG_ERR, "could not access %s.\n", dirname);
 		return -1;
 	}
 
@@ -387,7 +390,7 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
          * certain system.
          */
         if ( count < 0 && errno != ENOENT ) {
-                log(LOG_ERR, "couldn't load plugin subsystem.\n");
+                prelude_perror(count, "couldn't load plugin subsystem");
                 return -1;
         }
 
@@ -410,9 +413,9 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
  *
  * Returns: 0 if there is active REPORT plugins, -1 otherwise.
  */
-int report_plugins_available(void) 
+prelude_bool_t report_plugins_available(void) 
 {
-        return prelude_list_empty(&report_plugins_instance) ? -1 : 0;
+        return prelude_list_is_empty(&report_plugins_instance);
 }
 
 
@@ -428,13 +431,13 @@ int report_plugin_activate_failover(const char *plugin)
 
         pi = prelude_plugin_search_instance_by_name(pname, (ret == 2) ? iname : NULL);
         if ( ! pi ) {
-                log(LOG_ERR, "couldn't find plugin %s.\n", plugin);
+                prelude_log(PRELUDE_LOG_WARN, "couldn't find plugin %s.\n", plugin);
                 return -1;
         }
 
         pf = calloc(1, sizeof(*pf));
         if ( ! pf ) {
-                log(LOG_ERR, "memory exhausted.\n");
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
 
