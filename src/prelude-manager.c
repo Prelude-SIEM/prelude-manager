@@ -128,10 +128,10 @@ static void fill_analyzer_infos(void)
         local = prelude_client_get_analyzer(manager_client);
         assert(local);
                 
-        idmef_analyzer_set_version(local, idmef_string_new_constant(VERSION));
-        idmef_analyzer_set_model(local, idmef_string_new_constant(MANAGER_MODEL));
-        idmef_analyzer_set_class(local, idmef_string_new_constant(MANAGER_CLASS));
-        idmef_analyzer_set_manufacturer(local, idmef_string_new_constant(MANAGER_MANUFACTURER));
+        idmef_analyzer_set_version(local, prelude_string_new_constant(VERSION));
+        idmef_analyzer_set_model(local, prelude_string_new_constant(MANAGER_MODEL));
+        idmef_analyzer_set_class(local, prelude_string_new_constant(MANAGER_CLASS));
+        idmef_analyzer_set_manufacturer(local, prelude_string_new_constant(MANAGER_MANUFACTURER));
 }
 
 

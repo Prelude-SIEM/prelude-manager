@@ -103,14 +103,14 @@ static void process_address(textmod_plugin_t *plugin, int depth, idmef_address_t
         
         print(plugin, 0, "* Addr[%s]:", idmef_address_category_to_string(idmef_address_get_category(address)));
         
-        if ( idmef_string_get_string(idmef_address_get_address(address)) )
-                print(plugin, 0, " %s", idmef_string_get_string(idmef_address_get_address(address)));
+        if ( prelude_string_get_string(idmef_address_get_address(address)) )
+                print(plugin, 0, " %s", prelude_string_get_string(idmef_address_get_address(address)));
 
-        if ( idmef_string_get_string(idmef_address_get_netmask(address)) )
-                print(plugin, 0, "/%s", idmef_string_get_string(idmef_address_get_netmask(address)));
+        if ( prelude_string_get_string(idmef_address_get_netmask(address)) )
+                print(plugin, 0, "/%s", prelude_string_get_string(idmef_address_get_netmask(address)));
 
-        if ( idmef_string_get_string(idmef_address_get_vlan_name(address)) )
-                print(plugin, 0, " vlan=%s", idmef_string_get_string(idmef_address_get_vlan_name(address)));
+        if ( prelude_string_get_string(idmef_address_get_vlan_name(address)) )
+                print(plugin, 0, " vlan=%s", prelude_string_get_string(idmef_address_get_vlan_name(address)));
 
         if ( idmef_address_get_vlan_num(address) )
                 print(plugin, 0, " vnum=%u", idmef_address_get_vlan_num(address));
@@ -130,11 +130,11 @@ static void process_node(textmod_plugin_t *plugin, int depth, idmef_node_t *node
 
         print(plugin, 0, "* Node[%s]:", idmef_node_category_to_string(idmef_node_get_category(node)));
 
-        if ( idmef_string_get_string(idmef_node_get_name(node)) )
-                print(plugin, depth, " name:%s", idmef_string_get_string(idmef_node_get_name(node)));
+        if ( prelude_string_get_string(idmef_node_get_name(node)) )
+                print(plugin, depth, " name:%s", prelude_string_get_string(idmef_node_get_name(node)));
 
-        if ( idmef_string_get_string(idmef_node_get_location(node)) )
-                print(plugin, depth, " location:%s", idmef_string_get_string(idmef_node_get_location(node)));
+        if ( prelude_string_get_string(idmef_node_get_location(node)) )
+                print(plugin, depth, " location:%s", prelude_string_get_string(idmef_node_get_location(node)));
 
         print(plugin, 0, "\n");
 
@@ -157,8 +157,8 @@ static void process_userid(textmod_plugin_t *plugin, int depth, idmef_userid_t *
         print(plugin, 0, "*");
         print(plugin, depth, "");
         
-        if ( idmef_string_get_string(idmef_userid_get_name(userid)) )
-                print(plugin, 0, " name=%s", idmef_string_get_string(idmef_userid_get_name(userid)));
+        if ( prelude_string_get_string(idmef_userid_get_name(userid)) )
+                print(plugin, 0, " name=%s", prelude_string_get_string(idmef_userid_get_name(userid)));
 
         print(plugin, 0, " number=%u", idmef_userid_get_number(userid));
 
@@ -192,18 +192,18 @@ static void process_user(textmod_plugin_t *plugin, int depth, idmef_user_t *user
 static void process_process(textmod_plugin_t *plugin, int depth, idmef_process_t *process)
 {
         int header;
-	idmef_string_t *string;
+	prelude_string_t *string;
 
         if ( ! process )
                 return;
 
         print(plugin, depth, "* Process: pid=%u", idmef_process_get_pid(process));
         
-        if ( idmef_string_get_string(idmef_process_get_name(process)) )
-                print(plugin, 0, " name=%s", idmef_string_get_string(idmef_process_get_name(process)));
+        if ( prelude_string_get_string(idmef_process_get_name(process)) )
+                print(plugin, 0, " name=%s", prelude_string_get_string(idmef_process_get_name(process)));
         
-        if ( idmef_string_get_string(idmef_process_get_path(process)) )
-                print(plugin, 0, " path=%s", idmef_string_get_string(idmef_process_get_path(process)));
+        if ( prelude_string_get_string(idmef_process_get_path(process)) )
+                print(plugin, 0, " path=%s", prelude_string_get_string(idmef_process_get_path(process)));
 
 	header = 0;
 	string = NULL;
@@ -213,7 +213,7 @@ static void process_process(textmod_plugin_t *plugin, int depth, idmef_process_t
 			header = 1;
 		}
 
-		print(plugin, depth, "%s ", idmef_string_get_string(string));
+		print(plugin, depth, "%s ", prelude_string_get_string(string));
 	}
 
 	header = 0;
@@ -224,7 +224,7 @@ static void process_process(textmod_plugin_t *plugin, int depth, idmef_process_t
 			header = 1;
 		}
 
-		print(plugin, depth, "%s ", idmef_string_get_string(string));
+		print(plugin, depth, "%s ", prelude_string_get_string(string));
 	}
 
         print(plugin, 0, "\n");
@@ -238,14 +238,14 @@ static void process_snmp_service(textmod_plugin_t *plugin, idmef_snmpservice_t *
         if ( ! snmp )
                 return;
         
-        if ( idmef_string_get_string(idmef_snmpservice_get_oid(snmp)) )
-                print(plugin, 0, " oid=%s", idmef_string_get_string(idmef_snmpservice_get_oid(snmp)));
+        if ( prelude_string_get_string(idmef_snmpservice_get_oid(snmp)) )
+                print(plugin, 0, " oid=%s", prelude_string_get_string(idmef_snmpservice_get_oid(snmp)));
 
-        if ( idmef_string_get_string(idmef_snmpservice_get_command(snmp)) )
-                print(plugin, 0, " command=%s", idmef_string_get_string(idmef_snmpservice_get_command(snmp)));
+        if ( prelude_string_get_string(idmef_snmpservice_get_command(snmp)) )
+                print(plugin, 0, " command=%s", prelude_string_get_string(idmef_snmpservice_get_command(snmp)));
 
-        if ( idmef_string_get_string(idmef_snmpservice_get_community(snmp)) )
-                print(plugin, 0, " community=%s", idmef_string_get_string(idmef_snmpservice_get_community(snmp)));
+        if ( prelude_string_get_string(idmef_snmpservice_get_community(snmp)) )
+                print(plugin, 0, " community=%s", prelude_string_get_string(idmef_snmpservice_get_community(snmp)));
 }
 
 
@@ -256,14 +256,14 @@ static void process_web_service(textmod_plugin_t *plugin, idmef_webservice_t *we
         if ( ! web )
                 return;
 
-        if ( idmef_string_get_string(idmef_webservice_get_url(web)) )
-                print(plugin, 0, " url=%s", idmef_string_get_string(idmef_webservice_get_url(web)));
+        if ( prelude_string_get_string(idmef_webservice_get_url(web)) )
+                print(plugin, 0, " url=%s", prelude_string_get_string(idmef_webservice_get_url(web)));
 
-        if ( idmef_string_get_string(idmef_webservice_get_cgi(web)) )
-                print(plugin, 0, " cgi=%s", idmef_string_get_string(idmef_webservice_get_cgi(web)));
+        if ( prelude_string_get_string(idmef_webservice_get_cgi(web)) )
+                print(plugin, 0, " cgi=%s", prelude_string_get_string(idmef_webservice_get_cgi(web)));
 
-        if ( idmef_string_get_string(idmef_webservice_get_http_method(web)) )
-                print(plugin, 0, " http method=%s", idmef_string_get_string(idmef_webservice_get_http_method(web)));
+        if ( prelude_string_get_string(idmef_webservice_get_http_method(web)) )
+                print(plugin, 0, " http method=%s", prelude_string_get_string(idmef_webservice_get_http_method(web)));
 }
 
 
@@ -275,11 +275,11 @@ static void process_service(textmod_plugin_t *plugin, int depth, idmef_service_t
 
         print(plugin, depth, "* Service: port=%hu", idmef_service_get_port(service));
         
-        if ( idmef_string_get_string(idmef_service_get_name(service)) )
-                print(plugin, 0, " (%s)", idmef_string_get_string(idmef_service_get_name(service)));
+        if ( prelude_string_get_string(idmef_service_get_name(service)) )
+                print(plugin, 0, " (%s)", prelude_string_get_string(idmef_service_get_name(service)));
         
-        if ( idmef_string_get_string(idmef_service_get_protocol(service)) )
-                print(plugin, 0, " protocol=%s", idmef_string_get_string(idmef_service_get_protocol(service)));
+        if ( prelude_string_get_string(idmef_service_get_protocol(service)) )
+                print(plugin, 0, " protocol=%s", prelude_string_get_string(idmef_service_get_protocol(service)));
         
         switch ( idmef_service_get_type(service) ) {
 
@@ -311,8 +311,8 @@ static void process_source(textmod_plugin_t *plugin, int depth, idmef_source_t *
         if ( spoofed )
                 print(plugin, depth, "* Source spoofed: %s\n", spoofed);
 
-        if ( idmef_string_get_string(idmef_source_get_interface(source)) )
-                print(plugin, depth, "* Source interface=%s\n", idmef_string_get_string(idmef_source_get_interface(source)));
+        if ( prelude_string_get_string(idmef_source_get_interface(source)) )
+                print(plugin, depth, "* Source interface=%s\n", prelude_string_get_string(idmef_source_get_interface(source)));
         
         process_node(plugin, depth, idmef_source_get_node(source));
         process_service(plugin, depth, idmef_source_get_service(source));
@@ -325,7 +325,7 @@ static void process_source(textmod_plugin_t *plugin, int depth, idmef_source_t *
 static void process_file_access(textmod_plugin_t *plugin, int depth, idmef_file_access_t *file_access) 
 {
 	int header;
-	idmef_string_t *permission;
+	prelude_string_t *permission;
 
         if ( ! file_access )
                 return;
@@ -340,7 +340,7 @@ static void process_file_access(textmod_plugin_t *plugin, int depth, idmef_file_
 			header = 1;
 		}
 
-		print(plugin, depth, "%s ", idmef_string_get_string(permission));
+		print(plugin, depth, "%s ", prelude_string_get_string(permission));
 	}
 
 	process_userid(plugin, depth + 1, idmef_file_access_get_userid(file_access));
@@ -356,11 +356,11 @@ static void process_file_linkage(textmod_plugin_t *plugin, int depth, idmef_link
 	print(plugin, depth, "Linkage: %s",
 	      idmef_linkage_category_to_string(idmef_linkage_get_category(linkage)));
 
-	if ( idmef_string_get_string(idmef_linkage_get_name(linkage)) )
-		print(plugin, 0, " name=%s", idmef_string_get_string(idmef_linkage_get_name(linkage)));
+	if ( prelude_string_get_string(idmef_linkage_get_name(linkage)) )
+		print(plugin, 0, " name=%s", prelude_string_get_string(idmef_linkage_get_name(linkage)));
 
-	if ( idmef_string_get_string(idmef_linkage_get_path(linkage)) )
-		print(plugin, 0, " path=%s", idmef_string_get_string(idmef_linkage_get_path(linkage)));
+	if ( prelude_string_get_string(idmef_linkage_get_path(linkage)) )
+		print(plugin, 0, " path=%s", prelude_string_get_string(idmef_linkage_get_path(linkage)));
 
 	if ( idmef_linkage_get_file(linkage) )
 		process_file(plugin, depth, idmef_linkage_get_file(linkage));
@@ -414,11 +414,11 @@ static void process_file(textmod_plugin_t *plugin, int depth, idmef_file_t *file
 
         print(plugin, 0, " fstype=%s", idmef_file_fstype_to_string(idmef_file_get_fstype(file)));
 
-        if ( idmef_string_get_string(idmef_file_get_name(file)) )
-                print(plugin, 0, " name=%s", idmef_string_get_string(idmef_file_get_name(file)));
+        if ( prelude_string_get_string(idmef_file_get_name(file)) )
+                print(plugin, 0, " name=%s", prelude_string_get_string(idmef_file_get_name(file)));
 
-        if ( idmef_string_get_string(idmef_file_get_path(file)) )
-                print(plugin, 0, " path=%s", idmef_string_get_string(idmef_file_get_path(file)));
+        if ( prelude_string_get_string(idmef_file_get_path(file)) )
+                print(plugin, 0, " path=%s", prelude_string_get_string(idmef_file_get_path(file)));
         
         if ( idmef_file_get_data_size(file) )
                 print(plugin, 0, " dsize=%u", idmef_file_get_data_size(file));
@@ -456,8 +456,8 @@ static void process_target(textmod_plugin_t *plugin, int depth, idmef_target_t *
         print(plugin, 0, "* Target decoy: %s\n", 
 	      idmef_target_decoy_to_string(idmef_target_get_decoy(target)));
         
-        if ( idmef_string_get_string(idmef_target_get_interface(target)) )
-                print(plugin, 0, "* Target Interface: %s\n", idmef_string_get_string(idmef_target_get_interface(target)));
+        if ( prelude_string_get_string(idmef_target_get_interface(target)) )
+                print(plugin, 0, "* Target Interface: %s\n", prelude_string_get_string(idmef_target_get_interface(target)));
         
         process_node(plugin, 0, idmef_target_get_node(target));
         process_service(plugin, 0, idmef_target_get_service(target));
@@ -479,23 +479,23 @@ static void process_analyzer(textmod_plugin_t *plugin, idmef_analyzer_t *analyze
         if ( idmef_analyzer_get_analyzerid(analyzer) )
                 print(plugin, 0, "* Analyzer ID: %" PRIu64 "\n", idmef_analyzer_get_analyzerid(analyzer));
         
-        if ( idmef_string_get_string(idmef_analyzer_get_model(analyzer)) )
-                print(plugin, 0, "* Analyzer model: %s\n", idmef_string_get_string(idmef_analyzer_get_model(analyzer)));
+        if ( prelude_string_get_string(idmef_analyzer_get_model(analyzer)) )
+                print(plugin, 0, "* Analyzer model: %s\n", prelude_string_get_string(idmef_analyzer_get_model(analyzer)));
 
-        if ( idmef_string_get_string(idmef_analyzer_get_version(analyzer)) )
-                print(plugin, 0, "* Analyzer version: %s\n", idmef_string_get_string(idmef_analyzer_get_version(analyzer)));
+        if ( prelude_string_get_string(idmef_analyzer_get_version(analyzer)) )
+                print(plugin, 0, "* Analyzer version: %s\n", prelude_string_get_string(idmef_analyzer_get_version(analyzer)));
 
-        if ( idmef_string_get_string(idmef_analyzer_get_class(analyzer)) )
-                print(plugin, 0, "* Analyzer class: %s\n", idmef_string_get_string(idmef_analyzer_get_class(analyzer)));
+        if ( prelude_string_get_string(idmef_analyzer_get_class(analyzer)) )
+                print(plugin, 0, "* Analyzer class: %s\n", prelude_string_get_string(idmef_analyzer_get_class(analyzer)));
         
-        if ( idmef_string_get_string(idmef_analyzer_get_manufacturer(analyzer)) )
-                print(plugin, 0, "* Analyzer manufacturer: %s\n", idmef_string_get_string(idmef_analyzer_get_manufacturer(analyzer)));
+        if ( prelude_string_get_string(idmef_analyzer_get_manufacturer(analyzer)) )
+                print(plugin, 0, "* Analyzer manufacturer: %s\n", prelude_string_get_string(idmef_analyzer_get_manufacturer(analyzer)));
 
-        if ( idmef_string_get_string(idmef_analyzer_get_ostype(analyzer)) )
-                print(plugin, 0, "* Analyzer OS type: %s\n", idmef_string_get_string(idmef_analyzer_get_ostype(analyzer)));
+        if ( prelude_string_get_string(idmef_analyzer_get_ostype(analyzer)) )
+                print(plugin, 0, "* Analyzer OS type: %s\n", prelude_string_get_string(idmef_analyzer_get_ostype(analyzer)));
         
-        if ( idmef_string_get_string(idmef_analyzer_get_osversion(analyzer)) )
-                print(plugin, 0, "* Analyzer OS version: %s\n", idmef_string_get_string(idmef_analyzer_get_osversion(analyzer)));
+        if ( prelude_string_get_string(idmef_analyzer_get_osversion(analyzer)) )
+                print(plugin, 0, "* Analyzer OS version: %s\n", prelude_string_get_string(idmef_analyzer_get_osversion(analyzer)));
 
         if ( idmef_analyzer_get_node(analyzer) )
                 process_node(plugin, 0, idmef_analyzer_get_node(analyzer));
@@ -517,11 +517,11 @@ static void process_classification(textmod_plugin_t *plugin, idmef_classificatio
 	      idmef_classification_origin_to_string(idmef_classification_get_origin(classification)));
 
         print(plugin, 0, "* Classification: %s\n",
-	      idmef_string_get_string(idmef_classification_get_name(classification)));
+	      prelude_string_get_string(idmef_classification_get_name(classification)));
         
-        if ( idmef_string_get_string(idmef_classification_get_url(classification)) )
+        if ( prelude_string_get_string(idmef_classification_get_url(classification)) )
                 print(plugin, 0, "* Classification URL: %s\n", 
-		      idmef_string_get_string(idmef_classification_get_url(classification)));
+		      prelude_string_get_string(idmef_classification_get_url(classification)));
 }
 
 
@@ -548,10 +548,10 @@ static void process_data(textmod_plugin_t *plugin, idmef_additional_data_t *ad)
         
 	if ( dlen <= 80 )
                 print(plugin, 0, "* %s: %s\n", 
-		      idmef_string_get_string(idmef_additional_data_get_meaning(ad)), tmp);
+		      prelude_string_get_string(idmef_additional_data_get_meaning(ad)), tmp);
         else
                 print(plugin, 0, "* %s:\n%s\n", 
-		      idmef_string_get_string(idmef_additional_data_get_meaning(ad)), tmp);
+		      prelude_string_get_string(idmef_additional_data_get_meaning(ad)), tmp);
 }
 
 
@@ -572,7 +572,7 @@ static void process_impact(textmod_plugin_t *plugin, idmef_impact_t *impact)
 	      idmef_impact_type_to_string(idmef_impact_get_type(impact)));
 
         print(plugin, 0, "* Impact description: %s\n", 
-	      idmef_string_get_string(idmef_impact_get_description(impact)));
+	      prelude_string_get_string(idmef_impact_get_description(impact)));
 }
 
 
@@ -601,7 +601,7 @@ static void process_action(textmod_plugin_t *plugin, idmef_action_t *action)
 	      idmef_action_category_to_string(idmef_action_get_category(action)));
 
         print(plugin, 0, "* Action description: %s\n",
-	      idmef_string_get_string(idmef_action_get_description(action)));
+	      prelude_string_get_string(idmef_action_get_description(action)));
 }
 
 

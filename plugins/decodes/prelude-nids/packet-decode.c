@@ -730,7 +730,7 @@ static int icmp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
 int nids_packet_dump(idmef_alert_t *alert, packet_t *p)
 {
         int ret, i, j;
-        idmef_string_t *meaning;
+        prelude_string_t *meaning;
         idmef_additional_data_t *data;
         struct {
                 char *name;
@@ -771,7 +771,7 @@ int nids_packet_dump(idmef_alert_t *alert, packet_t *p)
                         if ( ! data ) 
                                 return -1;
 
-                        meaning = idmef_string_new_ref(tbl[j].name);
+                        meaning = prelude_string_new_ref(tbl[j].name);
                         if ( ! meaning ) {
                                 idmef_additional_data_destroy(data);
                                 return -1;

@@ -72,7 +72,7 @@ static idmef_node_t *create_node(const char *addr_string)
         }
 
         idmef_address_set_category(addr, IDMEF_ADDRESS_CATEGORY_IPV4_ADDR);
-        idmef_string_set_dup(idmef_address_new_address(addr), addr_string);
+        prelude_string_set_dup(idmef_address_new_address(addr), addr_string);
                 
         return node;
 }
@@ -126,13 +126,13 @@ static int set_idmef_service(idmef_service_t *service, uint16_t port, const char
         struct servent *ptr;
         
         idmef_service_set_port(service, port);
-        idmef_string_set_ref(idmef_service_new_protocol(service), proto);
+        prelude_string_set_ref(idmef_service_new_protocol(service), proto);
 
         ptr = getservbyport(htons(port), proto);
         if ( ! ptr )
                 return 0;
 
-        idmef_string_set_dup(idmef_service_new_name(service), ptr->s_name);
+        prelude_string_set_dup(idmef_service_new_name(service), ptr->s_name);
         
         return 0;
 }
