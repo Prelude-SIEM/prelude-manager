@@ -33,6 +33,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <netinet/in.h> /* required by common.h */
 
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-list.h>
@@ -42,6 +43,7 @@
 #include <libprelude/idmef-tree.h>
 #include <libprelude/idmef-tree-func.h>
 #include <libprelude/threads.h>
+#include <libprelude/common.h>
 
 #include "plugin-decode.h"
 #include "plugin-report.h"
@@ -162,13 +164,13 @@ static prelude_msg_t *get_message_from_file(file_output_t *out)
                 pthread_mutex_unlock(&out->fd_lock);
                 return msg;
         }
-
+        
         else {
                 
                 /*
                  * unfinished and error should never happen 
                  */
-                log(LOG_ERR, "on disk message fifo is corrupted (%d).\n", status);
+                log(LOG_ERR, "on disk message fifo is corrupted (status=%d) (count=%d).\n", status, out->count);
                 exit(1);
         }
 
@@ -233,8 +235,8 @@ static int process_message(prelude_msg_t *msg)
          * never return NULL.
          */
         idmef = idmef_message_new();
-        
-        ret = idmef_message_read(idmef, msg);
+
+        ret = idmef_message_read(idmef, msg);        
         if ( ret < 0 ) {                
                 log(LOG_ERR, "error reading IDMEF message.\n");
 
@@ -331,10 +333,12 @@ static int queue_message_to_fd(file_output_t *out, prelude_msg_t *msg)
         ret = prelude_msg_write(msg, out->fd);
         if ( ret <= 0 ) {
                 log(LOG_ERR, "couldn't write message to file.\n");
-                return -1;
+                goto err;
         }
         
         out->count++;
+
+ err:
         pthread_mutex_unlock(&out->fd_lock);
 
         /*
@@ -399,35 +403,42 @@ static int flush_existing_fifo(const char *filename, file_output_t *out, off_t s
  */
 static int init_file_output(const char *filename, file_output_t *out) 
 {
-        int ret;
-        FILE *fd;
+        int ret, fd;
         struct stat st;
+
+        fd = prelude_open_persistant_tmpfile(filename, O_RDWR, S_IRUSR|S_IWUSR);
+        if ( fd < 0 ) {
+                log(LOG_ERR, "couldn't open %s in rw mode.\n", filename);
+                return -1;
+        }
         
-        out->fdp = fd = fopen(filename, "a+");
+        out->fdp = fopen(filename, "a+");
         if ( ! fd ) {
                 log(LOG_ERR, "couldn't open %s in read / write mode.\n", filename);
                 return -1;
         }
 
-        ret = fstat(fileno(fd), &st);
-        if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't stats %s.\n", filename);
-                fclose(fd);
-                return -1;
-        }
-        
         out->fd = prelude_io_new();
         if ( ! out->fd ) {
                 log(LOG_ERR, "couldn't associate FD to prelude IO object.\n");
-                fclose(fd);
+                fclose(out->fdp);
+                close(fd);
+                return -1;
+        }
+        
+        ret = fstat(fd, &st);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "couldn't stats %s.\n", filename);
+                fclose(out->fdp);
+                close(fd);
                 return -1;
         }
 
         out->count = 0;
-        prelude_io_set_file_io(out->fd, fd);
+        prelude_io_set_file_io(out->fd, out->fdp);
         pthread_mutex_init(&out->fd_lock, NULL);
 
-        rewind(fd);
+        rewind(out->fdp);
         
         if ( st.st_size > 0 ) 
                 ret = flush_existing_fifo(filename, out, st.st_size);
@@ -457,7 +468,7 @@ void idmef_message_schedule(prelude_msg_t *msg)
         uint8_t priority;
 
         priority = prelude_msg_get_priority(msg);
-
+        
         /*
          * First if memory condition are okay,
          * queue the message in memory. If the heuristic fail,
@@ -468,8 +479,8 @@ void idmef_message_schedule(prelude_msg_t *msg)
                 
                 if ( priority == PRELUDE_MSG_PRIORITY_MID ) 
                         queue_message_to_fd(&mid_priority_output, msg);
-
-                else if ( priority == PRELUDE_MSG_PRIORITY_LOW ) 
+                
+                else if ( priority == PRELUDE_MSG_PRIORITY_LOW )
                         queue_message_to_fd(&low_priority_output, msg);
         }
         
