@@ -35,6 +35,7 @@
 #include <libprelude/daemonize.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
+#include <libprelude/prelude-client.h>
 #include <libprelude/prelude-client-mgr.h>
 #include <libprelude/prelude-getopt.h>
 
@@ -80,7 +81,7 @@ static int set_pidfile(const char *arg)
 
 static int set_relay_manager(const char *arg) 
 {        
-        relay_managers = prelude_client_mgr_new(arg);
+        relay_managers = prelude_client_mgr_new(PRELUDE_CLIENT_TYPE_MANAGER, arg);
         if ( ! relay_managers )
                 return prelude_option_error;
 
