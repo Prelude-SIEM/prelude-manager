@@ -1,5 +1,12 @@
 2001-12-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/server-generic.c (inet_server_start): fit
+	prelude-io API change.
+
+	* src/sensor-server.c (read_connection_cb): handle
+	new prelude_message return value. Also handle the case where
+	we get an unknow message.
+
 	* src/prelude-manager.c (cleanup): does an exit() so that
 	buffered IO can be flushed.
 
