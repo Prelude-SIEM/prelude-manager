@@ -23,6 +23,20 @@ AC_SUBST(LDFLAGS)
 
 
 
+if test "x$prefix" = "xNONE"; then
+	prefix="/usr/local"
+fi
+
+if test "x$localstatedir" = "x\${prefix}/var"; then
+	localstatedir="$prefix/var"
+fi
+
+if test "x$sysconfdir" = "x\${prefix}/etc"; then
+    sysconfdir="$prefix/etc"
+fi
+
+
+
 dnl **************************************************
 dnl * Check for libprelude                           *
 dnl **************************************************
