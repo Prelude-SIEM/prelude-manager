@@ -1,5 +1,9 @@
 2002-06-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/include/plugin-filter.h: 
+	* src/filter-plugins.c: begining of filtering
+	plugins.
+
 	* src/idmef-db-output.c (insert_inode): 
 	implemented.
 
