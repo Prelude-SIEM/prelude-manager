@@ -289,7 +289,8 @@ src/include/Makefile
 
 plugins/Makefile
 
-plugins/databases/Makefile
+plugins/db/Makefile
+plugins/db/mysql/Makefile
 
 plugins/decodes/Makefile
 plugins/decodes/prelude-nids/Makefile

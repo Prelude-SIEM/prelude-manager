@@ -1,5 +1,8 @@
 2001-12-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* plugins/db/mysql/mysql.c: first cut at a mysql plugin
+	done the right way(tm).
+
 	* src/Makefile.am (-DDB_PLUGIN_DIR): 
 	* src/db-plugins.c :
 	New interface for database plugins.
