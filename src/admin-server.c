@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <sys/types.h>
 
 #include <libprelude/list.h>
 #include <libprelude/common.h>

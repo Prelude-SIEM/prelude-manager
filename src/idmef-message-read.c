@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 
 #include <libprelude/common.h>
