@@ -16,7 +16,7 @@ sensors-srvr = 127.0.0.1;
 #
 # format : address:port
 # 
-admin-srvr = 0.0.0.0:5555;
+# admin-srvr = 0.0.0.0:5555;
 
 
 # If you want the message caught by this manager to be relayed.
