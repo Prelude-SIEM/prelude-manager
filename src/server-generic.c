@@ -45,6 +45,7 @@
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-auth.h>
 #include <libprelude/prelude-path.h>
+#include <libprelude/extract.h>
 
 #include "config.h"
 #include "ssl.h"
@@ -166,11 +167,11 @@ static int handle_plaintext_connection(prelude_msg_t *msg, server_generic_client
                 switch (tag) {
                         
                 case PRELUDE_MSG_AUTH_USERNAME:
-                        user = buf;
+                        extract_string(buf, len, user);
                         break;
                         
                 case PRELUDE_MSG_AUTH_PASSWORD:
-                        pass = buf;
+                        extract_string(buf, len, pass);
                         break;
                         
                 default:
