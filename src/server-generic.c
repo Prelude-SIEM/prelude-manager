@@ -344,6 +344,9 @@ static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
                 else
                         ret = authenticate_client(server, client);
 
+                if ( ret == -2 )
+                        return 0;
+                
         } while ( ret == 0 && prelude_io_pending(client->fd) > 0 );
 
         return ret;
@@ -360,7 +363,7 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
 {
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
-
+        
         /*
          * layer above server-generic are permited to set fd to NULL so
          * that they can take control over the connection FD.
@@ -870,29 +873,6 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
 
 
 
-int server_generic_add_client(server_generic_t *server, prelude_client_t *client) 
-{
-        server_generic_client_t *cdata;
-        
-        cdata = calloc(1, server->clientlen);
-        if ( ! cdata ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return -1;
-        }
-        
-        cdata->addr = strdup(prelude_client_get_daddr(client));
-        cdata->is_authenticated = 1;
-        cdata->fd = prelude_client_get_fd(client);
-        cdata->client = client;
-        
-        server_logic_process_requests(server->logic, (server_logic_client_t *) cdata);
-        
-        return server->accept(cdata);
-}
-
-
-
-
 void server_generic_start(server_generic_t **server, size_t nserver) 
 {
         wait_connection(server, nserver);
@@ -920,7 +900,10 @@ void server_generic_close(server_generic_t *server)
 
 
 
-
+void server_generic_process_requests(server_generic_t *server, server_generic_client_t *client)
+{
+        server_logic_process_requests(server->logic, (server_logic_client_t *) client);
+}
 
 
 

@@ -344,12 +344,12 @@ static int handle_fd_event(server_fd_set_t *set, int cnx_key)
                 ret = -1;
         }
         
-        if ( set->pfd[cnx_key].events & POLLIN && set->pfd[cnx_key].revents & POLLIN ) {                
+        else if ( set->pfd[cnx_key].events & POLLIN && set->pfd[cnx_key].revents & POLLIN ) {                
                 ret = set->parent->read(set->parent->sdata, set->client[cnx_key]);
                 dprint("thread=%ld: key=%d, fd=%d: Data available (ret=%d)\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd, ret);
         }
 
-        if ( ret != -1 && set->pfd[cnx_key].events & POLLOUT && set->pfd[cnx_key].revents & POLLOUT ) {
+        else if ( ret != -1 && set->pfd[cnx_key].events & POLLOUT && set->pfd[cnx_key].revents & POLLOUT ) {
                 dprint("thread=%ld: key=%d, fd=%d: Output possible.\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd);
                 ret = set->parent->write(set->parent->sdata, set->client[cnx_key]);
         }

@@ -47,8 +47,7 @@
         char *addr;                  \
         uint16_t port;               \
         char *client_type;           \
-        uint64_t ident;              \
-        prelude_client_t *client
+        uint64_t ident              
 
 
 typedef struct server_generic server_generic_t;
@@ -81,13 +80,13 @@ server_generic_t *server_generic_new(const char *addr, uint16_t port,
                                      server_generic_close_func_t *close);
 
 
-int server_generic_add_client(server_generic_t *server, prelude_client_t *client);
-
 void server_generic_start(server_generic_t **server, size_t nserver);
 
 void server_generic_close(server_generic_t *server);
 
 void server_generic_stop(server_generic_t *server);
+
+void server_generic_process_requests(server_generic_t *server, server_generic_client_t *client);
 
 #endif /* _MANAGER_SERVER_GENERIC_H */
 

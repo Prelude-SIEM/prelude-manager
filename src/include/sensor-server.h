@@ -30,4 +30,6 @@ server_generic_t *sensor_server_new(const char *addr, uint16_t port);
 
 int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *msg);
 
+int sensor_server_add_client(server_generic_t *server, prelude_client_t *client);
+
 #endif /* _MANAGER_SENSOR_SERVER_H */

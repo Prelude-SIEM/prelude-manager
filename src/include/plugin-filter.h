@@ -32,10 +32,10 @@
 
 
 typedef enum {
-        FILTER_CATEGORY_REPORTING = 0,
-        FILTER_CATEGORY_RELAYING  = 1,
-        FILTER_CATEGORY_PLUGIN    = 2,
-        FILTER_CATEGORY_END       = 3, /* should be the latest, do not remove */
+        FILTER_CATEGORY_REPORTING         = 0,
+        FILTER_CATEGORY_REVERSE_RELAYING  = 1,
+        FILTER_CATEGORY_PLUGIN            = 2,
+        FILTER_CATEGORY_END               = 3, /* should be the latest, do not remove */
 } filter_category_t;
 
 

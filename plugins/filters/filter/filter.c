@@ -69,9 +69,9 @@ static int set_filter_hook(prelude_plugin_instance_t *pi, prelude_option_t *opt,
                 const char *hook;
                 filter_category_t cat;
         } tbl[] = {
-                { "reporting", FILTER_CATEGORY_REPORTING },
-                { "relaying", FILTER_CATEGORY_RELAYING   },
-                { NULL, 0                                },
+                { "reporting",         FILTER_CATEGORY_REPORTING        },
+                { "reverse-relaying",  FILTER_CATEGORY_REVERSE_RELAYING },
+                { NULL,                0                                },
         };
 
         plugin = prelude_plugin_instance_get_data(pi);
@@ -175,7 +175,7 @@ prelude_plugin_generic_t *prelude_plugin_init(void)
                                   set_filter_rule, get_filter_rule);
         
         prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'h', "hook",
-                                  "Where the filter should be hooked (reporting|relaying|plugin name)",
+                                  "Where the filter should be hooked (reporting|reverse-relaying|plugin name)",
                                   required_argument, set_filter_hook, NULL);
         
         prelude_plugin_set_name(&filter_plugin, "Filter");
