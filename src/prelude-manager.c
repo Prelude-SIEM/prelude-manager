@@ -202,7 +202,7 @@ int main(int argc, char **argv)
         fill_analyzer_infos();        
         prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
                 
-        ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, argc, argv);
+        ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, &argc, argv);
         if ( ret < 0 )
                 return -1;
         
