@@ -10,7 +10,7 @@ noinst_HEADERS = 			\
 	sensor-server.h			\
 	idmef-message-scheduler.h 	\
 	auth.h				\
-	relaying.h
+	reverse-relaying.h
 
 include_HEADERS = 			\
 		plugin-decode.h		\

@@ -24,6 +24,6 @@ prelude_manager_SOURCES =			\
 			decode-plugins.c	\
 			idmef-message-scheduler.c \
 			plugins-util.c		\
-			relaying.c
+			reverse-relaying.c
 
 
