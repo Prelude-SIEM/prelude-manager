@@ -23,6 +23,6 @@
 
 #define UNIX_SOCK LOCALSTATEDIR"/prelude/socket"
 
-int report_server_start(void);
+int manager_server_start(void);
 
-void report_server_close(void);
+void manager_server_close(void);

@@ -6,5 +6,6 @@ noinst_HEADERS = \
 	ethertype.h		\
 	ssl.h 			\
 	report.h		\
-	report-infos.h 	\
-	plugin-report.h
+	report-infos.h 		\
+	plugin-report.h		\
+	server-logic.h

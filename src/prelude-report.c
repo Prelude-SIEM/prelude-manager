@@ -66,7 +66,7 @@ static void cleanup(int sig)
         /*
          *
          */
-        report_server_close();
+        manager_server_close();
         
 
         if ( config.pidfile )
@@ -110,9 +110,9 @@ int main(int argc, char **argv)
                         "Starting Prelude Report as a daemon.");
 
         do_init(1, "Starting report server");
-        ret = report_server_start();
+        ret = manager_server_start();
         if ( ret == 0 )
-                report_server_close();
+                manager_server_close();
 
 #if 0
         report_plugins_close();

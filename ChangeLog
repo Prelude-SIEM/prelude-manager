@@ -1,3 +1,21 @@
+2001-09-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/Makefile.am (bin_PROGRAMS): 
+	Rename from prelude-report to prelude-manager.
+	(prelude_report_LDADD): link to the posix thread library.
+	(prelude_report_SOURCES): remove cnx.c, add server-logic.c.
+	prelude-report.c renamed to prelude-manager.c
+
+	* src/prelude-report.c (main): 
+	(cleanup): update function name (report server is now
+	called Manager).
+
+	* src/server-logic.c: 
+	New file. contain all the server logic.
+
+	* src/server.c: 
+	This file now only contain the basic server setup. 
+
 2001-09-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/server.c (wait_connection): 
