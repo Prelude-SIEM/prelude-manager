@@ -59,11 +59,7 @@ dnl **************************************************
 AM_PATH_LIBPRELUDE(0.9.0, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
 
-libprelude_prefix=`$LIBPRELUDE_CONFIG --prefix`
-AC_SUBST(libprelude_prefix)
-
-prelude_config_prefix=`$LIBPRELUDE_CONFIG --prelude-config-prefix`
-defined="$defined $LIBPRELUDE_CFLAGS $pthread_cflags -DPRELUDE_CONFIG_DIR=\\\"$prelude_config_prefix\\\""
+defined="$defined $LIBPRELUDE_CFLAGS $pthread_cflags -DPRELUDE_CONFIG_DIR=\\\"$LIBPRELUDE_CONFIG_PREFIX\\\""
 
 
 
