@@ -66,6 +66,7 @@ typedef struct {
 
 
 static plugin_report_t plugin;
+extern prelude_option_t *manager_root_optlist;
 
 
 
@@ -192,7 +193,7 @@ prelude_plugin_generic_t *db_LTX_prelude_plugin_init(void)
                 return NULL;
         }
                 
-        opt = prelude_option_add(NULL, hook, 0, "db", "Option for the db plugin",
+        opt = prelude_option_add(manager_root_optlist, hook, 0, "db", "Option for the db plugin",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, db_activate, NULL);
 
         prelude_plugin_set_activation_option((void *) &plugin, opt, db_init);

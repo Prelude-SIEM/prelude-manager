@@ -46,6 +46,7 @@ typedef struct {
 
 
 static plugin_report_t textmod_plugin;
+extern prelude_option_t *manager_root_optlist;
 
 
 PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(textmod, textmod_plugin_t, logfile)
@@ -872,7 +873,7 @@ prelude_plugin_generic_t *textmod_LTX_prelude_plugin_init(void)
 	prelude_option_t *opt;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
-        opt = prelude_option_add(NULL, hook, 0, "textmod", "Option for the textmod plugin",
+        opt = prelude_option_add(manager_root_optlist, hook, 0, "textmod", "Option for the textmod plugin",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, textmod_activate, NULL);
         
         prelude_plugin_set_activation_option((void *) &textmod_init, opt, textmod_init);

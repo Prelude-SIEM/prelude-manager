@@ -46,6 +46,7 @@ typedef struct {
 
 static prelude_msgbuf_t *msgbuf = NULL;
 extern prelude_client_t *manager_client;
+extern prelude_option_t *manager_root_optlist;
 
 
 static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
@@ -151,7 +152,7 @@ prelude_plugin_generic_t *relaying_LTX_prelude_plugin_init(void)
         static plugin_report_t plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
-        opt = prelude_option_add(NULL, hook, 0, "relaying",
+        opt = prelude_option_add(manager_root_optlist, hook, 0, "relaying",
                                  "Relaying plugin option", PRELUDE_OPTION_ARGUMENT_OPTIONAL,
                                  relaying_activate, NULL);
 

@@ -51,12 +51,13 @@
 #define MANAGER_MANUFACTURER "The Prelude Team http://www.prelude-ids.org"
 #define DEFAULT_ANALYZER_NAME "prelude-manager"
 
+extern struct manager_config config;
+
+prelude_client_t *manager_client;
+server_generic_t *sensor_server = NULL;
+prelude_option_t *manager_root_optlist;
 
 static size_t nserver = 0;
-prelude_client_t *manager_client;
-extern struct report_config config;
-server_generic_t *sensor_server = NULL;
-
 static char **global_argv;
 static volatile sig_atomic_t got_sighup = 0;
 
@@ -151,7 +152,8 @@ int main(int argc, char **argv)
         struct sigaction action;
         
         global_argv = argv;
-
+        manager_root_optlist = prelude_option_new_root();
+        
         /*
          * make sure we ignore sighup until acceptable.
          */
@@ -189,7 +191,7 @@ int main(int argc, char **argv)
         reverse_relay_init();
         sensor_server = sensor_server_new();
         
-        ret = pconfig_init(argc, argv);
+        ret = pconfig_init(manager_root_optlist, argc, argv);
         if ( ret < 0 )
                 exit(1);
 
@@ -206,7 +208,7 @@ int main(int argc, char **argv)
         fill_analyzer_infos();        
         prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
         
-        ret = prelude_option_parse_arguments(manager_client, NULL, PRELUDE_MANAGER_CONF, &argc, argv);
+        ret = prelude_option_parse_arguments(manager_client, manager_root_optlist, PRELUDE_MANAGER_CONF, &argc, argv);
         if ( ret < 0 )
                 return -1;
         

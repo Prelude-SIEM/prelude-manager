@@ -55,6 +55,7 @@ typedef struct {
 
 
 static plugin_report_t debug_plugin;
+extern prelude_option_t *manager_root_optlist;
 
 
 static int iterator(idmef_value_t *val, void *extra)
@@ -181,7 +182,7 @@ prelude_plugin_generic_t *debug2_LTX_prelude_plugin_init(void)
 	prelude_option_t *opt;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
-        opt = prelude_option_add(NULL, hook, 0, "debug2", "Option for the debug plugin",
+        opt = prelude_option_add(manager_root_optlist, hook, 0, "debug2", "Option for the debug plugin",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, debug_new, NULL);
 
         prelude_plugin_set_activation_option((void *) &debug_plugin, opt, NULL);

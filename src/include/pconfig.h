@@ -24,9 +24,9 @@
 #ifndef _MANAGER_PCONFIG_H
 #define _MANAGER_PCONFIG_H
 
-int pconfig_init(int argc, char **argv);
+int pconfig_init(prelude_option_t *manager_root_optlist, int argc, char **argv);
 
-struct report_config {
+struct manager_config {
 	char *addr;
         unsigned int port;
         const char *pidfile;

@@ -51,7 +51,6 @@
 #include "config.h"
 #include "libmissing.h"
 #include "manager-auth.h"
-#include "pconfig.h"
 #include "server-logic.h"
 #include "server-generic.h"
 

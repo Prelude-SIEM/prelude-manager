@@ -53,7 +53,7 @@ typedef struct {
 
 
 static plugin_report_t xmlmod_plugin;
-
+extern prelude_option_t *manager_root_optlist;
 
 
 PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(xmlmod, xmlmod_plugin_t, logfile)
@@ -1003,7 +1003,7 @@ prelude_plugin_generic_t *xmlmod_LTX_prelude_plugin_init(void)
         
         xmlInitParser();
         
-        opt = prelude_option_add(NULL, hook, 0, "xmlmod", "Option for the xmlmod plugin",
+        opt = prelude_option_add(manager_root_optlist, hook, 0, "xmlmod", "Option for the xmlmod plugin",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, xmlmod_activate, NULL);
 
         prelude_plugin_set_activation_option((void *) &xmlmod_plugin, opt, xmlmod_init);
