@@ -138,7 +138,7 @@ int pconfig_init(int argc, char **argv)
         prelude_option_t *opt;
         
 	/* Default */
-	config.addr = "unix";
+	config.addr = "127.0.0.1";
 	config.port = 5554;
         config.admin_server_port = 5555;
         config.pidfile = NULL;
