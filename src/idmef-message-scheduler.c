@@ -242,26 +242,6 @@ static prelude_msg_t *get_message_from_file(file_output_t *out)
 
 
 
-static void process_idmef_message(prelude_client_t *client, idmef_message_t *idmef)
-{
-        int relay_filter_available = 0;
-        
-        relay_filter_available = filter_plugins_available(FILTER_CATEGORY_REVERSE_RELAYING);
-        if ( relay_filter_available < 0 )
-                reverse_relay_send_msg(idmef);
-
-        else if ( filter_plugins_run_by_category(idmef, FILTER_CATEGORY_REVERSE_RELAYING) == 0 )
-                reverse_relay_send_msg(idmef);
-        
-        /*
-         * run simple reporting plugin.
-         */
-        report_plugins_run(idmef);
-}
-
-
-
-
 static int process_message(prelude_msg_t *msg) 
 {
         idmef_message_t *idmef;
@@ -278,7 +258,7 @@ static int process_message(prelude_msg_t *msg)
          * idmef_message_destroy() will consequently do this for us.
          */
         idmef_message_set_pmsg(idmef, msg);
-        process_idmef_message(NULL, idmef);
+        idmef_message_process(NULL, idmef);
 
         idmef_message_destroy(idmef);
                 
@@ -744,9 +724,7 @@ int idmef_message_scheduler_init(prelude_client_t *client)
 {
         char buf[256];
         int ret, i, continue_check = 1;
-        
-        prelude_client_set_heartbeat_cb(client, process_idmef_message);
-        
+                
         /*
          * this code recover orphaned fifo in case of a prelude-manager crash.
          */
@@ -810,7 +788,22 @@ void idmef_message_scheduler_exit(void)
 
 
 
+void idmef_message_process(prelude_client_t *client, idmef_message_t *idmef)
+{
+        int relay_filter_available = 0;
+        
+        relay_filter_available = filter_plugins_available(FILTER_CATEGORY_REVERSE_RELAYING);
+        if ( relay_filter_available < 0 )
+                reverse_relay_send_msg(idmef);
 
+        else if ( filter_plugins_run_by_category(idmef, FILTER_CATEGORY_REVERSE_RELAYING) == 0 )
+                reverse_relay_send_msg(idmef);
+        
+        /*
+         * run simple reporting plugin.
+         */
+        report_plugins_run(idmef);
+}
 
 
 

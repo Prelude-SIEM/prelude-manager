@@ -151,17 +151,18 @@ int main(int argc, char **argv)
         if ( ! manager_client )
                 return -1;
         
-        fill_analyzer_infos();
+        fill_analyzer_infos();        
+        prelude_client_set_heartbeat_cb(manager_client, idmef_message_process);
+                
+        ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, argc, argv);
+        if ( ret < 0 )
+                return -1;
         
         ret = idmef_message_scheduler_init(manager_client);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't initialize alert scheduler.\n");
                 return -1;
         }
-        
-        ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, argc, argv);
-        if ( ret < 0 )
-                return -1;
         
         prelude_client_set_flags(manager_client, PRELUDE_CLIENT_ASYNC_SEND);
 
