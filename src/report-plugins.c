@@ -282,14 +282,6 @@ static int save_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 
 static void save_idmef_message(plugin_failover_t *pf, idmef_message_t *msg)
 {
-        prelude_msg_t *pmsg;
-
-        pmsg = idmef_message_get_pmsg(msg);
-        if ( pmsg ) {
-                prelude_failover_save_msg(pf->failover, pmsg);
-                return;
-        }
-
         /*
          * this is a message we generated ourself...
          */
