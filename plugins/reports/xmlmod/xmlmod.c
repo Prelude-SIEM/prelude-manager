@@ -874,7 +874,7 @@ plugin_generic_t *plugin_init(int argc, char **argv)
                                  "Option for the xmlmod plugin", no_argument,
                                  set_xmlmod_state, get_xmlmod_state);
 
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'o', "output",
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'l', "logfile",
                            "Specify output file to use", required_argument,
                            set_output_file, NULL);
 
