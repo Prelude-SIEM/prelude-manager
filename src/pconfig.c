@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1999 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1999, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -25,29 +25,39 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include <libprelude/common.h>
+#include <libprelude/prelude-path.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>
 #include <libprelude/daemonize.h>
-
-#include <inttypes.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-client-mgr.h>
 #include <libprelude/prelude-getopt.h>
+#include <libprelude/ssl-register.h>
 
 #include "config.h"
 #include "pconfig.h"
 #include "ssl.h"
 
 
-#define RELAY_BACKUP_FILE "/var/spool/prelude-manager/relay"
 
 
 struct report_config config;
 prelude_client_mgr_t *relay_managers = NULL;
+
+
+static int create_account(const char *arg) 
+{
+        int ret;
+        
+        ret = ssl_add_certificate();
+        exit(ret);
+}
+
 
 
 static int print_version(const char *arg) 
@@ -80,8 +90,8 @@ static int set_pidfile(const char *arg)
 
 
 static int set_relay_manager(const char *arg) 
-{
-        relay_managers = prelude_client_mgr_new(arg, RELAY_BACKUP_FILE);
+{        
+        relay_managers = prelude_client_mgr_new(arg);
         if ( ! relay_managers )
                 return prelude_option_error;
 
@@ -145,13 +155,17 @@ int pconfig_init(int argc, char **argv)
 
         prelude_option_add(NULL, CLI_HOOK, 'h', "help",
                            "Print this help", no_argument, print_help, NULL);
-
+        
         prelude_option_add(NULL, CLI_HOOK|WIDE_HOOK, 'v', "version",
                            "Print version number", no_argument, print_version, get_version);
 
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'd', "daemon",
                            "Run in daemon mode", no_argument, set_daemon_mode, NULL);
 
+        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'c', "create-account",
+                           "Create an account to be used by this sensor", no_argument,
+                           create_account, NULL);
+        
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'P', "pidfile",
                            "Write Prelude PID to pidfile", required_argument, set_pidfile, NULL);
 
@@ -167,6 +181,8 @@ int pconfig_init(int argc, char **argv)
                            "Address the admin server should listen on (addr:port)", required_argument,
                            set_admin_listen_address, NULL);
 
+        prelude_set_program_name("prelude-manager");
+        
         ret = prelude_option_parse_arguments(NULL, PRELUDE_MANAGER_CONF, argc, argv);
         if ( ret == prelude_option_end )
                 exit(0);

@@ -12,7 +12,7 @@ noinst_HEADERS = 			\
 	idmef-message-scheduler.h 	\
 	idmef-message-read.h		\
 	idmef-db-output.h		\
-	auth.h		
+	auth.h
 
 include_HEADERS = 			\
 		plugin-db.h		\
@@ -20,5 +20,5 @@ include_HEADERS = 			\
 		plugin-decode.h		\
 		plugin-report.h		\
 		report.h		\
-		idmef-util.h
+		idmef-util.h		
 

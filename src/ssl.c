@@ -4,7 +4,7 @@
 
 /*****
 *
-* Copyright (C) 2001 Jeremie Brebec / Toussaint Mathieu
+* Copyright (C) 2001, 2002 Jeremie Brebec / Toussaint Mathieu
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -36,6 +36,7 @@
 #include <libprelude/common.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/prelude-io.h>
+#include <libprelude/prelude-path.h>
 
 #include "ssl.h"
 
@@ -128,7 +129,7 @@ int ssl_close_session(SSL *ssl)
 int ssl_init_server(void)
 {
         int n;
-	SSL_METHOD *method;
+        SSL_METHOD *method;
         
 	/*
          * Initialize OpenSSL.
@@ -144,15 +145,14 @@ int ssl_init_server(void)
 		return -1;
 	}
 
-	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_TLSv1);
+	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TLSv1);
 	SSL_CTX_set_verify_depth(ctx, 1);
 
         /*
          * No callback, mutual authentication.
          */
-	SSL_CTX_set_verify(ctx,
-                           SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-
+	SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+                
 	n = SSL_CTX_load_verify_locations(ctx, SENSORS_CERT, NULL);
 	if (n <= 0) {
 		ERR_print_errors_fp(stderr);
@@ -160,7 +160,7 @@ int ssl_init_server(void)
                     "\"manager-adduser\" program.\n\n");
 		return -1;
 	}
-
+        
 	n = SSL_CTX_use_certificate_file(ctx, MANAGER_KEY, SSL_FILETYPE_PEM);
 	if (n <= 0) {
 		ERR_print_errors_fp(stderr);

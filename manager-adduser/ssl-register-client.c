@@ -4,7 +4,7 @@
 
 /*****
 *
-* Copyright (C) 2001 Jeremie Brebec / Toussaint Mathieu
+* Copyright (C) 2001, 2002 Jeremie Brebec / Toussaint Mathieu
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -47,7 +47,7 @@
 #include "ssl.h"
 #include "ssl-register-client.h"
 
-
+#define PRELUDE_PERSISTANT_DATA_DIR "/var/lib/prelude-sensors/ssl"
 #define ACKMSGLEN ACKLENGTH + SHA_DIGEST_LENGTH + HEADLENGTH + PADMAXSIZE
 
 
@@ -135,7 +135,7 @@ static int wait_install_request(prelude_io_t *pio,
 {
         int len, certlen, ret;
 	char cert[BUFMAXSIZE];
-
+        
         certlen = prelude_ssl_recv_cert(pio, cert, BUFMAXSIZE, skey1, skey2);
         if ( certlen < 0 ) {
                 log(LOG_ERR, "couldn't receive Manager certificate.\n");
@@ -154,8 +154,7 @@ static int wait_install_request(prelude_io_t *pio,
                 goto err;
         }
         
-        prelude_io_close(pio);
-        
+        prelude_io_close(pio);        
         
         fprintf(stderr, "Writing Prelude certificate to %s\n", SENSORS_CERT);
 
@@ -178,12 +177,12 @@ static int wait_install_request(prelude_io_t *pio,
 
 
 
-static void ask_ssl_settings(int *keysize, int *expire, int *store_crypted)  
+static void ask_ssl_settings(int *keysize, int *expire)  
 {
         int ret;
         char buf[1024];
         
-        prelude_ssl_ask_settings(keysize, expire, store_crypted);
+        prelude_ssl_ask_settings(keysize, expire);
         
         if ( *expire )
                 snprintf(buf, sizeof(buf), "%d days", *expire);
@@ -192,9 +191,7 @@ static void ask_ssl_settings(int *keysize, int *expire, int *store_crypted)
         
         fprintf(stderr, "\n\n"
                 "Key length        : %d\n"
-                "Expire            : %s\n"
-                "Store key crypted : %s\n\n",
-                *keysize, buf, (*store_crypted) ? "Yes" : "No");
+                "Expire            : %s\n", *keysize, buf);
 
         
         while ( 1 ) {
@@ -209,7 +206,7 @@ static void ask_ssl_settings(int *keysize, int *expire, int *store_crypted)
                 
                 ret = strcmp(buf, "no");
                 if ( ret == 0 )
-                        ask_ssl_settings(keysize, expire, store_crypted);
+                        ask_ssl_settings(keysize, expire);
         }
 }
 
@@ -220,19 +217,19 @@ static int create_manager_key_if_needed(void)
 {
         int ret;
         X509 *x509ss;
-        int keysize, expire, store_crypted;
-
+        int keysize, expire;
+        
         ret = access(MANAGER_KEY, F_OK);
         if ( ret == 0 )
                 return 0;
 
         fprintf(stderr, "\nNo Manager key exist... Buildling Manager private key...");
 
-        ask_ssl_settings(&keysize, &expire, &store_crypted);
+        ask_ssl_settings(&keysize, &expire);
         
         fprintf(stderr, "\n\n");
         
-        x509ss = prelude_ssl_gen_crypto(keysize, expire, MANAGER_KEY, store_crypted);
+        x509ss = prelude_ssl_gen_crypto(keysize, expire, MANAGER_KEY, 0);
         if ( ! x509ss ) {
                 log(LOG_ERR, "error creating SSL key.\n");
                 return -1;

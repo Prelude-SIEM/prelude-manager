@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -38,7 +38,8 @@
 int main(void) 
 {
         int ret;
-        char buf[1024];
+        char buf[16];
+        char filename[256];
         
         fprintf(stderr, "\n\nAuthentication method (cipher/plaintext) [cipher] : ");
         fgets(buf, sizeof(buf), stdin);

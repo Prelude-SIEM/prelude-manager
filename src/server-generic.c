@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1999,2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1999,2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -44,16 +44,14 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-auth.h>
+#include <libprelude/prelude-path.h>
 
 #include "config.h"
-#include "auth.h"
 #include "ssl.h"
+#include "auth.h"
 #include "pconfig.h"
 #include "server-logic.h"
 #include "server-generic.h"
-
-
-#define UNIX_SOCK "/var/lib/prelude/socket"
 
 
 
@@ -544,8 +542,11 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
 static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addrlen) 
 {
         int ret;
+        const char *sockname;
+
+        sockname = prelude_get_socket_filename();
                 
-        ret = access(UNIX_SOCK, F_OK);
+        ret = access(sockname, F_OK);
         if ( ret < 0 )
                 return 0;
         
@@ -559,7 +560,7 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
          * The unix socket exist on the file system,
          * but no one use it... Delete it.
          */
-        ret = unlink(UNIX_SOCK);
+        ret = unlink(sockname);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't delete UNIX socket.\n");
                 return -1;
@@ -576,8 +577,11 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
 static int unix_server_start(server_generic_t *server) 
 {
         int ret;
+        const char *sockname;
         struct sockaddr_un addr;
-                
+
+        sockname = prelude_get_socket_filename();
+        
         server->sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if ( server->sock < 0 ) {
                 log(LOG_ERR, "couldn't create socket.\n");
@@ -585,7 +589,7 @@ static int unix_server_start(server_generic_t *server)
 	}
         
         addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, UNIX_SOCK, sizeof(addr.sun_path));
+        strncpy(addr.sun_path, sockname, sizeof(addr.sun_path));
         
         ret = is_unix_socket_already_used(server->sock, (struct sockaddr *) &addr, sizeof(addr));
         if ( ret == 1 || ret < 0  ) {
@@ -603,7 +607,7 @@ static int unix_server_start(server_generic_t *server)
          * Everyone should be able to access the filesystem object
          * representing our socket.
          */
-        ret = chmod(UNIX_SOCK, S_IRWXU|S_IRWXG|S_IRWXO);
+        ret = chmod(sockname, S_IRWXU|S_IRWXG|S_IRWXO);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't set permission for UNIX socket.\n");
                 return -1;
@@ -727,7 +731,7 @@ void server_generic_close(server_generic_t *server)
         server_logic_stop(server->logic);
 
         if ( server->unix_srvr )
-                unlink(UNIX_SOCK);
+                unlink(prelude_get_socket_filename());
 }
 
 

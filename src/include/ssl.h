@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998 - 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1998 - 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -28,9 +28,8 @@
 #include <openssl/ssl.h>
 #include <libprelude/ssl-gencrypto.h>
 
-
-#define MANAGER_KEY CONFIG_DIR"/manager.key"
-#define SENSORS_CERT CONFIG_DIR"/sensors.certs"
+#define SENSORS_CERT CONFIG_DIR"/prelude-sensors.cert"
+#define MANAGER_KEY CONFIG_DIR"/prelude-manager.key"
 
 
 int ssl_auth_client(prelude_io_t *fd);
