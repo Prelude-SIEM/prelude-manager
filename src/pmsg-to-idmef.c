@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 
 #include <libprelude/idmef.h>
