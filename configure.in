@@ -266,6 +266,7 @@ filter_plugin_dir=$plugindir/filters
 db_plugin_dir=$plugindir/db
 manager_fifo_dir=$localstatedir/spool/prelude-manager
 manager_data_dir=$datadir/prelude-manager
+manager_run_dir=$localstatedir/run/prelude-manager
 
 AC_DEFINE_UNQUOTED(PRELUDE_MANAGER_CONFDIR, "$configdir", Define the Prelude Manager configuration directory)
 AC_DEFINE_UNQUOTED(PRELUDE_MANAGER_CONF, "$prelude_manager_conf", Define the Prelude Manager configuration file path)
@@ -280,6 +281,7 @@ AC_SUBST(decode_plugin_dir)
 AC_SUBST(filter_plugin_dir)
 AC_SUBST(LIBWRAP_LIBS)
 AC_SUBST(manager_fifo_dir)
+AC_SUBST(manager_run_dir)
 
 AX_CFLAGS_GCC_OPTION(-Wall)
 AX_CFLAGS_GCC_OPTION(-Wstrict-prototypes)

@@ -5,7 +5,8 @@ AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing	\
 	-DREPORT_PLUGIN_DIR=\"@report_plugin_dir@\"		\
 	-DDECODE_PLUGIN_DIR=\"@decode_plugin_dir@\"		\
 	-DFILTER_PLUGIN_DIR=\"@filter_plugin_dir@\"		\
-	-DMANAGER_FIFO_DIR=\"@manager_fifo_dir@\"
+	-DMANAGER_FIFO_DIR=\"@manager_fifo_dir@\"		\
+	-DMANAGER_RUN_DIR=\"@manager_run_dir@\"
 
 bin_PROGRAMS = prelude-manager
 prelude_manager_LDADD = @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@ @PTHREAD_CFLAGS@ \

@@ -121,6 +121,20 @@ static int set_report_plugin_failover(void *context, prelude_option_t *opt, cons
 
 
 
+static int set_dh_bits(void *context, prelude_option_t *opt, const char *arg) 
+{
+        config.dh_bits = atoi(arg);
+        return 0;
+}
+
+
+static int set_dh_regenerate(void *context, prelude_option_t *opt, const char *arg) 
+{
+        config.dh_regenerate = atoi(arg) * 60 * 60;
+        return 0;
+}
+
+
 
 static int print_help(void *context, prelude_option_t *opt, const char *arg) 
 {
@@ -138,7 +152,8 @@ int pconfig_init(int argc, char **argv)
 	config.addr = NULL;
 	config.port = 5554;
         config.pidfile = NULL;
-
+        config.dh_regenerate = 24 * 60 * 60;
+        
         prelude_option_add(NULL, CLI_HOOK, 'h', "help",
                            "Print this help", no_argument, print_help, NULL);
         
@@ -154,6 +169,14 @@ int pconfig_init(int argc, char **argv)
          * we want this option to be processed before -d.
          */
         prelude_option_set_priority(opt, option_run_first);
+
+        prelude_option_add(NULL, CFG_HOOK, 0, "dh-parameters-regenerate",
+                           "How often to regenerate the Diffie Hellman parameters (in hours)",
+                           required_argument, set_dh_regenerate, NULL);
+
+        prelude_option_add(NULL, CFG_HOOK, 0, "dh-prime-length",
+                           "Size of the Diffie Hellman prime (768, 1024, 2048, 3072 or 4096)",
+                           required_argument, set_dh_bits, NULL);
         
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'c', "child-managers",
                            "List of managers address:port pair where messages should be gathered from",
@@ -166,7 +189,7 @@ int pconfig_init(int argc, char **argv)
         opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'f', "failover",
                                  "Enable failover for specified report plugin", required_argument,
                                  set_report_plugin_failover, NULL);
-
+        
         prelude_option_set_priority(opt, option_run_last);
 
         return 0;

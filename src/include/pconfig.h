@@ -29,12 +29,10 @@ int pconfig_init(int argc, char **argv);
 struct report_config {
 	char *addr;
         unsigned int port;
-
-	char *cm_comm_server_addr;
-	unsigned int cm_comm_server_port;
-
         const char *pidfile;
-        int use_ssl;
+
+        int dh_bits;
+        int dh_regenerate;
 };
 
 #endif /* _MANAGER_PCONFIG_H */

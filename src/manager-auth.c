@@ -21,12 +21,16 @@
 *
 *****/
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <errno.h>
@@ -36,6 +40,8 @@
 #include <libprelude/config-engine.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-message-id.h>
+#include <libprelude/timer.h>
+
 
 #include <gcrypt.h>
 #include <gnutls/gnutls.h>
@@ -44,19 +50,230 @@
 #include "manager-auth.h"
 
 
+#define DEFAULT_DH_BITS 1024
+#define DH_FILENAME MANAGER_RUN_DIR "/tls-parameters.data"
+
+
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 
-static int dh_bits = 0;
-static gnutls_dh_params dh_params;
+static int global_dh_lifetime;
+static uint16_t global_dh_bits;
 static gnutls_certificate_credentials cred;
+static gnutls_dh_params cur_dh_params = NULL;
+static prelude_timer_t dh_param_regeneration_timer;
+static pthread_mutex_t dh_regen_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+static int dh_check_elapsed(void)
+{
+        int ret;
+        struct stat st;
+        struct timeval tv;
+
+        if ( ! global_dh_lifetime )
+                return 0;
+        
+        ret = stat(DH_FILENAME, &st);
+        if ( ret < 0 ) {
+
+                if ( errno == ENOENT )
+                        return -1;
+                
+                log(LOG_ERR, "could not state %s.\n", DH_FILENAME);
+                return -1;
+        }
+
+        gettimeofday(&tv, NULL);
+        
+        return ((tv.tv_sec - st.st_mtime) < global_dh_lifetime) ? (tv.tv_sec - st.st_mtime) : -1;
+}
+
+
+
+static int dh_params_load(gnutls_dh_params dh, uint16_t req_bits)
+{
+        int ret;
+        FILE *fd;
+        ssize_t size;
+        uint16_t *bits;
+        prelude_io_t *pfd;
+        gnutls_datum prime, generator;
+        
+        fd = fopen(DH_FILENAME, "r");
+        if ( ! fd ) {
+                if ( errno != ENOENT )
+                        log(LOG_ERR, "could not open %s for reading.\n", DH_FILENAME);
+
+                return -1;
+        }
+
+        pfd = prelude_io_new();
+        if ( ! pfd ) {
+                fclose(fd);
+                return -1;
+        }
+
+        prelude_io_set_file_io(pfd, fd);
+        
+        size = prelude_io_read_delimited(pfd, (void *) &bits);
+        if ( size < 0 || size != sizeof(*bits) ) {
+                log(LOG_ERR, "error reading prime length.\n");
+                goto err;
+        }
+
+        if ( *bits != req_bits )
+                goto err;
+                
+        prime.size = size = prelude_io_read_delimited(pfd, &prime.data);
+        if ( size < 0 ) {
+                log(LOG_ERR, "error reading prime.\n");
+                goto err;
+        }
+
+        generator.size = size = prelude_io_read_delimited(pfd, &generator.data);
+        if ( size < 0 ) {
+                log(LOG_ERR, "error reading generator.\n");
+                goto err;
+        }
+        
+        ret = gnutls_dh_params_import_raw(dh, &prime, &generator);
+        if ( ret < 0 )
+                log(LOG_ERR, "error importing Diffie-Hellman parameters.\n");
+        
+        prelude_io_close(pfd);
+        prelude_io_destroy(pfd);
+        
+        return ret;
+        
+ err:
+        prelude_io_close(pfd);
+        prelude_io_destroy(pfd);
+
+        return -1;
+}
+
+
+
+
+static int dh_params_save(gnutls_dh_params dh, uint16_t dh_bits)
+{
+        int ret, fd;
+        prelude_io_t *pfd;
+        gnutls_datum prime, generator;
+        
+        ret = gnutls_dh_params_export_raw(dh, &prime, &generator, NULL);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error exporting Diffie-Hellman parameters: %s.\n", gnutls_strerror(ret));
+                return -1;
+        }
+
+        fd = open(DH_FILENAME, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR);
+        if ( ! fd ) {
+                log(LOG_ERR, "error opening %s for writing.\n", DH_FILENAME);
+                free(prime.data);
+                free(generator.data);
+                return -1;
+        }
+
+        pfd = prelude_io_new();
+        if ( ! pfd ) {
+                close(fd);
+                free(prime.data);
+                free(generator.data);
+                return -1;
+        }
+
+        prelude_io_set_sys_io(pfd, fd);
+        prelude_io_write_delimited(pfd, &dh_bits, sizeof(dh_bits));        
+        prelude_io_write_delimited(pfd, prime.data, prime.size);        
+        prelude_io_write_delimited(pfd, generator.data, generator.size);
+        
+        prelude_io_close(pfd);
+        prelude_io_destroy(pfd);
+
+        free(prime.data);
+        free(generator.data);
+
+        return 0;
+}
+
+
+
+
+static void dh_params_regenerate(void *data)
+{
+        int ret;
+        gnutls_dh_params new, tmp;
+        
+        /*
+         * generate a new DH key.
+         */
+        ret = gnutls_dh_params_init(&new);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error initializing dh parameters object.\n");
+                return;
+        }
+
+        gnutls_dh_params_generate2(new, global_dh_bits);
+        
+        pthread_mutex_lock(&dh_regen_mutex);
+        tmp = cur_dh_params;
+        cur_dh_params = new;
+        pthread_mutex_unlock(&dh_regen_mutex);
+        
+        /*
+         * clear the old dh_params.
+         */
+        gnutls_dh_params_deinit(tmp);
+
+        log(LOG_INFO, "- Regenerated %d bits Diffie-Hellman key for TLS.\n", global_dh_bits);
+
+        dh_params_save(cur_dh_params, global_dh_bits);
+        timer_set_expire(&dh_param_regeneration_timer, global_dh_lifetime);
+        timer_reset(&dh_param_regeneration_timer);
+}
+
+
+
+static int get_params(gnutls_session session, gnutls_params_type type, gnutls_params_st *st)
+{
+        int ret;
+        gnutls_dh_params cpy;
+        
+        if ( type == GNUTLS_PARAMS_RSA_EXPORT )
+                return -1;
+
+        ret = gnutls_dh_params_init(&cpy);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error creating a new dh parameters object.\n");
+                return -1;
+        }
+        
+        pthread_mutex_lock(&dh_regen_mutex);
+        
+        ret = gnutls_dh_params_cpy(cpy, cur_dh_params);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "could not copy dh params for sessions: %s.\n", gnutls_strerror(ret));
+                gnutls_dh_params_deinit(cpy);
+                return -1;
+        }
+
+        pthread_mutex_unlock(&dh_regen_mutex);
+        
+        st->deinit = 1;
+        st->type = type;
+        st->params.dh = cpy;
+        
+        return 0;
+}
 
 
 
 static int handle_gnutls_error(gnutls_session session, server_generic_client_t *client, int ret)
 {
         int last_alert;
-
+        
         if ( ret == GNUTLS_E_AGAIN ) {
                 
                 ret = gnutls_record_get_direction(session);
@@ -135,19 +352,21 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
         int fd = prelude_io_get_fd(pio);
         
         /*
-         * check if we already have an TLS descriptor
+         * check if we already have a TLS descriptor
          * associated with this fd (possible because of non blocking mode).
          */
         session = prelude_io_get_fdptr(pio);
         if ( ! session ) {
+                const int kx_prio[] = { GNUTLS_KX_DHE_RSA, 0 };
                 
-                gnutls_init(&session, GNUTLS_SERVER);
-                gnutls_set_default_priority(session);
+                ret = gnutls_init(&session, GNUTLS_SERVER);
 
+                gnutls_set_default_priority(session);
+                gnutls_kx_set_priority(session, kx_prio);
+                
                 gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, cred);
                 gnutls_certificate_server_set_request(session, GNUTLS_CERT_REQUEST);
-                gnutls_dh_set_prime_bits(session, dh_bits);
-
+                
                 gnutls_transport_set_ptr(session, (gnutls_transport_ptr) fd);
                 prelude_io_set_tls_io(pio, session);
         }
@@ -155,7 +374,7 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
         do {
                 ret = gnutls_handshake(session);
         } while ( ret < 0 && ret == GNUTLS_E_INTERRUPTED );
-        
+
         if ( ret < 0 )
                 return handle_gnutls_error(session, client, ret);
         
@@ -191,28 +410,16 @@ int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_
 
 
 
-int manager_auth_init(prelude_client_t *client)
+int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
 {
-        int line = 0;
-        config_t *cfg;
-        char keyfile[256], certfile[256], *ptr;
+        int ret;
+        char keyfile[256], certfile[256];
 
-        cfg = config_open(PRELUDE_CONFIG_DIR "/tls/tls.conf");
-        if ( ! cfg ) {
-                log(LOG_ERR, "couldn't open %s.\n", PRELUDE_CONFIG_DIR "/tls/tls.conf");
-                return -1;
-        }
-
-        ptr = config_get(cfg, NULL, "generated-key-size", &line);
-        if ( ! ptr ) {
-                log(LOG_ERR, "couldn't find generated-key-size parameter in cfgfile.\n");
-                return -1;
-        }
+        if ( ! dh_bits )
+                dh_bits = DEFAULT_DH_BITS;
         
-        dh_bits = atoi(ptr);
-
-        free(ptr);
-        config_close(cfg);
+        global_dh_bits = dh_bits;
+        global_dh_lifetime = dh_lifetime;
         
         gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
         gnutls_global_init();
@@ -226,16 +433,28 @@ int manager_auth_init(prelude_client_t *client)
 
         prelude_client_get_tls_server_ca_cert_filename(client, certfile, sizeof(certfile));
         gnutls_certificate_set_x509_trust_file(cred, certfile, GNUTLS_X509_FMT_PEM);
+        
+        gnutls_dh_params_init(&cur_dh_params);
+
+        ret = dh_check_elapsed();
                 
-        gnutls_dh_params_init(&dh_params);
+        if ( ret != -1 && dh_params_load(cur_dh_params, dh_bits) == 0 )
+                timer_set_expire(&dh_param_regeneration_timer, dh_lifetime - ret);
+        else {
+                log(LOG_INFO, "- Generating %d bits Diffie-Hellman key for TLS...\n", dh_bits);
+
+                gnutls_dh_params_generate2(cur_dh_params, dh_bits);
+                dh_params_save(cur_dh_params, dh_bits);
+
+                timer_set_expire(&dh_param_regeneration_timer, dh_lifetime);
+        }
         
-        log(LOG_INFO, "- Generating %d bits Diffie-Hellman key for TLS...\n", dh_bits);
-        
-        gnutls_dh_params_generate2(dh_params, dh_bits);
-        gnutls_certificate_set_dh_params(cred, dh_params);
+        gnutls_certificate_set_params_function(cred, get_params);
+
+        if ( dh_lifetime ) {
+                timer_set_callback(&dh_param_regeneration_timer, dh_params_regenerate);
+                timer_init(&dh_param_regeneration_timer);
+        }
         
 	return 0;
 }
-
-
-

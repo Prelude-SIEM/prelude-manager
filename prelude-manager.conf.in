@@ -22,6 +22,23 @@ include = @LIBPRELUDE_CONFIG_PREFIX@/default/global.conf
 sensors-srvr = 127.0.0.1
 
 
+# Number of bits of the prime used in the Diffie Hellman key exchange. 
+# Note that the bits value should be one of 768, 1024, 2048, 3072 or 4096. 
+# The default is 1024.
+#
+# dh-prime-length = 1024
+
+
+# How often to regenerate the parameters used in the Diffie Hellman key 
+# exchange. These should be discarded and regenerated once a day, once a 
+# week or once a month. Depending on the security requirements.
+#
+# Generation is a CPU intensive operation. The value is in hours, 
+# 0 disables regeneration entirely. The default is 24 hours.
+#
+# dh-parameters-regenerate = 24
+
+
 # If you want this Manager to retrieve message from another
 # Manager (useful if the other Manager is inside a DMZ):
 #
@@ -97,28 +114,25 @@ sensors-srvr = 127.0.0.1
 
 
 
+
+# [XmlMod]
 #
-# The Xmlmod plugin allow to report alert as IDMEF XML
-# in a file. Or to dump theses alert to stderr. 
+# The Xmlmod plugin allow to report alert as IDMEF XML in a file. 
+# Or to dump theses alert to stderr. 
 #
 # The default logfile for this plugin is /var/log/prelude-xml.log
 #
-
-
-# [XmlMod]
-##
 # Tell Xmlmod to disable output file buffering.
 # This will prevent XML alerts to be truncated and thus make real-time
-# parsing easier.
+# parsing easier:
 #
 # disable-buffering
 #
 #
-# Tell Xmlmod to check generated XML against IDMEF DTD
+# Tell Xmlmod to check generated XML against IDMEF DTD:
 # validate
-#
 # 
-# Tell Xmlmod to produce a pretty, human readable xml output
+# Tell Xmlmod to produce a pretty, human readable xml output:
 # format
 #
 # logfile = stderr
@@ -128,12 +142,13 @@ sensors-srvr = 127.0.0.1
 
 # [Debug]
 #
-# Print the value of each element.
+# Print the value of each element:
 # verbose 
 #
 # Be aggressive, print strings even if consistency checks fail 
-# (may lead to crash).
+# (may lead to crash):
+#
 # aggressive
 #
-# Use wide format for lists.
+# Use wide format for lists:
 # wide-format

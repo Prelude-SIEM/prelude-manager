@@ -94,7 +94,7 @@ static void init_manager_server(void)
         
         nserver++;
         
-        ret = manager_auth_init(manager_client);
+        ret = manager_auth_init(manager_client, config.dh_bits, config.dh_regenerate);
 	if ( ret < 0 )
                 exit(1);
         
@@ -148,12 +148,11 @@ static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
 
 
 
-
 int main(int argc, char **argv)
 {
         int ret;
         struct sigaction action;
-
+        
         global_argv = argv;
 
         /*
@@ -189,7 +188,6 @@ int main(int argc, char **argv)
                 return -1;
         }
         log(LOG_INFO, "- Initialized %d filtering plugins.\n", ret);
-
         
         ret = pconfig_init(argc, argv);
         if ( ret < 0 )
