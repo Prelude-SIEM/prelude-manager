@@ -179,7 +179,7 @@ int pconfig_init(int argc, char **argv)
          */
         prelude_option_set_priority(opt, option_run_first);
         
-        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'r', "parent-managers",
+        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'p', "parent-managers",
                            "List of managers address:port pair where messages should be sent to",
                            required_argument, set_parent_manager, NULL);
 

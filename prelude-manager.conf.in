@@ -22,13 +22,20 @@ sensors-srvr = 127.0.0.1;
 # If you want the message caught by this manager to be relayed.
 # You can use boolean AND and OR to make the rule.
 #
-# relay-manager = x.x.x.x || y.y.y.y && z.z.z.z
+# parent-managers = x.x.x.x || y.y.y.y && z.z.z.z
 #
 # This mean the emission should occur on x.x.x.x or, if it fail,
 # on y.y.y.y and z.z.z.z (if one of the two host in the AND fail, 
 # the emission will be considered as failed involving saving the 
 # message locally).
 
+
+# If you want this Manager to retrieve message from another
+# Manager (useful if the other Manager is inside a DMZ):
+#
+# child-managers = x.x.x.x 
+#
+# This mean the messages should be gathered from x.x.x.x
 
 ####################################
 # Here start plugins configuration #
