@@ -25,7 +25,11 @@ int pconfig_init(int argc, char **argv);
 
 struct report_config {
 	char *addr;
-	unsigned int port;
+        unsigned int port;
+        
+        char *admin_server_addr;
+	unsigned int admin_server_port;
+        
 	int daemonize;
         const char *pidfile;
         int use_ssl;

@@ -1,3 +1,32 @@
+2001-12-19  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/sensor-server.c: new file.
+	(sensor_server_broadcast_admin_command): public function the admin
+	server use to broadcast command to sensor.
+
+	* src/admin-server.c: new file.
+	(admin_server_broadcast_sensor_optlist):
+	public function that the sensor server use to broadcast the option
+	list to administration server.
+	
+	* src/server-generic.c: renamed server.c into server-generic.c,
+	modified so that the API is more complete.
+
+	* src/server-logic.c (child_reader): ignore signal.
+
+	* src/prelude-manager.c (main): 
+	adapt to servers API change. We do not start administration server
+	yet.
+
+	* src/pconfig.c (configure_admin_server): 
+	(configure_listen_address): 
+	(configure_listen_port): cleanup.
+	(print_help): 
+	(pconfig_init): remove option that are now handled by libprelude. 
+
+	* src/alert-scheduler.c (process_alert): ignore signal.
+	* configure.ac (CFLAGS): add -DREENTRANT.
+
 2001-12-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/idmef-db-output.c: 

@@ -16,8 +16,10 @@ prelude_manager_SOURCES =			\
 			prelude-manager.c	\
 			db-plugins.c		\
 			report-plugins.c	\
-			server.c		\
 			server-logic.c		\
+			server-generic.c	\
+			sensor-server.c		\
+			admin-server.c		\
 			ssl.c			\
 			decode-plugins.c	\
 			alert-scheduler.c	\
@@ -25,6 +27,6 @@ prelude_manager_SOURCES =			\
 			idmef-message-read.c	\
 			idmef-db-output.c	\
 			ntp.c			\
-			plugins-util.c
+			plugins-util.c	
 
 

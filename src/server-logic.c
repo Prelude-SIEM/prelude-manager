@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <signal.h>
 
 #include <libprelude/list.h>
 #include <libprelude/common.h>
@@ -256,11 +257,20 @@ static int handle_fd_event(server_logic_t *server, server_fd_set_t *set, int cnx
 
 static void *child_reader(void *ptr) 
 {
+        sigset_t s;
         int i, ret, active_fd;
         server_logic_t *server = ptr;
         struct pollfd pfd[MAX_FD_BY_THREAD];
         server_fd_set_t *set = server->new_set;
+
+        sigfillset(&s);
         
+        ret = pthread_sigmask(SIG_BLOCK, &s, NULL);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "pthread_sigmask returned an error.\n");
+                return NULL;
+        }
+
         while ( 1 ) {
                 /*
                  * Is there a way to avoid this copy ?

@@ -1,9 +1,11 @@
 noinst_HEADERS = 		\
 	pconfig.h		\
-	server.h		\
 	ssl.h 			\
 	ntp.h			\
 	server-logic.h		\
+	server-generic.h	\
+	sensor-server.h		\
+	admin-server.h		\
 	alert-scheduler.h	\
 	idmef-message-read.h	\
 	idmef-db-output.h

@@ -48,18 +48,17 @@
 #include <libprelude/prelude-auth.h>
 
 #include "pconfig.h"
-#include "server.h"
+#include "server-generic.h"
 #include "server-logic.h"
-#include "alert-scheduler.h"
 
 
 #define UNIX_SOCK "/var/lib/prelude/socket"
 
 
 
-struct manager_server {
-        struct server_logic *logic;
+struct generic_server {
         int unix_srvr;
+        struct server_logic *logic;
 };
 
 
@@ -102,7 +101,7 @@ static int server_read_connection_cb(void *sdata, prelude_io_t *src, void **clie
 static int server_close_connection_cb(void *sdata, prelude_io_t *pio, void *clientdata) 
 {
         int ret;
-        manager_server_t *server = sdata;
+        server_generic_t *server = sdata;
 
         if ( server->unix_srvr )
                 log(LOG_INFO, "closing connection on UNIX socket.\n");
@@ -518,11 +517,11 @@ static int inet_server_start(server_logic_t *logic, const char *server, uint16_t
 /*
  *
  */
-manager_server_t *manager_server_start(const char *addr, uint16_t port)
+server_generic_t *server_generic_new(const char *addr, uint16_t port)
 {
         int ret;
         server_logic_t *logic;
-        manager_server_t *srvr;
+        server_generic_t *srvr;
 
         srvr = malloc(sizeof(*srvr));
         if ( ! srvr ) {
@@ -534,12 +533,6 @@ manager_server_t *manager_server_start(const char *addr, uint16_t port)
         if ( ! logic ) {
                 log(LOG_ERR, "couldn't initialize server pool.\n");
                 free(srvr);
-                return NULL;
-        }
-        
-        ret = alert_scheduler_init();
-        if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't initialize alert scheduler.\n");
                 return NULL;
         }
         
@@ -557,7 +550,7 @@ manager_server_t *manager_server_start(const char *addr, uint16_t port)
 
 
 
-void manager_server_close(manager_server_t *server) 
+void server_generic_close(server_generic_t *server) 
 {
         server_logic_stop(server->logic);
 

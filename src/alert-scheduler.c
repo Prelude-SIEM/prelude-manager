@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include <libprelude/common.h>
 #include <libprelude/prelude-list.h>
@@ -195,8 +196,22 @@ static void process_message(prelude_msg_t *msg)
  */
 static void *process_alert(void *arg) 
 {
+        int ret;
+        sigset_t set;
         prelude_msg_t *msg;
-
+        
+        ret = sigfillset(&set);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "sigfillset returned an error.\n");
+                return NULL;
+        }
+        
+        ret = pthread_sigmask(SIG_BLOCK, &set, NULL);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "pthread_sigmask returned an error.\n");
+                return NULL;
+        }
+        
         while ( 1 ) {
                 
                 msg = get_high_priority_alert();
@@ -311,7 +326,7 @@ void alert_schedule(prelude_msg_t *msg, prelude_io_t *src)
 int alert_scheduler_init(void) 
 {
         int ret;
-
+        
         ret = init_file_output(MID_PRIORITY_ALERT_FILENAME, &mid_priority_output);
         if ( ret < 0 )
                 return -1;

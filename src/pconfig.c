@@ -47,6 +47,22 @@ struct report_config config;
 prelude_client_mgr_t *relay_managers = NULL;
 
 
+static void configure_admin_server(config_t *cfg) 
+{
+        const char *ret;
+
+        if ( ! config.admin_server_addr ) {
+                ret = config_get(cfg, "Prelude Manager", "admin-addr");
+                config.admin_server_addr = (ret) ? strdup(ret) : NULL;
+        }
+        
+        if ( config.admin_server_port == 0 ) {        
+                ret = config_get(cfg, "Prelude Manager", "admin-port");
+                config.admin_server_port = (ret) ? atoi(ret) : 5555;
+        }
+}
+
+
 
 static void configure_relay(config_t *cfg) 
 {
@@ -68,10 +84,7 @@ static void configure_listen_address(config_t *cfg)
                 return;
 
         ret = config_get(cfg, "Prelude Manager", "listen");
-        if ( ! ret )
-                config.addr = "unix";
-        else
-                config.addr = strdup(ret);
+        config.addr = (ret) ? strdup(ret) : "unix";
 }
 
 
@@ -84,10 +97,7 @@ static void configure_listen_port(config_t *cfg)
                 return;
         
         ret = config_get(cfg, "Prelude Manager", "port");
-        if ( ! ret )
-                config.port = 5554;
-        else
-                config.port = atoi(ret);
+        config.port = (ret) ? atoi(ret) : 5554;
 }
 
 
@@ -133,13 +143,6 @@ static void print_help(void)
         fprintf(stderr, "\t-P --pidfile [pidfile] Write PID to pidfile.\n");
         
         fprintf(stderr, "\t-u --user Create user.\n");
-#ifdef HAVE_SSL
-        fprintf(stderr, "\t-c --certificate Create the Prelude Manager certificate.\n");
-        fprintf(stderr, "\t-n --not-crypt Specify that the key should be stored\n"
-                "\t   as is (not encrypted) on the local hardisk. This will prevent\n"
-                "\t   you to be asked for a password each time you run the Manager.\n");
-        fprintf(stderr, "\t-w --wait Wait for Prelude client public key.\n");
-#endif
 
         fprintf(stderr, "\nUsage (plugin help):\n\n");
         fprintf(stderr, "\t-m --plugin <name> <option> to set/get plugin specific options.\n\n");
@@ -155,11 +158,7 @@ int pconfig_init(int argc, char **argv)
 {
 	int c;
         config_t *cfg;
-        int crypt_key = 1;
-#ifdef HAVE_SSL
-        int wait_cert = 0;
-        int creat_cert = 0;
-#endif
+
         struct option opts[] = {
                 { "version", no_argument, NULL, 'v'       },
                 { "quiet", no_argument, NULL, 'q'         },
@@ -168,22 +167,19 @@ int pconfig_init(int argc, char **argv)
                 { "listen", required_argument, NULL, 'l'  },
                 { "port", required_argument, NULL, 'p'    },
                 { "help", no_argument, NULL, 'h'          },
-#ifdef HAVE_SSL
-                { "certificate", no_argument, NULL, 'c'   },
-                { "wait", no_argument, NULL, 'w'          },
-                { "not-crypt", no_argument, NULL, 'n'     },
-#endif
                 { 0, 0, 0, 0 }
         };
 
         
 	/* Default */
 	config.addr = NULL;
+        config.admin_server_addr = NULL;
 	config.port = 0;
+        config.admin_server_port = 0;
 	config.daemonize = 0;
         config.pidfile = NULL;
       
-	while ( (c = getopt_long(argc, argv, "l:p:uqdhvcnwm:P:", opts, NULL)) != -1 ) {
+	while ( (c = getopt_long(argc, argv, "l:p:qdhvm:P:", opts, NULL)) != -1 ) {
 
 		switch (c) {
                     
@@ -218,22 +214,8 @@ int pconfig_init(int argc, char **argv)
                         plugin_set_args(argc, argv);
                         goto end;
 
-#ifdef HAVE_SSL
-		case 'c':
-                        creat_cert = 1;
-			break;
-
-                case 'n':
-                        crypt_key = 0;
-                        break;
-
-		case 'w':
-                        wait_cert = 1;
-                        break;
-
                 default:
                         return -1;
-#endif
 		}
 	}
 
@@ -252,6 +234,7 @@ int pconfig_init(int argc, char **argv)
         configure_as_daemon(cfg);
         configure_quiet(cfg);
         configure_relay(cfg);
+        configure_admin_server(cfg);
         
         config_close(cfg);
         

@@ -39,8 +39,8 @@
 #include <libprelude/prelude-message.h>
 
 
+#include "sensors-server.h"
 #include "pconfig.h"
-#include "server.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-db.h"
@@ -82,18 +82,17 @@ static void cleanup(int sig)
 }
 
 
+
 #if 0
 static void *admin_server_start(void) 
 {
         manager_server_t *admsrv;
 
-        admsrv = manager_server_new(config.admin_server_addr, config.admin_server_port);
+        admsrv = manager_server_start(config.admin_server_addr, config.admin_server_port);
         if ( ! admsrv )
                 return NULL;
 
-        manager_server_start(admsrv);
-
-        
+        return NULL;
 }
 #endif
 
@@ -102,7 +101,7 @@ static void *admin_server_start(void)
 int main(int argc, char **argv)
 {
         int ret;
-        manager_server_t *sensors_server;
+        pthread_t thr;
         
         if ( pconfig_init(argc, argv) < 0 )
                 exit(1);
@@ -133,11 +132,14 @@ int main(int argc, char **argv)
                 do_init(daemon_start(config.pidfile),
                         "Starting Prelude Report as a daemon.");
 
-        do_init(1, "Starting Manager server");
-        sensors_server = manager_server_start(config.addr, config.port);
-        assert(sensors_server);
-        manager_server_close(sensors_server);
+#if 0
+        do_init(pthread_create(&thr, NULL, admin_server_start, NULL),
+                "Starting Administration server");
 
+#endif
+        do_init(sensors_server_start(config.addr, config.port), "Starting Manager server");
+     
+ err:
         report_plugins_close();
         idmef_ident_exit();
         
