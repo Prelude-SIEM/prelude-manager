@@ -113,6 +113,8 @@ static void process_node(int depth, const idmef_node_t *node)
         if ( ! node )
                 return;
 
+        print(0, "* Node[%s]:", idmef_node_category_to_string(node->category));
+        
         if ( idmef_string(&node->name) )
                 print(depth, " name:%s", idmef_string(&node->name));
 
@@ -123,6 +125,8 @@ static void process_node(int depth, const idmef_node_t *node)
                 addr = list_entry(tmp, idmef_address_t, list);
                 process_address(depth + 1, addr);
         }
+
+        print(0, "\n");
 }
 
 

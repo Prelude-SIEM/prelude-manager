@@ -205,11 +205,15 @@ static int handle_authentication_method(prelude_io_t *fd, char *pass)
         prelude_msg_t *msg = NULL;
         prelude_msg_status_t status;
 
-        status = prelude_msg_read(&msg, fd);
-        if ( status != prelude_msg_finished )
-                return -1;
-
-        
+        do {
+                status = prelude_msg_read(&msg, fd);
+                if ( status == prelude_msg_error ) {
+                        log(LOG_ERR, "couldn't read authentication method.\n");
+                        return -1;
+                }
+                
+        } while ( status != prelude_msg_finished );
+                        
         tag = prelude_msg_get_tag(msg);
 
         if ( tag != PRELUDE_MSG_AUTH ) {
