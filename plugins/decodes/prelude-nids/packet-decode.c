@@ -26,6 +26,8 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "packet.h"
+
 #include <libprelude/list.h>
 #include <libprelude/extract.h>
 #include <libprelude/idmef-tree.h>
@@ -35,7 +37,6 @@
 #include "plugin-util.h"
 #include "optparse.h"
 #include "ethertype.h"
-#include "packet.h"
 
 
 /* ARP protocol opcodes. */
