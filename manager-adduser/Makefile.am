@@ -1,4 +1,4 @@
-DEFS = @LIBPRELUDE_CFLAGS@ -DCONFIG_DIR=\"@configdir@\"
+DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\"
 INCLUDES = -I$(top_srcdir)/src/include -I$(top_srcdir)
 
 bin_PROGRAMS = manager-adduser
