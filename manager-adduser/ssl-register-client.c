@@ -114,8 +114,8 @@ static int wait_install_request(prelude_io_t *pio,
         
         fprintf(stderr, "Writing Prelude certificate to %s\n", SENSORS_CERT);
 
-        ret = prelude_ssl_save_cert(SENSORS_CERT, cert, certlen);
-        if ( ! ret ) {
+        ret = prelude_ssl_save_cert(SENSORS_CERT, cert, certlen, 0);
+        if ( ret < 0 ) {
                 fprintf(stderr, "Error writing Prelude certificate\n");
                 return -1;
         }
@@ -183,7 +183,7 @@ static int create_manager_key_if_needed(void)
         
         fprintf(stderr, "\n\n");
 
-        ret = prelude_ssl_gen_crypto(keysize, expire, MANAGER_KEY, 0);
+        ret = prelude_ssl_gen_crypto(keysize, expire, MANAGER_KEY, 0, 0);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error creating SSL key.\n");
                 return -1;

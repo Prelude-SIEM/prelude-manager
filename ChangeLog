@@ -1,3 +1,9 @@
+2002-03-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* manager-adduser/ssl-register-client.c (create_manager_key_if_needed): 
+	* manager-adduser/manager-adduser.c (handle_plaintext_account_creation): 
+	use 0 as the UID argument.
+
 2002-03-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* prelude-manager.conf.in (sensors-srvr): 
