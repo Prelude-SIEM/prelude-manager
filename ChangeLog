@@ -1,4 +1,20 @@
+2001-12-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/idmef-db-output.c: generic layer responssible for outputing
+	the IDMEF tree into the active databases.
+
+	* src/db-plugins.c (db_plugins_insert): take a variable number
+	of arguments, all to be escaped.
+
+	* plugins/reports/mysql/Makefile.am:
+	* plugins/reports/mysql/mysql.c: removed.
+
+	* plugins/db/mysql/mysql.c: cleanup.
+	(plugin_init): set escape function.
+
 2001-12-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/alert-scheduler.c (process_message): call db_plugins_run().
 
 	* src/idmef-db-output.c: new file containing the, now generic,
 	code contained by the old mysql plugins. This code call db plugin

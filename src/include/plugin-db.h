@@ -24,22 +24,28 @@
 #ifndef PLUGIN_DB_H
 #define PLUGIN_DB_H
 
+#define DB_INSERT_END ((void *)0x1)
 #define DB_INSERT_AUTOINC_ID 0
 
 
 typedef struct {
         PLUGIN_GENERIC;
+        char *(*db_escape)(const char *input);
         int (*db_insert)(char *table, char *fields, char *value);
         int (*db_insert_id)(char *table, char *fields, unsigned long *id);
         void (*close)(void);
 } plugin_db_t;
 
+#define plugin_escape_func(p) (p)->db_escape
 
 #define plugin_insert_func(p) (p)->db_insert
 
 #define plugin_insert_id_func(p) (p)->db_insert_id
 
 #define plugin_close_func(p) (p)->close
+
+
+#define plugin_set_escape_func(p, f) plugin_escape_func(p) = (f)
 
 #define plugin_set_insert_func(p, f) plugin_insert_func(p) = (f)
 
@@ -51,7 +57,7 @@ typedef struct {
 
 int db_plugins_init(const char *dirname);
 
-void db_plugins_insert(char *table, char *fields, char *value);
+void db_plugins_insert(char *table, char *fields, ...);
 
 void db_plugins_insert_id(char *table, char *fields, unsigned long *id);
 
@@ -62,3 +68,7 @@ void db_plugins_close(void);
 int plugin_init(unsigned int id);
 
 #endif
+
+
+
+

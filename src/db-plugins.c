@@ -22,6 +22,7 @@
 *****/
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
@@ -57,25 +58,71 @@ static int db_plugin_register(plugin_container_t *pc)
 
 
 
-/*
- * Start all plugins of kind 'list'.
+/**
+ * db_plugins_insert:
+ * @table: Pointer to string defining the database table.
+ * @fields: Pointer to string defining the database fields.
+ * @...: An undefined number of arguments to be escaped before insertion.
+ *
+ * This function insert all the provided argument into all active database,
+ * in the table @table, and in the fields @fields (separated by a ',').
+ *
+ * The last argument of this function should alway be %DB_INSERT_END, to tell
+ * the function about the end of the variable arguments lists.
  */
-void db_plugins_insert(char *table, char *fields, char *value)
+void db_plugins_insert(char *table, char *fields, ...)
 {
-        int ret;
+        va_list ap;
+        int ret, len;
         struct list_head *tmp;
         plugin_container_t *pc;
-
+        char query[8192], *str, *next;
+        
+        va_start(ap, fields);
+        
         list_for_each(tmp, &db_plugins_list) {
+
                 pc = list_entry(tmp, plugin_container_t, ext_list);
-                plugin_run_with_return_value(pc, plugin_db_t, db_insert,
-                                             ret, table, fields, value);
+
+                len = 0;
+
+                next = va_arg(ap, char *);
+                while ( next != DB_INSERT_END ) {
+                        
+                        str = next;
+                        if ( ! str )
+                                str = "";
+                        
+                        plugin_run_with_return_value(pc, plugin_db_t, db_escape, str, str);
+                        
+                        next = va_arg(ap, char *);
+                        if ( next != DB_INSERT_END )
+                                len += snprintf(query + len, sizeof(query) - len, "\"%s\",", str);
+                        else
+                                len += snprintf(query + len, sizeof(query) - len, "\"%s\"", str);
+                                                
+                        free(str);
+                }
+                
+                plugin_run_with_return_value(pc, plugin_db_t, db_insert, ret, table, fields, query);
         }
+        
+        va_end(ap);
 }
 
 
 
-void db_plugins_insert_id(char *table, char *fields, unsigned long *id)
+/**
+ * db_plugins_insert_id:
+ * @table: Pointer to string defining the database table.
+ * @fields: Pointer to string defining the database fields.
+ * @id: Pointer to an unsigned long.
+ *
+ * This function insert @id, in all active databases, in the specified table and field.
+ * If id is set to %DB_INSERT_AUTOINC_ID, the database backend will automatically
+ * generate a new id, which will be set in the unsigned long pointed by @id.
+ */
+void db_plugins_insert_id(char *table, char *field, unsigned long *id)
 {
         int ret;
         struct list_head *tmp;
@@ -90,6 +137,12 @@ void db_plugins_insert_id(char *table, char *fields, unsigned long *id)
 
 
 
+/**
+ * db_plugins_run:
+ * @alert: Pointer to an IDMEF alert.
+ *
+ * Will output the IDMEF alert to all active database.
+ */
 void db_plugins_run(idmef_alert_t *alert) 
 {
         if ( list_empty(&db_plugins_list) )
@@ -100,8 +153,11 @@ void db_plugins_run(idmef_alert_t *alert)
 
 
 
-/*
- * Close all db plugins.
+/**
+ * db_plugins_close:
+ *
+ * Tell all the active DB plugins to close connection with their
+ * database.
  */
 void db_plugins_close(void)
 {
@@ -122,9 +178,13 @@ void db_plugins_close(void)
 
 
 
-/*
- * Open the plugin directory (dirname),
- * and try to load all plugins located in it.
+/**
+ * db_plugins_init:
+ * @dirname: Pointer to a directory string.
+ *
+ * Tell the DB plugins subsystem to load DB plugins from @dirname.
+ *
+ * Returns: 0 on success, -1 if an error occured.
  */
 int db_plugins_init(const char *dirname) {
         int ret;
@@ -137,14 +197,5 @@ int db_plugins_init(const char *dirname) {
 
         return 0;
 }
-
-
-
-
-
-
-
-
-
 
 

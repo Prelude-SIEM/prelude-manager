@@ -40,6 +40,7 @@
 #include "alert-scheduler.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
+#include "plugin-db.h"
 #include "pconfig.h"
 #include "idmef-func.h"
 #include "idmef-message-read.h"
@@ -169,7 +170,7 @@ static void process_message(prelude_msg_t *msg)
         idmef_message_t *idmef;
 
         manager_relay_msg_if_needed(msg);
-                
+        
         idmef = idmef_alert_new();
 
         ret = idmef_message_read(idmef, msg);
@@ -178,6 +179,7 @@ static void process_message(prelude_msg_t *msg)
                 return;
         }
 
+        db_plugins_run(idmef->message.alert);
         report_plugins_run(idmef->message.alert);
         
         idmef_message_free(idmef);
