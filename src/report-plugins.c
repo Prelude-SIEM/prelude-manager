@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998 - 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1998 - 2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -118,7 +118,7 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
                 return -1;
         }
         
-        return 0;
+        return ret;
 }
 
 
