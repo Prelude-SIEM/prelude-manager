@@ -1,3 +1,7 @@
+2002-02-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* prelude-manager.conf.in (admin-srvr): update.
+
 2002-02-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/db/mysql/mysql.c (db_insert): arguments are const.

@@ -1,12 +1,13 @@
 [Prelude Manager]
 
 # Address where the sensors serber is listening on.
-# if value is "unix", it mean the report server is listening
-# on the same machine via a local (UNIX) socket.
+# if value is 127.0.0.1 (or is resolved as being 127.0.0.1), 
+# it mean the Manager server will be listening via a local (UNIX) 
+# socket.
 #
 # format : address:port
 #
-sensors-srvr = unix;
+sensors-srvr = 127.0.0.1;
 
 
 # Address where the administrative server is listening on.
