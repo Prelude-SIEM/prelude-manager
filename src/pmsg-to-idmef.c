@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <netinet/in.h>
 
-#include <libprelude/sensor.h>
 #include <libprelude/idmef.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 #include <libprelude/idmef-message-id.h>
 #include <libprelude/idmef-message-read.h>
 #include <libprelude/prelude-ident.h>
+#include <libprelude/prelude-client.h>
 
 #include "plugin-decode.h"
 #include "pmsg-to-idmef.h"
@@ -20,19 +20,18 @@
 
 
 
+extern prelude_client_t *manager_client;
+
+
+
 static idmef_analyzer_t *get_local_analyzer(void)
 {
-        static idmef_analyzer_t *local = NULL;
+        idmef_analyzer_t *local = NULL;
 
+        local = prelude_client_get_analyzer(manager_client);
         if ( local )
                 return local;
-        
-        local = idmef_analyzer_new();
-        if ( ! local )
-                return NULL;
-        
-        prelude_analyzer_fill_infos(local);
-        
+                
         idmef_analyzer_set_version(local, idmef_string_new_constant(VERSION));
         idmef_analyzer_set_model(local, idmef_string_new_constant(MANAGER_MODEL));
         idmef_analyzer_set_class(local, idmef_string_new_constant(MANAGER_CLASS));

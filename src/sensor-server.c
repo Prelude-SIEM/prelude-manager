@@ -38,8 +38,8 @@
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-ident.h>
 #include <libprelude/extract.h>
-#include <libprelude/prelude-client.h>
-#include <libprelude/prelude-client-mgr.h>
+#include <libprelude/prelude-connection.h>
+#include <libprelude/prelude-connection-mgr.h>
 
 #include "server-logic.h"
 #include "server-generic.h"
@@ -54,13 +54,17 @@ typedef struct {
         prelude_list_t list;
 
         idmef_queue_t *queue;
-        prelude_client_t *client;
+        prelude_connection_t *cnx;
         
         pthread_mutex_t *list_mutex;
         prelude_msg_t *options_list;
 } sensor_fd_t;
 
 
+extern prelude_client_t *manager_client;
+
+
+static PRELUDE_LIST_HEAD(send_idmef_cnx_list);
 
 static PRELUDE_LIST_HEAD(admins_cnx_list);
 static PRELUDE_LIST_HEAD(sensors_cnx_list);
@@ -315,38 +319,38 @@ static int handle_declare_child_relay(sensor_fd_t *cnx)
 static int handle_declare_parent_relay(sensor_fd_t *cnx) 
 {
         int state;
-        prelude_client_t *client;
+        prelude_connection_t *pc;
         
-        client = reverse_relay_search_receiver(cnx->addr);
-        if ( client ) {
+        pc = reverse_relay_search_receiver(cnx->addr);
+        if ( pc ) {
                 /*
                  * This reverse relay is already known:
-                 * Associate the new FD with it, and tell client-mgr, the client is alive.
+                 * Associate the new FD with it, and tell connection-mgr, the connection is alive.
                  */
-                prelude_io_close(prelude_client_get_fd(client));
-                prelude_io_destroy(prelude_client_get_fd(client));
-                prelude_client_set_fd(client, cnx->fd);
+                prelude_io_close(prelude_connection_get_fd(pc));
+                prelude_io_destroy(prelude_connection_get_fd(pc));
+                prelude_connection_set_fd(pc, cnx->fd);
         } else {
                 /*
                  * First time a child relay with this address connect here.
-                 * Add it to the manager list. Type of the created client is -parent-
+                 * Add it to the manager list. Type of the created connection is -parent-
                  * because *we* are sending the alert to the child.
                  */
-                client = prelude_client_new(cnx->addr, 0);
-                if ( ! client )
+                pc = prelude_connection_new(manager_client, cnx->addr, 0);
+                if ( ! pc )
                         return -1;
-
-                prelude_client_set_fd(client, cnx->fd);
-                reverse_relay_add_receiver(client);
+                
+                prelude_connection_set_fd(pc, cnx->fd);
+                reverse_relay_add_receiver(pc);
         }
-
-        state = prelude_client_get_state(client) | PRELUDE_CLIENT_CONNECTED;
-        prelude_client_set_state(client, state);
+        
+        state = prelude_connection_get_state(pc) | PRELUDE_CONNECTION_ESTABLISHED;
+        prelude_connection_set_state(pc, state);
 
         cnx->client_type = "parent-manager";
         log_client(cnx, "client declared to be a parent relay (we relay to him).\n");
         
-        reverse_relay_tell_receiver_alive(client);
+        reverse_relay_tell_receiver_alive(pc);
         
         /*
          * set fd to NULL so that the client removal, which'll trigger the close callback,
@@ -404,7 +408,7 @@ static int handle_declare_admin(sensor_fd_t *cnx)
 
 static int read_client_type(sensor_fd_t *cnx, prelude_msg_t *msg) 
 {
-        int ret;        
+        int ret;     
         void *buf;
         uint8_t tag;
         uint32_t dlen;
@@ -419,30 +423,22 @@ static int read_client_type(sensor_fd_t *cnx, prelude_msg_t *msg)
                 return 0;
 
         prelude_msg_destroy(msg);
-        
-        switch (tag) {
 
-        case PRELUDE_CLIENT_TYPE_SENSOR:
-                ret = handle_declare_sensor(cnx);
-                break;
-                
-        case PRELUDE_CLIENT_TYPE_ADMIN:
-                ret = handle_declare_admin(cnx);
-                break;
-            
-        case PRELUDE_CLIENT_TYPE_MANAGER_CHILDREN:
-                ret = handle_declare_child_relay(cnx);
-                break;
-                
-        case PRELUDE_CLIENT_TYPE_MANAGER_PARENT:
-                ret = handle_declare_parent_relay(cnx);
-                break;
-                
-        default:
-                return 0;
-        }
+        if ( tag & PRELUDE_CLIENT_CAPABILITY_RECV_IDMEF && tag & PRELUDE_CLIENT_CAPABILITY_SEND_IDMEF )
+                return handle_declare_child_relay(cnx);
         
-        return ret;
+        if ( tag & PRELUDE_CLIENT_CAPABILITY_SEND_IDMEF )
+                return handle_declare_sensor(cnx);
+
+        if ( tag & PRELUDE_CLIENT_CAPABILITY_RECV_IDMEF )
+                return handle_declare_parent_relay(cnx);
+
+        if ( tag & PRELUDE_CLIENT_CAPABILITY_SEND_ADMIN )
+                return handle_declare_admin(cnx);
+        
+        log(LOG_ERR, "- client declared unknow capability: closing connection.\n");
+        
+        return -1;
 }
 
 
@@ -521,7 +517,7 @@ static int read_connection_cb(server_generic_client_t *client)
                 ret = read_ident_message(cnx, msg);
                 break;
 
-        case PRELUDE_MSG_CLIENT_TYPE:
+        case PRELUDE_MSG_CLIENT_CAPABILITY:
                 ret = read_client_type(cnx, msg);
                 break;
                 
@@ -543,7 +539,7 @@ static int read_connection_cb(server_generic_client_t *client)
                 break;
         }
 
-        if ( tag != PRELUDE_MSG_CLIENT_TYPE && tag != PRELUDE_MSG_OPTION_LIST )
+        if ( tag != PRELUDE_MSG_CLIENT_CAPABILITY && tag != PRELUDE_MSG_OPTION_LIST )
                 /*
                  * msg will be destroyed before for this kind of message.
                  */
@@ -559,8 +555,8 @@ static void close_connection_cb(server_generic_client_t *ptr)
 {
         sensor_fd_t *cnx = (sensor_fd_t *) ptr;
         
-        if ( cnx->client )
-                reverse_relay_tell_dead(cnx->client);
+        if ( cnx->cnx )
+                reverse_relay_tell_dead(cnx->cnx);
 
         if ( cnx->list_mutex ) {
                 pthread_mutex_lock(cnx->list_mutex);
@@ -621,7 +617,7 @@ void sensor_server_stop(server_generic_t *server)
 
 
 
-int sensor_server_add_client(server_generic_t *server, prelude_client_t *client) 
+int sensor_server_add_client(server_generic_t *server, prelude_connection_t *cnx) 
 {
         sensor_fd_t *cdata;
         
@@ -637,10 +633,10 @@ int sensor_server_add_client(server_generic_t *server, prelude_client_t *client)
                 return -1;
         }
         
-        cdata->addr = strdup(prelude_client_get_daddr(client));
+        cdata->addr = strdup(prelude_connection_get_daddr(cnx));
         cdata->is_authenticated = 1;
-        cdata->fd = prelude_client_get_fd(client);
-        cdata->client = client;
+        cdata->fd = prelude_connection_get_fd(cnx);
+        cdata->cnx = cnx;
         cdata->client_type = "parent-manager";
         
         server_generic_process_requests(server, (server_generic_client_t *) cdata);

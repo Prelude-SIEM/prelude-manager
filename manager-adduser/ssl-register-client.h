@@ -21,8 +21,7 @@
 *
 *****/
 
-
-int ssl_create_manager_key_if_needed(void);
-
 int ssl_register_client(prelude_io_t *fd, char *pass, size_t size);
+
+int ssl_create_manager_key_if_needed(uint64_t analyzerid, const char *sname);
 

@@ -29,15 +29,14 @@
 
 #include <libprelude/idmef.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/prelude-path.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-getopt.h>
 #include <libprelude/prelude-plugin.h>
 #include <libprelude/daemonize.h>
-#include <libprelude/prelude-client.h>
-#include <libprelude/prelude-client-mgr.h>
+#include <libprelude/prelude-connection.h>
+#include <libprelude/prelude-connection-mgr.h>
 #include <libprelude/prelude-linked-object.h>
 
 #include "config.h"
@@ -133,8 +132,6 @@ static int print_help(void **context, prelude_option_t *opt, const char *arg)
 
 int pconfig_init(int argc, char **argv) 
 {
-        int ret;
-        void *context = NULL;
         prelude_option_t *opt;
         
 	/* Default */
@@ -171,12 +168,6 @@ int pconfig_init(int argc, char **argv)
                                  set_report_plugin_failover, NULL);
 
         prelude_option_set_priority(opt, option_run_last);
-        
-        prelude_set_program_name("prelude-manager");
-        
-        ret = prelude_option_parse_arguments(&context, NULL, PRELUDE_MANAGER_CONF, argc, argv);
-        if ( ret == prelude_option_end )
-                exit(0);
 
-        return ret;
+        return 0;
 }

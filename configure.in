@@ -48,6 +48,9 @@ dnl **************************************************
 AC_PATH_GENERIC(libprelude, 0.8.9, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
 
+libprelude_prefix=`$LIBPRELUDE_CONFIG --prefix`
+AC_SUBST(libprelude_prefix)
+
 pthread_cflags=`$LIBPRELUDE_CONFIG --pthread-cflags`
 defined="$defined $LIBPRELUDE_CFLAGS $pthread_cflags"
 

@@ -9,6 +9,8 @@
 # </IMPORTANT>
 
 
+include = @libprelude_prefix@/prelude/default/global.conf
+
 
 # Address where the sensors server is listening on.
 # if value is 127.0.0.1 (or is resolved as being 127.0.0.1), 
@@ -35,7 +37,8 @@ sensors-srvr = 127.0.0.1;
 # You might use this option multiple time for different plugins.
 #
 # failover = name_of_plugin
-
+# failover-initial-timeout = 10 * 60
+# failover-increase = * 2
 
 
 ####################################

@@ -1,8 +1,8 @@
-int reverse_relay_tell_receiver_alive(prelude_client_t *client);
+int reverse_relay_tell_receiver_alive(prelude_connection_t *cnx);
 
-int reverse_relay_tell_dead(prelude_client_t *client);
+int reverse_relay_tell_dead(prelude_connection_t *cnx);
 
-int reverse_relay_add_receiver(prelude_client_t *client);
+int reverse_relay_add_receiver(prelude_connection_t *cnx);
 
 prelude_client_t *reverse_relay_search_receiver(const char *addr);
 

@@ -167,7 +167,7 @@ static void ask_ssl_settings(int *keysize, int *expire)
 
 
 
-static int create_manager_key_if_needed(void) 
+static int create_manager_key_if_needed(uint64_t analyzerid, const char *sname) 
 {
         int ret, keysize, expire;
         
@@ -181,7 +181,7 @@ static int create_manager_key_if_needed(void)
         
         fprintf(stderr, "\n\n");
 
-        ret = prelude_ssl_gen_crypto(keysize, expire, MANAGER_KEY, 0, getuid());
+        ret = prelude_ssl_gen_crypto(analyzerid, sname, keysize, expire, MANAGER_KEY, 0, getuid());
         if ( ret < 0 ) {
                 log(LOG_ERR, "error creating SSL key.\n");
                 return -1;
@@ -215,9 +215,9 @@ int ssl_register_client(prelude_io_t *fd, char *pass, size_t size)
 
 
 
-int ssl_create_manager_key_if_needed(void) 
+int ssl_create_manager_key_if_needed(uint64_t analyzerid, const char *sname) 
 {
-        if ( create_manager_key_if_needed() < 0 )
+        if ( create_manager_key_if_needed(analyzerid, sname) < 0 )
                 return -1;
 
         return 0;

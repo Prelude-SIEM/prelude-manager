@@ -40,7 +40,6 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-getopt.h>
 #include <libprelude/prelude-auth.h>
-#include <libprelude/prelude-path.h>
 
 #include "auth.h"
 #include "config.h"
@@ -160,7 +159,7 @@ static int handle_plaintext_account_creation(prelude_io_t *fd, prelude_msg_t *ms
         }
 
         else if ( ret == user_does_not_exist ) {
-                ret = prelude_auth_create_account_noprompt(MANAGER_AUTH_FILE, user, pass, 1, getuid());
+                ret = prelude_auth_create_account_noprompt(MANAGER_AUTH_FILE, user, pass, 1, getuid(), getgid());
                 if ( ret < 0 ) {
                         fprintf(stderr, "error creating new plaintext user account.\n");
                         send_plaintext_creation_result(fd, PRELUDE_MSG_AUTH_FAILED);
@@ -486,19 +485,13 @@ int main(int argc, char **argv)
         prelude_msg_t *config;
 
 	handle_options(argc, argv);
-
-        /*
-         * This will be used for SSL subject
-         * generation.
-         */
-        prelude_set_program_name("prelude-manager");
         
         sock = setup_server();
         if ( sock < 0 )
                 return -1;
 
 #ifdef HAVE_SSL
-        ret = ssl_create_manager_key_if_needed();
+        ret = ssl_create_manager_key_if_needed(0, "prelude-manager");
         if ( ret < 0 )
                 return -1;
 #endif

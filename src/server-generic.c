@@ -45,7 +45,6 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-auth.h>
-#include <libprelude/prelude-path.h>
 #include <libprelude/extract.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-inet.h>
@@ -800,7 +799,7 @@ static int resolve_addr(server_generic_t *server, const char *addr, uint16_t por
                 memcpy(server->sa, ai->ai_addr, ai->ai_addrlen);
         else {
                 struct sockaddr_un *un = (struct sockaddr_un *) server->sa;
-                prelude_get_socket_filename(un->sun_path, sizeof(un->sun_path), port);
+                prelude_connection_get_socket_filename(un->sun_path, sizeof(un->sun_path), port);
         }
         
         prelude_inet_freeaddrinfo(ai);

@@ -10,8 +10,8 @@
 #include <libprelude/prelude-linked-object.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
-#include <libprelude/prelude-client.h>
-#include <libprelude/prelude-client-mgr.h>
+#include <libprelude/prelude-connection.h>
+#include <libprelude/prelude-connection-mgr.h>
 #include <libprelude/prelude-async.h>
 #include <libprelude/prelude-message-buffered.h>
 #include <libprelude/idmef-message-write.h>
@@ -21,15 +21,11 @@
 #include "sensor-server.h"
 
 
-#define PRELUDE_CLIENT_TYPE_MANAGER_RECEIVER PRELUDE_CLIENT_TYPE_MANAGER_PARENT
-#define PRELUDE_CLIENT_TYPE_MANAGER_INITIATOR PRELUDE_CLIENT_TYPE_MANAGER_CHILDREN
-
-
 extern server_generic_t *sensor_server;
+extern prelude_client_t *manager_client;
 
-
-static prelude_client_mgr_t *receiver_managers = NULL;
-static prelude_client_mgr_t *initiator_managers = NULL;
+static prelude_connection_mgr_t *receiver_managers = NULL;
+static prelude_connection_mgr_t *initiator_managers = NULL;
 static pthread_mutex_t receiver_managers_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t initiator_managers_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -39,15 +35,15 @@ static void reverse_relay_notify_state(prelude_list_t *clist)
 {
         int ret;
         prelude_list_t *tmp;
-        prelude_client_t *client;
+        prelude_connection_t *cnx;
         
         prelude_list_for_each(tmp, clist) {
-                client = prelude_linked_object_get_object(tmp, prelude_client_t);
+                cnx = prelude_linked_object_get_object(tmp, prelude_connection_t);
 
-                if ( prelude_client_is_alive(client) < 0 ) 
+                if ( prelude_connection_is_alive(cnx) < 0 ) 
                         continue;
                 
-                ret = sensor_server_add_client(sensor_server, client);
+                ret = sensor_server_add_client(sensor_server, cnx);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "error adding new client to reverse relay list.\n");
                         return;
@@ -57,7 +53,7 @@ static void reverse_relay_notify_state(prelude_list_t *clist)
 
 
 
-int reverse_relay_tell_receiver_alive(prelude_client_t *client) 
+int reverse_relay_tell_receiver_alive(prelude_connection_t *cnx) 
 {
         int ret;
 
@@ -65,7 +61,7 @@ int reverse_relay_tell_receiver_alive(prelude_client_t *client)
                 return 0;
         
         pthread_mutex_lock(&receiver_managers_lock);
-        ret = prelude_client_mgr_tell_client_alive(receiver_managers, client);
+        ret = prelude_connection_mgr_tell_connection_alive(receiver_managers, cnx);
         pthread_mutex_unlock(&receiver_managers_lock);
 
         return ret;
@@ -73,21 +69,22 @@ int reverse_relay_tell_receiver_alive(prelude_client_t *client)
 
 
 
-int reverse_relay_tell_dead(prelude_client_t *client) 
+int reverse_relay_tell_dead(prelude_connection_t *cnx) 
 {
-        int ret = -1, type;
-
-        type = prelude_client_get_type(client);
-
-        if ( type == PRELUDE_CLIENT_TYPE_MANAGER_RECEIVER ) {        
+        int ret = -1;
+        prelude_client_capability_t capability;
+        
+        capability = prelude_client_get_capability(prelude_connection_get_client(cnx));
+        
+        if ( capability & PRELUDE_CLIENT_CAPABILITY_RECV_IDMEF ) {        
                 pthread_mutex_lock(&initiator_managers_lock);
-                ret = prelude_client_mgr_tell_client_dead(initiator_managers, client);
+                ret = prelude_connection_mgr_tell_connection_dead(initiator_managers, cnx);
                 pthread_mutex_unlock(&initiator_managers_lock);
         }
 
-        else if ( type == PRELUDE_CLIENT_TYPE_MANAGER_INITIATOR ) {        
+        else if ( capability & PRELUDE_CLIENT_CAPABILITY_SEND_IDMEF ) {        
                 pthread_mutex_lock(&receiver_managers_lock);
-                ret = prelude_client_mgr_tell_client_dead(receiver_managers, client);
+                ret = prelude_connection_mgr_tell_connection_dead(receiver_managers, cnx);
                 pthread_mutex_unlock(&receiver_managers_lock);
         }
         
@@ -97,12 +94,12 @@ int reverse_relay_tell_dead(prelude_client_t *client)
 
 
 
-int reverse_relay_add_receiver(prelude_client_t *client) 
+int reverse_relay_add_receiver(prelude_connection_t *cnx) 
 {
         int ret;
-        
+
         pthread_mutex_lock(&receiver_managers_lock);
-        ret = prelude_client_mgr_add_client(&receiver_managers, client, 0);
+        ret = prelude_connection_mgr_add_connection(&receiver_managers, cnx, 0);
         pthread_mutex_unlock(&receiver_managers_lock);
 
         return ret;
@@ -111,15 +108,15 @@ int reverse_relay_add_receiver(prelude_client_t *client)
 
 
 
-prelude_client_t *reverse_relay_search_receiver(const char *addr) 
+prelude_connection_t *reverse_relay_search_receiver(const char *addr) 
 {
-        prelude_client_t *client;
+        prelude_connection_t *cnx;
 
         pthread_mutex_lock(&receiver_managers_lock);
-        client = prelude_client_mgr_search_client(receiver_managers, addr, PRELUDE_CLIENT_TYPE_MANAGER_RECEIVER);
+        cnx = prelude_connection_mgr_search_connection(receiver_managers, addr);
         pthread_mutex_unlock(&receiver_managers_lock);
 
-        return client;
+        return cnx;
 }
 
 
@@ -129,7 +126,7 @@ static prelude_msg_t *send_msgbuf(prelude_msgbuf_t *msgbuf)
         prelude_msg_t *msg = prelude_msgbuf_get_msg(msgbuf);
 
         pthread_mutex_lock(&receiver_managers_lock);
-        prelude_client_mgr_broadcast(receiver_managers, msg);
+        prelude_connection_mgr_broadcast(receiver_managers, msg);
         pthread_mutex_unlock(&receiver_managers_lock);
         
         prelude_msg_recycle(msg);
@@ -147,7 +144,7 @@ void reverse_relay_send_msg(idmef_message_t *idmef)
                 return;
 
         if ( ! msgbuf ) {
-                msgbuf = prelude_msgbuf_new(0);
+                msgbuf = prelude_msgbuf_new(manager_client);
                 if ( ! msgbuf )
                         return;
                 
@@ -162,7 +159,7 @@ void reverse_relay_send_msg(idmef_message_t *idmef)
 
 int reverse_relay_create_initiator(const char *arg)
 {
-        initiator_managers = prelude_client_mgr_new(PRELUDE_CLIENT_TYPE_MANAGER_RECEIVER, arg);
+        initiator_managers = prelude_connection_mgr_new(manager_client, arg);
         if ( ! initiator_managers )
                 return -1;
 
@@ -175,9 +172,9 @@ int reverse_relay_init_initiator(void)
 {
         if ( ! initiator_managers )
                 return -1;
-        
-        prelude_client_mgr_notify_connection(initiator_managers, reverse_relay_notify_state);
-        reverse_relay_notify_state(prelude_client_mgr_get_client_list(initiator_managers));
+
+        prelude_connection_mgr_notify_connection(initiator_managers, reverse_relay_notify_state);
+        reverse_relay_notify_state(prelude_connection_mgr_get_connection_list(initiator_managers));
 
         return 0;
 }

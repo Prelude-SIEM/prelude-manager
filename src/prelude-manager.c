@@ -32,10 +32,9 @@
 #include <pthread.h>
 #include <sys/time.h>
 
-#include <libprelude/sensor.h>
 #include <libprelude/idmef.h>
+#include <libprelude/prelude-client.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/prelude-client-mgr.h>
 #include <libprelude/prelude-linked-object.h>
 
 #include "server-generic.h"
@@ -46,13 +45,15 @@
 #include "plugin-filter.h"
 #include "idmef-message-scheduler.h"
 #include "reverse-relaying.h"
+#include "config.h"
 
+#define DEFAULT_ANALYZER_NAME "prelude-manager"
 
 
 static size_t nserver = 0;
 server_generic_t *sensor_server;
+prelude_client_t *manager_client;
 extern struct report_config config;
-
 
 
 
@@ -93,8 +94,6 @@ int main(int argc, char **argv)
 {
         int ret;
         struct sigaction action;
-
-        prelude_init(argc, argv);
         
         /*
          * Initialize plugin first.
@@ -119,10 +118,21 @@ int main(int argc, char **argv)
                 return -1;
         }
         log(LOG_INFO, "- Initialized %d filtering plugins.\n", ret);
+
         
         ret = pconfig_init(argc, argv);
         if ( ret < 0 )
                 exit(1);
+
+        manager_client = prelude_client_new(PRELUDE_CLIENT_CAPABILITY_RECV_IDMEF);
+        if ( ! manager_client )
+                return -1;
+
+        prelude_client_set_flags(manager_client, PRELUDE_CLIENT_ASYNC_SEND);
+        
+        ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, argc, argv);
+        if ( ret < 0 )
+                return -1;
                 
         action.sa_flags = 0;
         sigemptyset(&action.sa_mask);
