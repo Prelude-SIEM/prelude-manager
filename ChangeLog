@@ -1,3 +1,7 @@
+2001-11-14  Sylvain GIL <prelude@tootella.org>
+	* plugins/reports/mysql/mysql.c: sql output code for all funcs,
+    no runtime test has been done yet.
+
 2001-11-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	Forwarding between Manager should work now.
@@ -59,7 +63,7 @@
 	This fix a MySQL module crash.
 
 2001-11-06  Sylvain GIL <prelude@tootella.org>
-	* mysql.c: first real mysql calls
+	* plugins/reports/mysql/mysql.c: first real mysql calls
 
 2001-11-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 

@@ -81,6 +81,14 @@ static char *db_escape(const char *string)
 }
 
 
+static int db_query(char * query)
+{
+        int ret = -1;
+
+        ret = mysql_query(&mysql, query);
+
+        return ret;
+}
 
 
 /*
@@ -95,87 +103,165 @@ static int db_insert(char *table, char *fields, char *values)
                  "INSERT INTO %s (%s) VALUES(%s)",
                  table, fields, values);
 
-#if 0
         if ( (ret = db_query(insert_query)) ) {
                 printf("db_query returned %d\n", ret);
                 ret = -1;
         }
-#endif   
+
         return ret;
 }
 
 
-
-
-static void print_address(idmef_address_t *addr) 
+static void print_address(char * alert_ident, idmef_address_t *addr) 
 {
-        printf("   Address information:\n");
-        dprintf("    - ident: %s\n", addr->ident);
-        dprintf("    - category: %d\n", addr->category);
-        dprintf("    - vlan-name: %s\n", addr->vlan_name);
-        dprintf("    - vlan-num: %d\n", addr->vlan_num);
-        dprintf("    - Address: %s\n", addr->address);
-        dprintf("    - Netmask: %s\n", addr->netmask);
+        char values[MAX_QUERY_LENGTH];
+        char * ident; char * vlan_name; char * vlan_num; char * address;
+        char * netmask;
+
+        static char * category_names[] = { "unknown", "atm", "e-mail",
+                                           "lotus-notes", "mac", "sna", "vm",
+                                           "ipv4-addr", "ipv4-addr-hex",
+                                           "ipv4-net", "ipv4-net-mask",
+                                           "ipv6-addr", "ipv6-addr-hex",
+                                           "ipv6-net", "ipv6-net-mask" };
+
+        /* TODO: parent_type */
+        ident = db_escape(addr->ident);
+        vlan_name = db_escape(addr->vlan_name);
+        address = db_escape(addr->address);
+        netmask = db_escape(addr->netmask);
+
+        /* prepare values */
+        snprintf(values, MAX_QUERY_LENGTH, "%s, %s, %s, %d, %s, %s",
+                 alert_ident, ident, category_names[addr->category], vlan_name,
+                 vlan_num, address, netmask);
+
+        /* free memory allocated by db_escape() */
+        free(ident);
+        free(vlan_name);
+        free(address);
+        free(netmask);
 }
 
 
 
-static void print_node(idmef_node_t *node) 
+static void print_node(char * alert_ident, idmef_node_t *node) 
 {
         struct list_head *tmp;
         idmef_address_t *addr;
-        
-        printf("  Node information :\n");
-        dprintf("   - ident: %s\n", node->ident);
-        dprintf("   - category: %d\n", node->category);
-        dprintf("   - location: %s\n", node->location);
-        dprintf("   - name: %s\n", node->name);
+        char values[MAX_QUERY_LENGTH];
+        char * ident; char * location; char * name;
+
+        static char * category_names[] = { "unknown", "ads", "afs", "coda",
+                                           "dfs", "dns", "kerberos", "nds",
+                                           "nis", "nisplus", "nt", "wfw" };
+
+        /* TODO: parent_type */
+        ident = db_escape(node->ident);
+        location = db_escape(node->location);
+        name = db_escape(node->name);
+
+        /* prepare values */
+        snprintf(values, MAX_QUERY_LENGTH, "%s, %s, %s",
+                 alert_ident, ident, category_names[node->category], location,
+                 name);
+
+        db_insert("Prelude_Node",
+                  "alert_ident, ident, category, location, name", values);
+
+        /* free memory allocated by db_escape() */
+        free(ident);
+        free(location);
+        free(name);
 
         list_for_each(tmp, &node->address_list) {
                 addr = list_entry(tmp, idmef_address_t, list);
-                print_address(addr);
+                print_address(alert_ident, addr);
         }
 }
 
 
 
 
-static void print_userid(idmef_userid_t *uid) 
+static void print_userid(char * alert_ident, idmef_userid_t *uid) 
 {
-        printf(" Userid information\n");
-        dprintf("  - ident: %s\n", uid->ident);
-        dprintf("  - type: %d\n", uid->type);
-        dprintf("  - name: %s\n", uid->name);
-        dprintf("  - number: %s\n", uid->number);
+        char values[MAX_QUERY_LENGTH];
+        char * ident; char * name; char * number;
+
+        static char * type_names[] = { "current-user", "original-user",
+                                       "target-user", "user-privs",
+                                       "current-group", "group-privs" };
+
+        /* TODO: parent_type */
+        ident = db_escape(uid->ident);
+        name = db_escape(uid->name);
+        number = db_escape(uid->number);
+
+        /* prepare values */
+        snprintf(values, MAX_QUERY_LENGTH, "%s, %s, %s",
+                 alert_ident, ident, type_names[uid->type], name, number);
+
+        db_insert("Prelude_UserId", "alert_ident, ident, type, name, number",
+                  values);
+
+        /* free memory allocated by db_escape() */
+        free(ident);
+        free(name);
+        free(number);
 }
 
 
 
 
-static void print_user(idmef_user_t *user) 
+static void print_user(char * alert_ident, idmef_user_t *user) 
 {
         idmef_userid_t *uid;
         struct list_head *tmp;
+        char values[MAX_QUERY_LENGTH];
+        char * ident;
 
-        printf("  User information\n");
-        dprintf("   - ident: %s\n", user->ident);
-        printf("   - category: %d\n", user->category);
+        static char * category_names[] = { "unknown", "applicatioin",
+                                           "os-device" };
+
+        /* TODO: parent_type */
+        ident = db_escape(user->ident);
+
+        /* prepare values */
+        snprintf(values, MAX_QUERY_LENGTH, "%s, %s, %s",
+                 alert_ident, ident, category_names[user->category]);
+
+        /* free memory allocated by db_escape() */
+        free(ident);
 
         list_for_each(tmp, &user->userid_list) {
                 uid = list_entry(tmp, idmef_userid_t, list);
-                print_userid(uid);
+                print_userid(alert_ident, uid);
         }
 }
 
 
 
-static void print_process(idmef_process_t *process) 
+static void print_process(char * alert_ident, idmef_process_t *process) 
 {
-        printf("  Process information\n");
-        dprintf("   - ident: %s\n", process->ident);
-        dprintf("   - name: %s\n", process->name);
-        dprintf("   - pid: %s\n", process->pid);
-        dprintf("   - path: %s\n", process->path);
+        char values[MAX_QUERY_LENGTH];
+        char * ident; char * name; char * path;
+
+        /* TODO: parent_type */
+        ident = db_escape(process->ident);
+        name = db_escape(process->name);
+        path = db_escape(process->path);
+
+        /* prepare values */
+        snprintf(values, MAX_QUERY_LENGTH, "%s, %s, %d, %s",
+                 alert_ident, ident, name, process->pid, path);
+
+        db_insert("Prelude_Process", "alert_ident, ident, name, pid, path",
+                  values);
+
+        /* free memory allocated by db_escape() */
+        free(ident);
+        free(name);
+        free(path);
 
         /*
          * Print arg and env.
@@ -184,14 +270,30 @@ static void print_process(idmef_process_t *process)
 
 
 
-static void print_service(idmef_service_t *service) 
+static void print_service(char * alert_ident, idmef_service_t *service) 
 {
-        printf("  Service information\n");
-        dprintf("   - ident: %s\n", service->ident);
-        dprintf("   - name: %s\n", service->name);
-        dprintf("   - port: %d\n", service->port);
-        dprintf("   - portlist: %s\n", service->portlist);
-        dprintf("   - protocol: %s\n", service->protocol);
+        char values[MAX_QUERY_LENGTH];
+        char * ident; char * name;
+        char * portlist; char * protocol;
+
+        /* TODO: parent_type
+         *       inset portlist into Prelude_ServicePortList
+         */
+        ident = db_escape(service->ident);
+        name = db_escape(service->name);
+        protocol = db_escape(service->protocol);
+
+        /* prepare values */
+        snprintf(values, MAX_QUERY_LENGTH, "%s, %s, %s, %d, %s",
+                 alert_ident, ident, name, service->port, protocol);
+
+        db_insert("Prelude_Service", "alert_ident, ident, "
+                                     "name, port, protocol", values);
+
+        /* free memory allocated by db_escape() */
+        free(ident);
+        free(name);
+        free(protocol);
 
         /*
          * Wev / Snmp service.
@@ -199,41 +301,99 @@ static void print_service(idmef_service_t *service)
 }
 
 
-static void print_source(idmef_source_t *source, const char *str) 
+static void print_source(char * alert_ident,
+                         idmef_source_t *source,
+                         const char *str) 
 {
         struct list_head *tmp;
         idmef_address_t *addr;
+        char values[MAX_QUERY_LENGTH];
+        char * ident; char * interface;
 
-        printf(" %s information :\n", str);
-        dprintf("  - ident: %s\n", source->ident);
-        printf("  - spoofed: %d\n", source->spoofed);
-        dprintf("  - interface: %s\n", source->interface);
+        static char * spoofed_names[] = { "unknown", "yes", "no" };
 
-        print_node(&source->node);
-        print_user(&source->user);
-        print_process(&source->process);
-        print_service(&source->service);
+        /* escape SQL special chars */
+        ident = db_escape(source->ident);
+        interface = db_escape(source->interface);
+
+        /* prepare values */
+        snprintf(values, MAX_QUERY_LENGTH, "%s, %s, %s, %s",
+                 alert_ident, ident, spoofed_names[source->spoofed],
+                 interface);
+        
+        db_insert("Prelude_Source", "alert_ident, ident, spoofed, interface",
+                  values);
+
+        /* free memory allocated by db_escape() */
+        free(ident);
+        free(interface);
+
+        print_node(alert_ident, &source->node);
+        print_user(alert_ident, &source->user);
+        print_process(alert_ident, &source->process);
+
+        /* TODO: give info about prelude_type */
+        print_service(alert_ident, &source->service);
+}
+
+static void print_analyzer(char * parent_ident,
+                           idmef_analyzer_t *analyzer) 
+{
+        char values[MAX_QUERY_LENGTH];
+        char * analyzerid; char * manufacturer; char * model;
+        char * version; char * class;
+
+        /* escape SQL special chars */
+        analyzerid = db_escape(analyzer->analyzerid);
+        manufacturer = db_escape(analyzer->manufacturer);
+        model = db_escape(analyzer->model);
+        version = db_escape(analyzer->version);
+        class = db_escape(analyzer->class);
+
+        /* prepare values */
+        /* TODO: fill the parent_type value */
+        snprintf(values, MAX_QUERY_LENGTH,
+                 "%s, %s, %s, %s, %s, %s",
+                 parent_ident, analyzerid, manufacturer, model, version, class);
+
+        db_insert("Prelude_Analyzer",
+                  "parent_ident, analyzerid, manufacturer, "
+                  "model, version, class",
+                  values);
+
+        /* free memory allocated by db_escape() */
+        free(analyzerid);
+        free(manufacturer);
+        free(model);
+        free(version);
+        free(class);
 }
 
 
-
-static void print_analyzer(idmef_analyzer_t *analyzer) 
+static void print_classification(char * alert_ident,
+                                 idmef_classification_t *class) 
 {
-        printf(" Analyzer Informations :\n");
-        dprintf("  id: %s\n", analyzer->analyzerid);
-        dprintf("  manufacturer: %s\n", analyzer->manufacturer);
-        dprintf("  model: %s\n", analyzer->model);
-        dprintf("  version: %s\n", analyzer->version);
-        dprintf("  class: %s\n", analyzer->class);
-}
+        char values[MAX_QUERY_LENGTH];
+        char * origin; char * name; char * url;
 
+        static char * origin_names[] = { "unknown", "bugtraqid", "cve", 
+                                         "vendor_specific" };
 
-static void print_classification(idmef_classification_t *class) 
-{
-        printf(" Classification Informations :\n");
-        dprintf("  - origin: %d\n", class->origin);
-        dprintf("  - name: %s\n", class->name);
-        dprintf("  - url: %s\n", class->url);
+        /* escape SQL special chars */
+        name = db_escape(class->name);
+        url = db_escape(class->url);
+
+        /* prepare values */
+        snprintf(values, MAX_QUERY_LENGTH, "%s, %s, %s, %s",
+                 alert_ident, origin_names[class->origin], name, url);
+
+        /* insert into DB */
+        db_insert("Prelude_Classification", "ident, origin, name, url", values);
+
+        /* free memory allocated by db_escape() */
+        free(origin);
+        free(name);
+        free(url);
 }
 
 
@@ -260,26 +420,28 @@ static void print_alert(idmef_alert_t *alert)
         db_insert("Prelude_Alert", "ident, impact, action", values);
 
         /* free memory allocated by db_escape() */
-        free(ident);
         free(impact);
         free(action);
 
-        print_analyzer(&alert->analyzer);
+        print_analyzer(ident, &alert->analyzer);
         
         list_for_each(tmp, &alert->source_list) {
                 source = list_entry(tmp, idmef_source_t, list);
-                print_source(source, "Source");
+                print_source(ident, source, "Source");
         }
 
         list_for_each(tmp, &alert->target_list) {
                 source = list_entry(tmp, idmef_source_t, list);
-                print_source(source, "Target");
+                print_source(ident, source, "Target");
         }
 
         list_for_each(tmp, &alert->classification_list) {
                 class = list_entry(tmp, idmef_classification_t, list);
-                print_classification(class);
+                print_classification(ident, class);
         }
+
+        /* free memory allocated by db_escape() */
+        free(ident);
 }
 
 
