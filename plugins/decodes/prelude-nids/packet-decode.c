@@ -32,7 +32,6 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 #include <libprelude/prelude-strbuf.h>
-#include <libprelude/idmef-tree.h>
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-tree-wrap.h>
 
