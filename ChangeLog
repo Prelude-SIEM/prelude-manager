@@ -1,3 +1,14 @@
+2003-12-28  Nicolas Delon  <delon.nicolas@wanadoo.fr>
+
+	* plugins/reports/db/db.c:
+	plugin rework, the configuration process has changed
+	to something more user friendly
+
+	* prelude-manager.conf.in:
+	updated to the new libpreludedb plugin configuration process
+	for the Xmlmod plugin, add the "format" keyword to the configuration
+	example
+
 2003-12-28  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* src/server-generic.c (setup_client_socket): 

@@ -41,19 +41,25 @@ sensors-srvr = 127.0.0.1;
 # Here start plugins configuration #
 ####################################
 
-# [MySQL]
+# [db]
+
+# The format of database used by libpreludedb.
+# format = classic;
+
+# The type of database (mysql/pgsql).
+# type = mysql;
 
 # Host the database is listening on.
-# dbhost = localhost;
+# host = localhost;
 
 # Name of the database.
 # dbname = prelude;
 
 # Username to be used to connect the database.
-# dbuser = prelude;
+# user = prelude;
 
 # Password used to connect the database.
-# dbpass = xxxxxx;
+# pass = xxxxxx;
 
 
 
@@ -97,6 +103,9 @@ logfile = /var/log/prelude.log;
 # Tell Xmlmod to check generated XML against IDMEF DTD
 # check-dtd;
 #
+# 
+# Tell Xmlmod to produce a pretty, human readable xml output
+# format;
 
 logfile = /var/log/prelude-xml.log;
 
