@@ -322,10 +322,11 @@ idmef () {
 	    db_password=${password}
 	fi
 
+	echo
 	ask_manager_user
 	echo
 	echo "We need to set a password for this special \"${manager_user}\" account."
-	echo "This password will have to used by prelude-manager to access the database."
+	echo "This password will have to be used by prelude-manager to access the database."
 	ask_password
 	manager_password=${password}
 	
