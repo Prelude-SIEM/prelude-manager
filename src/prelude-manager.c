@@ -30,6 +30,7 @@
 #include <inttypes.h>
 #include <assert.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 #include <libprelude/list.h>
 #include <libprelude/plugin-common.h>

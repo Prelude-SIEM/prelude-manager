@@ -31,6 +31,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/time.h>
 
 #include <libprelude/common.h>
 #include <libprelude/prelude-list.h>
