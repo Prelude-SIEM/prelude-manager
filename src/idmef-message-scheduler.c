@@ -458,20 +458,21 @@ static void read_message_scheduled(idmef_queue_t *queue)
 
 static void schedule_queued_message(void)
 {
-        idmef_queue_t *queue;
         int dirty, any_queue_dirty;
-        struct list_head *tmp, *bkp;
+        idmef_queue_t *queue, *bkp = NULL;
         
         do {
+                queue = NULL;
                 any_queue_dirty = 0;
                 
-                pthread_mutex_lock(&queue_list_mutex);
-                
-                list_for_each_safe(tmp, bkp, &message_queue) {
-
+                while ( 1 ) {
+                        pthread_mutex_lock(&queue_list_mutex);
+                        queue = list_get_next_safe(queue, bkp, &message_queue, idmef_queue_t, list);
                         pthread_mutex_unlock(&queue_list_mutex);
-                        queue = list_entry(tmp, idmef_queue_t, list);
-                        
+
+                        if ( ! queue )
+                                break;
+                                                
                         read_message_scheduled(queue);
 
                         dirty = is_queue_dirty(queue);
@@ -480,9 +481,6 @@ static void schedule_queued_message(void)
                         if ( ! dirty && queue->state & QUEUE_STATE_DESTROYED )
                                 queue_destroy(queue);
                 }
-
-                pthread_mutex_unlock(&queue_list_mutex);
-                
         } while ( any_queue_dirty );
 }
         
