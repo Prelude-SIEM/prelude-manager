@@ -49,7 +49,7 @@ dnl * Check for the Posix Thread library             *
 dnl **************************************************
 
 AC_CHECK_LIB(pthread, pthread_create, pthrlib="yes")
-if test x$pthrlib == xyes; then
+if test x$pthrlib = xyes; then
 	COMMON_LIBS="$COMMON_LIBS -lpthread"
 else
 	AC_CHECK_LIB(c_r, pthread_create, COMMON_LIBS="$COMMON_LIBS -lc_r")
@@ -64,7 +64,7 @@ AC_CHECK_PROG(MYSQL_CONFIG, mysql_config, true, false)
 AM_CONDITIONAL(HAVE_MYSQL, $MYSQL_CONFIG)
 AC_SUBST(HAVE_MYSQL)
 
-if test x$MYSQL_CONFIG == xtrue; then
+if test x$MYSQL_CONFIG = xtrue; then
 	MYSQL_LIBS=`mysql_config --libs`
 	MYSQL_CFLAGS=`mysql_config --cflags`
 fi
@@ -81,7 +81,7 @@ AC_CHECK_PROG(PGSQL_CONFIG, pg_config, true, false)
 AM_CONDITIONAL(HAVE_PGSQL, $PGSQL_CONFIG)
 AC_SUBST(HAVE_PGSQL)
 
-if test x$PGSQL_CONFIG == xtrue; then
+if test x$PGSQL_CONFIG = xtrue; then
 	PGSQL_LIBDIR=`pg_config --libdir`
 	PGSQL_INCLUDEDIR=`pg_config --includedir`
 fi
