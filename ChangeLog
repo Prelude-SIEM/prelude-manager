@@ -1,3 +1,9 @@
+2002-04-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server-generic.c (server_generic_new): 
+	memset sin_zero member to 0. This should avoid INET
+	server startign problem on some system.
+
 2002-04-24  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/decodes/prelude-nids/packet-decode.c (ip_dump): 
