@@ -26,7 +26,7 @@
 
 typedef struct idmef_queue idmef_queue_t;
 
-int idmef_message_scheduler_init(void);
+int idmef_message_scheduler_init(prelude_client_t *client);
 void idmef_message_scheduler_exit(void);
 int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg);
 

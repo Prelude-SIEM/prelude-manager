@@ -127,8 +127,14 @@ int main(int argc, char **argv)
         manager_client = prelude_client_new(PRELUDE_CLIENT_CAPABILITY_RECV_IDMEF);
         if ( ! manager_client )
                 return -1;
-
+        
         prelude_client_set_flags(manager_client, PRELUDE_CLIENT_ASYNC_SEND);
+        
+        ret = idmef_message_scheduler_init(manager_client);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "couldn't initialize alert scheduler.\n");
+                return NULL;
+        }
         
         ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, argc, argv);
         if ( ret < 0 )

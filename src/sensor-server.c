@@ -597,13 +597,7 @@ server_generic_t *sensor_server_new(const char *addr, uint16_t port)
                 log(LOG_ERR, "error creating a generic server.\n");
                 return NULL;
         }
-        
-        ret = idmef_message_scheduler_init();
-        if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't initialize alert scheduler.\n");
-                return NULL;
-        }
-        
+                
         return server;
 }
 

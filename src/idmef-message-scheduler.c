@@ -46,6 +46,7 @@
 #include <libprelude/threads.h>
 #include <libprelude/common.h>
 #include <libprelude/prelude-client.h>
+#include <libprelude/timer.h>
 
 #include "plugin-decode.h"
 #include "plugin-report.h"
@@ -141,11 +142,22 @@ static void signal_input_available(void)
  * Wait until a message is queued.
  */
 static void wait_for_message(void) 
-{        
+{
+        int ret;
+        struct timeval now;
+        struct timespec ts;
+        
         pthread_mutex_lock(&input_mutex);            
-          
-        while ( ! input_available && ! stop_processing ) 
-                pthread_cond_wait(&input_cond, &input_mutex);
+        
+        while ( ! input_available && ! stop_processing ) {
+                gettimeofday(&now, NULL);
+                ts.tv_sec = now.tv_sec + 1;
+                ts.tv_nsec = now.tv_usec * 1000;
+                
+                ret = pthread_cond_timedwait(&input_cond, &input_mutex, &ts);
+                if ( ret == ETIMEDOUT ) 
+                        prelude_wake_up_timer();
+        }
         
         if ( ! input_available && stop_processing ) {
                 pthread_mutex_unlock(&input_mutex);
@@ -229,18 +241,30 @@ static prelude_msg_t *get_message_from_file(file_output_t *out)
 
 
 
+
+static void process_idmef_message(prelude_client_t *client, idmef_message_t *idmef)
+{
+        int relay_filter_available = 0;
+        
+        relay_filter_available = filter_plugins_available(FILTER_CATEGORY_REVERSE_RELAYING);
+        if ( relay_filter_available < 0 )
+                reverse_relay_send_msg(idmef);
+
+        else if ( filter_plugins_run_by_category(idmef, FILTER_CATEGORY_REVERSE_RELAYING) == 0 )
+                reverse_relay_send_msg(idmef);
+        
+        /*
+         * run simple reporting plugin.
+         */
+        report_plugins_run(idmef);
+}
+
+
+
+
 static int process_message(prelude_msg_t *msg) 
 {
         idmef_message_t *idmef;
-        int relay_filter_available = 0;
-        
-        if ( report_plugins_available() < 0 && relay_filter_available < 0 ) {
-                /*
-                 * we are probably a simple relaying manager.
-                 */
-                prelude_msg_destroy(msg);
-                return 0;
-        }
         
         idmef = pmsg_to_idmef(msg);
         if ( ! idmef ) {
@@ -248,24 +272,10 @@ static int process_message(prelude_msg_t *msg)
                 return -1;
         }
 
-        relay_filter_available = filter_plugins_available(FILTER_CATEGORY_REVERSE_RELAYING);
-        if ( relay_filter_available < 0 )
-                reverse_relay_send_msg(idmef);
-
-        else if ( filter_plugins_run_by_category(idmef, FILTER_CATEGORY_REVERSE_RELAYING) == 0 )
-                reverse_relay_send_msg(idmef);
-
-
-        /*
-         * run simple reporting plugin.
-         */
-        report_plugins_run(idmef);
-
-        /*
-         * free data.
-         */
-	idmef_message_destroy(idmef);
-	prelude_msg_destroy(msg);
+        process_idmef_message(NULL, idmef);
+        idmef_message_destroy(idmef);
+        
+        prelude_msg_destroy(msg);
         
         return 0;
 }
@@ -725,11 +735,13 @@ void idmef_message_scheduler_queue_destroy(idmef_queue_t *queue)
 
 
 
-int idmef_message_scheduler_init(void) 
+int idmef_message_scheduler_init(prelude_client_t *client) 
 {
         char buf[256];
         int ret, i, continue_check = 1;
-
+        
+        prelude_client_set_heartbeat_cb(client, process_idmef_message);
+        
         /*
          * this code recover orphaned fifo in case of a prelude-manager crash.
          */
