@@ -1,3 +1,12 @@
+2002-08-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/db-plugins.c (generate_dynamic_query): fix a
+	possible off by one in case DB_MAX_INSERT_QUERY_LENGTH
+	is used. Add a carriage return at the end of the error dump.
+
+	(db_plugin_insert): fix off by one.
+	carriage return at the end of the error dump.
+	
 2002-08-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/reports/textmod/textmod.c (process_inode): 

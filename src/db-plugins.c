@@ -102,8 +102,8 @@ static char *generate_dynamic_query(const char *old, size_t olen,
         strncpy(query, old, olen);
         ret = vsnprintf(query + olen, *nlen - olen, fmt, ap);
         
-        if ( (ret + 1) > (*nlen - olen) || ret < 0 ) {
-                log(LOG_ERR, "Query %s doesn't fit in %d bytes", query, *nlen);
+        if ( (ret + 2) > (*nlen - olen) || ret < 0 ) {
+                log(LOG_ERR, "query %s doesn't fit in %d bytes.\n", query, *nlen);
                 free(query);
                 return NULL;
         }
@@ -127,7 +127,7 @@ int db_plugin_insert(const char *table, const char *fields, const char *fmt, ...
         
 	len = snprintf(query_static, sizeof(query_static), "INSERT INTO %s (%s) VALUES(", table, fields);
 	if ( (len + 1) > sizeof(query_static) || len < 0 ) {
-                log(LOG_ERR, "Start of query (%s) doesn't fit in %d bytes", query, sizeof(query_static));
+                log(LOG_ERR, "start of query (%s) doesn't fit in %d bytes.\n", query, sizeof(query_static));
                 return -1;
         }
         
@@ -142,7 +142,7 @@ int db_plugin_insert(const char *table, const char *fields, const char *fmt, ...
         query_length = vsnprintf(query_static + len, sizeof(query_static) - len, fmt, ap);
         va_end(ap);
         
-        if ( query_length + 1 > sizeof(query_static) - len || query_length < 0 ) {
+        if ( (query_length + 2) > (sizeof(query_static) - len) || query_length < 0 ) {
                 
                 if ( query_length < 0 )
                         query_length = DB_MAX_INSERT_QUERY_LENGTH;
