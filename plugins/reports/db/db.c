@@ -88,7 +88,7 @@ static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 	if ( ret < 0 )
 		prelude_log(PRELUDE_LOG_WARN,
 			    "could not insert message into database: %s.\n",
-			    preludedb_get_error(plugin->db, ret, errbuf));
+			    preludedb_get_error(plugin->db, ret, errbuf, sizeof(errbuf)));
 
         return ret;
 }
@@ -168,7 +168,7 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 		}
 	}
 
-        ret = preludedb_new(&db, sql, NULL, errbuf);
+        ret = preludedb_new(&db, sql, NULL, errbuf, sizeof(errbuf));
 	if ( ret < 0 ) {
 		preludedb_sql_destroy(sql);
 		prelude_log(PRELUDE_LOG_WARN, "could not initialize libpreludedb: %s.\n", errbuf);
