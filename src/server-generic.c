@@ -160,12 +160,10 @@ static int setup_connection(prelude_io_t *fd, const char *addr)
         }
 
         ret = prelude_io_read_delimited(fd, (void **)&ptr);
-        if ( ret < 0 ) {
+        if ( ret <= 0 ) {
                 log(LOG_ERR, "error reading Prelude client config string.\n");
                 return -1;
         }
-
-        printf("ret = %d, ptr = %p\n", ret, ptr);
         
         if ( strstr(ptr, "use_ssl=yes;") ) 
                 ret = handle_ssl_connection(fd, addr);
@@ -285,7 +283,7 @@ static prelude_io_t *setup_unix_connection(int sock, struct sockaddr_un *addr)
 /*
  *
  */
-static int wait_connection(server_generic_t *server)
+static void wait_connection(server_generic_t *server)
 {
         int ret;
         int client;
@@ -334,8 +332,6 @@ static int wait_connection(server_generic_t *server)
                 }
                 
         }
-        
-        return 0;
 }
 
 
@@ -557,9 +553,9 @@ server_generic_t *server_generic_new(const char *addr, uint16_t port, server_gen
 
 
 
-int server_generic_start(server_generic_t *server) 
+void server_generic_start(server_generic_t *server) 
 {
-        return wait_connection(server);
+        wait_connection(server);
 }
 
 

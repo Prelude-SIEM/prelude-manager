@@ -20,15 +20,17 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <ctype.h>
 #include <fcntl.h>
-
 #include <assert.h>
 
 #include <libprelude/common.h>
+
+#include "plugin-util.h"
 
 
 
@@ -100,4 +102,7 @@ char *prelude_string_to_hex(const unsigned char *input, uint32_t len)
         
         return ret;
 }
+
+
+
 

@@ -31,20 +31,26 @@
 typedef struct {
         PLUGIN_GENERIC;
         uint8_t decode_id;
-        int (*run)(prelude_msg_t *ac, idmef_alert_t *alert);
+        void (*free)(void);
+        int (*run)(prelude_msg_t *ac, idmef_message_t *idmef);
 } plugin_decode_t;
 
 
 #define plugin_run_func(p) (p)->run
 
+#define plugin_free_func(p) (p)->free
+
 #define plugin_set_running_func(p, f) plugin_run_func(p) = (f)
 
+#define plugin_set_freeing_func(p, f) plugin_free_func(p) = (f)
 
 
 int plugin_init(unsigned int id);
 
 void decode_plugins_init(const char *dirname);
 
-int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *pmsg, idmef_alert_t *alert);
+void decode_plugins_free_data(void);
+
+int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *pmsg, idmef_message_t *idmef);
 
 #endif

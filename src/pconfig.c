@@ -53,7 +53,7 @@ static void configure_admin_server(config_t *cfg)
 
         if ( ! config.admin_server_addr ) {
                 ret = config_get(cfg, "Prelude Manager", "admin-addr");
-                config.admin_server_addr = (ret) ? strdup(ret) : NULL;
+                config.admin_server_addr = (ret) ? strdup(ret) : "0.0.0.0";
         }
         
         if ( config.admin_server_port == 0 ) {        

@@ -29,9 +29,10 @@
 
 typedef struct {
         PLUGIN_GENERIC;
-        void (*run)(idmef_alert_t *alert);
+        void (*run)(idmef_message_t *message);
         void (*close)(void);
 } plugin_report_t;
+
 
 #define plugin_run_func(p) (p)->run
 
@@ -45,7 +46,7 @@ typedef struct {
 
 int report_plugins_init(const char *dirname);
 
-void report_plugins_run(idmef_alert_t *alert);
+void report_plugins_run(idmef_message_t *message);
 
 void report_plugins_close(void);
 

@@ -29,6 +29,7 @@
 #include <signal.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <pthread.h>
 
 #include <libprelude/list.h>
 #include <libprelude/plugin-common.h>
@@ -40,24 +41,28 @@
 
 
 #include "sensor-server.h"
+#include "admin-server.h"
 #include "pconfig.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-db.h"
 
 
+static pthread_t admin_server_thr;
 extern struct report_config config;
 
 
 static void cleanup(int sig) 
-{
+{        
         log(LOG_INFO, "Caught signal %d.\n", sig);
+        
         /*
          * Now we reset the signal
          * we caught to it's default behavior
          */
         signal(sig, SIG_DFL);
 
+        
 #if 0
         /*
          *
@@ -83,25 +88,24 @@ static void cleanup(int sig)
 
 
 
-#if 0
-static void *admin_server_start(void) 
+
+static void *admin_server_thread(void *arg) 
 {
-        manager_server_t *admsrv;
+        int ret;
+        
+        ret = admin_server_start(config.admin_server_addr, config.admin_server_port);
+        if ( ret < 0 ) 
+                log(LOG_ERR, "couldn't create admin server.\n");
 
-        admsrv = manager_server_start(config.admin_server_addr, config.admin_server_port);
-        if ( ! admsrv )
-                return NULL;
-
-        return NULL;
+        pthread_exit(0);
 }
-#endif
+
 
 
 
 int main(int argc, char **argv)
 {
         int ret;
-        pthread_t thr;
         
         if ( pconfig_init(argc, argv) < 0 )
                 exit(1);
@@ -122,7 +126,6 @@ int main(int argc, char **argv)
         
         signal(SIGTERM, cleanup);
         signal(SIGINT, cleanup);
-        signal(SIGTERM, cleanup);
         signal(SIGSEGV, cleanup);
 
         /*
@@ -132,17 +135,12 @@ int main(int argc, char **argv)
                 do_init(daemon_start(config.pidfile),
                         "Starting Prelude Report as a daemon.");
 
-#if 0
-        do_init(pthread_create(&thr, NULL, admin_server_start, NULL),
-                "Starting Administration server");
-
-#endif
-        do_init(sensor_server_start(config.addr, config.port), "Starting Manager server");
-     
- err:
-        report_plugins_close();
-        idmef_ident_exit();
+        do_init(pthread_create(&admin_server_thr, NULL,
+                               admin_server_thread, NULL), "Starting Administration server");
         
+        log(LOG_INFO, "Starting Prelude Manager server.\n");
+        sensor_server_start(config.addr, config.port); /* never return */
+
 	exit(0);	
 }
 

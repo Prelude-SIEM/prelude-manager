@@ -179,7 +179,9 @@ int admin_server_start(const char *addr, uint16_t port)
                 return -1;
         }
         
-        return server_generic_start(server);
+        server_generic_start(server); /* Never return */
+
+        return 0; /* avoid warning */
 }
 
 

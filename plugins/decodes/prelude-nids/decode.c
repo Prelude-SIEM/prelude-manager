@@ -28,18 +28,19 @@
 #include <netdb.h>
 #include <assert.h>
 
-#include <libprelude/list.h>
-#include <libprelude/common.h>
-#include <libprelude/plugin-common.h>
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-message.h>
-#include <libprelude/idmef-message-id.h>
-#include <libprelude/idmef-tree.h>
-
-#include "idmef-func.h"
-#include "nids-alert-id.h"
-#include "plugin-decode.h"
+#include "decode.h"
 #include "packet.h"
+#include "nids-alert-id.h"
+
+
+
+
+static char *hex_data = NULL;
+static char *sport_data = NULL;
+static char *dport_data = NULL;
+static char *shost_data = NULL;
+static char *dhost_data = NULL;
+
 
 
 
@@ -49,34 +50,30 @@ static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip)
         idmef_source_t *source;
         idmef_target_t *target;
         idmef_address_t *saddr, *daddr;
-
-        source = idmef_source_new(alert);
+        
+        source = idmef_alert_source_new(alert);
         if ( ! source )
                 return -1;
         
-        target = idmef_target_new(alert);
+        target = idmef_alert_target_new(alert);
         if ( ! target )
                 return -1;
-
-        saddr = idmef_address_new(&source->node);
+        
+        idmef_source_node_new(source);
+        saddr = idmef_node_address_new(source->node);
         if ( ! saddr )
                 return -1;
 
-        daddr = idmef_address_new(&target->node);
+        idmef_target_node_new(target);
+        daddr = idmef_node_address_new(target->node);
         if ( ! daddr )
                 return -1;
         
-        source->spoofed = unknown;
-        source->node.category = unknown;
-
         saddr->category = ipv4_addr;
-        saddr->address = strdup(inet_ntoa(ip->ip_src));
+        saddr->address = shost_data = strdup(inet_ntoa(ip->ip_src));
         
-        target->decoy = unknown;
-        target->node.category = unknown;
-
         daddr->category = ipv4_addr;
-        daddr->address = strdup(inet_ntoa(ip->ip_dst));
+        daddr->address = dhost_data = strdup(inet_ntoa(ip->ip_dst));
 
         return 0;
 }
@@ -84,71 +81,95 @@ static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip)
 
 
 
-static void gather_protocol_infos(idmef_alert_t *alert, uint16_t sport, uint16_t dport, const char *proto) 
+static int gather_protocol_infos(idmef_alert_t *alert, uint16_t sport, uint16_t dport, const char *proto) 
 {
-        const char *name;
         struct servent *ptr;
         idmef_source_t *source;
         idmef_target_t *target;
 
-        source = list_entry(alert->source_list.prev, idmef_source_t, list);
-        target = list_entry(alert->target_list.prev, idmef_target_t, list);
+        if ( ! list_empty(&alert->source_list) ) {
+                               
+                source = list_entry(alert->source_list.prev, idmef_source_t, list);
+                ptr = getservbyport(sport, proto);
+                sport_data = (ptr) ? strdup(ptr->s_name) : NULL;
 
-        ptr = getservbyport(sport, proto);
-        name = (ptr) ? ptr->s_name : NULL;
-        
-        source->service.name = name;
-        source->service.port = ntohs(sport);
-        source->service.protocol = proto;
+                idmef_source_service_new(source);
+                source->service->name = sport_data;
+                source->service->port = ntohs(sport);
+                source->service->protocol = proto;
+        }
 
-        ptr = getservbyport(dport, proto);
-        name = (ptr) ? ptr->s_name : NULL;
-        
-        target->service.name = name;
-        target->service.port = ntohs(dport);
-        target->service.protocol = proto;
+        if ( ! list_empty(&alert->target_list) ) {
+                
+                target = list_entry(alert->target_list.prev, idmef_target_t, list);
+                ptr = getservbyport(dport, proto);
+                dport_data = (ptr) ? strdup(ptr->s_name) : NULL;
+
+                idmef_target_service_new(target);
+                target->service->name = dport_data;
+                target->service->port = ntohs(dport);
+                target->service->protocol = proto;
+        }
+
+        return 0;
 }
 
 
 
 
-static void gather_payload_infos(idmef_alert_t *alert, unsigned char *data, size_t len) 
+static int gather_payload_infos(idmef_alert_t *alert, unsigned char *data, size_t len) 
 {
         idmef_additional_data_t *pdata;
-
-        pdata = idmef_additional_data_new(alert);
-        if ( ! pdata )
-                return;
+        
+        pdata = idmef_alert_additional_data_new(alert);
+        if ( ! pdata ) 
+                return -1;
         
         pdata->type = string;
         pdata->meaning = "Packet Payload";
         
-        pdata->data = prelude_string_to_hex(data, len);
+        pdata->data = hex_data = prelude_string_to_hex(data, len);
         if ( ! pdata->data )
-                idmef_additional_data_free(alert);
+                return -1;
+
+        return 0;
 }
 
 
 
 
-static void packet_to_idmef(idmef_alert_t *alert, packet_t *p) 
+static int packet_to_idmef(idmef_alert_t *alert, packet_t *p) 
 {
         int i;
+        int ret;
         
         for ( i = 0; p[i].proto != p_end; i++ ) {
-                
-                if ( p[i].proto == p_ip )           
-                        gather_ip_infos(alert, p[i].p.ip);
 
-                else if ( p[i].proto == p_tcp )
-                        gather_protocol_infos(alert, p[i].p.tcp->th_sport, p[i].p.tcp->th_dport, "tcp");
-
-                else if ( p[i].proto == p_udp )
-                        gather_protocol_infos(alert, p[i].p.udp_hdr->uh_sport, p[i].p.udp_hdr->uh_dport, "udp");
+                if ( p[i].proto == p_ip ) {
+                        ret = gather_ip_infos(alert, p[i].p.ip);
+                        if ( ret < 0 )
+                                return -1;
+                }
                 
-                else if ( p[i].proto == p_data ) 
-                        gather_payload_infos(alert, p[i].p.data, p[i].len);
-        }        
+                else if ( p[i].proto == p_tcp ) {
+                        ret = gather_protocol_infos(alert, p[i].p.tcp->th_sport, p[i].p.tcp->th_dport, "tcp");
+                        if ( ret < 0 )
+                                return -1;
+                }
+                else if ( p[i].proto == p_udp ) {
+                        ret = gather_protocol_infos(alert, p[i].p.udp_hdr->uh_sport, p[i].p.udp_hdr->uh_dport, "udp");
+                        if ( ret < 0 )
+                                return -1;
+                }
+                
+                else if ( p[i].proto == p_data ) {
+                        ret = gather_payload_infos(alert, p[i].p.data, p[i].len);
+                        if ( ret < 0 )
+                                return -1;
+                }
+        }
+
+        return 0;
 }
 
 
@@ -186,14 +207,13 @@ static int msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert)
 
 
 
-static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert) 
+static int decode_message(prelude_msg_t *pmsg, idmef_alert_t *alert) 
 {
-        void *buf;
         int ret;
+        void *buf;
         uint8_t tag;
         uint32_t len;
-        struct timeval tv;
-        
+                
         ret = prelude_msg_get(pmsg, &tag, &len, &buf);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error decoding message.\n");
@@ -207,15 +227,7 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert)
                 return -1; /* message should always terminate by END OF TAG */
         
         switch (tag) {
-                
-        case ID_PRELUDE_NIDS_TS_SEC:
-                tv.tv_sec = ntohl( (*(long *)buf));
-                break;
-                
-        case ID_PRELUDE_NIDS_TS_USEC:
-                tv.tv_usec = ntohl( (*(long *)buf)) ;
-                break;
-                
+                                
         case ID_PRELUDE_NIDS_PACKET:
                 ret = msg_to_packet(pmsg, alert);
                 if ( ret < 0 )
@@ -230,7 +242,45 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert)
                 break;
         }
         
-        return nids_decode_run(pmsg, alert);
+        return decode_message(pmsg, alert);
+}
+
+
+
+static int nids_decode_run(prelude_msg_t *pmsg, idmef_message_t *idmef) 
+{
+        idmef_alert_new(idmef);
+        return decode_message(pmsg, idmef->message.alert);
+}
+
+
+
+static void nids_decode_free(void) 
+{
+        if ( hex_data ) {
+                free(hex_data);
+                hex_data = NULL;
+        }
+
+        if ( shost_data ) {
+                free(shost_data);
+                shost_data = NULL;
+        }
+
+        if ( dhost_data ) {
+                free(dhost_data);
+                dhost_data = NULL;
+        }
+
+        if ( sport_data ) {
+                free(sport_data);
+                sport_data = NULL;
+        }
+
+        if ( dport_data ) {
+                free(dport_data);
+                dport_data = NULL;
+        }
 }
 
 
@@ -244,8 +294,10 @@ int plugin_init(unsigned int id)
         plugin_set_author(&plugin, "Yoann Vandoorselaere");
         plugin_set_contact(&plugin, "yoann@mandrakesoft.com");
         plugin_set_desc(&plugin, "Decode Prelude NIDS message, and translate them to IDMEF.");
+        
         plugin_set_running_func(&plugin, nids_decode_run);
-
+        plugin_set_freeing_func(&plugin, nids_decode_free);
+        
         plugin.decode_id = MSG_FORMAT_PRELUDE_NIDS;
         
 	return plugin_register((plugin_generic_t *)&plugin);

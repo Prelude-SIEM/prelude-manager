@@ -92,12 +92,12 @@ void db_plugin_insert(char *table, char *fields, const char *fmt, ...)
  *
  * Will output the IDMEF alert to all active database.
  */
-void db_plugins_run(idmef_alert_t *alert) 
+void db_plugins_run(idmef_message_t *idmef) 
 {
         if ( list_empty(&db_plugins_list) )
                 return;
 
-        idmef_db_output(alert);
+        idmef_db_output(idmef);
 }
 
 

@@ -36,7 +36,7 @@
 
 
 static LIST_HEAD(decode_plugins_list);
-
+static LIST_HEAD(used_decode_plugins);
 
 
 /*
@@ -51,28 +51,11 @@ static int decode_plugin_register(plugin_container_t *pc)
 
 
 
-plugin_decode_t *decode_plugin_get_from_id(uint8_t id) 
-{
-        plugin_decode_t *p;
-        struct list_head *tmp;
-        plugin_container_t *pc;
-        
-        list_for_each(tmp, &decode_plugins_list) {
-            
-                pc = list_entry(tmp, plugin_container_t, ext_list);
-
-                p = (plugin_decode_t *) pc->plugin;
-                if ( p->decode_id == id )
-                        return p;
-        }
-
-        return NULL;
-}
 
 /*
  *
  */
-int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_alert_t *alert) 
+int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *idmef) 
 {
         int ret;
         plugin_decode_t *p;
@@ -87,18 +70,51 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_alert_t *ale
                 if ( p->decode_id != plugin_id )
                         continue;
 
-                plugin_run_with_return_value(pc, plugin_decode_t, run, ret, msg, alert);
+                plugin_run_with_return_value(pc, plugin_decode_t, run, ret, msg, idmef);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "%s couldn't decode sensor data.\n", p->name);
                         return -1;
                 }
 
+                /*
+                 * put the used plugin into the used_decode_plugins list, so
+                 * that we know which plugin may have data to release.
+                 */
+                list_del(&pc->ext_list);
+                list_add(&pc->ext_list, &used_decode_plugins);
+                
                 return 0;
         }
         
         log(LOG_ERR, "No decode plugin for handling sensor id %d.\n", plugin_id);
         
         return -1;
+}
+
+
+
+
+void decode_plugins_free_data(void) 
+{
+        plugin_decode_t *p;
+        struct list_head *tmp;
+        plugin_container_t *pc;
+
+        for ( tmp = used_decode_plugins.next; tmp != &used_decode_plugins; ) {
+            
+                pc = list_entry(tmp, plugin_container_t, ext_list);
+                p = (plugin_decode_t *) pc->plugin;
+
+                plugin_run(pc, plugin_decode_t, free);
+
+                tmp = tmp->next;
+
+                /*
+                 * put back the plugin in the main plugins list.
+                 */
+                list_del(&pc->ext_list);
+                list_add(&pc->ext_list, &decode_plugins_list);
+        }
 }
 
 

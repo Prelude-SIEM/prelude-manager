@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <pthread.h>
 
 #include <libprelude/list.h>
 #include <libprelude/common.h>
@@ -12,21 +13,21 @@
 
 #include "server-logic.h"
 #include "server-generic.h"
-#include "alert-scheduler.h"
+#include "sensor-server.h"
+#include "idmef-message-scheduler.h"
 
 
-typedef struct {
+
+typedef struct {        
         struct list_head list;
         prelude_msg_t *msg;
         prelude_io_t *fd;
-        idmef_analyzer_t analyzer;
 } sensor_cnx_t;
 
 
 
-server_generic_t *server;
 static LIST_HEAD(sensor_cnx_list);
-
+static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 static int get_option(prelude_msg_t *msg) 
@@ -135,9 +136,9 @@ static int optlist_to_xml(prelude_msg_t *msg)
 static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata) 
 {
         int ret;
-        sensor_cnx_t *sensor = *clientdata;
+        sensor_cnx_t *cnx = *clientdata;
         
-        ret = prelude_msg_read(&sensor->msg, src);
+        ret = prelude_msg_read(&cnx->msg, src);
         if ( ret < 0 ) 
                 return -1; /* an error occured */
         
@@ -147,21 +148,20 @@ static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata)
         /*
          * If we get there, we have a whole message.
          */
-        switch ( prelude_msg_get_tag(sensor->msg) ) {
+        switch ( prelude_msg_get_tag(cnx->msg) ) {
                 
         case PRELUDE_MSG_IDMEF:
-                alert_schedule(sensor->msg, src);
+                idmef_message_schedule(cnx->msg);
                 break;
                 
         case PRELUDE_MSG_OPTION_LIST:
-                
-                ret = optlist_to_xml(sensor->msg);
+                ret = optlist_to_xml(cnx->msg);
                 if ( ret < 0 )
                         return -1;
                 break;
         }
         
-        sensor->msg = NULL;
+        cnx->msg = NULL;
         
         return 0;
 }
@@ -173,10 +173,19 @@ static void close_connection_cb(void *clientdata)
 {
         sensor_cnx_t *cnx = clientdata;
 
+        pthread_mutex_lock(&list_mutex);
+        list_del(&cnx->list);
+        pthread_mutex_unlock(&list_mutex);
+
+        /*
+         * If cnx->msg is not NULL, it mean the sensor
+         * closed the connection without finishing to send
+         * a message. Destroy the unfinished message.
+         */
         if ( cnx->msg )
                 prelude_msg_destroy(cnx->msg);
-        
-        free((sensor_cnx_t *)clientdata);
+
+        free(cnx);
 }
 
 
@@ -186,17 +195,19 @@ static int accept_connection_cb(prelude_io_t *cfd, void **cdata)
 {
         sensor_cnx_t *new;
         
-        new = calloc(1, sizeof(*new));
+        new = malloc(sizeof(*new));
         if ( ! new ) {
                 log(LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
-
-        new->msg = NULL;
-        new->fd = cfd;
-        list_add(&new->list, &sensor_cnx_list);
-
+        
         *cdata = new;
+        new->fd = cfd;
+        new->msg = NULL;
+
+        pthread_mutex_lock(&list_mutex);
+        list_add(&new->list, &sensor_cnx_list);
+        pthread_mutex_unlock(&list_mutex);
         
         return 0;
 }
@@ -209,7 +220,7 @@ int sensor_server_start(const char *addr, uint16_t port)
         int ret;
         server_generic_t *new;
         
-        ret = alert_scheduler_init();
+        ret = idmef_message_scheduler_init();
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't initialize alert scheduler.\n");
                 return -1;
@@ -222,7 +233,9 @@ int sensor_server_start(const char *addr, uint16_t port)
                 return -1;
         }
         
-        return server_generic_start(new);
+        server_generic_start(new); /* Never return */
+
+        return 0; /* avoid warning */
 }
 
 
@@ -236,20 +249,27 @@ int sensor_server_broadcast_admin_command(const char *sensorid, prelude_msg_t *m
         if ( ! sensorid )
                 return -1;
 
+        pthread_mutex_lock(&list_mutex);
+        
         list_for_each(tmp, &sensor_cnx_list) {
-
                 cnx = list_entry(tmp, sensor_cnx_t, list);
 
-                if ( cnx->analyzer.analyzerid && strcmp(cnx->analyzer.analyzerid, sensorid) == 0 ) 
-                        return prelude_msg_write(msg, cnx->fd);
+#if 0
+                if ( cnx->analyzer.analyzerid && strcmp(cnx->analyzer.analyzerid, sensorid) == 0 ) {
+                        ret = prelude_msg_write(msg, cnx->fd);
+                        pthread_mutex_unlock(&list_mutex);
+                        return ret;
+                }
+#endif
+                
         }
+        
+        pthread_mutex_unlock(&list_mutex);
 
         log(LOG_ERR, "couldn't find sensor with ID %s\n", sensorid);
 
         return -1;
 }
-
-
 
 
 

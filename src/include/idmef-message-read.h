@@ -20,4 +20,6 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg);
+

@@ -55,7 +55,7 @@ char *db_plugin_escape(const char *string);
 
 void db_plugin_insert(char *table, char *fields, const char *fmp, ...);
 
-void db_plugins_run(idmef_alert_t *alert);
+void db_plugins_run(idmef_message_t *idmef);
 
 void db_plugins_close(void);
 

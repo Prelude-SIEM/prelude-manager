@@ -38,19 +38,19 @@
 #include <libprelude/plugin-common.h>
 #include <libprelude/idmef-tree.h>
 
-#include "alert-scheduler.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-db.h"
 #include "pconfig.h"
 #include "idmef-func.h"
 #include "idmef-message-read.h"
+#include "idmef-message-scheduler.h"
 
 
-#define MAX_ALERT_IN_MEMORY 200
+#define MAX_MESSAGE_IN_MEMORY 200
 
-#define MID_PRIORITY_ALERT_FILENAME "/var/lib/prelude/mid-priority-fifo"
-#define LOW_PRIORITY_ALERT_FILENAME "/var/lib/prelude/low-priority-fifo"
+#define MID_PRIORITY_MESSAGE_FILENAME "/var/lib/prelude/mid-priority-fifo"
+#define LOW_PRIORITY_MESSAGE_FILENAME "/var/lib/prelude/low-priority-fifo"
 
 
 typedef struct {
@@ -63,7 +63,7 @@ typedef struct {
 
 
 
-static LIST_HEAD(alert_list);
+static LIST_HEAD(message_list);
 static unsigned int in_memory_count;
 static pthread_mutex_t list_mutex;
 
@@ -81,9 +81,9 @@ static pthread_cond_t input_cond;
 
 
 /*
- * Wait until an alert is queued.
+ * Wait until a message is queued.
  */
-static void wait_for_alert(void) 
+static void wait_for_message(void) 
 {
         pthread_mutex_lock(&list_mutex);
 
@@ -97,9 +97,9 @@ static void wait_for_alert(void)
 
 
 /*
- * Get a low / mid priority queued alert.
+ * Get a low / mid priority queued message
  */
-static prelude_msg_t *get_alert_from_file(file_output_t *out) 
+static prelude_msg_t *get_message_from_file(file_output_t *out) 
 {
         int ret;
         prelude_msg_t *msg = NULL;
@@ -121,16 +121,16 @@ static prelude_msg_t *get_alert_from_file(file_output_t *out)
 
 
 /*
- * Get a high priority alert.
+ * Get a high priority message.
  */
-static prelude_msg_t *get_high_priority_alert(void) 
+static prelude_msg_t *get_high_priority_message(void) 
 {
         prelude_msg_t *msg = NULL;
         
         pthread_mutex_lock(&list_mutex);
                 
         if ( in_memory_count ) {
-                msg = prelude_list_get_object(alert_list.next, prelude_msg_t);
+                msg = prelude_list_get_object(message_list.next, prelude_msg_t);
                 prelude_list_del( (prelude_linked_object_t *) msg);
                 in_memory_count--;
         }
@@ -144,57 +144,67 @@ static prelude_msg_t *get_high_priority_alert(void)
 
 
 /*
- * Retrieve a queued mid priority alert.
+ * Retrieve a queued mid priority message.
  */
-static prelude_msg_t *get_mid_priority_alert(void) 
+static prelude_msg_t *get_mid_priority_message(void) 
 {
-        return get_alert_from_file(&mid_priority_output);
+        return get_message_from_file(&mid_priority_output);
 }
 
 
 
 
 /*
- * Retrieve a qeued low priority alert.
+ * Retrieve a qeued low priority message.
  */
-static prelude_msg_t *get_low_priority_alert(void) 
+static prelude_msg_t *get_low_priority_message(void) 
 {
-        return get_alert_from_file(&low_priority_output);
+        return get_message_from_file(&low_priority_output);
 }
 
 
 
 
-static void process_message(prelude_msg_t *msg) 
+static int process_message(prelude_msg_t *msg) 
 {
         int ret;
         idmef_message_t *idmef;
-
+        
         manager_relay_msg_if_needed(msg);
-        
-        idmef = idmef_alert_new();
 
+        /*
+         * never return NULL.
+         */
+        idmef = idmef_message_new();
+        
         ret = idmef_message_read(idmef, msg);
-        if ( ret < 0 ) {
+        if ( ret < 0 ) {                
                 log(LOG_ERR, "error reading IDMEF message.\n");
-                return;
-        }
 
-        db_plugins_run(idmef->message.alert);
-        report_plugins_run(idmef->message.alert);
+                idmef_message_free(idmef);
+                decode_plugins_free_data();
+                prelude_msg_destroy(msg);
+
+                return -1;
+        }
         
+        db_plugins_run(idmef);
+        report_plugins_run(idmef);
+        
+        decode_plugins_free_data();
         idmef_message_free(idmef);
-        
         prelude_msg_destroy(msg);
+
+        return 0;
 }
 
 
 
 
 /*
- * This is the function responssible for handling queued alert.
+ * This is the function responssible for handling queued message.
  */
-static void *process_alert(void *arg) 
+static void *message_reader(void *arg) 
 {
         int ret;
         sigset_t set;
@@ -214,35 +224,35 @@ static void *process_alert(void *arg)
         
         while ( 1 ) {
                 
-                msg = get_high_priority_alert();
+                msg = get_high_priority_message();
 
                 if ( ! msg )
-                        msg = get_mid_priority_alert();
+                        msg = get_mid_priority_message();
 
                 if ( ! msg )
-                        msg = get_low_priority_alert();
+                        msg = get_low_priority_message();
 
                 
                 if ( ! msg ) {
-                        wait_for_alert();
+                        wait_for_message();
                         continue;
                 }
 
-                process_message(msg);
+                ret = process_message(msg);
         }
 }
 
 
 
 /*
- * Queue this alert to memory.
+ * Queue this message to memory.
  */
-static void queue_alert_to_memory(prelude_msg_t *msg) 
+static void queue_message_to_memory(prelude_msg_t *msg) 
 {
         pthread_mutex_lock(&list_mutex);
         
         in_memory_count++;
-        prelude_list_add_tail((prelude_linked_object_t *) msg, &alert_list);
+        prelude_list_add_tail((prelude_linked_object_t *) msg, &message_list);
         
         if ( in_memory_count == 1 )
                 pthread_cond_signal(&input_cond);
@@ -295,26 +305,24 @@ static void destroy_file_output(file_output_t *out)
 
 
 
-void alert_schedule(prelude_msg_t *msg, prelude_io_t *src) 
+void idmef_message_schedule(prelude_msg_t *msg) 
 {
         int ret;
         uint8_t priority;
 
         priority = prelude_msg_get_priority(msg);
         
-        if ( in_memory_count < MAX_ALERT_IN_MEMORY || priority == PRELUDE_MSG_PRIORITY_HIGH ) 
-                queue_alert_to_memory(msg);
+        if ( in_memory_count < MAX_MESSAGE_IN_MEMORY || priority == PRELUDE_MSG_PRIORITY_HIGH ) 
+                queue_message_to_memory(msg);
 
         else if ( priority == PRELUDE_MSG_PRIORITY_MID ) {
-                
-                ret = prelude_msg_forward(msg, mid_priority_output.fd, src);
+                ret = prelude_msg_write(msg, mid_priority_output.fd);
                 if ( ret )
                         mid_priority_output.count++;
         }
 
         else if ( priority == PRELUDE_MSG_PRIORITY_LOW ) {
-
-                ret = prelude_msg_forward(msg, low_priority_output.fd, src);
+                ret = prelude_msg_write(msg, low_priority_output.fd);
                 if ( ret )
                         low_priority_output.count++;
         }
@@ -323,15 +331,15 @@ void alert_schedule(prelude_msg_t *msg, prelude_io_t *src)
 
 
 
-int alert_scheduler_init(void) 
+int idmef_message_scheduler_init(void) 
 {
         int ret;
         
-        ret = init_file_output(MID_PRIORITY_ALERT_FILENAME, &mid_priority_output);
+        ret = init_file_output(MID_PRIORITY_MESSAGE_FILENAME, &mid_priority_output);
         if ( ret < 0 )
                 return -1;
 
-        ret = init_file_output(LOW_PRIORITY_ALERT_FILENAME, &low_priority_output);
+        ret = init_file_output(LOW_PRIORITY_MESSAGE_FILENAME, &low_priority_output);
         if ( ret < 0 ) {
                 destroy_file_output(&mid_priority_output);
                 return -1;
@@ -342,9 +350,9 @@ int alert_scheduler_init(void)
 
         in_memory_count = 0;
         
-        ret = pthread_create(&thread, NULL, &process_alert, NULL);
+        ret = pthread_create(&thread, NULL, &message_reader, NULL);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't create alert processing thread.\n");
+                log(LOG_ERR, "couldn't create message processing thread.\n");
                 return -1;
         }
         
@@ -354,9 +362,9 @@ int alert_scheduler_init(void)
 
 
 
-void alert_scheduler_exit(void) 
+void idmef_message_scheduler_exit(void) 
 {
-        log(LOG_INFO, "Waiting for queued alert to be processed.\n");
+        log(LOG_INFO, "Waiting for queued message to be processed.\n");
         
         pthread_cancel(thread);
         

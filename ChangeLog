@@ -1,3 +1,59 @@
+2001-12-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server-generic.c (setup_connection): handle
+	case were EOF is returned. Remove a debugging message.
+
+	* src/sensor-server.c: cleanup. Add necessary locking.
+
+	* src/report-plugins.c (report_plugins_run): work with
+	an IDMEF message, not an IDMEF alert.
+
+	* src/prelude-manager.c (main): start administration
+	server.
+
+	* src/pconfig.c (configure_admin_server): set
+	listening address to 0.0.0.0 if none is configured.
+
+	* src/idmef-message-read.c (extract_uint64): 
+	(extract_uint32): (extract_uint16): (extract_uint8): 
+	
+	New function that check wether the destination variable
+	won't overflow.
+
+	(extract_str): Check that a string is NULL terminated.
+
+	(extract_int): 
+	(extract_string): Macro for error handling automation. 
+
+	Handle missing IDMEF stuff.
+	
+	* src/idmef-func.c: allocate what need to be allocated.
+	Free allocated data when idmef_message_free() is called.
+
+	* src/idmef-db-output.c: all ident are now 64 bits integer.
+	(idmef_db_output): work with an IDMEF message, not with an
+	IDMEF alert.
+
+	* src/decode-plugins.c: 
+	(decode_plugins_run): used decode plugins are saved into the
+	new used_decode_plugins list.
+	
+	(decode_plugins_free_data): Call free callback function for plugin
+	in used_decode_plugins list and put the plugins back into the main
+	plugins list.
+
+	* src/db-plugins.c (db_plugins_run): take an IDMEF message 
+	as argument, not an IDMEF alert.
+
+	* plugins/decodes/prelude-nids/nids-alert-id.h: update to fit
+	latest prelude-nids alert format change.
+
+	* plugins/decodes/prelude-nids/decode.c (nids_decode_free): new
+	plugin function that free allocated data.
+	(plugin_init): setup free callback function.
+	(gather_protocol_infos): strdup the return value from getservbyport()
+	as the buffer may be rewwritten.
+
 2001-12-19  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/sensor-server.c: new file.

@@ -1,1 +1,2 @@
-void idmef_db_output(idmef_alert_t *alert);
+void idmef_db_output(idmef_message_t *msg);
+

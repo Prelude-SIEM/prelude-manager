@@ -42,6 +42,6 @@ server_generic_t *server_generic_new(const char *addr, uint16_t port,
                                      server_generic_accept_func_t *accept,
                                      server_read_func_t *read, server_generic_close_func_t *close);
 
-int server_generic_start(server_generic_t *server);
+void server_generic_start(server_generic_t *server);
 
 void server_generic_close(server_generic_t *server);
