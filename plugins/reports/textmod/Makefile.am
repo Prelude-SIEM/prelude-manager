@@ -1,4 +1,4 @@
-DEFS=-D_FILE_OFFSET_BITS=64 -I$(top_srcdir) -I$(top_srcdir)/src/include @defined@
+AM_CPPFLAGS=-D_FILE_OFFSET_BITS=64 -I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @defined@
 
 textmod_la_SOURCES = textmod.c
 textmod_la_LDFLAGS = -module -avoid-version

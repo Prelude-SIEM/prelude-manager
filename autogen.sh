@@ -1,4 +1,4 @@
-aclocal -I m4
+aclocal -I m4 -I libmissing/m4
 autoconf
 autoheader
 libtoolize -c --force

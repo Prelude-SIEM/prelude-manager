@@ -48,6 +48,7 @@
 #include <libprelude/prelude-client.h>
 #include <libprelude/timer.h>
 
+#include "libmissing.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-filter.h"

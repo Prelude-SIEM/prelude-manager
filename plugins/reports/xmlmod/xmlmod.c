@@ -31,6 +31,7 @@
 
 #include <libxml/parser.h>
 
+#include "libmissing.h"
 #include "report.h"
 
 

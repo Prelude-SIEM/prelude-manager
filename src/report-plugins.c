@@ -44,6 +44,7 @@
 #include <libprelude/common.h>
 #include <libprelude/prelude-failover.h>
 
+#include "libmissing.h"
 #include "plugin-report.h"
 #include "plugin-filter.h"
 #include "pmsg-to-idmef.h"

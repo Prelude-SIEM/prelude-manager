@@ -1,4 +1,4 @@
-SUBDIRS = plugins src docs
+SUBDIRS = libmissing plugins src docs
 
 EXTRA_DIST = prelude-manager.conf config.h 				\
              AUTHORS COPYING INSTALL NEWS README ChangeLog

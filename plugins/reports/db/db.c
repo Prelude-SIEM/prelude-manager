@@ -42,6 +42,7 @@
 #include <libpreludedb/db-interface.h>
 #include <libpreludedb/db-interface-string.h>
 
+#include "libmissing.h"
 #include "report.h"
 
 

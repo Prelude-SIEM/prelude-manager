@@ -50,6 +50,7 @@
 #include <libprelude/prelude-inet.h>
 
 #include "config.h"
+#include "libmissing.h"
 #include "manager-auth.h"
 #include "pconfig.h"
 #include "server-logic.h"

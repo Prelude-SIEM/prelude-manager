@@ -1,5 +1,4 @@
-DEFS=@defined@
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src/include
+AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @defined@
 
 debug_la_SOURCES = debug.c
 debug_la_LIBADD   = 

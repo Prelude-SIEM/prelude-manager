@@ -1,5 +1,6 @@
-DEFS=-D_FILE_OFFSET_BITS=64 -I$(top_srcdir) -I$(top_srcdir)/src/include @XML2_CFLAGS@ \
-     -DIDMEF_DTD=\"@manager_data_dir@/xmlmod/idmef-message.dtd\" @defined@
+AM_CPPFLAGS=-D_FILE_OFFSET_BITS=64 -I$(top_srcdir)/src/include 			\
+	-I$(top_srcdir)/libmissing @XML2_CFLAGS@ @defined@			\
+	-DIDMEF_DTD=\"@manager_data_dir@/xmlmod/idmef-message.dtd\" 
 
 xmlmod_la_LDFLAGS = -module -avoid-version
 

@@ -1,4 +1,4 @@
-DEFS=-I$(top_srcdir) -I$(top_srcdir)/src/include @defined@
+AM_CPPFLAGS=-I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @defined@
 
 filter_la_SOURCES = filter.c
 filter_la_LDFLAGS = -module -avoid-version

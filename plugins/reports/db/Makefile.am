@@ -1,4 +1,4 @@
-DEFS=-I$(top_srcdir) -I$(top_srcdir)/src/include @defined@ @LIBPRELUDEDB_CFLAGS@
+AM_CPPFLAGS=-I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @defined@
 
 db_la_LDFLAGS = -module -avoid-version
 

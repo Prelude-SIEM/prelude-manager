@@ -40,6 +40,7 @@
 #include <libprelude/prelude-linked-object.h>
 
 #include "config.h"
+#include "libmissing.h"
 #include "pconfig.h"
 #include "server-generic.h"
 #include "reverse-relaying.h"

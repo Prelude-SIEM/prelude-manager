@@ -43,6 +43,15 @@ fi
 
 
 dnl **************************************************
+dnl * Check for missing function replacement         *
+dnl **************************************************
+gl_EARLY
+gl_SOURCE_BASE(libmissing)
+gl_M4_BASE(libmissing/m4)
+gl_INIT
+
+
+dnl **************************************************
 dnl * Check for libprelude                           *
 dnl **************************************************
 
@@ -295,6 +304,7 @@ Makefile
 docs/Makefile
 docs/api/Makefile
 
+libmissing/Makefile
 prelude-manager.conf
 
 src/Makefile 

@@ -1,4 +1,4 @@
-DEFS=-I$(top_srcdir) -I$(top_srcdir)/src/include @defined@
+AM_CPPFLAGS=-I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @defined@
 
 prelude_nids_la_SOURCES = decode.c packet-decode.c optparse.c passive-os-fingerprint.c
 prelude_nids_la_LDFLAGS = -module -avoid-version 
