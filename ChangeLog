@@ -1,3 +1,13 @@
+2002-09-02  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* configure.in: bump version number to 0.8.4.	
+
+	* plugins/reports/xmlmod/Makefile.am (EXTRA_DIST): 
+	correct inclusion of idmef-message.dtd
+
+	* plugins/reports/xmlmod/xmlmod.c (process_message): 
+	free the XML document in case of unknown message.
+
 2002-08-29  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/reports/xmlmod/idmef-message.dtd: 

@@ -10,9 +10,10 @@ xmlmod_la_LIBADD  = @xml2_lib@
 xmlmoddir = $(report_plugin_dir)
 xmlmod_LTLIBRARIES = xmlmod.la
 
-xml_DATA = idmef-message.dtd
-xmldir   = $(manager_data_dir)/xmlmod
-EXTRA_DIST = $(xml_data)
+xmldtd_DATA = idmef-message.dtd
+xmldtddir   = $(manager_data_dir)/xmlmod
+
+EXTRA_DIST = $(xmldtd_DATA)
 
 endif
 

@@ -757,6 +757,7 @@ static void process_message(const idmef_message_t *msg)
 
         default:
                 log(LOG_ERR, "unknow message type: %d.\n", msg->type);
+                xmlFreeDoc(document);
                 return;
         }
 
