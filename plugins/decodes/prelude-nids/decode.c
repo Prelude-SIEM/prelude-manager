@@ -1,8 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <libprelude/alert.h>
 
+#include "packet.h"
 #include "optparse.h"
 #include "ethertype.h"
-#include "tcpdump-func.h"
+#include "report-infos.h"
 
 
 #define PRINT_CHAR 16
@@ -259,7 +263,7 @@ static char *arp_dump(etherarphdr_t *arp)
 
         i = snprintf(buf, sizeof(buf), "Arp hdr :");
 
-        switch (EXTRACT_16BITS(&arp->arp_op)) {
+        switch ( ntohs(arp->arp_op) ) {
 
         case ARPOP_REQUEST:
                 i += snprintf(buf + i, sizeof(buf) - i, "type=request ");
@@ -291,11 +295,11 @@ static char *arp_dump(etherarphdr_t *arp)
                 
         default:
                 i += snprintf(buf + i, sizeof(buf) - i, "type=Unknow(%d) ",
-                              EXTRACT_16BITS(&arp->arp_op));
+                              ntohs(arp->arp_op));
                 break;
         }
 
-        switch(EXTRACT_16BITS(&arp->arp_hrd)) {
+        switch ( ntohs(arp->arp_hrd) ) {
         case ARPHRD_NETROM:
                 i += snprintf(buf + i, sizeof(buf) - i, "f=netrom ");
                 break;
@@ -511,9 +515,6 @@ static void create_pktdump(packet_t *p, report_infos_t *rinfos)
         static char *pktdump[MAX_PKTDEPTH + 2];
         int addr_depth = -1, port_depth = -1;
         
-        rinfos->hexdump = NULL;
-        rinfos->pktdump = pktdump;
-        
         for (i = 0; p[i].proto != p_end ; i++) {
 
                 switch (p[i].proto) {
@@ -562,13 +563,15 @@ static void create_pktdump(packet_t *p, report_infos_t *rinfos)
 
                 case p_data:
                         pktdump[j++] = data_dump(&p[i]);
-                        rinfos->hexdump = hexdump(p[i].p.data, p[i].len);
+                        report_infos_set_additional_data(hexdump(p[i].p.data, p[i].len));
                 default:
 			break;
 		}
 	}
         
         pktdump[j++] = NULL;
+
+        report_infos_set_additional_data(pktdump);
 
         if ( addr_depth != -1 ) {
                 if ( p[addr_depth].proto == p_ip ) {
@@ -590,4 +593,10 @@ static void create_pktdump(packet_t *p, report_infos_t *rinfos)
                 }
         }
 }
+
+
+
+
+
+
 
