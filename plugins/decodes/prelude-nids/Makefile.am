@@ -1,5 +1,4 @@
-DEFS=@defined@
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src/include
+DEFS=-I$(top_srcdir) -I$(top_srcdir)/src/include @defined@
 
 prelude_nids_la_SOURCES = decode.c packet-decode.c optparse.c
 prelude_nids_la_LDFLAGS = -module -avoid-version 

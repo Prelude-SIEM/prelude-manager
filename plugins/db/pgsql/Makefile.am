@@ -1,6 +1,4 @@
-DEFS=@defined@
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src/include -I@PGSQL_INCLUDEDIR@
-
+DEFS=-I$(top_srcdir) -I$(top_srcdir)/src/include -I@PGSQL_INCLUDEDIR@ @defined@
 pgsql_la_LDFLAGS = -module -avoid-version
 
 if HAVE_PGSQL

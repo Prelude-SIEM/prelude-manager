@@ -1,7 +1,7 @@
 SUBDIRS = include
 
-INCLUDES = -I$(top_srcdir)/ -I$(srcdir)/include/
-DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\"       \
+DEFS = -I$(top_srcdir)/ -I$(srcdir)/include/        \
+        @defined@ -DCONFIG_DIR=\"@configdir@\"      \
         -DREPORT_PLUGIN_DIR=\"@report_plugin_dir@\" \
 	-DDECODE_PLUGIN_DIR=\"@decode_plugin_dir@\" \
 	-DDB_PLUGIN_DIR=\"@db_plugin_dir@\"         \

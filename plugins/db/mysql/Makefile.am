@@ -1,6 +1,4 @@
-DEFS=@defined@ @MYSQL_CFLAGS@
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src/include 
-
+DEFS=-I$(top_srcdir) -I$(top_srcdir)/src/include @defined@ @MYSQL_CFLAGS@
 mysql_la_LDFLAGS = -module -avoid-version
 
 if HAVE_MYSQL

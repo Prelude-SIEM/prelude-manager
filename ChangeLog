@@ -1,3 +1,14 @@
+2002-02-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* manager-adduser/Makefile.am (DEFS): 
+	* src/Makefile.am (DEFS): 
+	* plugins/decodes/prelude-nids/Makefile.am: 
+	* plugins/reports/textmod/Makefile.am (DEFS): 
+	* plugins/db/pgsql/Makefile.am (DEFS): 
+	* plugins/db/mysql/Makefile.am (DEFS):
+
+	libprelude include dir should be *after* local include dir.
+
 2002-02-27  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/decodes/prelude-nids/decode.c: include
