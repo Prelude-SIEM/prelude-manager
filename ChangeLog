@@ -1,5 +1,10 @@
 2002-04-07  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
 
+	* src/idmef-message-read.c: changed inclusion order to fix compilation
+	warnings on FreeBSD. 
+
+2002-04-07  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+
 	* plugins/reports/debug/debug.c: totally rewritten.
 	The purpose of this plugin is to walk the IDMEF tree, find
 	and report found inconsistencies in data structures. It is

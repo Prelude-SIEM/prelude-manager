@@ -25,8 +25,8 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/time.h>
-#include <arpa/inet.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <libprelude/list.h>
 #include <libprelude/prelude-log.h>
