@@ -20,11 +20,10 @@ dnl
 dnl    FOO_CFLAGS to `foo-config --cflags`
 dnl    FOO_LIBS   to `foo-config --libs`
 dnl
-dnl At present there is no support for additional "MODULES" (see AM_PATH_GTK)
 dnl (shamelessly stolen from gtk.m4 and then hacked around a fair amount)
 dnl
 dnl @author Angus Lees <gusl@cse.unsw.edu.au>
-dnl @version $Id: acinclude.m4,v 1.1 2001/08/23 22:45:27 sylvain Exp $
+dnl @version $Id: acinclude.m4,v 1.2 2002/02/20 10:11:42 yoann Exp $
 
 AC_DEFUN(AC_PATH_GENERIC,
 [dnl

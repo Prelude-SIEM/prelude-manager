@@ -1,3 +1,19 @@
+2002-02-20  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* acinclude.m4: 
+	remove commented out line containing AM_PATH_GTK,
+	cause even thought it is commented, a bug in aclocal make
+	it try to find this macro, and to fail on system were it is not
+	available.
+
+	Thanks to Pierre-Jean Turpeau <Pierre-Jean.Turpeau@enseirb.fr>
+	for pointing and fixing this problem.
+	
+	* src/sensor-server.c (read_connection_cb): 
+	avoid a NULL pointer dereference on invalid messages, 
+	thanks to Pierre-Jean Turpeau <Pierre-Jean.Turpeau@enseirb.fr>
+	for pointing, and debugging the problem.
+
 2002-02-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/idmef-db-output.c (insert_snmp_service): 

@@ -272,7 +272,7 @@ static int read_connection_cb(server_generic_client_t *client)
                 break;
 
         default:
-                log(LOG_INFO, "[%s] - unknow message id %d\n", cnx->addr, prelude_msg_get_tag(cnx->msg));
+                log(LOG_INFO, "[%s] - unknow message id %d\n", cnx->addr, prelude_msg_get_tag(msg));
                 ret = 0;
                 break;
         }
