@@ -433,8 +433,9 @@ static void process_classification(const idmef_classification_t *class)
 static void process_data(const idmef_additional_data_t *ad) 
 {
         int size;
-        char buf[1024], *ptr;
-
+        char buf[1024];
+        const char *ptr;
+        
         size = sizeof(buf);
         
         ptr = idmef_additional_data_to_string(ad, buf, &size);

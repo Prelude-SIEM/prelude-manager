@@ -715,7 +715,7 @@ static int insert_data(uint64_t parent_ident, char parent_type, idmef_additional
 {
         int size;
         const char *type, *ptr;
-        char buf[ad->data.len], *meaning, *data;
+        char buf[1024], *meaning, *data;
 
         type = idmef_additional_data_type_to_string(ad->type);
         if ( ! type )

@@ -212,10 +212,9 @@ static int ether_dump(idmef_additional_data_t *data, packet_t *packet)
         
         i += snprintf(buf + i, sizeof(buf) - i, "%s [ether_type=%s (%d)]",
                       etheraddr_string(hdr->ether_dhost), type, t);
-        
-        
-        idmef_string(&data->data) = packet->data = strdup(buf);
-        idmef_string_len(&data->data) = i + 1;
+
+        packet->data = strdup(buf);
+        idmef_additional_data_set_data(data, string, packet->data, i + 1);
         
         return 0;
 }
@@ -279,10 +278,10 @@ static int arp_dump(idmef_additional_data_t *data, packet_t *packet)
         
         len += snprintf(buf + len, sizeof(buf) - len, "spa=%s,sha=%s",
                         get_address((struct in_addr *)arp->arp_spa), etheraddr_string(arp->arp_sha));
-        
-        idmef_string(&data->data) = packet->data = strdup(buf);
-        idmef_string_len(&data->data) = len + 1;
-        
+
+        packet->data = strdup(buf);
+        idmef_additional_data_set_data(data, string, packet->data, len + 1);
+                
         return 0;
 }
 
@@ -301,8 +300,8 @@ static int ipopts_dump(idmef_additional_data_t *data, packet_t *packet)
                 log(LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
-        
-        idmef_string_set(&data->data, packet->data);
+
+        idmef_additional_data_set_data(data, string, packet->data, strlen(ipopt) + 1);
         
         return 0;
 }
@@ -324,7 +323,7 @@ static int tcpopts_dump(idmef_additional_data_t *data, packet_t *packet)
                 return -1;
         }
 
-        idmef_string_set(&data->data, packet->data);
+        idmef_additional_data_set_data(data, string, packet->data, strlen(tcpopt) + 1);
 
         return 0;
 }
@@ -366,9 +365,9 @@ static int ip_dump(idmef_additional_data_t *data, packet_t *packet)
 
         free(src);
         free(dst);
-        
-        idmef_string(&data->data) = packet->data = strdup(buf);
-        idmef_string_len(&data->data) = r + 1;
+
+        packet->data = strdup(buf);
+        idmef_additional_data_set_data(data, string, packet->data, r + 1);
         
         return 0;
 }
@@ -423,9 +422,9 @@ static int tcp_dump(idmef_additional_data_t *data, packet_t *packet)
                 r += snprintf(&buf[r], blen - r, ",urg=%d", urp);
         
         r += snprintf(&buf[r], blen - r, ",win=%d]", win);
-        
-        idmef_string(&data->data) = packet->data = strdup(buf);
-        idmef_string_len(&data->data) = r + 1;
+
+        packet->data = strdup(buf);
+        idmef_additional_data_set_data(data, string, packet->data, r + 1);
         
         return 0;
 }
@@ -445,8 +444,9 @@ static int udp_dump(idmef_additional_data_t *data, packet_t *packet)
         
         ret = snprintf(buf, sizeof(buf), "%d -> %d [len=%d]", sport, dport, len);
 
-        idmef_string(&data->data) = packet->data = strdup(buf);
-        idmef_string_len(&data->data) = ret + 1;
+        
+        packet->data = strdup(buf);
+        idmef_additional_data_set_data(data, string, packet->data, ret + 1);
         
         return 0;
 }
@@ -470,15 +470,15 @@ static int data_dump(idmef_additional_data_t *data, packet_t *pkt)
                         free(payload);
                         return -1;
                 }
-
-                pdata->type = string;
+                
                 idmef_string_set_constant(&pdata->meaning, "Payload Hexadecimal Dump");
-                idmef_string_set(&pdata->data, payload);
+                idmef_additional_data_set_data(pdata, string, payload, strlen(payload) + 1);
         }
         
         ret = snprintf(buf, sizeof(buf), "size=%d bytes", pkt->len);
-        idmef_string(&data->data) = pkt->data = strdup(buf);
-        idmef_string_len(&data->data) = ret + 1;
+
+        pkt->data = strdup(buf);
+        idmef_additional_data_set_data(data, string, pkt->data, ret + 1);
                 
         return 0;
 }
@@ -513,8 +513,8 @@ static int igmp_dump(idmef_additional_data_t *data, packet_t *packet)
         ret = snprintf(buf, sizeof(buf), "type=%s code=%d group=%s",
                        type, igmp->igmp_code, get_address(&igmp->igmp_group));
 
-        idmef_string(&data->data) = packet->data = strdup(buf);
-        idmef_string_len(&data->data) = ret + 1;
+        packet->data = strdup(buf);
+        idmef_additional_data_set_data(data, string, packet->data, ret + 1);
         
         return 0;
 }
@@ -535,8 +535,8 @@ static int icmp_dump(idmef_additional_data_t *data, packet_t *packet)
         icmp = packet->p.icmp_hdr;
         ret = snprintf(buf, sizeof(buf), "type=%d code=%d", icmp->icmp_type, icmp->icmp_code);
 
-        idmef_string(&data->data) = packet->data = strdup(buf);
-        idmef_string_len(&data->data) = ret + 1;
+        packet->data = strdup(buf);
+        idmef_additional_data_set_data(data, string, packet->data, ret + 1);
 
         return 0;
 }

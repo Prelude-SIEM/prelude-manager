@@ -25,9 +25,11 @@
 #include <time.h>
 #include <sys/time.h>
 #include <inttypes.h>
+#include <netinet/in.h> /* for extract.h */
 
 #include <libprelude/list.h>
 #include <libprelude/prelude-log.h>
+#include <libprelude/extract.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-ident.h>
 #include <libprelude/idmef-tree-func.h>
@@ -124,8 +126,10 @@ void idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size)
  * Returns: NULL on error, a pointer to @buf if conversion succeed,
  * or a pointer to the actual data if no conversion is needed.
  */
-const char *idmef_additional_data_to_string(idmef_additional_data_t *ad, char *buf, size_t *size) 
+const char *idmef_additional_data_to_string(const idmef_additional_data_t *ad, char *buf, size_t *size) 
 {
+        uint32_t out32;
+        uint64_t out64;
         int ret = *size;
         
         switch (ad->type) {
@@ -155,20 +159,32 @@ const char *idmef_additional_data_to_string(idmef_additional_data_t *ad, char *b
                 break;
 
         case character:
-                ret = snprintf(buf, *size, "%c", *(const char *) ad->data.string);
+                ret = snprintf(buf, *size, "%c", *(const char *) ad->data);
                 break;
 
         case integer:
-                ret = snprintf(buf, *size, "%d", *(const int *) ad->data.string);
+                ret = extract_uint32_safe(&out32, ad->data, ad->dlen);
+                if ( ret < 0 )
+                        return NULL;
+                
+                ret = snprintf(buf, *size, "%d", out32);
                 break;
                 
         case ntpstamp:
+                ret = extract_uint64_safe(&out64, ad->data, ad->dlen);
+                if ( ret < 0 )
+                        return NULL;
+                
                 ret = snprintf(buf, *size, "0x%08ux.0x%08ux",
-                         ((const uint32_t *) ad->data.string)[0],((const uint32_t *) ad->data.string)[1]);
+                         ((const uint32_t *) &out64)[0],((const uint32_t *) &out64)[1]);
                 break;
 
         case real:
-                ret = snprintf(buf, *size, "%f", *(const float *) ad->data.string);
+                ret = extract_uint32_safe(&out32, ad->data, ad->dlen);
+                if ( ret < 0 )
+                        return NULL;
+                
+                ret = snprintf(buf, *size, "%f", (float) out32);
                 break;
 
         case boolean:
@@ -176,8 +192,13 @@ const char *idmef_additional_data_to_string(idmef_additional_data_t *ad, char *b
         case portlist:
         case string:
         case xml:
-                *size = idmef_string_len(&ad->data);
-                return idmef_string(&ad->data);
+                ret = extract_string_safe((const char **) &buf, ad->data, ad->dlen);
+                if ( ret < 0 )
+                        return NULL;
+
+                *size = ad->dlen;
+                
+                return buf;
 
         default:
                 log(LOG_ERR, "Unknown data type: %d.\n", ad->type);
@@ -190,7 +211,7 @@ const char *idmef_additional_data_to_string(idmef_additional_data_t *ad, char *b
          * would have been written to the final string if enought space
          * had been available.
          */
-        if ( ret < sizeof(buf) )
+        if ( ret < *size )
                 *size = ret;
 
         return buf;

@@ -1,3 +1,14 @@
+2002-05-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/idmef-util.c (idmef_additional_data_to_string): 
+	* src/idmef-message-read.c (additional_data_get): 
+	* plugins/decodes/prelude-nids/packet-decode.c: 
+	modify to fit the new idmef_additional_data_t structure.
+
+	* src/idmef-util.c (idmef_additional_data_to_string): 
+	use extract_function() for the ntpstamp, integer, real,
+	and all the string case.
+	
 2002-05-29  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/idmef-message-read.c (additional_data_get): 
