@@ -296,7 +296,6 @@ plugins/decodes/Makefile
 plugins/decodes/prelude-nids/Makefile
 
 plugins/reports/Makefile
-plugins/reports/mysql/Makefile
 
 ])
 

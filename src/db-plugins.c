@@ -115,7 +115,7 @@ void db_plugins_insert(char *table, char *fields, ...)
 /**
  * db_plugins_insert_id:
  * @table: Pointer to string defining the database table.
- * @fields: Pointer to string defining the database fields.
+ * @field: Pointer to string defining the database fields.
  * @id: Pointer to an unsigned long.
  *
  * This function insert @id, in all active databases, in the specified table and field.
@@ -131,7 +131,7 @@ void db_plugins_insert_id(char *table, char *field, unsigned long *id)
         list_for_each(tmp, &db_plugins_list) {
                 pc = list_entry(tmp, plugin_container_t, ext_list);
                 plugin_run_with_return_value(pc, plugin_db_t,
-                                             db_insert_id, ret, table, fields, id);
+                                             db_insert_id, ret, table, field, id);
         }
 }
 
