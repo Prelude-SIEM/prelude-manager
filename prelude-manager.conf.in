@@ -96,7 +96,7 @@ sensors-srvr = 127.0.0.1;
 # stderr;
 #
 #
-# logfile = /var/log/prelude.log;
+# logfile = @prefix@/var/log/prelude.log;
 
 
 
