@@ -28,6 +28,7 @@
 #include <stdarg.h>
 #include <sys/types.h>
 
+#include <libprelude/idmef.h>
 #include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-error.h>
 #include <libprelude/idmef.h>
@@ -37,6 +38,11 @@
 #include <libpreludedb/preludedb-sql.h>
 #include <libpreludedb/preludedb-error.h>
 #include <libpreludedb/preludedb-object-selection.h>
+#include <libpreludedb/db.h>
+#include <libpreludedb/preludedb.h>
+
+
+#include <libpreludedb/db.h>
 #include <libpreludedb/preludedb.h>
 
 
@@ -90,10 +96,10 @@ static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 
 		ret2 = preludedb_get_error(plugin->db, ret, &error);
 		if ( ret2 < 0 )
-			log(LOG_ERR, "could not insert message into database: %s.\n",
-			    preludedb_strerror(ret));
+			prelude_log(PRELUDE_LOG_WARN, "could not insert message into database: %s.\n",
+                                    preludedb_strerror(ret));
 		else {
-			log(LOG_ERR, "could not insert message into database: %s.\n", error);
+			prelude_log(PRELUDE_LOG_WARN, "could not insert message into database: %s.\n", error);
 			free(error);
 		}
 	}
@@ -139,8 +145,8 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 	preludedb_sql_settings_t *settings;
         int ret;
 
-	settings = preludedb_sql_settings_new();
-	if ( ! settings )
+	ret = preludedb_sql_settings_new(&settings);
+	if ( ret < 0 )
 		return -1;
 
 	if ( plugin->host )
@@ -161,7 +167,7 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 	ret = preludedb_sql_new(&sql, plugin->type, settings);
 	if ( ret < 0 ) {
 		preludedb_sql_settings_destroy(settings);
-		log(LOG_ERR, "could not initialize libpreludedb.\n");
+		prelude_log(PRELUDE_LOG_WARN, "could not initialize libpreludedb.\n");
 		return ret;
 	}
 
@@ -169,15 +175,15 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 		ret = preludedb_sql_enable_query_logging(sql, plugin->log);
 		if ( ret < 0 ) {
 			preludedb_sql_destroy(sql);
-			log(LOG_ERR, "could not initialize libpreludedb.\n");
+			prelude_log(PRELUDE_LOG_WARN, "could not initialize libpreludedb.\n");
 			return ret;
 		}
 	}
 
-        db = preludedb_new(sql, NULL);
-	if ( ! db ) {
+        ret = preludedb_new(&db, sql, NULL);
+	if ( ret < 0 ) {
 		preludedb_sql_destroy(sql);
-		log(LOG_ERR, "could not initialize libpreludedb.\n");
+		prelude_log(PRELUDE_LOG_WARN, "could not initialize libpreludedb.\n");
 		return -1;
 	}
 

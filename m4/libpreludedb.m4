@@ -52,7 +52,7 @@ dnl
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libpreludedb/preludedb-version.h>
+#include <libpreludedb/db.h>
 
 int
 main ()
@@ -133,7 +133,7 @@ main ()
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libpreludedb/preludedb-version.h>
+#include <libpreludedb/db.h>
 ],      [ return !!preludedb_check_version(NULL); ],
         [ echo "*** The test program compiled, but did not run. This usually means"
           echo "*** that the run-time linker is not finding LIBPRELUDEDB or finding the wrong"
