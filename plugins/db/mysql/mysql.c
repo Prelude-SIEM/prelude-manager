@@ -91,13 +91,9 @@ static char *db_escape(const char *string)
 /*
  * insert the given values into the given db table.
  */
-static int db_insert(const char *table, const char *fields, const char *values)
+static int db_insert(const char *query)
 {
         int ret = 0;
-        char query[MAX_QUERY_LENGTH];
-        
-        snprintf(query, sizeof(query),
-                 "INSERT INTO %s (%s) VALUES(%s)", table, fields, values);
                 
         ret = mysql_query(&mysql, query);
         if ( ret ) {

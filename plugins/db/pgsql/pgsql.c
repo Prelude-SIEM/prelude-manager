@@ -83,12 +83,9 @@ static char *db_escape(const char *str)
 /*
  * insert the given values into the given db table.
  */
-static int db_insert(const char *table, const char *fields, const char *values)
+static int db_insert(const char *query)
 {
         PGresult *ret;
-        char query[8192];
-
-        snprintf(query, sizeof(query), "INSERT INTO %s (%s) VALUES(%s)", table, fields, values);
         
         ret = PQexec(pgsql, query);
         if ( ! ret || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
