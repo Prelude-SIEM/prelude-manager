@@ -31,8 +31,6 @@
 #include <pthread.h>
 #include <sys/time.h>
 
-#include <ltdl.h>
-
 #include <libprelude/prelude-inttypes.h>
 #include <libprelude/idmef.h>
 #include <libprelude/prelude-client.h>
@@ -135,7 +133,7 @@ int main(int argc, char **argv)
         /*
          * Initialize plugin first.
          */
-        LTDL_SET_PRELOADED_SYMBOLS();
+        PRELUDE_PLUGIN_SET_PRELOADED_SYMBOLS();
 
         ret = report_plugins_init(REPORT_PLUGIN_DIR, argc, argv);
         if ( ret < 0 ) {
