@@ -33,7 +33,7 @@
 #define SENSORS_CERT CONFIG_DIR"/sensors.certs"
 
 
-SSL *ssl_auth_client(int socket);
+int ssl_auth_client(prelude_io_t *fd);
 
 int ssl_init_server(void);
 

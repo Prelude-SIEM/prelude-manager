@@ -28,7 +28,8 @@
         SERVER_LOGIC_CLIENT_OBJECT;  \
         prelude_msg_t *msg;          \
         int is_authenticated;        \
-        char *addr
+        int is_ssl;                  \
+        char *addr;
 
 
 typedef struct server_generic server_generic_t;

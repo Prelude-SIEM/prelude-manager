@@ -1,5 +1,9 @@
 2002-01-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/ssl.c (ssl_auth_client):  (do_ssl_accept): 
+	* src/server-generic.c (authenticate_client): 
+	hack to fully handle SSL authentication in non blocking mode.
+
 	* plugins/reports/debug/debug.c: 
 	correct return value, Prelude coding style, remove print
 	help, as it is handled by prelude-getopt.

@@ -40,16 +40,14 @@
 #include <libprelude/common.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/plugin-common.h>
-
-#include "config.h"
-#include "auth.h"
-#include "ssl.h"
-
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-auth.h>
 
+#include "config.h"
+#include "auth.h"
+#include "ssl.h"
 #include "pconfig.h"
 #include "server-logic.h"
 #include "server-generic.h"
@@ -88,41 +86,14 @@ static prelude_msg_t *generate_config_message(void)
 
         msg = prelude_msg_new(2, 0, PRELUDE_MSG_AUTH, 0);
         if ( ! msg )
-                return NULL;        
-
-        prelude_msg_set(msg, PRELUDE_MSG_AUTH_HAVE_PLAINTEXT, 0, NULL);
+                return NULL;
         
 #ifdef HAVE_SSL
         prelude_msg_set(msg, PRELUDE_MSG_AUTH_HAVE_SSL, 0, NULL);
 #endif
+        prelude_msg_set(msg, PRELUDE_MSG_AUTH_HAVE_PLAINTEXT, 0, NULL);
         
         return msg;
-}
-
-
-/*
- * Start the SSL authentication process.
- */
-static int handle_ssl_connection(prelude_io_t *fd, const char *addr) 
-{
-#ifdef HAVE_SSL
-        SSL *ssl;
-        
-        ssl = ssl_auth_client(prelude_io_get_fd(fd));
-        if ( ! ssl ) {
-                log(LOG_INFO, "SSL authentication failed with %s.\n", addr);
-                return -1;
-        }
-        
-        log(LOG_INFO, "SSL authentication succeed with %s.\n", addr);
-        
-        prelude_io_set_ssl_io(fd, ssl);
-        
-        return 0;
-#else
-        log(LOG_INFO, "Client requested unavailable option : SSL.\n");
-        return -1;
-#endif
 }
 
 
@@ -148,10 +119,43 @@ static int send_plaintext_authentication_result(prelude_io_t *fd, uint8_t tag)
 
 
 /*
+ * Start the SSL authentication process.
+ */
+static prelude_msg_status_t handle_ssl_connection(server_generic_client_t *client) 
+{
+#ifdef HAVE_SSL
+        int ret;
+        
+        ret = ssl_auth_client(client->fd);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "SSL authentication failed with %s.\n", client->addr);
+                return -1;
+        }
+        
+        if ( ret == 0 )
+                /*
+                 * unfinished because of non blocking.
+                 */
+                return 0;
+
+        client->is_authenticated = 1;
+        log(LOG_INFO, "SSL authentication succeed with %s.\n", client->addr);
+        
+        return 1;
+#else
+        log(LOG_INFO, "Client requested unavailable option : SSL.\n");
+        return -1;
+#endif
+}
+
+
+
+
+/*
  * Read authentication information contained in the passed message.
  * Then try to authenticate the peer.
  */
-static int handle_plaintext_connection(prelude_msg_t *msg, prelude_io_t *fd, const char *addr)
+static int handle_plaintext_connection(prelude_msg_t *msg, server_generic_client_t *client)
 {
         int ret;
         void *buf;
@@ -172,25 +176,26 @@ static int handle_plaintext_connection(prelude_msg_t *msg, prelude_io_t *fd, con
                         break;
                         
                 default:
-                        log(LOG_INFO, "Invalid authentication message from %s.\n", addr);
+                        log(LOG_INFO, "Invalid authentication message from %s.\n", client->addr);
                         return -1;
                 }
         }
         
         if ( ! user || ! pass || ret < 0 ) {
-                log(LOG_INFO, "Invalid authentication message from %s.\n", addr);
+                log(LOG_INFO, "Invalid authentication message from %s.\n", client->addr);
                 return -1;
         }
         
         ret = prelude_auth_check(MANAGER_AUTH_FILE, user, pass);
         if ( ret < 0 ) {
-                log(LOG_INFO, "Plaintext authentication failed with %s.\n", addr);
-                return send_plaintext_authentication_result(fd, PRELUDE_MSG_AUTH_FAILED);
+                log(LOG_INFO, "Plaintext authentication failed with %s.\n", client->addr);
+                return send_plaintext_authentication_result(client->fd, PRELUDE_MSG_AUTH_FAILED);
         }
 
-        log(LOG_INFO, "Plaintext authentication succeed with %s.\n", addr);
-
-        return send_plaintext_authentication_result(fd, PRELUDE_MSG_AUTH_SUCCEED);
+        client->is_authenticated = 1;
+        log(LOG_INFO, "Plaintext authentication succeed with %s.\n", client->addr);
+        
+        return send_plaintext_authentication_result(client->fd, PRELUDE_MSG_AUTH_SUCCEED);
 }
 
 
@@ -221,11 +226,13 @@ static int handle_connection(prelude_msg_t *msg, server_generic_client_t *client
         switch (tag) {
 
         case PRELUDE_MSG_AUTH_SSL:
-                ret = handle_ssl_connection(client->fd, client->addr);
+                client->is_ssl = 1;
+                ret = handle_ssl_connection(client);
                 break;
                 
         case PRELUDE_MSG_AUTH_PLAINTEXT:
-                ret = handle_plaintext_connection(msg, client->fd, client->addr);
+                client->is_ssl = 0;
+                ret = handle_plaintext_connection(msg, client);
                 break;
 
         default:
@@ -251,26 +258,49 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
 {
         int ret;
         prelude_msg_status_t status;
-
-        status = prelude_msg_read(&client->msg, client->fd);
         
-        if ( status == prelude_msg_finished ) {                
-
-                ret = handle_connection(client->msg, client);
-                if ( ret < 0 )
-                        return -1;
-                
-                prelude_msg_destroy(client->msg);
-                client->msg = NULL;
-                client->is_authenticated = 1;
-
+        if ( client->is_ssl == 1 ) {
+                /*
+                 * FIXME:
+                 * 
+                 * handle_connection() was previously called, and it was an
+                 * SSL kind of connection. Don't try to read a prelude-message:
+                 * directly call the SSL subsystem, so that we can finish
+                 * authenticating the connection.
+                 *
+                 * This is a hack, and using prelude-message for SSL authentication
+                 * would be a good thing (if possible).
+                 */
+                ret = handle_ssl_connection(client);
+                if ( ret <= 0 )
+                        return ret;
+         
                 return server->accept(client);
         }
-        
-        else if ( status == prelude_msg_unfinished )
-                return 0;
-        
-        return -1;
+
+        else {
+                status = prelude_msg_read(&client->msg, client->fd);        
+
+                if ( status == prelude_msg_finished ) {        
+                        ret = handle_connection(client->msg, client);
+                        
+                        prelude_msg_destroy(client->msg);
+                        client->msg = NULL;
+                        
+                        if ( ret <= 0 )
+                                /*
+                                 * == 0 can only happen on SSL.
+                                 */
+                                return ret;
+                
+                        return server->accept(client);
+                }
+                
+                else if ( status == prelude_msg_unfinished )
+                        return 0;
+                
+                return -1;
+        }
 }
 
 
@@ -291,10 +321,10 @@ static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
         
         if ( client->is_authenticated )
                 return server->read(client);
-        else 
-                /*
-                 * -1 will result in close_connection_cb to be called.
-                 */
+        /*
+         * -1 will result in close_connection_cb to be called.
+         */
+        else
                 return authenticate_client(server, client);
 }
 
@@ -397,6 +427,7 @@ static int setup_client_socket(server_generic_t *server,
         prelude_io_set_sys_io(cdata->fd, client);
                
         cdata->msg = NULL;
+        cdata->is_ssl = 0;
         cdata->is_authenticated = 0;
         
         return 0;

@@ -31,14 +31,40 @@
 #include <sys/types.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <inttypes.h>
 
 #include <libprelude/common.h>
 #include <libprelude/config-engine.h>
+#include <libprelude/prelude-io.h>
 
 #include "ssl.h"
 
 
 static SSL_CTX *ctx;
+
+
+
+static int do_ssl_accept(SSL *ssl) 
+{
+        int ret;
+        
+        ret = SSL_accept(ssl);  
+        if ( ret <= 0 ) {
+                
+                ret = SSL_get_error(ssl, ret);
+                if ( ret == SSL_ERROR_WANT_READ )
+                        /*
+                         * we need more data.
+                         */
+                        return 0;
+                
+                ERR_print_errors_fp(stderr);
+                return -1;
+        }
+
+        return 1;
+}
+
 
 
 /**
@@ -49,33 +75,33 @@ static SSL_CTX *ctx;
  *
  * Returns: 0 on sucess, -1 on error.
  */
-SSL *ssl_auth_client(int socket)
+int ssl_auth_client(prelude_io_t *pio)
 {
-	int err;
+        int err;
         SSL *ssl;
         
-	ssl = SSL_new(ctx);
-	if (!ssl) {
-		ERR_print_errors_fp(stderr);
-		return NULL;
-	}
-
-	err = SSL_set_fd(ssl, socket);
-	if (err <= 0) {
-		ERR_print_errors_fp(stderr);
-		return NULL;
-	}
-        
-	/*
-         * handshake
+        /*
+         * check if we already have an SSL descriptor
+         * associated with this fd (possible because of non blocking mode).
          */
-	err = SSL_accept(ssl);
-	if (err <= 0) {
-		ERR_print_errors_fp(stderr);
-		return NULL;
-	}
+        ssl = prelude_io_get_fdptr(pio);        
+        if ( ! ssl ) {
+                ssl = SSL_new(ctx);
+                if (!ssl) {
+                        ERR_print_errors_fp(stderr);
+                        return -1;
+                }
+                
+                err = SSL_set_fd(ssl, prelude_io_get_fd(pio));
+                if (err <= 0) {
+                        ERR_print_errors_fp(stderr);
+                        return -1;
+                }
 
-        return ssl;
+                prelude_io_set_ssl_io(pio, ssl);
+        }
+
+        return do_ssl_accept(ssl);
 }
 
 
