@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <string.h>
 #include <dirent.h>
 #include <dlfcn.h>
@@ -223,7 +225,15 @@ void db_plugins_close(void)
 int db_plugins_init(const char *dirname, int argc, char **argv)
 {
         int ret;
-        
+	
+	ret = access(dirname, F_OK);
+	if ( ret < 0 ) {
+		if ( errno == ENOENT )
+			return 0;
+		log(LOG_ERR, "can't access %s.\n", dirname);
+		return -1;
+	}
+
         ret = plugin_load_from_dir(dirname, argc, argv, subscribe, unsubscribe);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't load plugin subsystem.\n");

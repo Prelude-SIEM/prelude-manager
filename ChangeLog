@@ -1,3 +1,9 @@
+2002-05-16  Baptiste Malguy <baptiste@malguy.net>
+
+	* src/*-plugins.c (*_plugins_init):
+	don't return an error if the plugin directory doesn't exist.
+	But do so in case of permission problem.
+
 2002-05-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* configure.in: save LIBS variable in orig_libs... 

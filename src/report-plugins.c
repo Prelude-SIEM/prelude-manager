@@ -106,6 +106,14 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
 {
         int ret;
         
+	ret = access(dirname, F_OK);
+	if ( ret < 0 ) {
+		if ( errno == ENOENT )
+			return 0;
+		log(LOG_ERR, "can't access %s.\n", dirname);
+		return -1;
+	}
+
         ret = plugin_load_from_dir(dirname, argc, argv, subscribe, unsubscribe);
 
         /*
