@@ -1,12 +1,12 @@
 /*****
 *
-* Copyright (C) 2001-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 1998 - 2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
 *
 * This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
+* it under the terms of the GNU General Public License as published by 
 * the Free Software Foundation; either version 2, or (at your option)
 * any later version.
 *
@@ -21,18 +21,17 @@
 *
 *****/
 
-#ifndef _MANAGER_DECODE_H
-#define _MANAGER_DECODE_H
+#ifndef _MANAGER_PLUGIN_REPORT_H
+#define _MANAGER_PLUGIN_REPORT_H
 
-#include <libprelude/prelude-log.h>
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-plugin.h>
-#include <libprelude/idmef-message-id.h>
-#include <libprelude/idmef-message-id-format.h>
-#include <libprelude/idmef.h>
-#include <libprelude/idmef-tree-wrap.h>
+prelude_bool_t report_plugins_available(void);
 
-#include "plugin-decode.h"
-#include "plugin-util.h"
+int report_plugin_activate_failover(const char *plugin);
 
-#endif /* _MANAGER_DECODE_H */
+int report_plugins_init(const char *dirname, void *data);
+
+void report_plugins_run(idmef_message_t *message);
+
+void report_plugins_close(void);
+
+#endif /* _MANAGER_PLUGIN_REPORT_H */

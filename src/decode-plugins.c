@@ -29,7 +29,9 @@
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
 
-#include "plugin-decode.h"
+#include "prelude-manager.h"
+#include "decode-plugins.h"
+
 
 #define MANAGER_PLUGIN_SYMBOL "manager_plugin_init"
 
@@ -67,7 +69,7 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
 int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *idmef) 
 {
         int ret;
-        plugin_decode_t *p;
+        manager_decode_plugin_t *p;
         prelude_list_t *tmp;
         prelude_plugin_instance_t *pi;
         
@@ -75,11 +77,11 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *i
 
                 pi = prelude_linked_object_get_object(tmp);
                                 
-                p = (plugin_decode_t *) prelude_plugin_instance_get_plugin(pi);
+                p = (manager_decode_plugin_t *) prelude_plugin_instance_get_plugin(pi);
                 if ( p->decode_id != plugin_id )
                         continue;
 
-                ret = prelude_plugin_run(pi, plugin_decode_t, run, msg, idmef);
+                ret = prelude_plugin_run(pi, manager_decode_plugin_t, run, msg, idmef);
                 if ( ret < 0 ) {
                         prelude_log(PRELUDE_LOG_WARN, "%s couldn't decode sensor data.\n", p->name);
                         return -1;

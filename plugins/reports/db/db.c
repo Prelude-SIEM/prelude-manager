@@ -41,10 +41,10 @@
 #include <libpreludedb/preludedb.h>
 
 #include "libmissing.h"
-#include "report.h"
+#include "prelude-manager.h"
 
 
-prelude_plugin_generic_t *db_LTX_prelude_plugin_init(void);
+int db_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt);
 
 
 #define param_value(param) (param ? param : "")
@@ -60,11 +60,6 @@ typedef struct {
         char *pass;
         preludedb_t *db;
 } db_plugin_t;
-
-
-
-static plugin_report_t plugin;
-extern prelude_option_t *manager_root_optlist;
 
 
 
@@ -185,7 +180,7 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
 
 
-static int db_activate(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
+static int db_activate(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
 {
         db_plugin_t *new;
 
@@ -207,49 +202,70 @@ static int db_activate(void *context, prelude_option_t *opt, const char *optarg,
 
 
 
-prelude_plugin_generic_t *db_LTX_prelude_plugin_init(void)
+int db_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
 {
+        int ret;
 	prelude_option_t *opt;
+        static manager_report_plugin_t db_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
 
-        opt = prelude_option_add(manager_root_optlist, hook, 0, "db", "Options for the libpreludedb plugin",
+        ret = prelude_option_add(rootopt, &opt, hook, 0, "db", "Options for the libpreludedb plugin",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED, db_activate, NULL);
-
-        prelude_plugin_set_activation_option((void *) &plugin, opt, db_init);
-
-	prelude_option_add(opt, hook, 't', "type", "Type of database (mysql/pgsql)",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_type, db_get_type);
-
-	prelude_option_add(opt, hook, 'l', "log", "Log all queries in a file, should be only used for debugging purpose",
-			   PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_log, db_get_log);
-
-	prelude_option_add(opt, hook, 'h', PRELUDEDB_SQL_SETTING_HOST,
-			   "The host where the database server is running (in case of client/server database)",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED,  db_set_host, db_get_host);
+        if ( opt < 0 )
+                return ret;
         
-        prelude_option_add(opt, hook, 'p', PRELUDEDB_SQL_SETTING_PORT,
-			   "The port where the database server is listening (in case of client/server database)",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_port, db_get_port);
-        
-	prelude_option_add(opt, hook, 'd', PRELUDEDB_SQL_SETTING_NAME,
-                           "The name of the database where the alerts will be stored",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_name, db_get_name);
+        prelude_plugin_set_activation_option((void *) &db_plugin, opt, db_init);
 
-	prelude_option_add(opt, hook, 'u', PRELUDEDB_SQL_SETTING_USER,
-			   "User of the database (in case of client/server database)",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_user, db_get_user);
-
-	prelude_option_add(opt, hook, 'P', PRELUDEDB_SQL_SETTING_PASS,
-			   "Password for the user (in case of client/server database)",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_pass, db_get_pass);
+	ret = prelude_option_add(opt, NULL, hook, 't', "type", "Type of database (mysql/pgsql)",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_type, db_get_type);
+        if ( ret < 0 )
+                return ret;
         
-        prelude_plugin_set_name(&plugin, "db");
-        prelude_plugin_set_author(&plugin, "Nicolas Delon");
-        prelude_plugin_set_contact(&plugin, "nicolas@prelude-ids.org");
-        prelude_plugin_set_desc(&plugin, "Write IDMEF messages in a database using libpreludedb");
-        prelude_plugin_set_destroy_func(&plugin, db_destroy);
-
-        report_plugin_set_running_func(&plugin, db_run);
+	ret = prelude_option_add(opt, NULL, hook, 'l', "log",
+                                 "Log all queries in a file, should be only used for debugging purpose",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_log, db_get_log);
+        if ( ret < 0 )
+                return ret;
         
-	return (void *) &plugin;
+	ret = prelude_option_add(opt, NULL, hook, 'h', PRELUDEDB_SQL_SETTING_HOST,
+                                 "The host where the database server is running (in case of client/server database)",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED,  db_set_host, db_get_host);
+        if ( ret < 0 )
+                return ret;
+        
+        ret = prelude_option_add(opt, NULL, hook, 'p', PRELUDEDB_SQL_SETTING_PORT,
+                                 "The port where the database server is listening (in case of client/server database)",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_port, db_get_port);
+        if ( ret < 0 )
+                return ret;
+        
+	ret = prelude_option_add(opt, NULL, hook, 'd', PRELUDEDB_SQL_SETTING_NAME,
+                                 "The name of the database where the alerts will be stored",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_name, db_get_name);
+        if ( ret < 0 )
+                return ret;
+        
+	ret = prelude_option_add(opt, NULL, hook, 'u', PRELUDEDB_SQL_SETTING_USER,
+                                 "User of the database (in case of client/server database)",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_user, db_get_user);
+        if ( ret < 0 )
+                return ret;
+        
+	ret = prelude_option_add(opt, NULL, hook, 'P', PRELUDEDB_SQL_SETTING_PASS,
+                                 "Password for the user (in case of client/server database)",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_pass, db_get_pass);
+        if ( ret < 0 )
+                return ret;
+        
+        prelude_plugin_set_name(&db_plugin, "db");
+        prelude_plugin_set_author(&db_plugin, "Nicolas Delon");
+        prelude_plugin_set_contact(&db_plugin, "nicolas@prelude-ids.org");
+        prelude_plugin_set_desc(&db_plugin, "Write IDMEF messages in a database using libpreludedb");
+        prelude_plugin_set_destroy_func(&db_plugin, db_destroy);
+
+        report_plugin_set_running_func(&db_plugin, db_run);
+
+        *plugin = (void *) &db_plugin;
+        
+	return 0;
 }

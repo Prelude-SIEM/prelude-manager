@@ -34,12 +34,13 @@
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
 
+#include "prelude-manager.h"
 #include "server-generic.h"
 #include "sensor-server.h"
 #include "manager-options.h"
-#include "plugin-decode.h"
-#include "plugin-report.h"
-#include "plugin-filter.h"
+#include "decode-plugins.h"
+#include "report-plugins.h"
+#include "filter-plugins.h"
 #include "idmef-message-scheduler.h"
 #include "reverse-relaying.h"
 #include "manager-auth.h"

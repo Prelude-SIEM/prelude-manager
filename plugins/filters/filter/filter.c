@@ -30,18 +30,13 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include <libprelude/idmef.h>
-#include <libprelude/prelude-log.h>
-#include <libprelude/idmef-criteria.h>
-#include <libprelude/prelude-error.h>
-
-#include "plugin-filter.h"
+#include "prelude-manager.h"
 
 
 int filter_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
 
 
-static plugin_filter_t filter_plugin;
+static manager_filter_plugin_t filter_plugin;
 
 
 typedef struct {
@@ -71,10 +66,10 @@ static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_st
         prelude_plugin_instance_t *ptr;
         struct {
                 const char *hook;
-                filter_category_t cat;
+                manager_filter_category_t cat;
         } tbl[] = {
-                { "reporting",         FILTER_CATEGORY_REPORTING        },
-                { "reverse-relaying",  FILTER_CATEGORY_REVERSE_RELAYING },
+                { "reporting",         MANAGER_FILTER_CATEGORY_REPORTING        },
+                { "reverse-relaying",  MANAGER_FILTER_CATEGORY_REVERSE_RELAYING },
                 { NULL,                0                                },
         };
 
@@ -83,7 +78,7 @@ static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_st
         for ( i = 0; tbl[i].hook != NULL; i++ ) {
                 ret = strcasecmp(optarg, tbl[i].hook);
                 if ( ret == 0 ) {
-                        filter_plugins_add_category(context, tbl[i].cat, NULL, plugin);
+                        manager_filter_plugins_add_filter(context, tbl[i].cat, NULL, plugin);
                         return 0;
                 }
         }
@@ -100,7 +95,7 @@ static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_st
                 return -1;
         }
 
-        filter_plugins_add_category(context, FILTER_CATEGORY_PLUGIN, ptr, plugin);
+        manager_filter_plugins_add_filter(context, MANAGER_FILTER_CATEGORY_PLUGIN, ptr, plugin);
         
         return 0;
 }

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2002-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -21,30 +21,18 @@
 *
 *****/
 
-#ifndef _MANAGER_PLUGIN_DECODE_H
-#define _MANAGER_PLUGIN_DECODE_H
+#ifndef _MANAGER_PLUGIN_FILTER_H
+#define _MANAGER_PLUGIN_FILTER_H
+
+prelude_bool_t filter_plugins_available(manager_filter_category_t type);
+
+int filter_plugins_init(const char *dirname, void *data);
+
+int filter_plugins_run_by_category(idmef_message_t *msg, manager_filter_category_t cat);
+
+int filter_plugins_run_by_plugin(idmef_message_t *message, prelude_plugin_instance_t *plugin);
 
 
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-msg.h>
-#include <libprelude/prelude-option.h>
-#include <libprelude/prelude-plugin.h>
+#endif /* _MANAGER_PLUGIN_FILTER_H */
 
 
-typedef struct {
-        PRELUDE_PLUGIN_GENERIC;
-        uint8_t decode_id;
-        int (*run)(prelude_msg_t *ac, idmef_message_t *idmef);
-} plugin_decode_t;
-
-
-#define decode_plugin_set_running_func(p, f) (p)->run = (f)
-
-
-int decode_plugins_init(const char *dirname, void *data);
-
-void decode_plugins_free_data(void);
-
-int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *pmsg, idmef_message_t *idmef);
-
-#endif /* _MANAGER_PLUGIN_DECODE_H */

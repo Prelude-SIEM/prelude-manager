@@ -28,11 +28,8 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include <libprelude/prelude.h>
-#include <libprelude/idmef-util.h>
-
 #include "libmissing.h"
-#include "report.h"
+#include "prelude-manager.h"
 
 
 int textmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt);
@@ -885,7 +882,7 @@ int textmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *roo
 {
         int ret;
 	prelude_option_t *opt;
-        static plugin_report_t textmod_plugin;
+        static manager_report_plugin_t textmod_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
         ret = prelude_option_add(rootopt, &opt, hook, 0, "textmod", "Option for the textmod plugin",

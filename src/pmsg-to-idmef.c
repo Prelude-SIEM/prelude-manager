@@ -35,7 +35,7 @@
 #include <libprelude/prelude-error.h>
 #include <libprelude/prelude-extract.h>
 
-#include "plugin-decode.h"
+#include "decode-plugins.h"
 #include "pmsg-to-idmef.h"
 #include "config.h"
 

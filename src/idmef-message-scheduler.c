@@ -43,9 +43,9 @@
 #include <libprelude/prelude-error.h>
 
 #include "libmissing.h"
-#include "plugin-decode.h"
-#include "plugin-report.h"
-#include "plugin-filter.h"
+#include "prelude-manager.h"
+#include "filter-plugins.h"
+#include "report-plugins.h"
 #include "manager-options.h"
 #include "reverse-relaying.h"
 #include "pmsg-to-idmef.h"
@@ -798,13 +798,13 @@ void idmef_message_scheduler_exit(void)
 
 void idmef_message_process(prelude_client_t *client, idmef_message_t *idmef)
 {
-        int relay_filter_available = 0;
+        prelude_bool_t relay_filter_available = 0;
         
-        relay_filter_available = filter_plugins_available(FILTER_CATEGORY_REVERSE_RELAYING);
+        relay_filter_available = filter_plugins_available(MANAGER_FILTER_CATEGORY_REVERSE_RELAYING);
         if ( relay_filter_available < 0 )
                 reverse_relay_send_msg(idmef);
 
-        else if ( filter_plugins_run_by_category(idmef, FILTER_CATEGORY_REVERSE_RELAYING) == 0 )
+        else if ( filter_plugins_run_by_category(idmef, MANAGER_FILTER_CATEGORY_REVERSE_RELAYING) == 0 )
                 reverse_relay_send_msg(idmef);
         
         /*

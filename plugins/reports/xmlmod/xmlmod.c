@@ -27,14 +27,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-
-#include <libprelude/prelude.h>
-#include <libprelude/idmef-util.h>
-
 #include <libxml/parser.h>
 
 #include "libmissing.h"
-#include "report.h"
+#include "prelude-manager.h"
 
 
 int xmlmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
@@ -1024,7 +1020,7 @@ int xmlmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *root
 {
         int ret;
 	prelude_option_t *opt;
-        static plugin_report_t xmlmod_plugin;
+        static manager_report_plugin_t xmlmod_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
         xmlInitParser();

@@ -26,14 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <libprelude/idmef.h>
-#include <libprelude/prelude-log.h>
-#include <libprelude/prelude-plugin.h>
-#include <libprelude/prelude-client.h>
-#include <libprelude/idmef-message-write.h>
-#include <libprelude/prelude-error.h>
-
-#include "plugin-report.h"
+#include "prelude-manager.h"
 
 
 int relaying_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
@@ -149,7 +142,7 @@ int relaying_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *ro
 {
         int ret;
         prelude_option_t *opt;
-        static plugin_report_t relaying_plugin;
+        static manager_report_plugin_t relaying_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
         ret = prelude_option_add(rootopt, &opt, hook, 0, "relaying",

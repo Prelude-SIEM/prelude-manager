@@ -27,18 +27,14 @@
 #include <unistd.h>
 
 #include <libprelude/prelude.h>
-#include <libprelude/prelude-log.h>
-#include <libprelude/prelude-plugin.h>
 #include <libprelude/daemonize.h>
-#include <libprelude/prelude-linked-object.h>
+#include <libprelude/prelude-log.h>
 
 #include "config.h"
 #include "libmissing.h"
-#include "server-generic.h"
-#include "reverse-relaying.h"
-#include "plugin-report.h"
 #include "manager-options.h"
-
+#include "report-plugins.h"
+#include "reverse-relaying.h"
 
 
 manager_config_t config;

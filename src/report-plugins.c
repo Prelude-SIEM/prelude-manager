@@ -35,17 +35,13 @@
 #include <assert.h>
 
 #include <libprelude/prelude.h>
-#include <libprelude/idmef.h>
-#include <libprelude/idmef-message-write.h>
-#include <libprelude/prelude-linked-object.h>
-#include <libprelude/prelude-log.h>
 #include <libprelude/prelude-timer.h>
-#include <libprelude/common.h>
 #include <libprelude/prelude-failover.h>
 
 #include "libmissing.h"
-#include "plugin-report.h"
-#include "plugin-filter.h"
+#include "prelude-manager.h"
+#include "report-plugins.h"
+#include "filter-plugins.h"
 #include "pmsg-to-idmef.h"
 
 
@@ -95,7 +91,7 @@ static int recover_from_failover(prelude_plugin_instance_t *pi, plugin_failover_
                 if ( ret < 0 )
                         break;
                  
-                ret = prelude_plugin_run(pi, plugin_report_t, run, pi, idmef);
+                ret = prelude_plugin_run(pi, manager_report_plugin_t, run, pi, idmef);
                 if ( ret < 0 && pf ) 
                         break;
  
@@ -316,7 +312,7 @@ void report_plugins_run(idmef_message_t *idmef)
         prelude_plugin_generic_t *pg;
         prelude_plugin_instance_t *pi;
         
-        ret = filter_plugins_run_by_category(idmef, FILTER_CATEGORY_REPORTING);
+        ret = filter_plugins_run_by_category(idmef, MANAGER_FILTER_CATEGORY_REPORTING);
         if ( ret < 0 ) 
                 return;
         
@@ -335,7 +331,7 @@ void report_plugins_run(idmef_message_t *idmef)
                         continue;
                 }
                                         
-                ret = prelude_plugin_run(pi, plugin_report_t, run, pi, idmef);
+                ret = prelude_plugin_run(pi, manager_report_plugin_t, run, pi, idmef);
                 if ( ret < 0 && pf ) {
                         failover_init(pg, pi, pf);
                         save_idmef_message(pf, idmef);
@@ -352,12 +348,12 @@ void report_plugins_run(idmef_message_t *idmef)
 void report_plugins_close(void)
 {
         prelude_list_t *tmp;
-        plugin_report_t *plugin;
+        manager_report_plugin_t *plugin;
         prelude_plugin_instance_t *pi;
                 
         prelude_list_for_each(&report_plugins_instance, tmp) {
                 pi = prelude_linked_object_get_object(tmp);
-                plugin = (plugin_report_t *) prelude_plugin_instance_get_plugin(pi);
+                plugin = (manager_report_plugin_t *) prelude_plugin_instance_get_plugin(pi);
                 
                 if ( plugin->close )
                         plugin->close(pi);

@@ -31,10 +31,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <libprelude/prelude.h>
-
 #include "config.h"
-#include "report.h"
+#include "prelude-manager.h"
 
 
 int debug2_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
@@ -190,7 +188,7 @@ int debug2_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *root
 {
         int ret;
 	prelude_option_t *opt;
-        static plugin_report_t debug_plugin;
+        static manager_report_plugin_t debug_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
         ret = prelude_option_add(rootopt, &opt, hook, 0, "debug2", "Option for the debug plugin",

@@ -34,7 +34,8 @@
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
 
-#include "plugin-filter.h"
+#include "prelude-manager.h"
+#include "filter-plugins.h"
 
 
 #define MANAGER_PLUGIN_SYMBOL "manager_plugin_init"
@@ -51,12 +52,12 @@ typedef struct {
 
 
 
-static prelude_list_t filter_category_list[FILTER_CATEGORY_END];
+static prelude_list_t filter_category_list[MANAGER_FILTER_CATEGORY_END];
 
 
 
-static int add_filter_entry(prelude_plugin_instance_t *filter,
-                            filter_category_t cat, prelude_plugin_instance_t *filtered_plugin_instance, void *data) 
+static int add_filter_entry(prelude_plugin_instance_t *filter, manager_filter_category_t cat,
+                            prelude_plugin_instance_t *filtered_plugin_instance, void *data) 
 {
         filter_plugin_entry_t *new;
         prelude_plugin_generic_t *plugin, *filtered_plugin;
@@ -98,16 +99,17 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
 
 
 
-int filter_plugins_add_category(prelude_plugin_instance_t *pi, filter_category_t cat,
-                                prelude_plugin_instance_t *filtered_plugin, void *data)
+int manager_filter_plugins_add_filter(prelude_plugin_instance_t *pi,
+                                      manager_filter_category_t filtered_category,
+                                      prelude_plugin_instance_t *filtered_plugin, void *data)
 {
-        return add_filter_entry(pi, cat, filtered_plugin, data);
+        return add_filter_entry(pi, filtered_category, filtered_plugin, data);
 }
 
 
 
 
-int filter_plugins_run_by_category(idmef_message_t *msg, filter_category_t cat) 
+int filter_plugins_run_by_category(idmef_message_t *msg, manager_filter_category_t cat) 
 {
         int ret;
         prelude_list_t *tmp;
@@ -116,7 +118,7 @@ int filter_plugins_run_by_category(idmef_message_t *msg, filter_category_t cat)
         prelude_list_for_each(&filter_category_list[cat], tmp) {
                 entry = prelude_list_entry(tmp, filter_plugin_entry_t, list);
                 
-                ret = prelude_plugin_run(entry->filter, plugin_filter_t, run, msg, entry->data);
+                ret = prelude_plugin_run(entry->filter, manager_filter_plugin_t, run, msg, entry->data);
                 if ( ret < 0 )
                         return -1;
         }
@@ -133,14 +135,14 @@ int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t
         prelude_list_t *tmp;
         filter_plugin_entry_t *entry;
         
-        prelude_list_for_each(&filter_category_list[FILTER_CATEGORY_PLUGIN], tmp) {
+        prelude_list_for_each(&filter_category_list[MANAGER_FILTER_CATEGORY_PLUGIN], tmp) {
                 
                 entry = prelude_list_entry(tmp, filter_plugin_entry_t, list);
 
                 if ( entry->filtered_plugin != plugin )
                         continue;
                 
-                ret = prelude_plugin_run(entry->filter, plugin_filter_t, run, msg, entry->data);
+                ret = prelude_plugin_run(entry->filter, manager_filter_plugin_t, run, msg, entry->data);
                 if ( ret < 0 )
                         return -1;
         }
@@ -159,7 +161,7 @@ int filter_plugins_init(const char *dirname, void *data)
 {
         int ret, i;
         
-        for (i = 0; i < FILTER_CATEGORY_END; i++ )
+        for (i = 0; i < MANAGER_FILTER_CATEGORY_END; i++ )
                 prelude_list_init(&filter_category_list[i]);
         
 	ret = access(dirname, F_OK);        
@@ -189,7 +191,7 @@ int filter_plugins_init(const char *dirname, void *data)
 
 
 
-prelude_bool_t filter_plugins_available(filter_category_t cat) 
+prelude_bool_t filter_plugins_available(manager_filter_category_t cat) 
 {
         return prelude_list_is_empty(&filter_category_list[cat]);
 }
