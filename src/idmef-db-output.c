@@ -202,8 +202,10 @@ static int insert_user(uint64_t alert_ident, uint64_t parent_ident,
 static int insert_process(uint64_t alert_ident, uint64_t parent_ident,
                           char parent_type, idmef_process_t *process) 
 {
-        char *name, *path;
-
+        struct list_head *tmp;
+        idmef_string_item_t *str;
+        char *name, *path, *env, *arg;
+        
         if ( ! process )
                 return 0;
         
@@ -223,6 +225,32 @@ static int insert_process(uint64_t alert_ident, uint64_t parent_ident,
         
         free(name);
         free(path);
+        
+        list_for_each(tmp, &process->arg_list) {
+                str = list_entry(tmp, idmef_string_item_t, list);
+
+                arg = db_plugin_escape(idmef_string(&str->string));
+                if ( ! arg )
+                        return -1;
+                
+                db_plugin_insert("Prelyde_ProcessArg", "alert_ident, parent_type, parent_ident, arg",
+                                 "%llu, '%c', %llu, '%s'", alert_ident, parent_type, parent_ident, arg);
+
+                free(arg);
+        }
+
+        list_for_each(tmp, &process->env_list) {
+                str = list_entry(tmp, idmef_string_item_t, list);
+
+                env = db_plugin_escape(idmef_string(&str->string));
+                if ( ! env )
+                        return -1;
+                
+                db_plugin_insert("Prelyde_ProcessEnv", "alert_ident, parent_type, parent_ident, env",
+                                 "%llu, '%c', %llu, '%s'", alert_ident, parent_type, parent_ident, env);
+
+                free(env);
+        }
 
         return 0;
 }
