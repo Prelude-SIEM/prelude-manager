@@ -71,7 +71,7 @@ static void add_category(plugin_generic_t *filtered_plugin, filter_category_t ca
 
 
 
-static int set_skeleton_hook(const char *arg) 
+static int set_skeleton_hook(prelude_option_t *opt, const char *arg) 
 {
         int i, ret;
         plugin_generic_t *ptr;
@@ -112,7 +112,7 @@ static int set_skeleton_hook(const char *arg)
 
 
 
-static int set_skeleton_rule(const char *arg) 
+static int set_skeleton_rule(prelude_option_t *opt, const char *arg) 
 {
         filter_rule = arg;
         return prelude_option_success;
@@ -121,7 +121,7 @@ static int set_skeleton_rule(const char *arg)
 
 
 
-static int enable_skeleton(const char *arg) 
+static int enable_skeleton(prelude_option_t *opt, const char *arg) 
 {
         if ( ! tbl_index )
                 return prelude_option_success;

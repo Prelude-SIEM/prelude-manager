@@ -50,7 +50,7 @@ struct report_config config;
 prelude_client_mgr_t *relay_managers = NULL;
 
 
-static int print_version(const char *arg) 
+static int print_version(prelude_option_t *opt, const char *arg) 
 {
         printf("prelude-manager %s\n", VERSION);
         return prelude_option_end;
@@ -64,7 +64,7 @@ static int get_version(char *buf, size_t size)
 }
 
 
-static int set_daemon_mode(const char *arg) 
+static int set_daemon_mode(prelude_option_t *opt, const char *arg) 
 {
         prelude_daemonize(config.pidfile);
         prelude_log_use_syslog();
@@ -72,14 +72,14 @@ static int set_daemon_mode(const char *arg)
 }
 
 
-static int set_pidfile(const char *arg) 
+static int set_pidfile(prelude_option_t *opt, const char *arg) 
 {
         config.pidfile = arg;
         return prelude_option_success;
 }
 
 
-static int set_relay_manager(const char *arg) 
+static int set_relay_manager(prelude_option_t *opt, const char *arg) 
 {        
         relay_managers = prelude_client_mgr_new(PRELUDE_CLIENT_TYPE_MANAGER, arg);
         if ( ! relay_managers )
@@ -89,7 +89,7 @@ static int set_relay_manager(const char *arg)
 }
 
 
-static int set_sensor_listen_address(const char *arg) 
+static int set_sensor_listen_address(prelude_option_t *opt, const char *arg) 
 {
         char *ptr = strdup(arg);
         
@@ -107,7 +107,7 @@ static int set_sensor_listen_address(const char *arg)
 
 
 
-static int set_admin_listen_address(const char *arg) 
+static int set_admin_listen_address(prelude_option_t *opt, const char *arg) 
 {
         char *ptr = strdup(arg);
         
@@ -124,7 +124,7 @@ static int set_admin_listen_address(const char *arg)
 
 
 
-static int print_help(const char *arg) 
+static int print_help(prelude_option_t *opt, const char *arg) 
 {
         prelude_option_print(CLI_HOOK, 25);
         return prelude_option_end;

@@ -155,7 +155,7 @@ static int db_connect(void)
 
 
 
-static int set_dbhost(const char *optarg) 
+static int set_dbhost(prelude_option_t *opt, const char *optarg) 
 {
         dbhost = strdup(optarg);
         return prelude_option_success;
@@ -163,28 +163,28 @@ static int set_dbhost(const char *optarg)
 
 
 
-static int set_dbname(const char *optarg) 
+static int set_dbname(prelude_option_t *opt, const char *optarg) 
 {
         dbname = strdup(optarg);
         return prelude_option_success;
 }
 
 
-static int set_dbuser(const char *optarg) 
+static int set_dbuser(prelude_option_t *opt, const char *optarg) 
 {
         dbuser = strdup(optarg);
         return prelude_option_success;
 }
 
 
-static int set_dbpass(const char *optarg) 
+static int set_dbpass(prelude_option_t *opt, const char *optarg) 
 {
         dbpass = strdup(optarg);
         return prelude_option_success;
 }
 
 
-static int set_mysql_state(const char *arg) 
+static int set_mysql_state(prelude_option_t *opt, const char *arg) 
 {
         int ret;
         

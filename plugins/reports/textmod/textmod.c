@@ -645,7 +645,7 @@ static void process_message(const idmef_message_t *msg)
 /*
  * plugin configuration stuff
  */
-static int set_logfile(const char *arg) 
+static int set_logfile(prelude_option_t *opt, const char *arg) 
 {
         out_fd = fopen(arg, "a+");
         if ( ! out_fd ) {
@@ -668,7 +668,7 @@ static int get_logfile(char *buf, size_t size)
 
 
 
-static int set_output_stderr(const char *arg) 
+static int set_output_stderr(prelude_option_t *opt, const char *arg) 
 {
         out_stderr = 1;
         return prelude_option_success;
@@ -685,7 +685,7 @@ static int get_output_stderr(char *buf, size_t size)
 
 
 
-static int set_textmod_state(const char *arg) 
+static int set_textmod_state(prelude_option_t *opt, const char *arg) 
 {
         int ret;
         

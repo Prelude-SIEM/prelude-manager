@@ -1016,14 +1016,14 @@ static void cleanup(void)
 
 
 
-static int make_verbose(const char *optarg)
+static int make_verbose(prelude_option_t *opt, const char *optarg)
 {
 	verbose = 1;
         return prelude_option_success;
 }
 
 
-static int make_silent(const char *optarg)
+static int make_silent(prelude_option_t *opt, const char *optarg)
 {
 	silent = 1;
         return prelude_option_success;
@@ -1031,7 +1031,7 @@ static int make_silent(const char *optarg)
 
 
 
-static int make_aggresive(const char *optarg)
+static int make_aggresive(prelude_option_t *opt, const char *optarg)
 {
 	aggresive = 1;
         return prelude_option_success;
@@ -1039,7 +1039,7 @@ static int make_aggresive(const char *optarg)
 
 
 
-static int use_wide_format(const char *optarg)
+static int use_wide_format(prelude_option_t *opt, const char *optarg)
 {
 	wide_format = 1;
         return prelude_option_success;
@@ -1047,7 +1047,7 @@ static int use_wide_format(const char *optarg)
 
 
 
-static int set_debug_state(const char *arg) 
+static int set_debug_state(prelude_option_t *opt, const char *arg) 
 {
         int ret;
         
