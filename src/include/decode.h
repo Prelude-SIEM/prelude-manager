@@ -20,6 +20,7 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 #include <libprelude/list.h>
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
@@ -27,7 +28,7 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/idmef-message-id.h>
 #include <libprelude/idmef-tree.h>
+#include <libprelude/idmef-tree-func.h>
 
-#include "idmef-func.h"
 #include "plugin-decode.h"
 #include "plugin-util.h"

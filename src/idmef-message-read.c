@@ -20,6 +20,7 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 #include <stdio.h>
 #include <unistd.h>
 #include <inttypes.h>
@@ -32,12 +33,13 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/idmef-message-id.h>
 #include <libprelude/idmef-tree.h>
+#include <libprelude/idmef-tree-func.h>
 #include <libprelude/plugin-common.h>
 
 #include "plugin-decode.h"
-#include "idmef-func.h"
 #include "idmef-message-read.h"
-
+#include "idmef-util.h"
+#include "config.h"
 
 
 
@@ -142,7 +144,7 @@ static int userid_get(prelude_msg_t *msg, idmef_userid_t *uid)
                 break;
 
         case MSG_USERID_NUMBER:
-                extract_string(buf, len, uid->number);
+                extract_int(uint32, buf, len, uid->number);
                 break;
 
         case MSG_END_OF_TAG:
@@ -530,8 +532,9 @@ static int analyzer_get(prelude_msg_t *msg, idmef_analyzer_t *analyzer)
                 break;
 
         case MSG_NODE_TAG:
+                printf("HERE\n");
+                
                 idmef_analyzer_node_new(analyzer);
-                                
                 ret = node_get(msg, analyzer->node);
                 if ( ret < 0 )
                         return -1;
@@ -698,14 +701,14 @@ static int target_get(prelude_msg_t *msg, idmef_target_t *dst)
 
 
 
-static int time_get(prelude_msg_t *msg, idmef_time_t *time)
+
+static int time_get(prelude_msg_t *msg, idmef_time_t *time,
+                    char *ctime, size_t csize, char *ntptime, size_t nsize)
 {
         int ret;
         void *buf;
         uint8_t tag;
         uint32_t len;
-        struct timeval tv;
-        static char ctime[MAX_UTC_DATETIME_SIZE], ntptime[MAX_NTP_TIMESTAMP_SIZE];
         
         ret = prelude_msg_get(msg, &tag, &len, &buf);
         if ( ret <= 0 )
@@ -714,20 +717,14 @@ static int time_get(prelude_msg_t *msg, idmef_time_t *time)
         switch (tag) {
 
         case MSG_TIME_SEC:
-                ret = extract_uint32((uint32_t *) &tv.tv_sec, buf, len);
-                if ( ret < 0 )
-                        return -1;
+                extract_int(uint32, buf, len, time->sec);
                 break;
 
         case MSG_TIME_USEC:
-                ret = extract_uint32((uint32_t *)&tv.tv_usec, buf, len);
-                if ( ret < 0 )
-                        return -1;
+                extract_int(uint32, buf, len, time->usec);
                 break;
 
         case MSG_END_OF_TAG:
-                idmef_get_timestamp(&tv, ctime, sizeof(ctime));
-                idmef_get_ntp_timestamp(&tv, ntptime, sizeof(ntptime));
                 return 0;
                 
         default:
@@ -735,7 +732,30 @@ static int time_get(prelude_msg_t *msg, idmef_time_t *time)
                 return -1;
         }
         
-        return time_get(msg, time);
+        return time_get(msg, time, ctime, csize, ntptime, nsize);
+}
+
+
+
+static int create_time_get(prelude_msg_t *msg, idmef_time_t *time)
+{
+        static char ctime[MAX_UTC_DATETIME_SIZE], ntptime[MAX_NTP_TIMESTAMP_SIZE];
+        return time_get(msg, time, ctime, sizeof(ctime), ntptime, sizeof(ntptime));
+}
+
+
+
+static int analyzer_time_get(prelude_msg_t *msg, idmef_time_t *time) 
+{
+        static char ctime[MAX_UTC_DATETIME_SIZE], ntptime[MAX_NTP_TIMESTAMP_SIZE];
+        return time_get(msg, time, ctime, sizeof(ctime), ntptime, sizeof(ntptime));
+}
+
+
+static int detect_time_get(prelude_msg_t *msg, idmef_time_t *time) 
+{
+        static char ctime[MAX_UTC_DATETIME_SIZE], ntptime[MAX_NTP_TIMESTAMP_SIZE];
+        return time_get(msg, time, ctime, sizeof(ctime), ntptime, sizeof(ntptime));
 }
 
 
@@ -907,8 +927,7 @@ static int alert_get(prelude_msg_t *msg, idmef_alert_t *alert)
         idmef_source_t *src;
         idmef_target_t *dst;
         idmef_classification_t *class;
-        idmef_additional_data_t *data;
-
+        idmef_additional_data_t *data;        
         
         ret = prelude_msg_get(msg, &tag, &len, &buf);        
         if ( ret <= 0 )
@@ -916,6 +935,10 @@ static int alert_get(prelude_msg_t *msg, idmef_alert_t *alert)
 
         switch (tag) {
 
+        case MSG_ALERT_IDENT:
+                extract_int(uint64, buf, len, alert->ident);
+                break;
+                
         case MSG_ALERT_IMPACT:
                 extract_string(buf, len, alert->impact);
                 break;
@@ -931,7 +954,7 @@ static int alert_get(prelude_msg_t *msg, idmef_alert_t *alert)
                 break;
 
         case MSG_CREATE_TIME_TAG:
-                ret = time_get(msg, &alert->create_time);
+                ret = create_time_get(msg, &alert->create_time);
                 if ( ret < 0 )
                         return -1;
                 break;
@@ -939,7 +962,7 @@ static int alert_get(prelude_msg_t *msg, idmef_alert_t *alert)
         case MSG_DETECT_TIME_TAG:
                 idmef_alert_detect_time_new(alert);
 
-                ret = time_get(msg, alert->detect_time);
+                ret = detect_time_get(msg, alert->detect_time);
                 if ( ret < 0 )
                         return -1;
                 break;
@@ -947,7 +970,7 @@ static int alert_get(prelude_msg_t *msg, idmef_alert_t *alert)
         case MSG_ANALYZER_TIME_TAG:
                 idmef_alert_analyzer_time_new(alert);
                 
-                ret = time_get(msg, alert->analyzer_time);
+                ret = analyzer_time_get(msg, alert->analyzer_time);
                 if ( ret < 0 )
                         return -1;
                 break;
@@ -1036,7 +1059,7 @@ static int heartbeat_get(prelude_msg_t *msg, idmef_heartbeat_t *heartbeat)
         uint8_t tag;
         uint32_t len;
         idmef_additional_data_t *data;
-
+        
         ret = prelude_msg_get(msg, &tag, &len, &buf);        
         if ( ret <= 0 )
                 return -1; /* Message should always terminate by END OF TAG */
@@ -1050,7 +1073,7 @@ static int heartbeat_get(prelude_msg_t *msg, idmef_heartbeat_t *heartbeat)
                 break;
 
         case MSG_CREATE_TIME_TAG:
-                ret = time_get(msg, &heartbeat->create_time);
+                ret = create_time_get(msg, &heartbeat->create_time);
                 if ( ret < 0 )
                         return -1;
                 break;
@@ -1058,7 +1081,7 @@ static int heartbeat_get(prelude_msg_t *msg, idmef_heartbeat_t *heartbeat)
         case MSG_ANALYZER_TIME_TAG:
                 idmef_heartbeat_analyzer_time_new(heartbeat);
                 
-                ret = time_get(msg, heartbeat->analyzer_time);
+                ret = analyzer_time_get(msg, heartbeat->analyzer_time);
                 if ( ret < 0 )
                         return -1;
                 break;
@@ -1102,7 +1125,8 @@ int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg)
         void *buf;
         uint8_t tag;
         uint32_t len;
-        
+
+
         ret = prelude_msg_get(msg, &tag, &len, &buf);
         if ( ret <= 0 ) 
                 return ret; /* Message should always terminate by END OF TAG */
@@ -1114,6 +1138,13 @@ int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg)
                 ret = alert_get(msg, idmef->message.alert);
                 if ( ret < 0 )
                         return -1;
+                
+                /*
+                 * if the sensor didn't set alert identity itself.
+                 */
+                if ( idmef->message.alert->ident == 0 )
+                        idmef_alert_get_ident(idmef->message.alert);
+
                 break;
 
         case MSG_HEARTBEAT_TAG:

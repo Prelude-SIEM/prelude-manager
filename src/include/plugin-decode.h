@@ -26,8 +26,6 @@
 
 #include <libprelude/idmef-tree.h>
 
-#include "idmef-func.h"
-
 typedef struct {
         PLUGIN_GENERIC;
         uint8_t decode_id;

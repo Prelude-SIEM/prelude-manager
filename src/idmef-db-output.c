@@ -20,15 +20,17 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/idmef-tree.h>
 
 #include "plugin-db.h"
-#include "idmef-func.h"
+#include "idmef-util.h"
 #include "idmef-db-output.h"
 
 
@@ -91,17 +93,15 @@ static void insert_node(const uint64_t *alert_ident, const uint64_t *parent_iden
 static void insert_userid(const uint64_t *alert_ident, const uint64_t *parent_ident,
                           char parent_type, const uint64_t *user_ident, const idmef_userid_t *uid) 
 {
-        char *name, *number;
+        char *name;
 
         name = db_plugin_escape(uid->name);
-        number = db_plugin_escape(uid->number);
-        
+               
         db_plugin_insert("Prelude_UserId", "alert_ident, parent_type, parent_ident, user_ident, ident, type, name, number",
-                         "%llu, '%c', %llu, %llu, %llu, '%s', '%s', '%s'", *alert_ident, parent_type, *parent_ident,
-                         *user_ident, uid->ident, idmef_userid_type_to_string(uid->type), name, number);
+                         "%llu, '%c', %llu, %llu, %llu, '%s', '%s', '%u'", *alert_ident, parent_type, *parent_ident,
+                         *user_ident, uid->ident, idmef_userid_type_to_string(uid->type), name, uid->number);
 
         free(name);
-        free(number);
 }
 
 
@@ -334,54 +334,63 @@ static void insert_data(const uint64_t *parent_ident, char parent_type, const id
 
 static void insert_createtime(const uint64_t *parent_ident, char parent_type, const idmef_time_t *time) 
 {
-        char *t, *ntpstamp;
+        char utc_time[MAX_UTC_DATETIME_SIZE], ntpstamp[MAX_NTP_TIMESTAMP_SIZE], *u, *n;
 
-        t = db_plugin_escape(time->time);
-        ntpstamp = db_plugin_escape(time->ntpstamp);
+        idmef_get_timestamp(time, utc_time, sizeof(utc_time));
+        idmef_get_ntp_timestamp(time, ntpstamp, sizeof(ntpstamp));
+        
+        u = db_plugin_escape(utc_time);
+        n = db_plugin_escape(ntpstamp);
         
         db_plugin_insert("Prelude_CreateTime", "parent_ident, parent_type, time, ntpstamp", 
-                          "%llu, '%c', '%s', '%s'", *parent_ident, parent_type, t, ntpstamp);
+                         "%llu, '%c', '%s', '%s'", *parent_ident, parent_type, u, n);
 
-        free(t);
-        free(ntpstamp);
+        free(u);
+        free(n);
 }
 
 
 
 static void insert_detecttime(const uint64_t *alert_ident, const idmef_time_t *time) 
-{
-        char *t, *ntpstamp;
+{        
+        char utc_time[MAX_UTC_DATETIME_SIZE], ntpstamp[MAX_NTP_TIMESTAMP_SIZE], *u, *n;
 
         if ( ! time )
                 return;
         
-        t = db_plugin_escape(time->time);
-        ntpstamp = db_plugin_escape(time->ntpstamp);
+        idmef_get_timestamp(time, utc_time, sizeof(utc_time));
+        idmef_get_ntp_timestamp(time, ntpstamp, sizeof(ntpstamp));
+        
+        u = db_plugin_escape(utc_time);
+        n = db_plugin_escape(ntpstamp);
         
         db_plugin_insert("Prelude_DetectTime", "alert_ident, time, ntpstamp",
-                          "%llu, '%s', '%s'", *alert_ident, t, ntpstamp);
+                          "%llu, '%s', '%s'", *alert_ident, u, n);
         
-        free(t);
-        free(ntpstamp);
+        free(u);
+        free(n);
 }
 
 
 
 static void insert_analyzertime(const uint64_t *parent_ident, char parent_type, const idmef_time_t *time) 
 {
-        char *t, *ntpstamp;
+        char utc_time[MAX_UTC_DATETIME_SIZE], ntpstamp[MAX_NTP_TIMESTAMP_SIZE], *u, *n;
 
         if ( ! time )
                 return;
         
-        t = db_plugin_escape(time->time);
-        ntpstamp = db_plugin_escape(time->ntpstamp);
+        idmef_get_timestamp(time, utc_time, sizeof(utc_time));
+        idmef_get_ntp_timestamp(time, ntpstamp, sizeof(ntpstamp));
         
+        u = db_plugin_escape(utc_time);
+        n = db_plugin_escape(ntpstamp);
+                
         db_plugin_insert("Prelude_AnalyzerTime", "parent_ident, parent_type, time, ntpstamp",
-                          "%llu, '%c', '%s', '%s'", *parent_ident, parent_type, t, ntpstamp);
-
-        free(t);
-        free(ntpstamp);
+                          "%llu, '%c', '%s', '%s'", *parent_ident, parent_type, u, n);
+        
+        free(u);
+        free(n);
 }
 
 

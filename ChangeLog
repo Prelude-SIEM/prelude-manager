@@ -1,7 +1,23 @@
+2002-01-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/idmef-message-read.c (userid_get): 
+	(time_get): 
+
+	* src/idmef-db-output.c (insert_userid): the uid field
+	is not a string anymore, but an unsigned 32 bits integer.
+	(insert_createtime): 
+	(insert_detecttime): 
+	(insert_analyzertime): handle idmef_time_t object change.
+
+	* src/idmef-func.c: removed. Most of theses function
+	are now in libprelude - idmef-tree-func.c. Function specific
+	to prelude-manager got moved to idmef-util.c
+
 2002-01-06  Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>
 
 	* src/sensor-server.c: added #include <sys/types.h> 
 	(FreeBSD compatibility fix)
+
 
 2002-01-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 

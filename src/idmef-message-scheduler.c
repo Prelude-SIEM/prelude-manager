@@ -39,13 +39,13 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/idmef-tree.h>
+#include <libprelude/idmef-tree-func.h>
 #include <libprelude/threads.h>
 
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-db.h"
 #include "pconfig.h"
-#include "idmef-func.h"
 #include "idmef-message-read.h"
 #include "idmef-message-scheduler.h"
 
@@ -238,7 +238,7 @@ static int process_message(prelude_msg_t *msg)
 
                 return -1;
         }
-
+        
         db_plugins_run(idmef);
         report_plugins_run(idmef);
         decode_plugins_free_data();
