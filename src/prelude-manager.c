@@ -220,9 +220,9 @@ int main(int argc, char **argv)
         
         fill_analyzer_infos();
         prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
-        prelude_client_set_flags(manager_client,  prelude_client_get_flags(manager_client) | PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
         prelude_client_set_flags(manager_client, prelude_client_get_flags(manager_client) & ~PRELUDE_CLIENT_FLAGS_CONNECT);
-
+        prelude_client_set_flags(manager_client, prelude_client_get_flags(manager_client) | PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
+        
         ret = prelude_client_init(manager_client);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error starting prelude-client");
@@ -244,18 +244,23 @@ int main(int argc, char **argv)
                 return -1;
         }
                 
-        ret = idmef_message_scheduler_init();
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't initialize alert scheduler.\n");
-                return -1;
-        }
-        
         ret = prelude_client_start(manager_client);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error starting prelude-client");                
                 return -1;
         }
 
+        /*
+         * prelude_client_start() should send it's initial heartbeat
+         * before the scheduler start handling IDMEF messages, so that we don't refcount
+         * the shared manager_client analyzer object from two different thread.
+         */
+        ret = idmef_message_scheduler_init();
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "couldn't initialize alert scheduler.\n");
+                return -1;
+        }
+        
         /*
          * start server
          */
