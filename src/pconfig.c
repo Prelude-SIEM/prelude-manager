@@ -42,7 +42,7 @@
 
 
 struct manager_config config;
-static const char *config_file = "foo";
+static const char *config_file = PRELUDE_MANAGER_CONF;
 
 
 
