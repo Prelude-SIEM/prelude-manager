@@ -4,6 +4,9 @@
 	API to gather database required configuration (dbhost, dbuser, 
 	dbpass). Coding style correction.	
 
+	(db_escape): set NULL string pointer to point on an empty string.
+	This fix a MySQL module crash.
+
 2001-11-06  Sylvain GIL <prelude@tootella.org>
 	* mysql.c: first real mysql calls
 

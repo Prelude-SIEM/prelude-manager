@@ -55,6 +55,9 @@ static char *db_escape(const char *string)
 {
         char *escaped;
 
+        if ( ! string )
+                string = "";
+        
         /*
          * MySQL documentation say :
          * The string pointed to by from must be length bytes long. You must
@@ -88,11 +91,12 @@ static int db_insert(char *table, char *fields, char *values)
                  "INSERT INTO %s (%s) VALUES(%s)",
                  table, fields, values);
 
+#if 0
         if ( (ret = db_query(insert_query)) ) {
                 printf("db_query returned %d\n", ret);
                 ret = -1;
         }
-        
+#endif   
         return ret;
 }
 
