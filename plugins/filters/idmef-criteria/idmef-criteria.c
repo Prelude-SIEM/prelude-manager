@@ -46,6 +46,7 @@ typedef struct {
 static int process_message(idmef_message_t *msg, void *priv) 
 {
 	filter_plugin_t *plugin = priv;
+	int ret;
         
         if ( ! plugin->criteria )
                 return 0;
