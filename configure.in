@@ -66,22 +66,62 @@ dnl ***************************************************
 dnl * Check for the MySQL library (MySQL plugin       *
 dnl ***************************************************
 
+# Check for mysql_config. If it is not found, look for mysql libraries
+# and headers in standard places
 AC_CHECK_PROG(MYSQL_CONFIG, mysql_config, true, false)
 
 if test x$MYSQL_CONFIG = xtrue; then
 	MYSQL_LIBS=`mysql_config --libs`
 	MYSQL_CFLAGS=`mysql_config --cflags`
 	
+	mysql_use=true
+else
+	for dir in /usr/lib /usr/lib/mysql /usr/local/lib \
+		   /usr/local/lib/mysql; do
+		AC_CHECK_FILE($dir/libmysqlclient.so, mysql_dir=$dir)
+	done
+
+	if test $mysql_dir ; then
+		mysql_use=true;
+		MYSQL_LIBS="-L$mysql_dir -lmysqlclient" 
+	fi
+
+	for dir in /usr/include /usr/include/mysql /usr/local/include \
+                   /usr/local/include/mysql; do
+		AC_CHECK_FILE($dir/mysql.h, mysql_inc=$dir)
+	done
+
+	if test $mysql_inc ; then
+		MYSQL_CFLAGS=-I$mysql_inc
+	else
+		mysql_use=false;
+	fi
+fi
+
+if test x$mysql_use = xtrue; then
+	# mysql_config --libs outputs -L'directory' instead of -Ldirectory
+	# and escaped version fools gcc in AC_CHECK_LIB so we must remove
+	# apostrophes
+	temp_mysql_flags=`echo $MYSQL_LIBS | sed -e s/\'//g`
+
+	# this is needed for correct linking. If we don't add mysql library
+	# flags to CFLAGS the test will always fail due to a linker error
+	CFLAGS_bak=$CFLAGS
+	CFLAGS="$CFLAGS $temp_mysql_flags"
+
 	AC_CHECK_LIB(mysqlclient, mysql_real_escape_string, have_real_escape_string=yes)
 	if test x$have_real_escape_string = xyes; then
 		AC_DEFINE(HAVE_MYSQL_REAL_ESCAPE_STRING)
 	fi
+
+	# restore the normal setting
+	CFLAGS=$CFLAGS_bak
 fi
 
 AC_ARG_ENABLE(mysql, [  --enable-mysql  Enable MySQL plugin [default=auto]], enable_mysql="$enableval", enable_mysql=auto)
 
 if test x$enable_mysql = xauto; then
-        if test x$MYSQL_CONFIG = xtrue; then
+        if test x$mysql_use = xtrue; then
                 enable_mysql=yes;
         else
                 enable_mysql=no;

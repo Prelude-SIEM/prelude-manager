@@ -1,3 +1,12 @@
+2001-01-27  Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>
+	* configure.in: if mysql_config is not present try to find 
+	libmysqlclient.so and mysql.h. This fallback should not be considered
+	completely reliable since it will not detect extra flags that may
+	be needed for compiling against libmysqlclient. 
+
+	* configure.in: added workaround for false negatives while checking
+	for mysql_real_escape_string.  
+
 2002-01-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/idmef-message-read.c (analyzer_get): 
