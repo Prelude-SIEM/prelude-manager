@@ -30,9 +30,9 @@
 
 #define log_client(cnx, args...) do {                                                                    \
         if ( cnx->port )                                                                                 \
-               log(LOG_INFO, "[%s:%u, %s:%llu] - ", cnx->addr, cnx->port, cnx->client_type, cnx->ident); \
+               log(LOG_INFO, "[%s:%u, %s:0x%llx] - ", cnx->addr, cnx->port, cnx->client_type, cnx->ident); \
         else                                                                                             \
-               log(LOG_INFO, "[unix, %s:%llu] - ", cnx->client_type, cnx->ident);                        \
+               log(LOG_INFO, "[unix, %s:0x%llx] - ", cnx->client_type, cnx->ident);                        \
                                                                                                          \
         log(LOG_INFO, args);                                                                             \
 } while (0)

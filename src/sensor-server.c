@@ -52,6 +52,7 @@ typedef struct {
         SERVER_GENERIC_OBJECT;
         struct list_head list;
         pthread_mutex_t *list_mutex;
+        prelude_msg_t *options_list;
 } sensor_fd_t;
 
 
@@ -84,19 +85,25 @@ static sensor_fd_t *search_cnx(struct list_head *head, uint64_t analyzerid)
 
 
 
-static int forward_to_all_managers(prelude_msg_t *msg) 
+static int forward_message_to_all(sensor_fd_t *client, prelude_msg_t *msg, struct list_head *head, pthread_mutex_t *list_mutex) 
 {
         sensor_fd_t *cnx;
         struct list_head *tmp;
 
-        pthread_mutex_lock(&managers_list_mutex);
+        pthread_mutex_lock(list_mutex);
         
-        list_for_each(tmp, &managers_cnx_list) {
+        list_for_each(tmp, head) {
                 cnx = list_entry(tmp, sensor_fd_t, list);
+
+                if ( cnx->port )
+                        log_client(client, "message forwarded to [%s:%d, %s:0x%llx].\n", cnx->addr, cnx->port, cnx->client_type, cnx->ident);
+                else
+                        log_client(client, "message forwarded to [unix, %s:0x%llx].\n", cnx->client_type, cnx->ident);
+                
                 prelude_msg_write(msg, cnx->fd);
         }
         
-        pthread_mutex_unlock(&managers_list_mutex);
+        pthread_mutex_unlock(list_mutex);
 
         return 0;
 }
@@ -114,13 +121,13 @@ static int forward_option_reply_to_admin(sensor_fd_t *cnx, uint64_t analyzerid, 
         admin = search_cnx(&admins_cnx_list, analyzerid);
         if ( ! admin ) {
                 pthread_mutex_unlock(&admins_list_mutex);
-                return forward_to_all_managers(msg);
+                return forward_message_to_all(cnx, msg, &managers_cnx_list, &managers_list_mutex);
         }
 
         if ( admin->port )
-                log_client(cnx, "option reply forwarded to sid %llu (%s:%d).\n", analyzerid, admin->addr, admin->port);
+                log_client(cnx, "option reply forwarded to [%s:%d, %s:0x%llx].\n", admin->addr, admin->port, admin->client_type, analyzerid);
         else
-                log_client(cnx, "option reply forwarded to sid %llu (unix).\n", analyzerid);
+                log_client(cnx, "option reply forwarded to [unix, %s:0x%llx].\n", admin->client_type, analyzerid);
                 
         ret = prelude_msg_write(msg, admin->fd);
         pthread_mutex_unlock(&admins_list_mutex);
@@ -141,13 +148,13 @@ static int forward_option_request_to_sensor(sensor_fd_t *cnx, uint64_t analyzeri
         sensor = search_cnx(&sensors_cnx_list, analyzerid);
         if ( ! sensor ) {
                 pthread_mutex_unlock(&sensors_list_mutex);
-                return forward_to_all_managers(msg);
+                return forward_message_to_all(cnx, msg, &managers_cnx_list, &managers_list_mutex);
         }
 
         if ( sensor->port )
-                log_client(cnx, "option request forwarded to sid %llu (%s:%d).\n", analyzerid, sensor->addr, sensor->port);
+                log_client(cnx, "option request forwarded to [%s:%d, %s:0x%llx].\n", sensor->addr, sensor->port, sensor->client_type, analyzerid);
         else
-                log_client(cnx, "option request forwarded to sid %llu (unix).\n", analyzerid);
+                log_client(cnx, "option request forwarded to [unix, %s:0x%llx].\n", sensor->client_type, analyzerid);
                 
         ret = prelude_msg_write(msg, sensor->fd);
         
@@ -159,65 +166,19 @@ static int forward_option_request_to_sensor(sensor_fd_t *cnx, uint64_t analyzeri
 
 
 
-static int option_list_to_xml(sensor_fd_t *cnx, prelude_msg_t *msg) 
+static int forward_option_list_to_admin(sensor_fd_t *cnx, prelude_msg_t *msg) 
 {
         int ret;
-        void *buf;
-        uint8_t tag;
-        uint32_t dlen;
         
-        ret = prelude_msg_get(msg, &tag, &dlen, &buf);
-        if ( ret < 0 ) {
-                log(LOG_ERR, "error decoding message.\n");
-                return -1;
-        }
-
-        if ( ret == 0 ) 
-                return 0;
+        if ( cnx->options_list )
+                prelude_msg_destroy(cnx->options_list);
         
-        switch (tag) {
-                
-        case PRELUDE_OPTION_START:
-                //printf("option start\n");
-                break;
-                
-        case PRELUDE_OPTION_NAME:
-                //printf("option name = %s\n", (char *) buf);
-                break;
-                
-        case PRELUDE_OPTION_DESC:
-                //printf("option desc = %s\n", (char *) buf);
-                break;
+        cnx->options_list = msg;
 
-        case PRELUDE_OPTION_HAS_ARG:
-                //printf("option has_arg = %d\n", * (uint8_t *) buf);
-                break;
-
-        case PRELUDE_OPTION_HELP:
-                //printf("option help = %s\n", (char *) buf);
-                break;
-
-        case PRELUDE_OPTION_INPUT_VALIDATION:
-                //printf("option input regex = %s\n", (char *) buf);
-                break;
-
-        case PRELUDE_OPTION_INPUT_TYPE:
-                //printf("option input type = %d\n", * (uint8_t *) buf);
-                break;
-                
-        case PRELUDE_OPTION_END:
-                //printf("end option.\n");
-                break;
-                
-        default:
-                /*
-                 * for compatibility purpose, don't return an error on unknow tag.
-                 */
-                log_client(cnx, "unknow option tag %d.\n", tag);
-        }
-
-        return option_list_to_xml(cnx, msg);
+        return forward_message_to_all(cnx, msg, &admins_cnx_list, &admins_list_mutex);
 }
+
+
 
 
 
@@ -250,7 +211,7 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         
         ret = forward_option_request_to_sensor(client, target_sensor_ident, msg);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error broadcasting option to sensor id %llu.\n", target_sensor_ident);
+                log(LOG_ERR, "error broadcasting option to sensor id 0x%llx.\n", target_sensor_ident);
                 return -1;
         }
         
@@ -289,7 +250,7 @@ static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         
         ret = forward_option_reply_to_admin(client, target_admin_ident, msg);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error broadcasting option to sensor id %llu.\n", target_admin_ident);
+                log(LOG_ERR, "error broadcasting option to sensor id 0x%llx.\n", target_admin_ident);
                 return -1;
         }
         
@@ -307,7 +268,7 @@ static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen)
         if ( ret < 0 )
                 return -1;
         
-        log_client(cnx, "declared ident %llu.\n", cnx->ident);
+        log_client(cnx, "declared ident 0x%llx.\n", cnx->ident);
                 
         return 0;
 }
@@ -547,10 +508,8 @@ static int read_connection_cb(server_generic_client_t *client)
                 ret = read_client_type(cnx, msg);
                 break;
                 
-        case PRELUDE_MSG_OPTION_LIST: 
-                ret = option_list_to_xml(cnx, msg);
-                if ( ret == 0 )
-                        manager_relay_msg_if_needed(msg);
+        case PRELUDE_MSG_OPTION_LIST:
+                ret = forward_option_list_to_admin(cnx, msg);
                 break;
 
         case PRELUDE_MSG_OPTION_REQUEST:  
@@ -567,7 +526,7 @@ static int read_connection_cb(server_generic_client_t *client)
                 break;
         }
 
-        if ( tag != PRELUDE_MSG_CLIENT_TYPE )
+        if ( tag != PRELUDE_MSG_CLIENT_TYPE && tag != PRELUDE_MSG_OPTION_LIST )
                 /*
                  * msg will be destroyed before for this kind of message.
                  */
