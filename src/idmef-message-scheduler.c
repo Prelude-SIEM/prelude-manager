@@ -463,7 +463,7 @@ static int queue_message_to_fd(file_output_t *out, prelude_msg_t *msg)
                 clear_fifo(out);
         
         ret = prelude_msg_write(msg, out->wfd);
-        if ( ret <= 0 )
+        if ( ret < 0 )
                 prelude_perror(ret, "couldn't write message to fifo");
 
         out->input_available = 1;
