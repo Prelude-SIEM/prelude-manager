@@ -582,13 +582,13 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
  * return 0 if the socket is unused.
  * retuir -1 on error.
  */
-static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addrlen) 
+static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addrlen, uint16_t port) 
 {
         int ret;
-        const char *sockname;
+        char sockname[256];
 
-        sockname = prelude_get_socket_filename();
-                
+        prelude_get_socket_filename(sockname, sizeof(sockname), port);
+
         ret = access(sockname, F_OK);
         if ( ret < 0 )
                 return 0;
@@ -620,11 +620,11 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
 static int unix_server_start(server_generic_t *server) 
 {
         int ret;
-        const char *sockname;
+        char sockname[256];
         struct sockaddr_un addr;
 
-        sockname = prelude_get_socket_filename();
-        
+        prelude_get_socket_filename(sockname, sizeof(sockname), server->unix_srvr);
+
         server->sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if ( server->sock < 0 ) {
                 log(LOG_ERR, "couldn't create socket.\n");
@@ -633,13 +633,13 @@ static int unix_server_start(server_generic_t *server)
         
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path, sockname, sizeof(addr.sun_path));
-        
-        ret = is_unix_socket_already_used(server->sock, (struct sockaddr *) &addr, sizeof(addr));
+
+        ret = is_unix_socket_already_used(server->sock, (struct sockaddr *) &addr, sizeof(addr), server->unix_srvr);
         if ( ret == 1 || ret < 0  ) {
                 close(server->sock);
                 return -1;
         }
-        
+
         ret = generic_server(server->sock, (struct sockaddr *) &addr, sizeof(addr));
         if ( ret < 0 ) {
                 close(server->sock);
@@ -743,7 +743,7 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
         }
         
         if ( strcmp(inet_ntoa(addr.sin_addr), "127.0.0.1") == 0 ) {
-                server->unix_srvr = 1;
+                server->unix_srvr = port;
                 ret = unix_server_start(server);
         } else {
                 server->unix_srvr = 0;
@@ -774,11 +774,14 @@ void server_generic_start(server_generic_t **server, size_t nserver)
 
 void server_generic_close(server_generic_t *server) 
 {
+        char sockname[256];
         close(server->sock);
         
-        if ( server->unix_srvr )
-                unlink(prelude_get_socket_filename());        
-
+        if ( server->unix_srvr ) {
+                prelude_get_socket_filename(sockname, sizeof(sockname), server->unix_srvr);        
+                unlink(sockname);
+        }
+        
         server_logic_stop(server->logic);
 }
 
