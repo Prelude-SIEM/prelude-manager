@@ -42,7 +42,15 @@
 
 
 struct manager_config config;
+static const char *config_file = "foo";
 
+
+
+static int set_conf_file(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err)
+{       
+        config_file = strdup(optarg);
+        return 0;
+}
 
 
 static int print_version(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
@@ -134,9 +142,9 @@ int pconfig_init(prelude_option_t *manager_root_optlist, int argc, char **argv)
 {
         prelude_option_t *opt;
         
-	/* Default */
-	config.addr = NULL;
-	config.port = 5554;
+        /* Default */
+        config.addr = NULL;
+        config.port = 5554;
         config.pidfile = NULL;
         config.dh_regenerate = 24 * 60 * 60;
         
@@ -152,6 +160,11 @@ int pconfig_init(prelude_option_t *manager_root_optlist, int argc, char **argv)
         opt = prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'P',
                                  "pidfile", "Write Prelude PID to pidfile", PRELUDE_OPTION_ARGUMENT_REQUIRED,
                                  set_pidfile, NULL);
+
+        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI, 'c', "config",
+                           "Configuration file to use", PRELUDE_OPTION_ARGUMENT_REQUIRED,
+                           set_conf_file, NULL);
+
         /*
          * we want this option to be processed before -d.
          */
