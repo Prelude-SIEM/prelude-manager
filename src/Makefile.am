@@ -15,5 +15,5 @@ prelude_report_SOURCES =		\
 	optparse.c auth.c		\
 	tcpdump-func.c			\
 	ssl.c				\
-	ssl_register_client.c
+	ssl-register-client.c
 
