@@ -90,8 +90,8 @@ static int recover_from_failover(prelude_plugin_instance_t *pi, plugin_failover_
                 
                 *totsize += size;
 
-                idmef = pmsg_to_idmef(msg);
-                if ( ! idmef )
+                ret = pmsg_to_idmef(&idmef, msg);
+                if ( ret < 0 )
                         break;
                  
                 ret = prelude_plugin_run(pi, plugin_report_t, run, pi, idmef);

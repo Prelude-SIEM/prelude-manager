@@ -248,12 +248,13 @@ static prelude_msg_t *get_message_from_file(file_output_t *out)
 
 static int process_message(prelude_msg_t *msg) 
 {
+        int ret;
         idmef_message_t *idmef;
         
-        idmef = pmsg_to_idmef(msg);
-        if ( ! idmef ) {
+        ret = pmsg_to_idmef(&idmef, msg);
+        if ( ret < 0 ) {
                 prelude_msg_destroy(msg);
-                return -1;
+                return ret;
         }
 
         /*

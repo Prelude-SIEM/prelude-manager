@@ -28,12 +28,12 @@
 
 #include <libprelude/idmef.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/extract.h>
 #include <libprelude/idmef-message-id.h>
 #include <libprelude/idmef-message-read.h>
 #include <libprelude/prelude-ident.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-error.h>
+#include <libprelude/prelude-extract.h>
 
 #include "plugin-decode.h"
 #include "pmsg-to-idmef.h"
@@ -100,15 +100,17 @@ static idmef_time_t *get_msg_time(prelude_msg_t *msg, idmef_time_t *create_time)
 
 static int handle_heartbeat_msg(prelude_msg_t *msg, idmef_message_t *idmef)
 {
+        int ret;
         idmef_heartbeat_t *heartbeat;
         
         heartbeat = idmef_message_new_heartbeat(idmef);
         if ( ! heartbeat )
                 return -1;
 
-        if ( ! idmef_heartbeat_read(heartbeat, msg) )
-                return -1;
-
+        ret = idmef_heartbeat_read(heartbeat, msg);
+        if ( ret < 0 )
+                return ret;
+        
         if ( ! idmef_heartbeat_get_analyzer_time(heartbeat) )
                 idmef_heartbeat_set_analyzer_time(heartbeat,
 						  get_msg_time(msg,
@@ -122,14 +124,16 @@ static int handle_heartbeat_msg(prelude_msg_t *msg, idmef_message_t *idmef)
 
 static int handle_alert_msg(prelude_msg_t *msg, idmef_message_t *idmef)
 {
+        int ret;
         idmef_alert_t *alert;
                         
         alert = idmef_message_new_alert(idmef);
         if ( ! alert )
                 return -1;
-        
-        if ( ! idmef_alert_read(alert, msg) )
-                return -1;
+
+        ret = idmef_alert_read(alert, msg);
+        if ( ret < 0 )
+                return ret;
         
         if ( ! idmef_alert_get_analyzer_time(alert) )
                 idmef_alert_set_analyzer_time(alert,
@@ -147,7 +151,7 @@ static int handle_proprietary_msg(prelude_msg_t *msg, idmef_message_t *idmef, vo
         int ret;
         uint8_t tag;
         
-        ret = extract_uint8_safe(&tag, buf, len);
+        ret = prelude_extract_uint8_safe(&tag, buf, len);
         if ( ret < 0 )
                 return -1;
                         
@@ -161,30 +165,27 @@ static int handle_proprietary_msg(prelude_msg_t *msg, idmef_message_t *idmef, vo
 
 
 
-idmef_message_t *pmsg_to_idmef(prelude_msg_t *msg) 
+int pmsg_to_idmef(idmef_message_t **idmef, prelude_msg_t *msg) 
 {
 	int ret;
 	void *buf;
 	uint8_t tag;
 	uint32_t len;
-        idmef_message_t *idmef;
         
-	idmef = idmef_message_new();
-	if ( ! idmef ) {
-		log(LOG_ERR, "memory exhausted.\n");
-		return NULL;
-	}
+	*idmef = idmef_message_new();
+	if ( ! *idmef )
+                return prelude_error_from_errno(errno);
 
         while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) == 0 ) {
                 
                 if ( tag == MSG_ALERT_TAG ) 
-			ret = handle_alert_msg(msg, idmef);
+			ret = handle_alert_msg(msg, *idmef);
 
                 else if ( tag == MSG_HEARTBEAT_TAG ) 
-                        ret = handle_heartbeat_msg(msg, idmef);
+                        ret = handle_heartbeat_msg(msg, *idmef);
 
                 else if ( tag == MSG_OWN_FORMAT )
-                        ret = handle_proprietary_msg(msg, idmef, buf, len);
+                        ret = handle_proprietary_msg(msg, *idmef, buf, len);
 
                 else log(LOG_ERR, "unknow tag: %d.\n", tag);
                 
@@ -193,10 +194,10 @@ idmef_message_t *pmsg_to_idmef(prelude_msg_t *msg)
         }
         
         if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EOF )
-                return idmef;
-        
-        log(LOG_ERR, "error reading IDMEF message: %s %s.\n", prelude_strsource(ret), prelude_strerror(ret));
-        idmef_message_destroy(idmef);
+                return 0;
+
+        log(LOG_INFO, "%s: error reading IDMEF message: %s.\n", prelude_strsource(ret), prelude_strerror(ret));
+        idmef_message_destroy(*idmef);
                 
-        return NULL;
+        return ret;
 }

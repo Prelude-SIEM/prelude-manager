@@ -33,7 +33,7 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-ident.h>
-#include <libprelude/extract.h>
+#include <libprelude/prelude-extract.h>
 #include <libprelude/prelude-connection.h>
 #include <libprelude/prelude-connection-mgr.h>
 #include <libprelude/prelude-option-wide.h>
@@ -192,7 +192,7 @@ static int get_msg_target_ident(prelude_msg_t *msg, uint64_t *ident)
                 if ( tag != PRELUDE_MSG_OPTION_TARGET_ID )
                         continue;
                 
-                return extract_uint64_safe(ident, buf, len);
+                return prelude_extract_uint64_safe(ident, buf, len);
         }
 
         return -1;
@@ -259,7 +259,7 @@ static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen)
 {
         int ret;
 
-        ret = extract_uint64_safe(&cnx->ident, buf, blen);
+        ret = prelude_extract_uint64_safe(&cnx->ident, buf, blen);
         if ( ret < 0 )
                 return -1;
         
