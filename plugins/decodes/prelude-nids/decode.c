@@ -335,7 +335,7 @@ prelude_plugin_generic_t *prelude_plugin_init(void)
         decode_plugin_set_running_func(&plugin, nids_decode_run);
         plugin.decode_id = MSG_FORMAT_PRELUDE_NIDS;
         
-        prelude_plugin_subscribe((void *) &plugin, NULL, NULL);
+        prelude_plugin_subscribe(prelude_plugin_new_instance((void *) &plugin, NULL, NULL));
         
 	return (void *) &plugin;
 }

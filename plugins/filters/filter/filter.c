@@ -145,13 +145,6 @@ static int filter_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt,
         }
         
         new->criteria = NULL;
-        
-        new->pi = prelude_plugin_subscribe((void *) &filter_plugin, arg, new);
-        if ( ! new->pi ) {
-                free(new);
-                return prelude_option_error;
-        }
-
         prelude_plugin_instance_set_data(pi, new);
         
         return prelude_option_success;

@@ -90,7 +90,8 @@ static sensor_fd_t *search_cnx(prelude_list_t *head, uint64_t analyzerid)
 
 
 
-static int forward_message_to_all(sensor_fd_t *client, prelude_msg_t *msg, prelude_list_t *head, pthread_mutex_t *list_mutex) 
+static int forward_message_to_all(sensor_fd_t *client, prelude_msg_t *msg,
+                                  prelude_list_t *head, pthread_mutex_t *list_mutex) 
 {
         sensor_fd_t *cnx;
         prelude_list_t *tmp;
@@ -640,7 +641,7 @@ int sensor_server_add_client(server_generic_t *server, prelude_client_t *client)
         cdata->is_authenticated = 1;
         cdata->fd = prelude_client_get_fd(client);
         cdata->client = client;
-        cdata->client_type = "Parent Manager";
+        cdata->client_type = "parent-manager";
         
         server_generic_process_requests(server, (server_generic_client_t *) cdata);
         

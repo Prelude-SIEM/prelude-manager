@@ -89,28 +89,6 @@ static int add_filter_entry(prelude_plugin_instance_t *filter,
 
 
 
-
-/*
- *
- */
-static int subscribe(prelude_plugin_instance_t *pi) 
-{
-#if 0
-        filter_entry_t *entry;
-        plugin_filter_t *filter = (plugin_filter_t *) prelude_plugin_instance_get_plugin(pi);
-
-        for ( entry = filter->category; entry->category != FILTER_CATEGORY_END; entry++ ) {
-                
-                if ( entry->plugin )
-                        add_filter_entry(pi, FILTER_CATEGORY_PLUGIN, entry->plugin, entry->private_data);
-                else
-                        add_filter_entry(pi, entry->category, NULL, entry->private_data);
-        }
-#endif
-        return 0;
-}
-
-
 static void unsubscribe(prelude_plugin_instance_t *pi) 
 {
         prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
@@ -194,7 +172,7 @@ int filter_plugins_init(const char *dirname, int argc, char **argv)
 		return -1;
 	}
         
-        ret = prelude_plugin_load_from_dir(dirname, subscribe, unsubscribe);
+        ret = prelude_plugin_load_from_dir(dirname, NULL, unsubscribe);
 
         /*
          * don't return an error if the report directory doesn't exist.
