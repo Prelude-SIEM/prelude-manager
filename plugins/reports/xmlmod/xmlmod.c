@@ -548,16 +548,13 @@ static void process_target(xmlNodePtr parent, idmef_target_t *target)
 
 
 
-static void process_analyzer(xmlNodePtr parent, idmef_analyzer_t *analyzer) 
+static xmlNodePtr process_analyzer(xmlNodePtr parent, idmef_analyzer_t *analyzer) 
 {
         xmlNodePtr new;
 
-        if ( ! analyzer )
-                return;
-
         new = xmlNewChild(parent, NULL, "Analyzer", NULL);
         if ( ! new )
-                return;
+                return NULL;
         
         idmef_attr_string(new, "analyzerid", idmef_analyzer_get_analyzerid(analyzer));
         idmef_attr_string(new, "name", idmef_analyzer_get_name(analyzer));
@@ -571,7 +568,7 @@ static void process_analyzer(xmlNodePtr parent, idmef_analyzer_t *analyzer)
         process_node(new, idmef_analyzer_get_node(analyzer));
         process_process(new, idmef_analyzer_get_process(analyzer));
 
-        process_analyzer(new, idmef_analyzer_get_analyzer(analyzer));
+        return new;
 }
 
 
@@ -742,9 +739,10 @@ static void process_assessment(xmlNodePtr parent, idmef_assessment_t *assessment
 
 static void process_alert(xmlNodePtr root, idmef_alert_t *alert) 
 {
-        xmlNodePtr new;
+        xmlNodePtr new, anode;
         idmef_source_t *source;
         idmef_target_t *target;
+        idmef_analyzer_t *analyzer = NULL;
         idmef_additional_data_t *additional_data;
 
         if ( ! alert )
@@ -756,7 +754,10 @@ static void process_alert(xmlNodePtr root, idmef_alert_t *alert)
         
         idmef_attr_string(new, "messageid", idmef_alert_get_messageid(alert));
 
-        process_analyzer(new, idmef_alert_get_analyzer(alert));
+        anode = new;
+        while ( (analyzer = idmef_alert_get_next_analyzer(alert, analyzer)) )      
+                anode = process_analyzer(anode, analyzer);
+        
         process_time(new, "CreateTime", idmef_alert_get_create_time(alert));
         process_time(new, "DetectTime", idmef_alert_get_detect_time(alert));
         process_time(new, "AnalyzerTime", idmef_alert_get_analyzer_time(alert));
@@ -784,7 +785,8 @@ static void process_alert(xmlNodePtr root, idmef_alert_t *alert)
 
 static void process_heartbeat(xmlNodePtr idmefmsg, idmef_heartbeat_t *heartbeat) 
 {
-        xmlNodePtr hb;
+        xmlNodePtr hb, anode;
+        idmef_analyzer_t *analyzer = NULL;
         idmef_additional_data_t *additional_data;
 
         if ( ! heartbeat )
@@ -795,8 +797,12 @@ static void process_heartbeat(xmlNodePtr idmefmsg, idmef_heartbeat_t *heartbeat)
                 return;
 
 	idmef_attr_string(hb, "messageid", idmef_heartbeat_get_messageid(heartbeat));
+
         
-        process_analyzer(hb, idmef_heartbeat_get_analyzer(heartbeat));
+        anode = hb;
+        while ( (analyzer = idmef_heartbeat_get_next_analyzer(heartbeat, analyzer)) )      
+                anode = process_analyzer(anode, analyzer);
+        
         process_time(hb, "CreateTime", idmef_heartbeat_get_create_time(heartbeat));
         process_time(hb, "AnalyzerTime", idmef_heartbeat_get_analyzer_time(heartbeat));
 

@@ -547,8 +547,6 @@ static void process_analyzer(textmod_plugin_t *plugin, idmef_analyzer_t *analyze
 
         if ( idmef_analyzer_get_process(analyzer) )
                 process_process(plugin, 0, idmef_analyzer_get_process(analyzer));
-
-        process_analyzer(plugin, idmef_analyzer_get_analyzer(analyzer));
 }
 
 
@@ -704,6 +702,7 @@ static void process_alert(textmod_plugin_t *plugin, idmef_alert_t *alert)
         int header;
         idmef_source_t *source;
         idmef_target_t *target;
+        idmef_analyzer_t *analyzer;
         idmef_additional_data_t *data;
 
         if ( ! alert )
@@ -718,7 +717,9 @@ static void process_alert(textmod_plugin_t *plugin, idmef_alert_t *alert)
         process_time(plugin, "* Detection time", idmef_alert_get_detect_time(alert));
         process_time(plugin, "* Analyzer time", idmef_alert_get_analyzer_time(alert));
 
-        process_analyzer(plugin, idmef_alert_get_analyzer(alert));
+        analyzer = NULL;
+        while ( (analyzer = idmef_alert_get_next_analyzer(alert, analyzer)) )
+                process_analyzer(plugin, analyzer);
 
         print(plugin, 0, "*\n");
 
@@ -766,6 +767,7 @@ static void process_alert(textmod_plugin_t *plugin, idmef_alert_t *alert)
 
 static void process_heartbeat(textmod_plugin_t *plugin, idmef_heartbeat_t *heartbeat) 
 {
+        idmef_analyzer_t *analyzer;
 	idmef_additional_data_t *data;
 
         if ( ! heartbeat )
@@ -773,8 +775,11 @@ static void process_heartbeat(textmod_plugin_t *plugin, idmef_heartbeat_t *heart
         
         print(plugin, 0, "********************************************************************************\n");
         print_string(plugin, 0, "* Heartbeat: ident=%s\n", idmef_heartbeat_get_messageid(heartbeat));
+
+        analyzer = NULL;
+        while ( (analyzer = idmef_heartbeat_get_next_analyzer(heartbeat, analyzer)) ) 
+                process_analyzer(plugin, analyzer);
         
-        process_analyzer(plugin, idmef_heartbeat_get_analyzer(heartbeat));
         process_time(plugin, "* Creation time", idmef_heartbeat_get_create_time(heartbeat));
         process_time(plugin, "* Analyzer time", idmef_heartbeat_get_analyzer_time(heartbeat));
 
