@@ -40,19 +40,19 @@
 #include "idmef-util.h"
 
 
-static void dump_idmef_list_idmef_classification_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_additional_data_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_webservice_arg_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_process_arg_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_address_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_userid_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_process_env_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_action_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_alertident_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_source_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_target_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_file_access_t(const char *name, const struct list_head *list);
-static void dump_idmef_list_idmef_linkage_t(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_classification_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_additional_data_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_webservice_arg_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_process_arg_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_address_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_userid_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_process_env_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_action_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_alertident_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_source_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_target_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_file_access_t_func(const char *name, const struct list_head *list);
+static void dump_idmef_list_idmef_linkage_t_func(const char *name, const struct list_head *list);
 
 
 typedef struct {
@@ -145,11 +145,11 @@ typedef struct {
 #define dump_idmef_string_item_ptr(ptr) dump_idmef_string_item_func(#ptr, ptr)
 
 #define dump_idmef_list_ptr(name, type, list) do { \
-	dump_idmef_list_##type##(name, list);      \
+	dump_idmef_list_##type##_func(name, list);      \
 } while (0)
 
 #define dump_idmef_list(name, type, list) do {                        \
-	dump_idmef_list_##type##(name, (const struct list_head *) &(list)); \
+	dump_idmef_list_##type##_func(name, (const struct list_head *) &(list)); \
 } while (0)
 
 #define dump_member(name, parent, type, what) \
@@ -159,7 +159,7 @@ typedef struct {
 	dump_##type##_func(concat(name, concat("->", #what)), parent->what)
 
 #define dump_idmef_ptr(ptr, type) do {               \
-	if ((ptr)) dump_idmef_ ## type ## ((*ptr));  \
+	if ((ptr)) dump_idmef_##type##((*ptr));  \
 	else printf("%s%s == NULL\n", prefix, #ptr); \
 } while(0)
 
@@ -167,7 +167,7 @@ typedef struct {
 
 
 #define create_list_func(type, cb) \
-static void dump_idmef_list_##type##(const char *list_name, const struct list_head *list_ptr) \
+static void dump_idmef_list_##type##_func(const char *list_name, const struct list_head *list_ptr) \
 {\
 	struct list_head *tmp;\
 	type *entry;\
