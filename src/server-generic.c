@@ -51,7 +51,7 @@
 #include <libprelude/prelude-inet.h>
 
 #include "config.h"
-#include "tls-auth.h"
+#include "manager-auth.h"
 #include "pconfig.h"
 #include "server-logic.h"
 #include "server-generic.h"
@@ -96,7 +96,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
         int ret;
 
         if ( ! (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ) {
-                ret = tls_auth_client(client, client->fd, 0);
+                ret = manager_auth_client(client, client->fd, 0);
                 if ( ret == 0 )
                         return ret;
                 
@@ -111,7 +111,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
         }
         
         if ( server->sa->sa_family == AF_UNIX && ! (client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED) ) {
-                ret = tls_auth_disable_encryption(client, client->fd);
+                ret = manager_auth_disable_encryption(client, client->fd);
                 if ( ret <= 0 )
                         return ret;
 

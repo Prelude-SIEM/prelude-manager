@@ -28,11 +28,11 @@
 #include "server-generic.h"
 
 
-int tls_auth_disable_encryption(server_generic_client_t *client, prelude_io_t *pio);
+int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_t *pio);
 
-int tls_auth_client(server_generic_client_t *client, prelude_io_t *pio, int crypt);
+int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, int crypt);
 
-int tls_auth_init(prelude_client_t *client);
+int manager_auth_init(prelude_client_t *client);
 
 
 #endif /* _MANAGER_TLS_AUTH_H */

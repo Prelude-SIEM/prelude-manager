@@ -15,12 +15,12 @@ prelude_manager_SOURCES =			\
 			pconfig.c		\
 			prelude-manager.c	\
 			filter-plugins.c	\
+			manager-auth.c		\
 			pmsg-to-idmef.c         \
 			report-plugins.c	\
 			server-logic.c		\
 			server-generic.c	\
 			sensor-server.c		\
-			tls-auth.c		\
 			decode-plugins.c	\
 			idmef-message-scheduler.c \
 			plugins-util.c		\

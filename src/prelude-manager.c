@@ -45,7 +45,7 @@
 #include "plugin-filter.h"
 #include "idmef-message-scheduler.h"
 #include "reverse-relaying.h"
-#include "tls-auth.h"
+#include "manager-auth.h"
 #include "config.h"
 
 
@@ -84,7 +84,7 @@ static void init_manager_server(void)
         
         nserver++;
         
-        ret = tls_auth_init(manager_client);
+        ret = manager_auth_init(manager_client);
 	if ( ret < 0 )
                 return;
         

@@ -40,7 +40,7 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 
-#include "tls-auth.h"
+#include "manager-auth.h"
 
 
 #define DH_BITS 1024
@@ -111,7 +111,7 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
 
 
 
-int tls_auth_client(server_generic_client_t *client, prelude_io_t *pio, int crypt)
+int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, int crypt)
 {
         int ret;
         gnutls_session session;
@@ -152,7 +152,7 @@ int tls_auth_client(server_generic_client_t *client, prelude_io_t *pio, int cryp
 
 
 
-int tls_auth_disable_encryption(server_generic_client_t *client, prelude_io_t *pio)
+int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_t *pio)
 {
         int ret;
         gnutls_session session;
@@ -174,7 +174,7 @@ int tls_auth_disable_encryption(server_generic_client_t *client, prelude_io_t *p
 
 
 
-int tls_auth_init(prelude_client_t *client)
+int manager_auth_init(prelude_client_t *client)
 {
         char buf[256];
         
