@@ -1,3 +1,14 @@
+2004-01-11  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* prelude-manager.conf.in: 
+	remove invalid section.
+
+2004-01-07  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* prelude-manager-db-create.sh.in (manager_user): 
+	less confusing database creation message, reported and 
+	corrected by Sami Haahtinen <ressu@ressukka.net>.
+
 2004-01-07  Nicolas Delon  <delon.nicolas@wanadoo.fr>
 
 	* src/idmef-message-scheduler.c:

@@ -1,5 +1,3 @@
-[Prelude Manager]
-
 # Address where the sensors serber is listening on.
 # if value is 127.0.0.1 (or is resolved as being 127.0.0.1), 
 # it mean the Manager server will be listening via a local (UNIX) 
