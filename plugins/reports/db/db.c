@@ -193,7 +193,7 @@ plugin_generic_t *plugin_init(int argc, char **argv)
 			   "The port where the database is running", required_argument,
 			   set_db_port, NULL);
         
-	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'd', "dbname",
+	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'd', "name",
 			   "The name of the database where the alerts will be stored", required_argument,
 			   set_db_name, NULL);
 

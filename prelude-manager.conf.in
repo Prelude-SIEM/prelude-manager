@@ -56,7 +56,7 @@ sensors-srvr = 127.0.0.1;
 # port = 3306;
 
 # Name of the database.
-# dbname = prelude;
+# name = prelude;
 
 # Username to be used to connect the database.
 # user = prelude;
