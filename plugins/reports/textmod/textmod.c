@@ -79,6 +79,9 @@ static void process_string_list(const char *type, int depth, const struct list_h
         struct list_head *tmp;
         idmef_string_item_t *item;
 
+        if ( list_empty(list) )
+                return;
+        
         print(depth, "%s: ", type);
         
         list_for_each(tmp, list) {
@@ -207,8 +210,8 @@ static void process_process(int depth, const idmef_process_t *process)
         if ( idmef_string(&process->path) )
                 print(0, " path=%s", idmef_string(&process->path));
 
-        process_string_list("arg", depth, &process->arg_list);
-        process_string_list("env", depth, &process->env_list);
+        process_string_list(" arg", depth, &process->arg_list);
+        process_string_list(" env", depth, &process->env_list);
         
         print(0, "\n");
 }
