@@ -203,6 +203,7 @@ static int verbose = 0;
 static int aggresive = 0;
 static int wide_format = 0;
 static int total_alerts = 0;
+static int total_heartbeats = 0;
 static char prefix[1024];
 static int prefix_len = 0;
 static LIST_HEAD(concat_list);
@@ -966,6 +967,8 @@ static void dump_idmef_message_func(const char *name, const idmef_message_t *msg
                 break;
 
         default:
+        	printf("[ERROR] %s.type = %d, message type unknown\n",
+        		name, msg->type);
                 break;
         }
 }
@@ -995,10 +998,20 @@ create_list_func(idmef_userid_t, dump_idmef_userid_func);
 
 static void handle_alert(const idmef_message_t *msg) 
 {
-	total_alerts++;
-	
 	if (silent) {
-		printf("alert received, count = %d\n", total_alerts);
+        	switch (msg->type) {
+        		case idmef_alert_message:
+				printf("alert received, count = %d\n", ++total_alerts);
+                		break;
+        
+        		case idmef_heartbeat_message:
+				printf("heartbeat received, count = %d\n", ++total_heartbeats);
+				break;
+
+        		default:
+        			printf("unknown message received\n");
+				break;
+        	}
 	} else {	
 		printf("----------------------------------------------------\n");
 		dump_idmef_message_ptr(msg);

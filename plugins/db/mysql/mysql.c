@@ -97,7 +97,8 @@ static int db_insert(const char *query)
                 
         ret = mysql_query(&mysql, query);
         if ( ret ) {
-                log(LOG_ERR, "Query \"%s\" returned %d\n", query, ret);
+                log(LOG_ERR, "Query \"%s\" returned %d: %s\n", 
+                	query, ret, mysql_error(&mysql));
                 ret = -1;
         }
         
