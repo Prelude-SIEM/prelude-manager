@@ -38,6 +38,7 @@
 
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-list.h>
+#include <libprelude/prelude-linked-object.h>
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-message.h>
 #include <libprelude/idmef-message-id.h>
@@ -83,15 +84,15 @@ typedef struct {
 
 
 typedef struct {
+        prelude_list_t message_list;
         unsigned int in_memory_count;
-        struct list_head message_list;
         file_output_t disk_message_list;
 } message_queue_t;
 
 
 
 struct idmef_queue {
-        struct list_head list;
+        prelude_list_t list;
 
         int state;
 
@@ -103,7 +104,7 @@ struct idmef_queue {
 };
 
 
-static LIST_HEAD(message_queue);
+static PRELUDE_LIST_HEAD(message_queue);
 static unsigned int global_id = 0;
 static pthread_mutex_t queue_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -274,7 +275,7 @@ static int process_message(prelude_msg_t *msg)
 static void queue_destroy(idmef_queue_t *queue)
 {
         pthread_mutex_lock(&queue_list_mutex);
-        list_del(&queue->list);
+        prelude_list_del(&queue->list);
         pthread_mutex_unlock(&queue_list_mutex);
         
         pthread_mutex_destroy(&queue->mutex);
@@ -293,9 +294,10 @@ static prelude_msg_t *get_message(idmef_queue_t *queue, message_queue_t *mqueue)
 {
         prelude_msg_t *msg = NULL;
                 
-        if ( ! list_empty(&mqueue->message_list) ) {
-                msg = prelude_list_get_object(mqueue->message_list.next, prelude_msg_t);
-                prelude_list_del( (prelude_linked_object_t *) msg);
+        if ( ! prelude_list_empty(&mqueue->message_list) ) {
+                msg = prelude_linked_object_get_object(mqueue->message_list.next, prelude_msg_t);
+
+                prelude_linked_object_del( (prelude_linked_object_t *) msg);
                 mqueue->in_memory_count--;
         }
         
@@ -310,9 +312,9 @@ static int is_queue_dirty(idmef_queue_t *queue)
         
         pthread_mutex_lock(&queue->mutex);
         
-        ret =   ! list_empty(&queue->high.message_list) +
-                ! list_empty(&queue->mid.message_list) +
-                ! list_empty(&queue->low.message_list) +
+        ret =   ! prelude_list_empty(&queue->high.message_list) +
+                ! prelude_list_empty(&queue->mid.message_list) +
+                ! prelude_list_empty(&queue->low.message_list) +
                 queue->high.disk_message_list.input_available +
                 queue->mid.disk_message_list.input_available +
                 queue->low.disk_message_list.input_available;
@@ -396,7 +398,7 @@ static void schedule_queued_message(void)
                 
                 while ( 1 ) {
                         pthread_mutex_lock(&queue_list_mutex);
-                        queue = list_get_next_safe(queue, bkp, &message_queue, idmef_queue_t, list);
+                        queue = prelude_list_get_next_safe(queue, bkp, &message_queue, idmef_queue_t, list);
                         pthread_mutex_unlock(&queue_list_mutex);
 
                         if ( ! queue )
@@ -486,7 +488,7 @@ static void queue_message(idmef_queue_t *queue, message_queue_t *mqueue, prelude
 
         if ( mqueue->in_memory_count < MAX_MESSAGE_IN_MEMORY ) {
                 mqueue->in_memory_count++;
-                prelude_list_add_tail((prelude_linked_object_t *) msg, &mqueue->message_list);
+                prelude_linked_object_add_tail((prelude_linked_object_t *) msg, &mqueue->message_list);
         } else
                 queue_to_fd = 1;
 
@@ -667,9 +669,9 @@ idmef_queue_t *idmef_message_scheduler_queue_new(void)
                 return NULL;
         }
         
-        INIT_LIST_HEAD(&queue->high.message_list);
-        INIT_LIST_HEAD(&queue->mid.message_list);
-        INIT_LIST_HEAD(&queue->low.message_list);
+        PRELUDE_INIT_LIST_HEAD(&queue->high.message_list);
+        PRELUDE_INIT_LIST_HEAD(&queue->mid.message_list);
+        PRELUDE_INIT_LIST_HEAD(&queue->low.message_list);
 
         snprintf(buf, sizeof(buf), "%s.%u", HIGH_PRIORITY_MESSAGE_FILENAME, global_id);        
         ret = init_file_output(buf, &queue->high.disk_message_list);
@@ -699,7 +701,7 @@ idmef_queue_t *idmef_message_scheduler_queue_new(void)
         pthread_mutex_lock(&queue_list_mutex);
         
         global_id++;
-        list_add_tail(&queue->list, &message_queue);
+        prelude_list_add_tail(&queue->list, &message_queue);
 
         pthread_mutex_unlock(&queue_list_mutex);
         
@@ -762,7 +764,7 @@ int idmef_message_scheduler_init(void)
 void idmef_message_scheduler_exit(void) 
 {
         idmef_queue_t *queue;
-        struct list_head *tmp, *bkp;
+        prelude_list_t *tmp, *bkp;
         
         pthread_mutex_lock(&input_mutex);
 
@@ -777,8 +779,8 @@ void idmef_message_scheduler_exit(void)
         pthread_cond_destroy(&input_cond);
         pthread_mutex_destroy(&input_mutex);
 
-        list_for_each_safe(tmp, bkp, &message_queue) {
-                queue = list_entry(tmp, idmef_queue_t, list);
+        prelude_list_for_each_safe(tmp, bkp, &message_queue) {
+                queue = prelude_list_entry(tmp, idmef_queue_t, list);
                 queue_destroy(queue);
         }
 }

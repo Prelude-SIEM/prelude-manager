@@ -33,6 +33,7 @@
 
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-list.h>
+#include <libprelude/prelude-linked-object.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
@@ -42,7 +43,7 @@
 #include "plugin-filter.h"
 
 
-static LIST_HEAD(report_plugins_instance);
+static PRELUDE_LIST_HEAD(report_plugins_instance);
 
 
 /*
@@ -78,7 +79,7 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
 void report_plugins_run(idmef_message_t *msg)
 {
         int ret;
-        struct list_head *tmp;
+        prelude_list_t *tmp;
         prelude_plugin_generic_t *pg;
         prelude_plugin_instance_t *pi;
 
@@ -88,8 +89,8 @@ void report_plugins_run(idmef_message_t *msg)
                 return;
         }
         
-        list_for_each(tmp, &report_plugins_instance) {
-                pi = prelude_list_get_object(tmp, prelude_plugin_instance_t);
+        prelude_list_for_each(tmp, &report_plugins_instance) {
+                pi = prelude_linked_object_get_object(tmp, prelude_plugin_instance_t);
                 pg = prelude_plugin_instance_get_plugin(pi);
                 
                 ret = filter_plugins_run_by_plugin(msg, pi);
@@ -110,13 +111,13 @@ void report_plugins_run(idmef_message_t *msg)
  */
 void report_plugins_close(void)
 {
-        struct list_head *tmp;
+        prelude_list_t *tmp;
         plugin_report_t *plugin;
         prelude_plugin_instance_t *pi;
 
         
-        list_for_each(tmp, &report_plugins_instance) {
-                pi = prelude_list_get_object(tmp, prelude_plugin_instance_t);
+        prelude_list_for_each(tmp, &report_plugins_instance) {
+                pi = prelude_linked_object_get_object(tmp, prelude_plugin_instance_t);
                 
                 plugin = (plugin_report_t *) prelude_plugin_instance_get_plugin(pi);
                 
@@ -168,7 +169,7 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
  */
 int report_plugins_available(void) 
 {
-        return list_empty(&report_plugins_instance) ? -1 : 0;
+        return prelude_list_empty(&report_plugins_instance) ? -1 : 0;
 }
 
 

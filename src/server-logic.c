@@ -31,7 +31,7 @@
 #include <signal.h>
 #include <sys/time.h>
 
-#include <libprelude/list.h>
+#include <libprelude/prelude-list.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/threads.h>
@@ -75,7 +75,7 @@ struct server_logic_client {
 
 
 typedef struct server_fd_set {
-        struct list_head list;
+        prelude_list_t list;
 
         /*
          * Thread handling this set of file descriptor.
@@ -133,8 +133,8 @@ struct server_logic {
          * List of connection set associated with this server.
          */
         pthread_mutex_t mutex;
-        struct list_head free_set_list;
-        struct list_head used_set_list;
+        prelude_list_t free_set_list;
+        prelude_list_t  used_set_list;
 
         volatile sig_atomic_t continue_processing;
 };
@@ -261,8 +261,8 @@ static inline void add_set_to_free_list(server_logic_t *server, server_fd_set_t 
         dprint("thread=%ld, Adding to list, used_index=%d, thread_num=%d.\n",
                set->thread, set->used_index, server->thread_num);
 
-        list_del(&set->list);
-        list_add_tail(&set->list, &server->free_set_list);
+        prelude_list_del(&set->list);
+        prelude_list_add_tail(&set->list, &server->free_set_list);
 }
 
 
@@ -325,8 +325,8 @@ static void add_connection(server_logic_t *server, server_fd_set_t *set, server_
          */
         if ( set->used_index == server->thread_max_fd ) {
                 dprint("[%ld][%p] Max connection for this thread reached (%d).\n", set->thread, set, set->used_index);
-                list_del(&set->list);
-                list_add_tail(&set->list, &server->used_set_list);
+                prelude_list_del(&set->list);
+                prelude_list_add_tail(&set->list, &server->used_set_list);
         }
 }
 
@@ -400,7 +400,7 @@ static void destroy_fd_set(server_logic_t *server, server_fd_set_t *set)
 {
         int i;
 
-        list_del(&set->list);
+        prelude_list_del(&set->list);
         server->thread_num--;
 
         pthread_mutex_unlock(&set->parent->mutex);
@@ -511,7 +511,7 @@ static server_fd_set_t *create_fd_set(server_logic_t *server)
         }
 
         pthread_mutex_lock(&server->mutex);
-        list_add_tail(&new->list, &server->free_set_list);
+        prelude_list_add_tail(&new->list, &server->free_set_list);
         pthread_mutex_unlock(&server->mutex);
         
         return new;
@@ -580,8 +580,8 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
                 return -1;
         }
         
-        if ( ! list_empty(&server->free_set_list) ) {
-                set = list_entry(server->free_set_list.next, server_fd_set_t, list);
+        if ( ! prelude_list_empty(&server->free_set_list) ) {
+                set = prelude_list_entry(server->free_set_list.next, server_fd_set_t, list);
                 add_connection(server, set, client);
 
                 pthread_mutex_unlock(&server->mutex);
@@ -703,8 +703,8 @@ server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read,
         if ( ! new )
                 return NULL;
 
-        INIT_LIST_HEAD(&new->free_set_list);
-        INIT_LIST_HEAD(&new->used_set_list);
+        PRELUDE_INIT_LIST_HEAD(&new->free_set_list);
+        PRELUDE_INIT_LIST_HEAD(&new->used_set_list);
         pthread_mutex_init(&new->mutex, NULL);
 
         new->sdata = sdata;

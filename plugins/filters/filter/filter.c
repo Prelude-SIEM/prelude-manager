@@ -30,7 +30,6 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include <libprelude/list.h>
 #include <libprelude/idmef.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/idmef-criteria.h>

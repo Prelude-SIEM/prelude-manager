@@ -32,7 +32,7 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include <libprelude/list.h>
+#include <libprelude/prelude-list.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
@@ -42,7 +42,7 @@
 
 
 typedef struct {
-        struct list_head list;
+        prelude_list_t list;
 
         void *data;
         prelude_plugin_instance_t *filter;
@@ -52,7 +52,7 @@ typedef struct {
 
 
 
-static struct list_head filter_category_list[FILTER_CATEGORY_END];
+static prelude_list_t filter_category_list[FILTER_CATEGORY_END];
 
 
 
@@ -72,7 +72,7 @@ static int add_filter_entry(prelude_plugin_instance_t *filter,
         new->filter = filter;
         new->filtered_plugin = filtered_plugin_instance;
 
-        list_add_tail(&new->list, &filter_category_list[cat]);
+        prelude_list_add_tail(&new->list, &filter_category_list[cat]);
 
         plugin = prelude_plugin_instance_get_plugin(filter);
         
@@ -133,11 +133,11 @@ int filter_plugins_add_category(prelude_plugin_instance_t *pi, filter_category_t
 int filter_plugins_run_by_category(idmef_message_t *msg, filter_category_t cat) 
 {
         int ret;
-        struct list_head *tmp;
+        prelude_list_t *tmp;
         filter_plugin_entry_t *entry;
 
-        list_for_each(tmp, &filter_category_list[cat]) {
-                entry = list_entry(tmp, filter_plugin_entry_t, list);
+        prelude_list_for_each(tmp, &filter_category_list[cat]) {
+                entry = prelude_list_entry(tmp, filter_plugin_entry_t, list);
                 
                 ret = prelude_plugin_run(entry->filter, plugin_filter_t, run, msg, entry->data);
                 if ( ret < 0 )
@@ -153,12 +153,12 @@ int filter_plugins_run_by_category(idmef_message_t *msg, filter_category_t cat)
 int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t *plugin) 
 {
         int ret;
-        struct list_head *tmp;
+        prelude_list_t *tmp;
         filter_plugin_entry_t *entry;
         
-        list_for_each(tmp, &filter_category_list[FILTER_CATEGORY_PLUGIN]) {
+        prelude_list_for_each(tmp, &filter_category_list[FILTER_CATEGORY_PLUGIN]) {
                 
-                entry = list_entry(tmp, filter_plugin_entry_t, list);
+                entry = prelude_list_entry(tmp, filter_plugin_entry_t, list);
 
                 if ( entry->filtered_plugin != plugin )
                         continue;
@@ -183,7 +183,7 @@ int filter_plugins_init(const char *dirname, int argc, char **argv)
         int ret, i;
         
         for (i = 0; i < FILTER_CATEGORY_END; i++ )
-                INIT_LIST_HEAD(&filter_category_list[i]);
+                PRELUDE_INIT_LIST_HEAD(&filter_category_list[i]);
         
 	ret = access(dirname, F_OK);        
         if ( ret < 0 ) {
@@ -214,6 +214,6 @@ int filter_plugins_init(const char *dirname, int argc, char **argv)
 
 int filter_plugins_available(filter_category_t cat) 
 {
-        return list_empty(&filter_category_list[cat]) ? -1 : 0;
+        return prelude_list_empty(&filter_category_list[cat]) ? -1 : 0;
 }
 

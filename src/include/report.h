@@ -24,7 +24,6 @@
 #ifndef _MANAGER_REPORT_H
 #define _MANAGER_REPORT_H
 
-#include <libprelude/list.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>

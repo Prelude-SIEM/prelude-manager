@@ -9,7 +9,6 @@ noinst_HEADERS = 			\
 	server-generic.h		\
 	sensor-server.h			\
 	idmef-message-scheduler.h 	\
-	idmef-util.h			\
 	auth.h				\
 	relaying.h
 

@@ -29,7 +29,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#include <libprelude/list.h>
+#include <libprelude/prelude-list.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-io.h>
@@ -50,7 +50,7 @@
 
 typedef struct {
         SERVER_GENERIC_OBJECT;
-        struct list_head list;
+        prelude_list_t list;
 
         idmef_queue_t *queue;
 
@@ -60,9 +60,9 @@ typedef struct {
 
 
 
-static LIST_HEAD(admins_cnx_list);
-static LIST_HEAD(sensors_cnx_list);
-static LIST_HEAD(managers_cnx_list);
+static PRELUDE_LIST_HEAD(admins_cnx_list);
+static PRELUDE_LIST_HEAD(sensors_cnx_list);
+static PRELUDE_LIST_HEAD(managers_cnx_list);
 static pthread_mutex_t admins_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t sensors_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t managers_list_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -70,13 +70,13 @@ static pthread_mutex_t managers_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 
-static sensor_fd_t *search_cnx(struct list_head *head, uint64_t analyzerid) 
+static sensor_fd_t *search_cnx(prelude_list_t *head, uint64_t analyzerid) 
 {
         sensor_fd_t *cnx;
-        struct list_head *tmp;
+        prelude_list_t *tmp;
 
-        list_for_each(tmp, head) {
-                cnx = list_entry(tmp, sensor_fd_t, list);
+        prelude_list_for_each(tmp, head) {
+                cnx = prelude_list_entry(tmp, sensor_fd_t, list);
 
                 if ( cnx->ident == analyzerid )
                         return cnx;
@@ -88,15 +88,15 @@ static sensor_fd_t *search_cnx(struct list_head *head, uint64_t analyzerid)
 
 
 
-static int forward_message_to_all(sensor_fd_t *client, prelude_msg_t *msg, struct list_head *head, pthread_mutex_t *list_mutex) 
+static int forward_message_to_all(sensor_fd_t *client, prelude_msg_t *msg, prelude_list_t *head, pthread_mutex_t *list_mutex) 
 {
         sensor_fd_t *cnx;
-        struct list_head *tmp;
+        prelude_list_t *tmp;
 
         pthread_mutex_lock(list_mutex);
         
-        list_for_each(tmp, head) {
-                cnx = list_entry(tmp, sensor_fd_t, list);
+        prelude_list_for_each(tmp, head) {
+                cnx = prelude_list_entry(tmp, sensor_fd_t, list);
 
                 if ( cnx->port )
                         log_client(client, "message forwarded to [%s:%d, %s:0x%llx].\n", cnx->addr, cnx->port, cnx->client_type, cnx->ident);
@@ -285,7 +285,7 @@ static int handle_declare_child_relay(sensor_fd_t *cnx)
          * sensor_server_broadcast_admin_command).
          */
         pthread_mutex_lock(&managers_list_mutex);
-        list_add_tail(&cnx->list, &managers_cnx_list);
+        prelude_list_add_tail(&cnx->list, &managers_cnx_list);
         pthread_mutex_unlock(&managers_list_mutex);
 
         cnx->list_mutex = &managers_list_mutex;
@@ -356,7 +356,7 @@ static int handle_declare_sensor(sensor_fd_t *cnx)
         log_client(cnx, "client declared to be a sensor.\n");
 
         pthread_mutex_lock(&sensors_list_mutex);
-        list_add_tail(&cnx->list, &sensors_cnx_list);
+        prelude_list_add_tail(&cnx->list, &sensors_cnx_list);
         pthread_mutex_unlock(&sensors_list_mutex);
 
         cnx->list_mutex = &sensors_list_mutex;
@@ -374,7 +374,7 @@ static int handle_declare_admin(sensor_fd_t *cnx)
         log_client(cnx, "client declared to be an administrative client.\n");
 
         pthread_mutex_lock(&admins_list_mutex);
-        list_add_tail(&cnx->list, &admins_cnx_list);
+        prelude_list_add_tail(&cnx->list, &admins_cnx_list);
         pthread_mutex_unlock(&admins_list_mutex);
 
         cnx->list_mutex = &admins_list_mutex;
@@ -559,7 +559,7 @@ static void close_connection_cb(server_generic_client_t *ptr)
 
         if ( cnx->list_mutex ) {
                 pthread_mutex_lock(cnx->list_mutex);
-                list_del(&cnx->list);
+                prelude_list_del(&cnx->list);
                 pthread_mutex_unlock(cnx->list_mutex);
         }
 

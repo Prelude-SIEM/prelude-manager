@@ -8,10 +8,11 @@
 #include <libprelude/extract.h>
 #include <libprelude/idmef-message-id.h>
 #include <libprelude/idmef-message-read.h>
+#include <libprelude/prelude-ident.h>
 
-#include "idmef-util.h"
 #include "plugin-decode.h"
 #include "pmsg-to-idmef.h"
+#include "config.h"
 
 
 
@@ -25,8 +26,6 @@ static int handle_heartbeat_msg(prelude_msg_t *msg, idmef_message_t *idmef)
 
         if ( ! idmef_read_heartbeat(msg, heartbeat) )
                 return -1;
-
-        manager_idmef_heartbeat_get_ident(heartbeat);
 
         return 0;
 }
@@ -44,8 +43,6 @@ static int handle_alert_msg(prelude_msg_t *msg, idmef_message_t *idmef)
         
         if ( ! idmef_read_alert(msg, alert) )
                 return -1;
-        
-        manager_idmef_alert_get_ident(alert);
 
         return 0;
 }

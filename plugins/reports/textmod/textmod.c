@@ -25,12 +25,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include <libprelude/list.h>
+
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-util.h>
 
 #include "report.h"
-#include "idmef-util.h"
 
 
 typedef struct {

@@ -326,7 +326,6 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_message_t *message)
 prelude_plugin_generic_t *prelude_plugin_init(void)
 {
         static plugin_decode_t plugin;
-        prelude_plugin_instance_t *pi;
 
         prelude_plugin_set_name(&plugin, "Prelude NIDS data decoder");
         prelude_plugin_set_author(&plugin, "Yoann Vandoorselaere");

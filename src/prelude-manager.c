@@ -32,7 +32,6 @@
 #include <pthread.h>
 #include <sys/time.h>
 
-#include <libprelude/list.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
@@ -125,11 +124,7 @@ int main(int argc, char **argv)
         ret = pconfig_init(argc, argv);
         if ( ret < 0 )
                 exit(1);
-        
-        ret = manager_idmef_ident_init();
-        if ( ret < 0 )
-                exit(1);
-        
+                
         action.sa_flags = 0;
         sigemptyset(&action.sa_mask);
         action.sa_handler = cleanup;

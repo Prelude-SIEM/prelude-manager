@@ -29,7 +29,6 @@
 #include <inttypes.h>
 #include <sys/types.h>
 
-#include <libprelude/list.h>
 #include <libprelude/idmef.h>
 
 #include <libpreludedb/db-type.h>
@@ -44,7 +43,6 @@
 #include <libpreludedb/db-interface-string.h>
 
 #include "report.h"
-#include "idmef-util.h"
 
 
 #define param_value(param) (param ? param : "")

@@ -28,6 +28,7 @@
 #include <inttypes.h>
 
 #include <libprelude/prelude-list.h>
+#include <libprelude/prelude-linked-object.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
@@ -37,7 +38,7 @@
 #include "plugin-decode.h"
 
 
-static LIST_HEAD(decode_plugins_instance);
+static PRELUDE_LIST_HEAD(decode_plugins_instance);
 
 
 /*
@@ -71,12 +72,12 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *i
 {
         int ret;
         plugin_decode_t *p;
-        struct list_head *tmp;
+        prelude_list_t *tmp;
         prelude_plugin_instance_t *pi;
         
-        list_for_each(tmp, &decode_plugins_instance) {
+        prelude_list_for_each(tmp, &decode_plugins_instance) {
 
-                pi = prelude_list_get_object(tmp, prelude_plugin_instance_t);
+                pi = prelude_linked_object_get_object(tmp, prelude_plugin_instance_t);
                                 
                 p = (plugin_decode_t *) prelude_plugin_instance_get_plugin(pi);
                 if ( p->decode_id != plugin_id )

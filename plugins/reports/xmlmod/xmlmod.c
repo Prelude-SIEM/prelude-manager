@@ -25,14 +25,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include <libprelude/list.h>
+
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-util.h>
 
 #include <libxml/parser.h>
 
 #include "report.h"
-#include "idmef-util.h"
 
 
 static void process_file(xmlNodePtr parent, idmef_file_t *file);

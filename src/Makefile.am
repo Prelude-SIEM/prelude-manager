@@ -23,7 +23,6 @@ prelude_manager_SOURCES =			\
 			ssl.c			\
 			decode-plugins.c	\
 			idmef-message-scheduler.c \
-			idmef-util.c		\
 			plugins-util.c		\
 			relaying.c
 

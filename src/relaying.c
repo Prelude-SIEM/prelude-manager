@@ -6,6 +6,7 @@
 
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-list.h>
+#include <libprelude/prelude-linked-object.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-client.h>
@@ -163,14 +164,14 @@ int manager_parent_setup_from_cfgline(const char *cfgline)
 #include "server-generic.h"
 extern server_generic_t *sensor_server;
 
-static void notify(struct list_head *clist) 
+static void notify(prelude_list_t *clist) 
 {
         int ret;
-        struct list_head *tmp;
+        prelude_list_t *tmp;
         prelude_client_t *client;
         
-        list_for_each(tmp, clist) {
-                client = prelude_list_get_object(tmp, prelude_client_t);
+        prelude_list_for_each(tmp, clist) {
+                client = prelude_linked_object_get_object(tmp, prelude_client_t);
 
                 if ( prelude_client_is_alive(client) < 0 ) 
                         continue;

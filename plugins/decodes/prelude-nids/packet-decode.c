@@ -29,7 +29,6 @@
 
 #include "packet.h"
 
-#include <libprelude/list.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 #include <libprelude/prelude-strbuf.h>
