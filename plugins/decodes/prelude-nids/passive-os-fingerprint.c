@@ -28,7 +28,6 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/list.h>
 #include <libprelude/idmef-tree.h>
-#include <libprelude/idmef-tree-func.h>
 
 #include "passive-os-fingerprint.h"
 
