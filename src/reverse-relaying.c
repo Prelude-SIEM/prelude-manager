@@ -226,9 +226,12 @@ static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
         reverse_relay_receiver_t *item;
         
         pthread_mutex_lock(&receiver_mutex);
-                        
+        
         prelude_list_for_each(&receiver_list, tmp) {
                 item = prelude_list_entry(tmp, reverse_relay_receiver_t, list);
+
+                if ( tmp->next != &receiver_list )
+                        prelude_msg_ref(msg);
                 
                 if ( ! item->client ) {      
                         prelude_failover_save_msg(item->failover, msg);
@@ -239,7 +242,7 @@ static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
         }
         
         pthread_mutex_unlock(&receiver_mutex);
-                
+        
         return 0;
 }
 
