@@ -35,6 +35,7 @@
 #include <syslog.h>
 #include <sys/poll.h>
 #include <assert.h>
+#include <sys/stat.h>
 
 #include <libprelude/common.h>
 #include <libprelude/config-engine.h>
@@ -373,7 +374,7 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
 static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addrlen) 
 {
         int ret;
-        
+
         ret = access(UNIX_SOCK, F_OK);
         if ( ret < 0 )
                 return 0;
@@ -383,7 +384,7 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
                 log(LOG_INFO, "Prelude Manager UNIX socket is already used. Exiting.\n");
                 return 1;
         }
-
+        
         /*
          * The unix socket exist on the file system,
          * but no one use it... Delete it.
@@ -404,7 +405,7 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
  */
 static int unix_server_start(server_generic_t *server) 
 {
-        int ret;
+        int ret, mode = 0;
         struct sockaddr_un *addr;
         
         addr = malloc(sizeof(struct sockaddr_un));
@@ -423,7 +424,7 @@ static int unix_server_start(server_generic_t *server)
         strncpy(addr->sun_path, UNIX_SOCK, sizeof(addr->sun_path));
         
         ret = is_unix_socket_already_used(server->sock, (struct sockaddr *) addr, sizeof(*addr));
-        if ( ret == 1 || ret == -1 ) {
+        if ( ret == 1 || ret < 0  ) {
                 close(server->sock);
                 free(addr);
                 return -1;
@@ -436,6 +437,20 @@ static int unix_server_start(server_generic_t *server)
                 return -1;
         }
 
+        /*
+         * Everyone should be able to access the filesystem object
+         * representing our socket.
+         */
+        mode |= S_IRUSR|S_IWUSR|S_IXUSR;
+        mode |= S_IRGRP|S_IWGRP|S_IXGRP;
+        mode |= S_IROTH|S_IWOTH|S_IXOTH;
+        
+        ret = chmod(UNIX_SOCK, mode);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "couldn't set permission for UNIX socket.\n");
+                return -1;
+        }
+        
         server->addr = (struct sockaddr *) addr;
         
         return 0;

@@ -124,7 +124,7 @@ int main(int argc, char **argv)
         signal(SIGQUIT, cleanup);
         signal(SIGABRT, cleanup);
         
-        ret = admin_server_new(config.admin_server_addr, config.admin_server_port);
+        ret = 0; //admin_server_new(config.admin_server_addr, config.admin_server_port);
         if ( ret < 0 ) {
                 log(LOG_INFO, "- couldn't start administration server.\n");
                 exit(1);
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
             config.addr, config.port);
         
 
-        pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
+        //pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
 
         /*
          * Start prelude as a daemon if asked.
