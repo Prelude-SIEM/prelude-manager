@@ -1,1 +1,1 @@
-SUBDIRS = mysql #filemod execmod htmlmod xmlmod
+SUBDIRS = #filemod execmod htmlmod xmlmod
