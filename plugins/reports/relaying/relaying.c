@@ -103,7 +103,7 @@ static int relaying_set_manager(prelude_option_t *opt, const char *optarg, prelu
         if ( ! plugin->conn_pool ) {
                 cp = prelude_client_get_profile(manager_client);
                 
-                ret = prelude_connection_pool_new(&plugin->conn_pool, cp, PRELUDE_CONNECTION_CAPABILITY_CONNECT);
+                ret = prelude_connection_pool_new(&plugin->conn_pool, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_WRITE);
                 if ( ! plugin->conn_pool )
                         return ret;
 
