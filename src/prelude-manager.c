@@ -97,6 +97,8 @@ int main(int argc, char **argv)
         int ret;
         struct sigaction action;
 
+        prelude_init(argc, argv);
+        
         /*
          * Initialize plugin first.
          */

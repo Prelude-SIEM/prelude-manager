@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <netinet/in.h>
 
+#include <libprelude/sensor.h>
 #include <libprelude/idmef.h>
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-getopt.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 #include <libprelude/idmef-message-id.h>
@@ -13,6 +12,57 @@
 #include "plugin-decode.h"
 #include "pmsg-to-idmef.h"
 #include "config.h"
+
+
+#define MANAGER_MODEL "Prelude Manager"
+#define MANAGER_CLASS "Manager"
+#define MANAGER_MANUFACTURER "The Prelude Team http://www.prelude-ids.org"
+
+
+
+static idmef_analyzer_t *get_local_analyzer(void)
+{
+        static idmef_analyzer_t *local = NULL;
+
+        if ( local )
+                return local;
+        
+        local = idmef_analyzer_new();
+        if ( ! local )
+                return NULL;
+        
+        prelude_analyzer_fill_infos(local);
+        
+        idmef_analyzer_set_version(local, idmef_string_new_constant(VERSION));
+        idmef_analyzer_set_model(local, idmef_string_new_constant(MANAGER_MODEL));
+        idmef_analyzer_set_class(local, idmef_string_new_constant(MANAGER_CLASS));
+        idmef_analyzer_set_manufacturer(local, idmef_string_new_constant(MANAGER_MANUFACTURER));
+        
+        return local;
+}
+
+
+
+
+static int fill_local_analyzer_infos(idmef_analyzer_t *analyzer)
+{
+        idmef_analyzer_t *next, *local;
+        
+        if ( ! analyzer || ! (local = get_local_analyzer()) )
+                return -1;
+        
+        do {
+                next = idmef_analyzer_get_analyzer(analyzer);
+                if ( ! next ) 
+                        idmef_analyzer_set_analyzer(analyzer, idmef_analyzer_ref(local));
+                
+                analyzer = next;
+
+        } while ( next );
+
+        return 0;
+}
+
 
 
 
@@ -26,8 +76,8 @@ static int handle_heartbeat_msg(prelude_msg_t *msg, idmef_message_t *idmef)
 
         if ( ! idmef_read_heartbeat(msg, heartbeat) )
                 return -1;
-
-        return 0;
+        
+        return fill_local_analyzer_infos(idmef_heartbeat_get_analyzer(heartbeat));
 }
 
 
@@ -44,7 +94,8 @@ static int handle_alert_msg(prelude_msg_t *msg, idmef_message_t *idmef)
         if ( ! idmef_read_alert(msg, alert) )
                 return -1;
 
-        return 0;
+        
+        return fill_local_analyzer_infos(idmef_alert_get_analyzer(alert));
 }
 
 
