@@ -305,15 +305,20 @@ static int decode_message(prelude_msg_t *pmsg, idmef_alert_t *alert)
         /*
          * End of message.
          */
-        if ( ret == 0 ) 
-                return -1; /* message should always terminate by END OF TAG */
+        if ( ret == 0 ) {
+                log(LOG_ERR, "message should always terminate by END OF TAG.\n");
+                return -1;
+        }
         
         switch (tag) {
                                 
         case ID_PRELUDE_NIDS_PACKET:
                 ret = msg_to_packet(pmsg, alert);
-                if ( ret < 0 )
+                if ( ret < 0 ) {
+                        log(LOG_ERR, "message to packet convertion failed.\n");
                         return -1;
+                }
+                
                 break;
                 
         case MSG_END_OF_TAG:
@@ -330,16 +335,15 @@ static int decode_message(prelude_msg_t *pmsg, idmef_alert_t *alert)
 
 
 static int nids_decode_run(prelude_msg_t *pmsg, idmef_message_t *message) 
-{        
+{
         idmef_alert_t *alert;
 
-        alert = idmef_message_new_alert(message);
-        if ( ! alert )
+        alert = idmef_message_get_alert(message);
+        if ( ! alert ) {
+                log(LOG_ERR, "idmef message contain no alert: %p.\n", alert);
                 return -1;
-
-        if ( decode_message(pmsg, alert) < 0 )
-                return -2;
-
+        }
+        
         return decode_message(pmsg, alert);
 }
 

@@ -39,7 +39,6 @@
 
 
 static LIST_HEAD(decode_plugins_list);
-static LIST_HEAD(used_decode_plugins);
 
 
 /*
@@ -73,7 +72,7 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *i
         list_for_each(tmp, &decode_plugins_list) {
             
                 pc = list_entry(tmp, plugin_container_t, ext_list);
-
+                
                 p = (plugin_decode_t *) pc->plugin;
                 if ( p->decode_id != plugin_id )
                         continue;
@@ -83,13 +82,6 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *i
                         log(LOG_ERR, "%s couldn't decode sensor data.\n", p->name);
                         return -1;
                 }
-
-                /*
-                 * put the used plugin into the used_decode_plugins list, so
-                 * that we know which plugin may have data to release.
-                 */
-                list_del(&pc->ext_list);
-                list_add(&pc->ext_list, &used_decode_plugins);
                 
                 return 0;
         }
@@ -123,5 +115,11 @@ int decode_plugins_init(const char *dirname, int argc, char **argv)
         
         return ret;
 }
+
+
+
+
+
+
 
 

@@ -242,19 +242,19 @@ static idmef_message_t *read_idmef_message(prelude_msg_t *msg)
 	}
 
         while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) > 0 ) {
-
+                
                 if ( tag == MSG_ALERT_TAG ) {
 			idmef_alert_t *alert;
                         
 			alert = idmef_message_new_alert(message);
 			if ( ! alert )
                                 break;
-
-			if ( ! idmef_recv_alert(msg, alert) )
+                        
+                        if ( ! idmef_recv_alert(msg, alert) )
 				break;
-
+                        
 			manager_idmef_alert_get_ident(alert);
-		}
+                }
 
                 else if ( tag == MSG_HEARTBEAT_TAG ) {
 			idmef_heartbeat_t *heartbeat;
@@ -270,7 +270,8 @@ static idmef_message_t *read_idmef_message(prelude_msg_t *msg)
 		}
 
                 else if ( tag == MSG_OWN_FORMAT ) {
-			ret = extract_uint8_safe(&tag, buf, len);
+                        
+                        ret = extract_uint8_safe(&tag, buf, len);
 			if ( ret < 0 )
                                 break;
                         
@@ -278,14 +279,16 @@ static idmef_message_t *read_idmef_message(prelude_msg_t *msg)
 			if ( ret < 0 )
                                 break;
                 }
-	}
 
+                else log(LOG_ERR, "unknow tag: %d.\n", tag);
+        }
+        
         if ( ret == 0 )
                 return message;
-        
+
         log(LOG_ERR, "error reading IDMEF message.\n");
         idmef_message_destroy(message);
-        
+                
         return NULL;
 }
 
@@ -334,7 +337,7 @@ static int process_message(prelude_msg_t *msg)
          */
 	idmef_message_destroy(idmef);
 	prelude_msg_destroy(msg);
-
+        
         return 0;
 }
 

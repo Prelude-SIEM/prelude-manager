@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2002, 2003 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -448,6 +448,9 @@ static void process_target(int depth, idmef_target_t *target)
 
 static void process_analyzer(idmef_analyzer_t *analyzer) 
 {
+        if ( ! analyzer )
+                return;
+        
         if ( idmef_analyzer_get_analyzerid(analyzer) )
                 print(0, "* Analyzer ID: %llu\n", idmef_analyzer_get_analyzerid(analyzer));
         

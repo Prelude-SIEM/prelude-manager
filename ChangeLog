@@ -1,3 +1,32 @@
+2003-12-25  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/decodes/prelude-nids/decode.c (decode_message): 
+	(nids_decode_run): take care about un-set idmef field. Be
+	more verbose on error.
+
+	* plugins/decodes/prelude-nids/passive-os-fingerprint.c (passive_os_fingerprint_dump): 
+	fix an undefined reference. Make it faster, by avoiding 
+	an unnecessary idmef_string_t and idmef_data_t allocation/copy.
+	Fix includes.
+
+	* src/decode-plugins.c (decode_plugins_run): 
+	remove all the 'used_plugins_list' code... It's not needed
+	with the new IDMEF API, and moreover, was causing a sigsegv
+	because the plugin freeing func where not called anymore.
+
+	* src/idmef-message-scheduler.c (read_idmef_message): 
+	be more verbose on error.
+
+	* plugins/decodes/prelude-nids/packet-decode.c (tcp_dump): 
+	(ip_dump, tcpopts_dump, ipopts_dump, arp_dump, ether_dump,
+	udp_dump, data_dump, igmp_dump, icmp_dump, nids_packet_dump): 
+	cleanup, update all function declaration to fit API change 
+	requirements. Always add 1 to the string length. Use _nodup 
+	function variant where required.
+	
+	* plugins/reports/textmod/textmod.c (process_analyzer): 
+	fix a sigsegv on corrupted alert.
+
 2003-12-14  Nicolas Delon  <delon.nicolas@wanadoo.fr>
 
 	* plugins/filters/skeleton/skeleton.c:
