@@ -41,7 +41,7 @@
 
 
 
-struct manager_config config;
+manager_config_t config;
 static const char *config_file = PRELUDE_MANAGER_CONF;
 
 

@@ -51,7 +51,7 @@
 #define MANAGER_MANUFACTURER "The Prelude Team http://www.prelude-ids.org"
 #define DEFAULT_ANALYZER_NAME "prelude-manager"
 
-extern struct manager_config config;
+extern manager_config_t config;
 
 prelude_client_t *manager_client;
 server_generic_t *sensor_server = NULL;

@@ -26,13 +26,13 @@
 
 int pconfig_init(prelude_option_t *manager_root_optlist, int argc, char **argv);
 
-struct manager_config {
+typedef struct manager_config {
         char *addr;
         unsigned int port;
         const char *pidfile;
 
         int dh_bits;
         int dh_regenerate;
-};
+} manager_config_t;
 
 #endif /* _MANAGER_PCONFIG_H */
