@@ -166,8 +166,6 @@ static int ip_optval(unsigned char *optbuf, int opt, int datalen)
 {
         int optlen = datalen + 2;
 
-#warning "support for dumping the following options should be added : ts, rr, srr, lsrr"
-
         switch (opt) {
                                 
         case IPOPT_TIMESTAMP:
