@@ -209,6 +209,10 @@ int db_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
         static manager_report_plugin_t db_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
 
+	ret = preludedb_init(NULL, NULL);
+	if ( ret < 0 )
+		return ret;
+
         ret = prelude_option_add(rootopt, &opt, hook, 0, "db", "Options for the libpreludedb plugin",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED, db_activate, NULL);
         if ( opt < 0 )
