@@ -623,10 +623,7 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
 static int unix_server_start(server_generic_t *server) 
 {
         int ret;
-        char sockname[256];
         struct sockaddr_un addr;
-
-        prelude_get_socket_filename(sockname, sizeof(sockname), server->unix_srvr);
 
         server->sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if ( server->sock < 0 ) {
@@ -635,8 +632,8 @@ static int unix_server_start(server_generic_t *server)
 	}
         
         addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, sockname, sizeof(addr.sun_path));
-
+        prelude_get_socket_filename(addr.sun_path, sizeof(addr.sun_path), server->unix_srvr);
+        
         ret = is_unix_socket_already_used(server->sock, (struct sockaddr *) &addr, sizeof(addr), server->unix_srvr);
         if ( ret == 1 || ret < 0  ) {
                 close(server->sock);
@@ -653,7 +650,7 @@ static int unix_server_start(server_generic_t *server)
          * Everyone should be able to access the filesystem object
          * representing our socket.
          */
-        ret = chmod(sockname, S_IRWXU|S_IRWXG|S_IRWXO);
+        ret = chmod(addr.sun_path, S_IRWXU|S_IRWXG|S_IRWXO);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't set permission for UNIX socket.\n");
                 return -1;
