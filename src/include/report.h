@@ -24,7 +24,6 @@
 #include <libprelude/list.h>
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
-#include <libprelude/alert.h>
 #include <libprelude/config-engine.h>
 
 #if 0

@@ -1,12 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libprelude/alert.h>
+#include <inttypes.h>
+#include <libprelude/plugin-common.h>
 
+#include <libxml/parser.h>
+#include <libxml/tree.h>
+
+#include "plugin-decode.h"
 #include "packet.h"
 #include "optparse.h"
 #include "ethertype.h"
-#include "report-infos.h"
 
 
 #define PRINT_CHAR 16
@@ -509,7 +513,7 @@ static char *icmp_dump(icmphdr_t *icmp)
 
 
 
-static void create_pktdump(packet_t *p, report_infos_t *rinfos)
+static void create_pktdump(packet_t *p)
 {
         int i, j = 0;
         static char *pktdump[MAX_PKTDEPTH + 2];
@@ -563,40 +567,30 @@ static void create_pktdump(packet_t *p, report_infos_t *rinfos)
 
                 case p_data:
                         pktdump[j++] = data_dump(&p[i]);
-                        report_infos_set_additional_data(hexdump(p[i].p.data, p[i].len));
+                        hexdump(p[i].p.data, p[i].len);
                 default:
 			break;
 		}
 	}
         
         pktdump[j++] = NULL;
-
-        report_infos_set_additional_data(pktdump);
-
-        if ( addr_depth != -1 ) {
-                if ( p[addr_depth].proto == p_ip ) {
-                        rinfos->sh = strdup(inet_ntoa(p[addr_depth].p.ip->ip_src));
-                        rinfos->dh = strdup(inet_ntoa(p[addr_depth].p.ip->ip_dst));
-                } else if ( p[addr_depth].proto == p_ether ) {
-                        rinfos->sh = strdup(etheraddr_string(p[addr_depth].p.ether_hdr->ether_shost));
-                        rinfos->dh = strdup(etheraddr_string(p[addr_depth].p.ether_hdr->ether_dhost));
-                }
-        }
-
-        if ( port_depth != -1 ) {
-                if ( p[port_depth].proto == p_tcp ) {
-                        rinfos->sp = ntohs(p[port_depth].p.tcp->th_sport);
-                        rinfos->dp = ntohs(p[port_depth].p.tcp->th_dport);
-                } else if ( p[port_depth].proto == p_udp ) {
-                        rinfos->sp = ntohs(p[port_depth].p.udp_hdr->uh_sport);
-                        rinfos->dp = ntohs(p[port_depth].p.udp_hdr->uh_dport);
-                }
-        }
 }
 
 
 
 
+int plugin_init(unsigned int id)
+{
+        static plugin_decode_t plugin;
+        
+        plugin_set_name(&plugin, "Prelude NIDS datadecoder");
+        plugin_set_author(&plugin, "Yoann Vandoorselaere");
+        plugin_set_contact(&plugin, "yoann@mandrakesoft.com");
+        plugin_set_desc(&plugin, "Decode Prelude NIDS message, and translate them to IDMEF.");
+        // plugin_set_running_func(&plugin, filemod_run);
+        
+	return plugin_register((plugin_generic_t *)&plugin);
+}
 
 
 

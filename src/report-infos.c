@@ -1,4 +1,3 @@
-
 /*****
 *
 * Copyright (C) 1999 Vandoorselaere Yoann
@@ -30,7 +29,6 @@
 #include <inttypes.h>
 
 #include <libprelude/plugin-common.h>
-#include <libprelude/alert.h>
 
 #include "report-infos.h"
 
