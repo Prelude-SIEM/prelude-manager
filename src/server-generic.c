@@ -155,7 +155,7 @@ static int setup_connection(prelude_io_t *fd, const char *addr)
         len = snprintf(buf, sizeof(buf), "ssl=%s;\n", ssl);
 
         ret = prelude_io_write_delimited(fd, buf, ++len);
-        if ( ret < 0 ) {
+        if ( ret <= 0 ) {
                 log(LOG_ERR, "error writing config to Prelude client.\n");
                 return -1;
         }
