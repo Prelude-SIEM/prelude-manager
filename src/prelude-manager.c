@@ -27,11 +27,13 @@
 #include <unistd.h>
 #include <syslog.h>
 #include <signal.h>
+#include <inttypes.h>
 #include <assert.h>
 #include <pthread.h>
 #include <sys/time.h>
 
-#include <libprelude/prelude-inttypes.h>
+#include <ltdl.h>
+
 #include <libprelude/idmef.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-log.h>
@@ -56,16 +58,19 @@
 
 
 static size_t nserver = 0;
-server_generic_t *sensor_server;
 prelude_client_t *manager_client;
 extern struct report_config config;
+server_generic_t *sensor_server = NULL;
+
+static char **global_argv;
+static volatile sig_atomic_t got_sighup = 0;
 
 
 
 /*
  * all function called here should be signal safe.
  */
-static void cleanup(int sig) 
+static void handle_signal(int sig) 
 {        
         log(LOG_INFO, "Caught signal %d.\n", sig);
 
@@ -75,6 +80,13 @@ static void cleanup(int sig)
         sensor_server_stop(sensor_server);
 }
 
+
+
+static void handle_sighup(int signo)
+{
+        handle_signal(signo);
+        got_sighup = 1;
+}
 
 
 
@@ -95,6 +107,19 @@ static void init_manager_server(void)
         }
 }
 
+
+
+
+static void restart_manager(void) 
+{
+        int ret;
+        
+        log(LOG_INFO, "- Restarting Prelude Manager (%s).\n", global_argv[0]);
+        
+        ret = execvp(global_argv[0], global_argv);
+        if ( ret < 0 ) 
+                log(LOG_ERR, "Error restating Prelude Manager (%s).\n", global_argv[0]);
+}
 
 
 
@@ -125,10 +150,21 @@ static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
 
 
 
+
 int main(int argc, char **argv)
 {
         int ret;
         struct sigaction action;
+
+        global_argv = argv;
+
+        /*
+         * make sure we ignore sighup until acceptable.
+         */
+        action.sa_flags = 0;
+        action.sa_handler = SIG_IGN;
+        sigemptyset(&action.sa_mask);
+        sigaction(SIGHUP, &action, NULL);
         
         /*
          * Initialize plugin first.
@@ -180,25 +216,31 @@ int main(int argc, char **argv)
         
         prelude_client_set_flags(manager_client, PRELUDE_CLIENT_ASYNC_SEND);
 
-        action.sa_flags = 0;
-        sigemptyset(&action.sa_mask);
-        action.sa_handler = cleanup;
-
         /*
          * start server
          */
         init_manager_server();
-
+        reverse_relay_init_initiator();
+        
+        /*
+         * setup signal handling
+         */
+        action.sa_flags = 0;
+        sigemptyset(&action.sa_mask);
+        action.sa_handler = handle_signal;
+        
         signal(SIGPIPE, SIG_IGN);
         sigaction(SIGINT, &action, NULL);
         sigaction(SIGTERM, &action, NULL);
         sigaction(SIGABRT, &action, NULL);
         sigaction(SIGQUIT, &action, NULL);
-
-        reverse_relay_init_initiator();
+        
+        action.sa_handler = handle_sighup;
+        sigaction(SIGHUP, &action, NULL);
         
         server_generic_start(&sensor_server, nserver);
         
+                
         /*
          * we won't get here unless a signal is caught.
          */
@@ -206,6 +248,9 @@ int main(int argc, char **argv)
         
         idmef_message_scheduler_exit();
 
+        if ( got_sighup )
+                restart_manager();
+        
         if ( config.pidfile )
                 unlink(config.pidfile);
         
