@@ -27,6 +27,7 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 
+#include <libprelude/list.h>
 #include <libprelude/common.h>
 #include <libprelude/extract.h>
 #include <libprelude/prelude-io.h>

@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <inttypes.h>
 
+#include <libprelude/list.h>
 #include <libprelude/common.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-ident.h>

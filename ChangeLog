@@ -1,5 +1,10 @@
 2002-01-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/idmef-util.c: 
+	* src/idmef-db-output.c: 
+	* src/idmef-message-read.c: 
+	include <libprelude/list.h>
+	
 	* src/server-generic.c (handle_connection): 
 	better authentication handling.
 	
