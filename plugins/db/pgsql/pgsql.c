@@ -47,14 +47,52 @@ static PGconn *pgsql;
 
 
 
+
 /*
- * Takes a string and create a legal SQL string from it.
- * returns the escaped string.
+ * Escape single quote characher with a backslash.
  */
-static char *db_escape(const char *string)
+static char *db_escape(const char *str)
 {
-        return string; /* FIXME */
+        char *ptr;
+        int i, ok, len = strlen(str);
+
+        ptr = malloc((len * 2) + 1);
+        if ( ! ptr ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return NULL;
+        }
+
+        for ( i = 0, ok = 0; i < len; i++ ) {
+
+                if ( str[i] == '\'' ) {
+                        ptr[ok++] = '\\';
+                        ptr[ok++] = str[i];
+                } else
+                        ptr[ok++] = str[i];
+        }
+
+        ptr[ok] = '\0';
+        
+        return ptr;
 }
+
+
+
+
+static int do_query(const char *query) 
+{
+        PGresult *ret;
+
+        ret = PQexec(pgsql, query);
+        if ( ! ret || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
+                log(LOG_ERR, "Query \"%s\" returned an error.\n", query);
+                return -1;
+        }
+
+        return 0;
+}
+
+
 
 
 
@@ -63,21 +101,16 @@ static int db_insert_id(char *table, char *field, unsigned long *id)
         PGresult *ret;
         char query[MAX_QUERY_LENGTH];
         
-        if ( *id == DB_INSERT_AUTOINC_ID ) {
-                
-#if 0
-                *id = mysql_insert_id(&mysql); /* FIXME */
-#endif
-                return (*id == 0) ? -1 : 0;
-        }
-        
-        snprintf(query, sizeof(query), "INSERT INTO %s (%s) VALUES(%ld)", table, field, *id);
+        if ( *id != DB_INSERT_AUTOINC_ID ) /* related to a previous increment */
+                return 0; /* we use link between sequence. We have nothing to do */
 
+        snprintf(query, sizeof(query), "SELECT nextval('%s') FROM %s", field, table);
+        
         ret = PQexec(pgsql, query);
-        if ( ! ret || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
-                log(LOG_ERR, "Query \"%s\" returned an error.\n", query);
+        if ( ret < 0 )
                 return -1;
-        }
+        
+        *id = 1; 
         
         return 0;
 }
@@ -105,6 +138,7 @@ static int db_insert(char *table, char *fields, char *values)
 }
 
 
+
 /*
  * closes the DB connection.
  */
@@ -128,7 +162,7 @@ static int db_connect(void)
 
 
         if ( PQstatus(pgsql) == CONNECTION_BAD) {
-                log(LOG_ERR, "Connection to database '%s' failed: %s\n", dbname, PQerrorMessage(pgsql));
+                log(LOG_INFO, "PgSQL connection failed: %s", PQerrorMessage(pgsql));
                 PQfinish(pgsql);
                 return -1;
         }
@@ -197,10 +231,6 @@ int plugin_init(unsigned int id)
         plugin_set_closing_func(&plugin, db_close);
         
         plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_MANAGER_CONF);
-        if ( ! dbhost || ! dbname ) {
-                log(LOG_INFO, "PostgreSQL logging not enabled because dbhost / dbname information missing.\n");
-                return -1;
-        }
         
         /*
          * connect to db or exit

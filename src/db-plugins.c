@@ -94,6 +94,10 @@ void db_plugins_insert(char *table, char *fields, ...)
                                 str = "";
                         
                         plugin_run_with_return_value(pc, plugin_db_t, db_escape, str, str);
+                        if ( ! str ) {
+                                log(LOG_ERR, "error escaping query string.\n");
+                                break;
+                        }
                         
                         next = va_arg(ap, char *);
                         if ( next != DB_INSERT_END )

@@ -1,6 +1,8 @@
 2001-12-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/db/pgsql/pgsql.c: start of PostgreSQL plugin.
+	(db_escape): escape single quote character.
+	(db_insert_id): instruct PostgreSQL to update sequence.
 
 	* src/idmef-db-output.c: generic layer responssible for outputing
 	the IDMEF tree into the active databases.
