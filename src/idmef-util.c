@@ -179,7 +179,7 @@ int idmef_get_idmef_timestamp(const idmef_time_t *time, char *outptr, size_t siz
                 return -1;
         }
 
-        len += ret = snprintf(outptr + len, size - len, ".%u", time->usec / 1000);
+        len += ret = snprintf(outptr + len, size - len, ".%03u", time->usec / 1000);
 
         if ( local.tm_hour > utc.tm_hour )
                 snprintf(outptr + len, size - len, "+%.2d:00", local.tm_hour - utc.tm_hour);
@@ -222,7 +222,7 @@ int idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size)
                 return -1;
         }
 
-        len += ret = snprintf(outptr + len, size - len, ".%u", time->usec / 1000);
+        len += ret = snprintf(outptr + len, size - len, ".%03u", time->usec / 1000);
         
         len += ret = strftime(outptr + len, size - len, "%z", &lt);
         if ( ret == 0 ) {
