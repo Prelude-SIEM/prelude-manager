@@ -1,3 +1,16 @@
+2002-01-23  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+
+        * manager-adduser/ssl-register-client.c:
+        Modified to use arbitrary length certificate buffer. 
+
+        This is done in accordance with fixing a buffer overrun
+        in sensor-adduser utility. Although the problem did not
+        cause security issues with manager-adduser utility, as the 
+        oversized certificate was rejected immediately after being
+        received, a fix was necessary to maintain the required 
+        interoperatibility between sensor-adduser and manager-adduser:
+        both tools now allow the use of any size certificates. 
+	
 2002-11-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/sensor-server.c (forward_message_to_all): 

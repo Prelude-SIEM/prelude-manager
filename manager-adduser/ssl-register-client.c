@@ -4,7 +4,7 @@
 
 /*****
 *
-* Copyright (C) 2001, 2002 Jeremie Brebec / Toussaint Mathieu
+* Copyright (C) 2001, 2002, 2003 Jeremie Brebec / Toussaint Mathieu
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -59,8 +59,7 @@ static int recv_ack(prelude_io_t *pio,
                     des_key_schedule *skey1, des_key_schedule *skey2) 
 {
         int len;
-        char *buf;
-        char ack[ACKMSGLEN];
+        char *buf, *ack;
         
         len = prelude_io_read_delimited(pio, (void **) &buf);
         if ( len <= 0 ) {
@@ -68,7 +67,7 @@ static int recv_ack(prelude_io_t *pio,
                 return -1;
         }
 
-        len = analyse_install_msg(buf, len, ack, ACKLENGTH, skey1, skey2);
+        len = analyse_install_msg(buf, len, &ack, skey1, skey2);
         if (len < 0) {
                 fprintf(stderr, "bad installation message received.\n");
                 return -1;
@@ -89,10 +88,10 @@ static int recv_ack(prelude_io_t *pio,
 static int wait_install_request(prelude_io_t *pio,
                                 des_key_schedule *skey1, des_key_schedule *skey2) 
 {
+        char *cert;
         int len, certlen, ret;
-	char cert[BUFMAXSIZE];
         
-        certlen = prelude_ssl_recv_cert(pio, cert, sizeof(cert), skey1, skey2);
+        certlen = prelude_ssl_recv_cert(pio, &cert, skey1, skey2);
         if ( certlen < 0 ) {
                 log(LOG_ERR, "couldn't receive Sensor certificate.\n");
                 goto err;
