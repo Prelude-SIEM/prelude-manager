@@ -29,5 +29,4 @@ struct report_config {
 	int daemonize;
         const char *pidfile;
         int use_ssl;
-        int ssl_key_crypt;
 }; 

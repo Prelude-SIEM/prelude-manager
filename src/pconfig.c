@@ -238,7 +238,7 @@ int pconfig_init(int argc, char **argv) {
         configure_quiet(cfg);
 
 #ifdef HAVE_SSL
-        if (! config.ssl_key_crypt && ! creat_cert ) {
+        if (! crypt_key && ! creat_cert ) {
                 fprintf(stderr, "-n (--not-crypt) option have to be used with the '-c' option\n");
                 return -1;
         }
@@ -254,7 +254,7 @@ int pconfig_init(int argc, char **argv) {
                         return -1;
                 }
                 
-                exit(ssl_register_client(cfg, crypt_key));
+                exit(ssl_register_client(cfg));
         }
 #endif
         
