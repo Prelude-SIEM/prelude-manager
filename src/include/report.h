@@ -27,5 +27,3 @@
 #include <libprelude/config-engine.h>
 
 #include "plugin-report.h"
-
-#include "idmef-func.h"
