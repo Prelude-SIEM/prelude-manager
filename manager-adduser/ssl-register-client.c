@@ -41,7 +41,6 @@
 #include <libprelude/common.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/config-engine.h>
-#include <libprelude/ssl-config.h>
 #include <libprelude/ssl-gencrypto.h>
 #include <libprelude/ssl-registration-msg.h>
 
@@ -104,7 +103,7 @@ static int recv_ack(prelude_io_t *pio,
         char *buf;
         char ack[ACKMSGLEN];
         
-        len = prelude_io_read_delimited(pio, &buf);
+        len = prelude_io_read_delimited(pio, (void **) &buf);
         if ( len <= 0 ) {
                 log(LOG_ERR, "couldn't read certificate.\n");
                 return -1;

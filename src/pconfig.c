@@ -30,7 +30,6 @@
 #include <libprelude/config-engine.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>
-#include <libprelude/auth-common.h>
 #include <libprelude/daemonize.h>
 
 #include "libmissing.h"

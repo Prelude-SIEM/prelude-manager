@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <libprelude/prelude-auth.h>
 
-#include "ssl-register-client.h"
+
 
 int config_quiet = 0;
 
@@ -39,7 +39,7 @@ int main(void)
         
         ret = strcmp(buf, "plaintext");
         if ( ret == 0 )
-                ret = prelude_auth_create_account(MANAGER_AUTH_FILE, 0);
+                ret = prelude_auth_create_account(MANAGER_AUTH_FILE);
         else
                 ret = ssl_register_client();
 

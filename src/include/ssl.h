@@ -32,6 +32,4 @@ int ssl_close_session(SSL *ssl);
 
 int ssl_create_certificate(config_t *cfg, int crypt_key);
 
-int ssl_register_client(config_t *cfg);
-
 
