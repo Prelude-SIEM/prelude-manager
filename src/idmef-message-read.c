@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -532,9 +532,7 @@ static int analyzer_get(prelude_msg_t *msg, idmef_analyzer_t *analyzer)
                 extract_string(buf, len, analyzer->class);
                 break;
 
-        case MSG_NODE_TAG:
-                printf("HERE\n");
-                
+        case MSG_NODE_TAG:                
                 idmef_analyzer_node_new(analyzer);
                 ret = node_get(msg, analyzer->node);
                 if ( ret < 0 )
