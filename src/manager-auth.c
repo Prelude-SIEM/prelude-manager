@@ -132,7 +132,7 @@ static int dh_params_load(gnutls_dh_params dh, unsigned int req_bits)
 
         generator.size = size = prelude_io_read_delimited(pfd, &generator.data);
         if ( size < 0 ) {
-                prelude_perror(size, "error reading dh generator.\n");
+                prelude_perror(size, "error reading dh generator");
                 goto err;
         }
         
