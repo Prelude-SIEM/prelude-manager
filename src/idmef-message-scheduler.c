@@ -272,11 +272,16 @@ static int process_message(prelude_msg_t *msg)
                 return -1;
         }
 
+        /*
+         * prelude-msg is usefull for report plugin failover.
+         * We don't need to call prelude_msg_destroy(), as
+         * idmef_message_destroy() will consequently do this for us.
+         */
+        idmef_message_set_pmsg(idmef, msg);
         process_idmef_message(NULL, idmef);
+
         idmef_message_destroy(idmef);
-        
-        prelude_msg_destroy(msg);
-        
+                
         return 0;
 }
 
