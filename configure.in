@@ -51,6 +51,17 @@ AC_PATH_GENERIC(libprelude, 0.8.9, ,
 pthread_cflags=`$LIBPRELUDE_CONFIG --pthread-cflags`
 defined="$defined $LIBPRELUDE_CFLAGS $pthread_cflags"
 
+
+
+dnl **************************************************
+dnl * Check for libpreludedb                         *
+dnl **************************************************
+
+AC_PATH_GENERIC(libpreludedb, , enable_libpreludedb=yes, enable_libpreludedb=no)
+AM_CONDITIONAL(HAVE_LIBPRELUDEDB, test x$enable_libpreludedb = xyes)
+AC_SUBST(HAVE_LIBPRELUDEDB)
+
+
 dnl **************************************************
 dnl * Check for OpenSSL.                             *
 dnl **************************************************
@@ -388,4 +399,5 @@ echo
 echo "*** Dumping configuration ***"
 echo "    - Enable OpenSSL         : $enable_openssl"
 echo "    - Generate documentation : $enable_gtk_doc"
-echo "    - Enable Xml plugin        : $enable_xmlmod";
+echo "    - Enable Xml plugin      : $enable_xmlmod";
+echo "    - Enable database support: $enable_libpreludedb";
