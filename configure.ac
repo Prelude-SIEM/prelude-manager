@@ -274,7 +274,11 @@ prelude-report.conf
 libmissing/Makefile
 src/Makefile 
 src/include/Makefile
+
 plugins/Makefile
+plugins/decode/Makefile
+plugins/decode/prelude-nids/Makefile
+
 plugins/filemod/Makefile
 
 ])
