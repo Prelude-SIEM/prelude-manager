@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Vandoorselaere Yoann <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Vandoorselaere Yoann <yoann@mandrakesoft.com>
 * Copyright (C) 2001 Sylvain GIL <prelude@tootella.org>
 * All Rights Reserved
 *
@@ -55,6 +55,7 @@ static MYSQL *connection = NULL, mysql;
  */
 static char *db_escape(const char *string)
 {
+        int len;
         char *escaped;
 
         if ( ! string )
@@ -67,14 +68,20 @@ static char *db_escape(const char *string)
          * worse case, each character may need to be encoded as using two bytes,
          * and you need room for the terminating null byte.)
          */
-        escaped = malloc(strlen(string) * 2 + 1);
+        len = strlen(string);
+        
+        escaped = malloc(len * 2 + 1);
         if (! escaped) {
                 log(LOG_ERR, "memory exhausted.\n");
                 return NULL;
         }
 
-        mysql_real_escape_string(&mysql, escaped, string, strlen(string));
-
+#ifdef HAVE_MYSQL_REAL_ESCAPE_STRING
+        mysql_real_escape_string(&mysql, escaped, string, len);
+#else
+        mysql_escape_string(escaped, string, len);
+#endif
+        
         return escaped;
 }
 

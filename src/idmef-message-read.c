@@ -364,8 +364,8 @@ static int web_service_get(prelude_msg_t *msg, idmef_webservice_t *web)
                 extract_string(buf, len, web->cgi);
                 break;
 
-        case MSG_WEBSERVICE_METHOD:
-                extract_string(buf, len, web->method);
+        case MSG_WEBSERVICE_HTTP_METHOD:
+                extract_string(buf, len, web->http_method);
                 break;
 
         case MSG_WEBSERVICE_ARG:
@@ -917,6 +917,173 @@ static int overflow_alert_get(prelude_msg_t *msg, idmef_overflow_alert_t *overfl
 
 
 
+
+static int impact_get(prelude_msg_t *msg, idmef_impact_t *impact) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);
+        if ( ret <= 0 )
+                return -1; /* Message should always terminate by END OF TAG */
+
+        switch (tag) {
+
+        case MSG_IMPACT_SEVERITY:
+                extract_int(uint32, buf, len, impact->severity);
+                break;
+
+        case MSG_IMPACT_COMPLETION:
+                extract_int(uint32, buf, len, impact->completion);
+                break;
+
+        case MSG_IMPACT_TYPE:
+                extract_int(uint32, buf, len, impact->type);
+                break;
+
+        case MSG_IMPACT_DESCRIPTION:
+                extract_string(buf, len, impact->description);
+                break;
+
+        case MSG_END_OF_TAG:
+                return 0;
+                
+        default:
+                log(LOG_ERR, "couldn't handle tag %d.\n", tag);
+                return -1;      
+        }
+
+        return impact_get(msg, impact);
+}
+
+
+
+
+static int confidence_get(prelude_msg_t *msg, idmef_confidence_t *confidence) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);
+        if ( ret <= 0 )
+                return -1; /* Message should always terminate by END OF TAG */
+
+        
+        switch (tag) {
+
+        case MSG_CONFIDENCE_RATING:
+                extract_int(uint32, buf, len, confidence->rating);
+                break;
+
+        case MSG_CONFIDENCE_CONFIDENCE:
+                extract_int(uint32, buf, len, confidence->confidence);
+                break;
+                
+        case MSG_END_OF_TAG:
+                return 0;
+
+        default:
+                log(LOG_ERR, "couldn't handle tag %d.\n", tag);
+                return -1;      
+        }
+
+        return confidence_get(msg, confidence);
+}
+
+
+
+static int action_get(prelude_msg_t *msg, idmef_action_t *action) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);
+        if ( ret <= 0 )
+                return -1; /* Message should always terminate by END OF TAG */
+
+        switch (tag) {
+
+        case MSG_ACTION_CATEGORY:
+                extract_int(uint32, buf, len, action->category);
+                break;
+
+        case MSG_ACTION_DESCRIPTION:
+                extract_string(buf, len, action->description);
+                break;
+                
+        case MSG_END_OF_TAG:
+                return 0;
+
+        default:
+                log(LOG_ERR, "couldn't handle tag %d.\n", tag);
+                return -1;      
+        }
+
+        return action_get(msg, action);
+}
+
+
+
+
+static int assessment_get(prelude_msg_t *msg, idmef_assessment_t *assessment) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        idmef_action_t *action;
+        
+        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);
+        if ( ret <= 0 )
+                return -1; /* Message should always terminate by END OF TAG */
+
+        switch (tag) {
+
+        case MSG_IMPACT_TAG:
+                idmef_assessment_impact_new(assessment);
+                ret = impact_get(msg, assessment->impact);
+                if ( ret < 0 )
+                        return -1;
+                break;
+
+        case MSG_ACTION_TAG:
+                action = idmef_assessment_action_new(assessment);
+                if ( ! action )
+                        return -1;
+                
+                ret = action_get(msg, action);
+                if ( ret < 0 )
+                        return -1;
+                break;
+
+        case MSG_CONFIDENCE_TAG:
+                idmef_assessment_confidence_new(assessment);
+                ret = confidence_get(msg, assessment->confidence);
+                if ( ret < 0 )
+                        return -1;
+                break;
+
+        case MSG_END_OF_TAG:
+                return 0;
+                
+        default:
+                log(LOG_ERR, "couldn't handle tag %d.\n", tag);
+                return -1;      
+        }
+
+        return assessment_get(msg, assessment);
+}
+
+
+
+
 static int alert_get(prelude_msg_t *msg, idmef_alert_t *alert) 
 {
         int ret;
@@ -937,13 +1104,13 @@ static int alert_get(prelude_msg_t *msg, idmef_alert_t *alert)
         case MSG_ALERT_IDENT:
                 extract_int(uint64, buf, len, alert->ident);
                 break;
-                
-        case MSG_ALERT_IMPACT:
-                extract_string(buf, len, alert->impact);
-                break;
 
-        case MSG_ALERT_ACTION:
-                extract_string(buf, len, alert->action);
+        case MSG_ASSESSMENT_TAG:
+                idmef_alert_assessment_new(alert);
+                
+                ret = assessment_get(msg, alert->assessment);
+                if ( ret < 0 )
+                        return -1;
                 break;
 
         case MSG_ANALYZER_TAG:

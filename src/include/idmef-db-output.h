@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -20,5 +20,6 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
-void idmef_db_output(const idmef_message_t *msg);
+
+int idmef_db_output(const idmef_message_t *msg);
 

@@ -71,6 +71,11 @@ AC_CHECK_PROG(MYSQL_CONFIG, mysql_config, true, false)
 if test x$MYSQL_CONFIG = xtrue; then
 	MYSQL_LIBS=`mysql_config --libs`
 	MYSQL_CFLAGS=`mysql_config --cflags`
+	
+	AC_CHECK_LIB(mysqlclient, mysql_real_escape_string, have_real_escape_string=yes)
+	if test x$have_real_escape_string = xyes; then
+		AC_DEFINE(HAVE_MYSQL_REAL_ESCAPE_STRING)
+	fi
 fi
 
 AC_ARG_ENABLE(mysql, [  --enable-mysql  Enable MySQL plugin [default=auto]], enable_mysql="$enableval", enable_mysql=auto)

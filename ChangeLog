@@ -1,3 +1,14 @@
+2002-01-22  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/idmef-util.c: 
+	* src/idmef-message-read.c: 
+	* src/idmef-db-output.c: 
+	IDMEF v6 compliance.
+
+	* plugins/db/mysql/mysql.c (db_escape): 
+	* configure.in: detect if we have mysql_real_escape_string(),
+	use mysql_escape_string() if not.
+
 2002-01-21  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/server-logic.c: the continue_processing variable

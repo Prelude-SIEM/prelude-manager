@@ -21,12 +21,15 @@
 *
 *****/
 
+
 #include <libprelude/list.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/config-engine.h>
 
+#include <unistd.h>
 #include <libprelude/prelude-io.h>
+
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-getopt.h>
 

@@ -272,3 +272,114 @@ const char *idmef_target_decoy_to_string(idmef_spoofed_t decoy)
 
         return tbl[decoy];
 }
+
+
+
+const char *idmef_impact_severity_to_string(idmef_impact_severity_t severity) 
+{
+        static const char *tbl[] = {
+                "low",
+                "medium",
+                "high",
+        };
+
+        assert( severity < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[severity];
+}
+
+
+
+const char *idmef_impact_completion_to_string(idmef_impact_completion_t completion) 
+{
+        static const char *tbl[] = {
+                "unknown", 
+                "failed",
+                "succeeded",
+        };
+
+        assert( completion < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[completion];
+}
+
+
+
+const char *idmef_impact_type_to_string(idmef_impact_type_t type)
+{
+        static const char *tbl[] = {
+                "admin",
+                "dos",
+                "file",
+                "recon",
+                "user",
+                "other",
+        };
+
+        assert( type < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[type];
+}
+
+
+
+const char *idmef_linkage_category_to_string(idmef_linkage_category_t category) 
+{
+        static const char *tbl[] = {
+                "hard-link",
+                "mount-point",
+                "reparse-point",
+                "shortcut",
+                "stream",
+                "symbolic-link",
+        };
+
+        assert( category < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[category];
+}
+
+
+
+const char *idmef_file_category_to_string(idmef_file_category_t category) 
+{
+        static const char *tbl[] = {
+                "current",
+                "original",
+        };
+
+        assert( category < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[category];
+}
+
+
+
+const char *idmef_confidence_rating_to_string(idmef_confidence_rating_t rating) 
+{
+        static const char *tbl[] = {
+                "low",
+                "medium",
+                "high",
+                "numeric",
+        };
+
+        assert( rating < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[rating];
+}
+
+
+const char *idmef_action_category_to_string(idmef_action_category_t category)
+{
+        static const char *tbl[] = {
+                "block-installed",
+                "notification-sent",
+                "taken-offline",
+                "other",
+        };
+
+        assert( category < (sizeof(tbl) / sizeof(void *)) );
+
+        return tbl[category];
+}
