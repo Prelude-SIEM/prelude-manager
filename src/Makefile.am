@@ -27,7 +27,7 @@ endif
 DLOPENED_OBJS=$(XML_OBJS) $(DB_OBJS)
 
 prelude_manager_LDFLAGS = -export-dynamic \
-        -dlopen $(top_builddir)/plugins/filters/filter/filter.la \
+        -dlopen $(top_builddir)/plugins/filters/idmef-criteria/idmef-criteria.la \
         -dlopen $(top_builddir)/plugins/reports/debug2/debug2.la \
         -dlopen $(top_builddir)/plugins/reports/relaying/relaying.la \
         -dlopen $(top_builddir)/plugins/reports/textmod/textmod.la \

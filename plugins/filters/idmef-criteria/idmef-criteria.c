@@ -33,7 +33,7 @@
 #include "prelude-manager.h"
 
 
-int filter_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
+int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
 
 
 static manager_filter_plugin_t filter_plugin;
@@ -150,14 +150,14 @@ static int filter_activate(prelude_option_t *opt, const char *optarg, prelude_st
 
 
 
-int filter_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *root_opt)
+int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *root_opt)
 {
         int ret;
         prelude_option_t *opt;
         
         ret = prelude_option_add(root_opt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
-                                 |PRELUDE_OPTION_TYPE_WIDE, 0, "filter",
-                                 "Option for the filter plugin", PRELUDE_OPTION_ARGUMENT_OPTIONAL,
+                                 |PRELUDE_OPTION_TYPE_WIDE, 0, "idmef-criteria-filter",
+                                 "Filter message based on IDMEF criteria", PRELUDE_OPTION_ARGUMENT_OPTIONAL,
                                  filter_activate, NULL);
         if ( ret < 0 )
                 return ret;
