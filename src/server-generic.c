@@ -415,9 +415,12 @@ static int setup_client_socket(server_generic_t *server,
         int ret;
         
 #ifdef HAVE_TCP_WRAPPERS
-        ret = tcpd_auth(cdata, client);
-        if ( ret < 0 )
-                return -1;
+        if ( ! server->unix_srvr ) {
+                ret = tcpd_auth(cdata, client);
+                if ( ret < 0 )
+                        return -1;
+        } else
+                log(LOG_INFO, "[%s] - accepted connection.\n", cdata->addr);
 #else
         log(LOG_INFO, "[%s] - accepted connection.\n", cdata->addr);
 #endif
