@@ -27,6 +27,7 @@
 #include <netinet/in.h>
 
 #include <libprelude/common.h>
+#include <libprelude/extract.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/idmef-message-id.h>
@@ -36,98 +37,6 @@
 #include "plugin-decode.h"
 #include "idmef-func.h"
 #include "idmef-message-read.h"
-
-
-
-
-
-static int extract_uint64(uint64_t *dst, void *buf, uint32_t blen) 
-{
-        if ( blen != sizeof(uint64_t) ) {
-                log(LOG_ERR, "Datatype error, buffer is not uint64: couldn't convert.\n");
-                return -1;
-        }
-
-        *dst = *(uint64_t *) buf;
-
-        return 0;
-}
-
-
-
-
-static int extract_uint32(uint32_t *dst, void *buf, uint32_t blen) 
-{
-        if ( blen != sizeof(uint32_t) ) {
-                log(LOG_ERR, "Datatype error, buffer is not uint32: couldn't convert.\n");
-                return -1;
-        }
-
-        *dst = ntohl(*(uint32_t *) buf);
-
-        return 0;
-}
-
-
-
-static int extract_uint16(uint16_t *dst, void *buf, uint32_t blen) 
-{
-        if ( blen != sizeof(uint16_t) ) {
-                log(LOG_ERR, "Datatype error, buffer is not uint16: couldn't convert.\n");
-                return -1;
-        }
-
-        *dst = ntohs(*(uint16_t *) buf);
-
-        return 0;
-}
-
-
-
-
-
-static int extract_uint8(uint8_t *dst, void *buf, uint32_t blen) 
-{
-        if ( blen != sizeof(uint8_t) ) {
-                log(LOG_ERR, "Datatype error, buffer is not uint8: couldn't convert.\n");
-                return -1;
-        }
-
-        *dst = *(uint8_t *) buf;
-
-        return 0;
-}
-
-
-
-
-static const char *extract_str(void *buf, uint32_t blen) 
-{
-        const char *str = buf;
-        
-        if ( str[blen - 1] != '\0' ) 
-                return NULL;
-
-        return buf;
-}
-
-
-
-#define extract_int(type, buf, blen, dst) do {        \
-        int ret;                                      \
-        ret = extract_ ## type (&dst, buf, blen);     \
-        if ( ret < 0 )                                \
-                return -1;                            \
-} while (0)
-           
-
-#define extract_string(buf, blen, dst)      \
-        dst = extract_str(buf, blen);       \
-        if ( ! dst ) {                      \
-               log(LOG_ERR, "Datatype error, buffer is not a string.\n"); \
-               return -1;                                                 \
-        }                                                                 
-               
 
 
 

@@ -20,9 +20,11 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <netinet/in.h>
 #include <pthread.h>
 
 #include <libprelude/list.h>
@@ -32,6 +34,8 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-getopt-wide.h>
+#include <libprelude/prelude-ident.h>
+#include <libprelude/extract.h>
 
 #include "server-logic.h"
 #include "server-generic.h"
@@ -42,6 +46,7 @@
 
 typedef struct {        
         struct list_head list;
+        uint64_t analyzerid;
         prelude_msg_t *msg;
         prelude_io_t *fd;
 } sensor_cnx_t;
@@ -49,6 +54,7 @@ typedef struct {
 
 static server_generic_t *server;
 static LIST_HEAD(sensor_cnx_list);
+static prelude_ident_t *analyzer_ident;
 static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -116,6 +122,90 @@ static int option_list_to_xml(prelude_msg_t *msg)
 
 
 
+static int handle_request_ident(sensor_cnx_t *cnx)
+{
+        uint64_t nident;
+        prelude_msg_t *msg;
+        
+        msg = prelude_msg_new(1, sizeof(uint64_t), PRELUDE_MSG_ID, 0);
+        if ( ! msg )
+                return -1;
+        
+        cnx->analyzerid = prelude_ident_inc(analyzer_ident);
+
+        /*
+         * Put in network byte order
+         */
+        ((uint32_t *) &nident)[0] = htonl(((uint32_t *) &cnx->analyzerid)[1]);
+        ((uint32_t *) &nident)[1] = htonl(((uint32_t *) &cnx->analyzerid)[0]);
+
+        /*
+         * send the message
+         */
+        prelude_msg_set(msg, PRELUDE_MSG_ID_REPLY, sizeof(nident), &nident);
+        prelude_msg_write(msg, cnx->fd);
+        prelude_msg_destroy(msg);
+
+        log(LOG_INFO, "- Allocated ident %llu on sensor request.\n", cnx->analyzerid);
+        
+        return 0;
+}
+
+
+
+
+static int handle_declare_ident(sensor_cnx_t *cnx, void *buf, uint32_t blen) 
+{
+        int ret;
+        
+        ret = extract_uint64(&cnx->analyzerid, buf, blen);
+        log(LOG_INFO, "- Sensor declared ident %llu.\n", cnx->analyzerid);
+        return ret;
+}
+
+
+
+
+
+static int read_ident_message(sensor_cnx_t *cnx, prelude_msg_t *msg) 
+{
+        int ret;        
+        void *buf;
+        uint8_t tag;
+        uint32_t dlen;
+
+        ret = prelude_msg_get(msg, &tag, &dlen, &buf);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error decoding message.\n");
+                return -1;
+        }
+
+        if ( ret == 0 ) 
+                return 0;
+
+        switch (tag) {
+                
+        case PRELUDE_MSG_ID_DECLARE:
+                ret = handle_declare_ident(cnx, buf, dlen);
+
+        case PRELUDE_MSG_ID_REQUEST:
+                ret = handle_request_ident(cnx);
+
+        default:
+                log(LOG_ERR, "Unknow ID tag: %d.\n", tag);
+                ret = -1;
+        }
+
+        prelude_msg_destroy(msg);
+        
+        return ret;
+}
+
+
+
+
+
+
 static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata) 
 {
         int ret;
@@ -123,8 +213,7 @@ static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata)
         prelude_msg_status_t status;
         sensor_cnx_t *cnx = *clientdata;
         
-        status = prelude_msg_read(&cnx->msg, src);
-
+        status = prelude_msg_read(&cnx->msg, src);        
         if ( status == prelude_msg_eof || status == prelude_msg_error ) {
                 /*
                  * end of file on read
@@ -149,9 +238,13 @@ static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata)
         case PRELUDE_MSG_IDMEF:
                 idmef_message_schedule(msg);
                 break;
+
+        case PRELUDE_MSG_ID:
+                return read_ident_message(cnx, msg);
                 
         case PRELUDE_MSG_OPTION_LIST:
                 ret = option_list_to_xml(msg);
+                prelude_msg_destroy(msg);
                 if ( ret < 0 )
                         return -1;
                 break;
@@ -216,7 +309,11 @@ static int accept_connection_cb(prelude_io_t *cfd, void **cdata)
 int sensor_server_new(const char *addr, uint16_t port) 
 {
         int ret;
-                
+
+        analyzer_ident = prelude_ident_new(CONFIG_DIR"/analyzer.ident");
+        if ( ! analyzer_ident )
+                return -1;
+        
         server = server_generic_new(addr, port, accept_connection_cb,
                                  read_connection_cb, close_connection_cb);
         if ( ! server ) {
@@ -243,12 +340,13 @@ void sensor_server_start(void)
 
 
 
-int sensor_server_broadcast_admin_command(const char *sensorid, prelude_msg_t *msg) 
+int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *msg) 
 {
+        int ret;
         sensor_cnx_t *cnx;
         struct list_head *tmp;
         
-        if ( ! sensorid )
+        if ( ! analyzerid )
                 return -1;
 
         pthread_mutex_lock(&list_mutex);
@@ -256,19 +354,16 @@ int sensor_server_broadcast_admin_command(const char *sensorid, prelude_msg_t *m
         list_for_each(tmp, &sensor_cnx_list) {
                 cnx = list_entry(tmp, sensor_cnx_t, list);
 
-#if 0
-                if ( cnx->analyzer.analyzerid && strcmp(cnx->analyzer.analyzerid, sensorid) == 0 ) {
+                if ( cnx->analyzerid == *analyzerid ) {
                         ret = prelude_msg_write(msg, cnx->fd);
                         pthread_mutex_unlock(&list_mutex);
                         return ret;
                 }
-#endif
-                
         }
         
         pthread_mutex_unlock(&list_mutex);
 
-        log(LOG_ERR, "couldn't find sensor with ID %s\n", sensorid);
+        log(LOG_ERR, "couldn't find sensor with ID %s\n", *analyzerid);
 
         return -1;
 }

@@ -20,8 +20,9 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 void sensor_server_start(void);
 
 int sensor_server_new(const char *addr, uint16_t port);
 
-int sensor_server_broadcast_admin_command(const char *sensorid, prelude_msg_t *msg);
+int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *msg);

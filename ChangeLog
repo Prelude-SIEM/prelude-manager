@@ -1,3 +1,25 @@
+2002-01-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/sensor-server.c (handle_request_ident): 
+	When getting this message, allocate an analyzer identity
+	to the other peer.
+	
+	(handle_declare_ident): 
+	When getting this message, set the analyzerid for this
+	connection to declared ident.
+	
+	(read_ident_message): handle ident declaration, and
+	ident request.
+	
+	(sensor_server_broadcast_admin_command): analyzerid
+	is not a string.
+
+	(sensor_server_new): use the prelude_ident API
+	to create a 64 bits integer mapped on a file.
+
+	* src/idmef-message-read.c: moved type checking
+	function to libprelude.
+
 2002-01-04  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/prelude-manager.c: 
