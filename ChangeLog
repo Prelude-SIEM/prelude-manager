@@ -1,3 +1,19 @@
+2002-09-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server-logic.c (remove_connection): 
+	Instead of maintaining a table of free connection,
+	keep the free connection at the end of the connection
+	array.
+	
+	(server_logic_stop): Use cancelation to kill every
+	server logic threads.
+
+	(child_reader): instead of polling the whole table, 
+	which is slow, and will fail on implementation not
+	following the standard (linux 2.2.x), we can now use
+	the index of the connection table (connection are now
+	kept in order).
+
 2002-09-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* configure.in: bump version number to 0.8.5.
