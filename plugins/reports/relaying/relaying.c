@@ -31,6 +31,7 @@
 #include <libprelude/prelude-plugin.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/idmef-message-write.h>
+#include <libprelude/prelude-error.h>
 
 #include "plugin-report.h"
 
