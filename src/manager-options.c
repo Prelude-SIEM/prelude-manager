@@ -46,21 +46,21 @@ static const char *config_file = PRELUDE_MANAGER_CONF;
 
 
 
-static int set_conf_file(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err)
+static int set_conf_file(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
 {       
         config_file = strdup(optarg);
         return 0;
 }
 
 
-static int print_version(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int print_version(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
-        printf("prelude-manager %s\n", VERSION);
+        fprintf(stderr, "prelude-manager %s\n", VERSION);
         return prelude_error(PRELUDE_ERROR_EOF);
 }
 
 
-static int set_daemon_mode(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int set_daemon_mode(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         prelude_daemonize(config.pidfile);
         prelude_log_set_flags(prelude_log_get_flags() | PRELUDE_LOG_FLAGS_SYSLOG);
@@ -68,7 +68,7 @@ static int set_daemon_mode(void *context, prelude_option_t *opt, const char *arg
 }
 
 
-static int set_pidfile(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int set_pidfile(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         config.pidfile = strdup(arg);
         return 0;
@@ -77,7 +77,7 @@ static int set_pidfile(void *context, prelude_option_t *opt, const char *arg, pr
 
 
 
-static int set_reverse_relay(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         return reverse_relay_create_initiator(arg);
 }
@@ -85,7 +85,7 @@ static int set_reverse_relay(void *context, prelude_option_t *opt, const char *a
 
 
 
-static int set_listen_address(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int set_listen_address(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         char *ptr = strdup(arg);
         
@@ -109,7 +109,7 @@ static int set_listen_address(void *context, prelude_option_t *opt, const char *
 
 
 
-static int set_report_plugin_failover(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err)
+static int set_report_plugin_failover(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         int ret;
         
@@ -122,14 +122,14 @@ static int set_report_plugin_failover(void *context, prelude_option_t *opt, cons
 
 
 
-static int set_dh_bits(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int set_dh_bits(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         config.dh_bits = atoi(arg);
         return 0;
 }
 
 
-static int set_dh_regenerate(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int set_dh_regenerate(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         config.dh_regenerate = atoi(arg) * 60 * 60;
         return 0;
@@ -137,7 +137,7 @@ static int set_dh_regenerate(void *context, prelude_option_t *opt, const char *a
 
 
 
-static int print_help(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int print_help(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         prelude_option_print(NULL, PRELUDE_OPTION_TYPE_CLI, 25);
         return prelude_error(PRELUDE_ERROR_EOF);
@@ -145,7 +145,7 @@ static int print_help(void *context, prelude_option_t *opt, const char *arg, pre
 
 
 
-int manager_options_init(prelude_option_t *manager_root_optlist, int argc, char **argv) 
+int manager_options_init(prelude_option_t *manager_root_optlist, void *rootopt) 
 {
         prelude_option_t *opt;
         
@@ -155,47 +155,47 @@ int manager_options_init(prelude_option_t *manager_root_optlist, int argc, char 
         config.pidfile = NULL;
         config.dh_regenerate = 24 * 60 * 60;
         
-        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI, 'h', "help",
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI, 'h', "help",
                            "Print this help", PRELUDE_OPTION_ARGUMENT_NONE, print_help, NULL);
         
-        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI, 'v', "version",
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI, 'v', "version",
                            "Print version number", PRELUDE_OPTION_ARGUMENT_NONE, print_version, NULL);
 
-        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'd',
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'd',
                            "daemon", "Run in daemon mode", PRELUDE_OPTION_ARGUMENT_NONE, set_daemon_mode, NULL);
         
-        opt = prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'P',
-                                 "pidfile", "Write Prelude PID to pidfile", PRELUDE_OPTION_ARGUMENT_REQUIRED,
-                                 set_pidfile, NULL);
-
-        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI, 'c', "config",
-                           "Configuration file to use", PRELUDE_OPTION_ARGUMENT_REQUIRED,
-                           set_conf_file, NULL);
-
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'P',
+                           "pidfile", "Write Prelude PID to pidfile", PRELUDE_OPTION_ARGUMENT_REQUIRED,
+                           set_pidfile, NULL);
+        
         /*
          * we want this option to be processed before -d.
          */
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
+        
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI, 'c', "config",
+                           "Configuration file to use", PRELUDE_OPTION_ARGUMENT_REQUIRED,
+                           set_conf_file, NULL);
 
-        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CFG, 0, "dh-parameters-regenerate",
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-parameters-regenerate",
                            "How often to regenerate the Diffie Hellman parameters (in hours)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_dh_regenerate, NULL);
-
-        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CFG, 0, "dh-prime-length",
+        
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-prime-length",
                            "Size of the Diffie Hellman prime (768, 1024, 2048, 3072 or 4096)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_dh_bits, NULL);
         
-        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'c', "child-managers",
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'c', "child-managers",
                            "List of managers address:port pair where messages should be gathered from",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_reverse_relay, NULL);
         
-        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'l', "listen", 
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'l', "listen", 
                            "Address the sensors server should listen on (addr:port)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_listen_address, NULL);
-
-        opt = prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'f', "failover",
-                                 "Enable failover for specified report plugin",
-                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, set_report_plugin_failover, NULL);
+        
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'f', "failover",
+                           "Enable failover for specified report plugin",
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED, set_report_plugin_failover, NULL);
         
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
 

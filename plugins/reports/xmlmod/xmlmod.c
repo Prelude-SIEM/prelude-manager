@@ -37,7 +37,7 @@
 #include "report.h"
 
 
-prelude_plugin_generic_t *xmlmod_LTX_prelude_plugin_init(void);
+int xmlmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
 
 
 static void process_file(xmlNodePtr parent, idmef_file_t *file);
@@ -52,9 +52,6 @@ typedef struct {
 } xmlmod_plugin_t;
 
 
-static plugin_report_t xmlmod_plugin;
-extern prelude_option_t *manager_root_optlist;
-
 
 PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(xmlmod, xmlmod_plugin_t, logfile)
 
@@ -68,12 +65,12 @@ static int file_write(void *context, const char *buf, int len)
 
 
 #define idmef_attr_generic_optional(node, attr, fmt, ptr) \
-do { \
-        char buf[512]; \
-        if ( ptr ) { \
-               snprintf(buf, sizeof(buf), fmt, *ptr); \
-               xmlSetProp(node, attr, buf); \
-        } \
+do {                                                      \
+        char buf[512];                                    \
+        if ( ptr ) {                                      \
+               snprintf(buf, sizeof(buf), fmt, *ptr);     \
+               xmlSetProp(node, attr, buf);               \
+        }                                                 \
 } while (0)
 
 
@@ -957,7 +954,7 @@ static void xmlmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
 
 
-static int xmlmod_activate(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int xmlmod_activate(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         xmlmod_plugin_t *new;
         
@@ -972,7 +969,7 @@ static int xmlmod_activate(void *context, prelude_option_t *opt, const char *arg
 
 
 
-static int set_dtd_check(void *context, prelude_option_t *option, const char *arg, prelude_string_t *err)
+static int set_dtd_check(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
@@ -990,7 +987,7 @@ static int set_dtd_check(void *context, prelude_option_t *option, const char *ar
 
 
 
-static int enable_formatting(void *context, prelude_option_t *option, const char *arg, prelude_string_t *err)
+static int enable_formatting(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
@@ -1001,7 +998,7 @@ static int enable_formatting(void *context, prelude_option_t *option, const char
 
 
 
-static int get_formatting(void *context, prelude_option_t *opt, prelude_string_t *out)
+static int get_formatting(prelude_option_t *opt, prelude_string_t *out, void *context)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
@@ -1012,7 +1009,7 @@ static int get_formatting(void *context, prelude_option_t *opt, prelude_string_t
 
 
 
-static int disable_buffering(void *context, prelude_option_t *option, const char *arg, prelude_string_t *err)
+static int disable_buffering(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
@@ -1023,31 +1020,43 @@ static int disable_buffering(void *context, prelude_option_t *option, const char
 
 
 
-prelude_plugin_generic_t *xmlmod_LTX_prelude_plugin_init(void)
+int xmlmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
 {
+        int ret;
 	prelude_option_t *opt;
+        static plugin_report_t xmlmod_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
         xmlInitParser();
         
-        opt = prelude_option_add(manager_root_optlist, hook, 0, "xmlmod", "Option for the xmlmod plugin",
+        ret = prelude_option_add(rootopt, &opt, hook, 0, "xmlmod", "Option for the xmlmod plugin",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, xmlmod_activate, NULL);
-
+        if ( ret < 0 )
+                return ret;
+        
         prelude_plugin_set_activation_option((void *) &xmlmod_plugin, opt, xmlmod_init);
         
-        prelude_option_add(opt, hook, 'l', "logfile", "Specify output file to use",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED, xmlmod_set_logfile, xmlmod_get_logfile);
+        ret = prelude_option_add(opt, NULL, hook, 'l', "logfile", "Specify output file to use",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, xmlmod_set_logfile, xmlmod_get_logfile);
+        if ( ret < 0 )
+                return ret;
         
-        prelude_option_add(opt, hook, 'v', "validate", "Validate IDMEF XML output against DTD",
-                           PRELUDE_OPTION_ARGUMENT_OPTIONAL, set_dtd_check, NULL);
-
-        prelude_option_add(opt, hook, 'f', "format", "Format XML output so that it is readable",
-                           PRELUDE_OPTION_ARGUMENT_NONE, enable_formatting, get_formatting);
-
-        prelude_option_add(opt, hook, 'd', "disable-buffering",
-                           "Disable output file buffering to prevent truncated tags",
-                           PRELUDE_OPTION_ARGUMENT_NONE, disable_buffering, NULL);
-       
+        ret = prelude_option_add(opt, NULL, hook, 'v', "validate", "Validate IDMEF XML output against DTD",
+                                 PRELUDE_OPTION_ARGUMENT_OPTIONAL, set_dtd_check, NULL);
+        if ( ret < 0 )
+                return ret;
+        
+        ret = prelude_option_add(opt, NULL, hook, 'f', "format", "Format XML output so that it is readable",
+                                 PRELUDE_OPTION_ARGUMENT_NONE, enable_formatting, get_formatting);
+        if ( ret < 0 )
+                return ret;
+        
+        ret = prelude_option_add(opt, NULL, hook, 'd', "disable-buffering",
+                                 "Disable output file buffering to prevent truncated tags",
+                                 PRELUDE_OPTION_ARGUMENT_NONE, disable_buffering, NULL);
+        if ( ret < 0 )
+                return ret;
+        
         prelude_plugin_set_name(&xmlmod_plugin, "XmlMod");
         prelude_plugin_set_author(&xmlmod_plugin, "Yoann Vandoorselaere");
         prelude_plugin_set_contact(&xmlmod_plugin, "yoann@prelude-ids.org");
@@ -1056,6 +1065,8 @@ prelude_plugin_generic_t *xmlmod_LTX_prelude_plugin_init(void)
 
         report_plugin_set_running_func(&xmlmod_plugin, xmlmod_run);
         
-	return (void *) &xmlmod_plugin;
+	*plugin = (void *) &xmlmod_plugin;
+
+        return 0;
 }
 

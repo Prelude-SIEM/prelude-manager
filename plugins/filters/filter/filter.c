@@ -38,7 +38,7 @@
 #include "plugin-filter.h"
 
 
-prelude_plugin_generic_t *filter_LTX_prelude_plugin_init(void);
+int filter_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
 
 
 static plugin_filter_t filter_plugin;
@@ -63,7 +63,7 @@ static int process_message(idmef_message_t *msg, void *priv)
 
 
 
-static int set_filter_hook(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
+static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
 {
         int i, ret;
         filter_plugin_t *plugin;
@@ -108,7 +108,7 @@ static int set_filter_hook(void *context, prelude_option_t *opt, const char *opt
 
 
 
-static int set_filter_rule(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
+static int set_filter_rule(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
 {
 	int ret;
         idmef_criteria_t *new;
@@ -129,7 +129,7 @@ static int set_filter_rule(void *context, prelude_option_t *opt, const char *opt
 
 
 
-static int get_filter_rule(void *context, prelude_option_t *opt, prelude_string_t *out)
+static int get_filter_rule(prelude_option_t *opt, prelude_string_t *out, void *context)
 {
         filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);       
         return idmef_criteria_to_string(plugin->criteria, out);
@@ -138,7 +138,7 @@ static int get_filter_rule(void *context, prelude_option_t *opt, prelude_string_
 
 
 
-static int filter_activate(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
+static int filter_activate(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
 {
         filter_plugin_t *new;
         
@@ -155,26 +155,33 @@ static int filter_activate(void *context, prelude_option_t *opt, const char *opt
 
 
 
-prelude_plugin_generic_t *filter_LTX_prelude_plugin_init(void)
+int filter_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *root_opt)
 {
+        int ret;
         prelude_option_t *opt;
         
-        opt = prelude_option_add(NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
+        ret = prelude_option_add(root_opt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
                                  |PRELUDE_OPTION_TYPE_WIDE, 0, "filter",
                                  "Option for the filter plugin", PRELUDE_OPTION_ARGUMENT_OPTIONAL,
                                  filter_activate, NULL);
-
+        if ( ret < 0 )
+                return ret;
+        
         prelude_plugin_set_activation_option((void *) &filter_plugin, opt, NULL);
         
-        prelude_option_add(opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
-                           |PRELUDE_OPTION_TYPE_WIDE, 'r', "rule",
-                           "Filtering rule", PRELUDE_OPTION_ARGUMENT_REQUIRED,
-                           set_filter_rule, get_filter_rule);
+        ret = prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
+                                 |PRELUDE_OPTION_TYPE_WIDE, 'r', "rule",
+                                 "Filtering rule", PRELUDE_OPTION_ARGUMENT_REQUIRED,
+                                 set_filter_rule, get_filter_rule);
+        if ( ret < 0 )
+                return ret;
         
-        prelude_option_add(opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
-                           |PRELUDE_OPTION_TYPE_WIDE, 'h', "hook",
-                           "Where the filter should be hooked (reporting|reverse-relaying|plugin name)",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED, set_filter_hook, NULL);
+        ret = prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
+                                 |PRELUDE_OPTION_TYPE_WIDE, 'h', "hook",
+                                 "Where the filter should be hooked (reporting|reverse-relaying|plugin name)",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, set_filter_hook, NULL);
+        if ( ret < 0 )
+                return ret;
         
         prelude_plugin_set_name(&filter_plugin, "Filter");
         prelude_plugin_set_author(&filter_plugin, "Krzysztof Zaraska");
@@ -182,7 +189,9 @@ prelude_plugin_generic_t *filter_LTX_prelude_plugin_init(void)
         prelude_plugin_set_desc(&filter_plugin, "Match alert against IDMEF criteria");
 
         filter_plugin_set_running_func(&filter_plugin, process_message);
-        
-	return (void *) &filter_plugin;
+
+        *plugin = (void *) &filter_plugin;
+
+        return 0;
 }
 

@@ -36,10 +36,8 @@
 #include "config.h"
 #include "report.h"
 
-#define BUFSIZE 32768
 
-
-prelude_plugin_generic_t *debug2_LTX_prelude_plugin_init(void);
+int debug2_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
 
 
 typedef struct {
@@ -54,8 +52,6 @@ typedef struct {
 } debug_plugin_t;
 
 
-static plugin_report_t debug_plugin;
-extern prelude_option_t *manager_root_optlist;
 
 
 static int iterator(idmef_value_t *val, void *extra)
@@ -113,7 +109,7 @@ static int debug_run(prelude_plugin_instance_t *pi, idmef_message_t *msg)
 
 
 
-static int debug_set_object(void *context, prelude_option_t *option, const char *arg, prelude_string_t *err)
+static int debug_set_object(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         int ret;
 	char *numeric;
@@ -151,7 +147,7 @@ static int debug_set_object(void *context, prelude_option_t *option, const char 
 
 
 
-static int debug_new(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int debug_new(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         debug_plugin_t *new;
         
@@ -190,25 +186,33 @@ static void debug_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
 
 
 
-prelude_plugin_generic_t *debug2_LTX_prelude_plugin_init(void)
+int debug2_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
 {
+        int ret;
 	prelude_option_t *opt;
+        static plugin_report_t debug_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
-        opt = prelude_option_add(manager_root_optlist, hook, 0, "debug2", "Option for the debug plugin",
+        ret = prelude_option_add(rootopt, &opt, hook, 0, "debug2", "Option for the debug plugin",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, debug_new, NULL);
-
+        if ( ret < 0 )
+                return ret;
+        
         prelude_plugin_set_activation_option((void *) &debug_plugin, opt, NULL);
         
-        prelude_option_add(opt, hook, 'o', "object", "IDMEF object name",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED, debug_set_object, NULL);
-
+        ret = prelude_option_add(opt, NULL, hook, 'o', "object", "IDMEF object name",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, debug_set_object, NULL);
+        if ( ret < 0 )
+                return ret;
+        
         prelude_plugin_set_name(&debug_plugin, "Debug2");
         prelude_plugin_set_desc(&debug_plugin, "Test plugin.");
         prelude_plugin_set_destroy_func(&debug_plugin, debug_destroy);
         report_plugin_set_running_func(&debug_plugin, debug_run);
 	     
-	return (void *) &debug_plugin;
+	*plugin = (void *) &debug_plugin;
+
+        return 0;
 }
 
 

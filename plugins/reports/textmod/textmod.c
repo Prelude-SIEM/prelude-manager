@@ -35,7 +35,7 @@
 #include "report.h"
 
 
-prelude_plugin_generic_t *textmod_LTX_prelude_plugin_init(void);
+int textmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt);
 
 
 typedef struct {
@@ -43,10 +43,6 @@ typedef struct {
         char *logfile;
 } textmod_plugin_t;
 
-
-
-static plugin_report_t textmod_plugin;
-extern prelude_option_t *manager_root_optlist;
 
 
 PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(textmod, textmod_plugin_t, logfile)
@@ -854,7 +850,7 @@ static int textmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
 
 
-static int textmod_activate(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
+static int textmod_activate(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
 {
         textmod_plugin_t *new;
         
@@ -885,20 +881,26 @@ static void textmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err
 
 
 
-prelude_plugin_generic_t *textmod_LTX_prelude_plugin_init(void)
+int textmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
 {
+        int ret;
 	prelude_option_t *opt;
+        static plugin_report_t textmod_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
-        opt = prelude_option_add(manager_root_optlist, hook, 0, "textmod", "Option for the textmod plugin",
+        ret = prelude_option_add(rootopt, &opt, hook, 0, "textmod", "Option for the textmod plugin",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, textmod_activate, NULL);
+        if ( ret < 0 )
+                return ret;
         
         prelude_plugin_set_activation_option((void *) &textmod_init, opt, textmod_init);
         
-        prelude_option_add(opt, hook, 'l', "logfile", "Specify logfile to use",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED,
-                           textmod_set_logfile, textmod_get_logfile);
-
+        ret = prelude_option_add(opt, NULL, hook, 'l', "logfile", "Specify logfile to use",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED,
+                                 textmod_set_logfile, textmod_get_logfile);
+        if ( ret < 0 )
+                return ret;
+        
         prelude_plugin_set_name(&textmod_plugin, "TextMod");
         prelude_plugin_set_author(&textmod_plugin, "Yoann Vandoorselaere");
         prelude_plugin_set_contact(&textmod_plugin, "yoann@prelude-ids.org");
@@ -906,7 +908,9 @@ prelude_plugin_generic_t *textmod_LTX_prelude_plugin_init(void)
         prelude_plugin_set_destroy_func(&textmod_plugin, textmod_destroy);
 
         report_plugin_set_running_func(&textmod_plugin, textmod_run);
-        
-	return (void *) &textmod_plugin;
+
+        *plugin = (void *) &textmod_plugin;
+
+        return 0;
 }
 

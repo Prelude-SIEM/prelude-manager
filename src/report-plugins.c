@@ -50,6 +50,7 @@
 
 
 #define FAILOVER_RETRY_TIMEOUT 10 * 60
+#define MANAGER_PLUGIN_SYMBOL  "manager_plugin_init"
 
 
 static prelude_msgbuf_t *msgbuf;
@@ -369,7 +370,7 @@ void report_plugins_close(void)
  * Open the plugin directory (dirname),
  * and try to load all plugins located in it.
  */
-int report_plugins_init(const char *dirname, int argc, char **argv)
+int report_plugins_init(const char *dirname, void *data)
 {
         int ret, count;
         
@@ -382,7 +383,7 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
 		return -1;
 	}
 
-        count = prelude_plugin_load_from_dir(dirname, subscribe, unsubscribe);
+        count = prelude_plugin_load_from_dir(dirname, MANAGER_PLUGIN_SYMBOL, data, subscribe, unsubscribe);
         
         /*
          * don't return an error if the report directory doesn't exist.

@@ -31,6 +31,8 @@
 
 #include "plugin-decode.h"
 
+#define MANAGER_PLUGIN_SYMBOL "manager_plugin_init"
+
 
 static PRELUDE_LIST(decode_plugins_instance);
 
@@ -97,7 +99,7 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *i
 /*
  *
  */
-int decode_plugins_init(const char *dirname, int argc, char **argv) 
+int decode_plugins_init(const char *dirname, void *data) 
 {
         int ret;
 
@@ -110,7 +112,7 @@ int decode_plugins_init(const char *dirname, int argc, char **argv)
 		return -1;
 	}
 
-        ret = prelude_plugin_load_from_dir(dirname, subscribe, unsubscribe);
+        ret = prelude_plugin_load_from_dir(dirname, MANAGER_PLUGIN_SYMBOL, data, subscribe, unsubscribe);
         if ( ret < 0 )
                 prelude_log(PRELUDE_LOG_WARN, "couldn't load plugin subsystem.\n");
         

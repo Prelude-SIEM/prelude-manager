@@ -37,6 +37,9 @@
 #include "plugin-filter.h"
 
 
+#define MANAGER_PLUGIN_SYMBOL "manager_plugin_init"
+
+
 typedef struct {
         prelude_list_t list;
 
@@ -152,7 +155,7 @@ int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t
  * Open the plugin directory (dirname),
  * and try to load all plugins located in it.
  */
-int filter_plugins_init(const char *dirname, int argc, char **argv)
+int filter_plugins_init(const char *dirname, void *data)
 {
         int ret, i;
         
@@ -168,7 +171,7 @@ int filter_plugins_init(const char *dirname, int argc, char **argv)
 		return -1;
 	}
         
-        ret = prelude_plugin_load_from_dir(dirname, NULL, unsubscribe);
+        ret = prelude_plugin_load_from_dir(dirname, MANAGER_PLUGIN_SYMBOL, data, NULL, unsubscribe);
 
         /*
          * don't return an error if the report directory doesn't exist.

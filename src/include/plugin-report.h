@@ -24,11 +24,9 @@
 #ifndef _MANAGER_PLUGIN_REPORT_H
 #define _MANAGER_PLUGIN_REPORT_H
 
+#include <libprelude/prelude.h>
+#include <libprelude/prelude-log.h>
 
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-msg.h>
-#include <libprelude/prelude-option.h>
-#include <libprelude/prelude-plugin.h>
 
 typedef struct {
         PRELUDE_PLUGIN_GENERIC;
@@ -46,7 +44,7 @@ prelude_bool_t report_plugins_available(void);
 
 int report_plugin_activate_failover(const char *plugin);
 
-int report_plugins_init(const char *dirname, int argc, char **argv);
+int report_plugins_init(const char *dirname, void *data);
 
 void report_plugins_run(idmef_message_t *message);
 

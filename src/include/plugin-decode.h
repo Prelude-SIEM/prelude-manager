@@ -41,7 +41,7 @@ typedef struct {
 #define decode_plugin_set_running_func(p, f) (p)->run = (f)
 
 
-int decode_plugins_init(const char *dirname, int argc, char **argv);
+int decode_plugins_init(const char *dirname, void *data);
 
 void decode_plugins_free_data(void);
 

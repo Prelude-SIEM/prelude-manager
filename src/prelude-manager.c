@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 1998-2005 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -55,7 +55,6 @@ extern manager_config_t config;
 
 prelude_client_t *manager_client;
 server_generic_t *sensor_server = NULL;
-prelude_option_t *manager_root_optlist;
 
 static size_t nserver = 0;
 static char **global_argv;
@@ -168,11 +167,12 @@ int main(int argc, char **argv)
         int ret;
         prelude_string_t *err;
         struct sigaction action;
-
+        prelude_option_t *manager_root_optlist;
+        
         prelude_init(&argc, argv);
         
         global_argv = argv;
-        manager_root_optlist = prelude_option_new_root();
+        prelude_option_new_root(&manager_root_optlist);
         
         /*
          * make sure we ignore sighup until acceptable.
@@ -187,21 +187,21 @@ int main(int argc, char **argv)
          */
         PRELUDE_PLUGIN_SET_PRELOADED_SYMBOLS();
 
-        ret = report_plugins_init(REPORT_PLUGIN_DIR, argc, argv);
+        ret = report_plugins_init(REPORT_PLUGIN_DIR, manager_root_optlist);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_WARN, "error initializing reporting plugins.\n");
                 return -1;
         }
         prelude_log(PRELUDE_LOG_INFO, "- Initialized %d reporting plugins.\n", ret);
 
-        ret = decode_plugins_init(DECODE_PLUGIN_DIR, argc, argv);
+        ret = decode_plugins_init(DECODE_PLUGIN_DIR, manager_root_optlist);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_WARN, "error initializing decoding plugins.\n");
                 return -1;
         }
         prelude_log(PRELUDE_LOG_INFO, "- Initialized %d decoding plugins.\n", ret);
 
-        ret = filter_plugins_init(FILTER_PLUGIN_DIR, argc, argv);
+        ret = filter_plugins_init(FILTER_PLUGIN_DIR, manager_root_optlist);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_WARN, "error initializing filtering plugins.\n");
                 return -1;
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
         reverse_relay_init();
         sensor_server = sensor_server_new();
         
-        ret = manager_options_init(manager_root_optlist, argc, argv);
+        ret = manager_options_init(manager_root_optlist, manager_root_optlist);
         if ( ret < 0 )
                 exit(1);
         
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
                 return -1;
         }
         
-        ret = prelude_option_parse_arguments(manager_client, manager_root_optlist, &cfgfile, &argc, argv, &err);
+        ret = prelude_option_parse_arguments(manager_root_optlist, &cfgfile, &argc, argv, &err, manager_client);
         if ( ret < 0 ) {
                 if ( err )
                         prelude_log(PRELUDE_LOG_WARN, "error parsing options: %s.\n", prelude_string_get_string(err));

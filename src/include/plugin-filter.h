@@ -67,7 +67,7 @@ typedef struct {
 
 prelude_bool_t filter_plugins_available(filter_category_t type);
 
-int filter_plugins_init(const char *dirname, int argc, char **argv);
+int filter_plugins_init(const char *dirname, void *data);
 
 int filter_plugins_run_by_category(idmef_message_t *msg, filter_category_t cat);
 

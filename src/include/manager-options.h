@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2000, 2002, 2005 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -24,7 +24,7 @@
 #ifndef _MANAGER_PCONFIG_H
 #define _MANAGER_PCONFIG_H
 
-int manager_options_init(prelude_option_t *manager_root_optlist, int argc, char **argv);
+int manager_options_init(prelude_option_t *manager_root_optlist, void *data);
 
 typedef struct manager_config {
         char *addr;
