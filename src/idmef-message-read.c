@@ -637,6 +637,9 @@ static int source_get(prelude_msg_t *msg, idmef_source_t *src)
                         return ret;
                 break;
 
+        case MSG_END_OF_TAG:
+                return 0;
+
         default:
                 log(LOG_ERR, "couldn't handle tag %d.\n", tag);
                 return -1;
