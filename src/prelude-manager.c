@@ -1,9 +1,9 @@
 /*****
 *
-* Copyright (C) 1998-2005 Yoann Vandoorselaere <yoann@prelude-ids.org>
-* All Rights Reserved
+* Copyright (C) 1998-2005 PreludeIDS Technologies. All Rights Reserved.
+* Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
-* This file is part of the Prelude program.
+* This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by 
@@ -49,7 +49,7 @@
 
 #define MANAGER_MODEL "Prelude Manager"
 #define MANAGER_CLASS "Manager"
-#define MANAGER_MANUFACTURER "The Prelude Team http://www.prelude-ids.org"
+#define MANAGER_MANUFACTURER "http://www.prelude-ids.com"
 #define DEFAULT_ANALYZER_NAME "prelude-manager"
 
 extern manager_config_t config;

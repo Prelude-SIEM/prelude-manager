@@ -1,53 +1,64 @@
-Prelude - http://www.prelude-ids.org
-by Yoann Vandoorselaere <yoann@prelude-ids.org>
+Prelude-Manager - http://www.prelude-ids.org
+by Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 
-This is the Prelude Report server,
-responssible for generating an user readable report using plugins when
-it receives an alert from one of the sensors.
+This is the Prelude-Manager server, the Prelude events collector.
 
+REQUIREMENTS
+============
 
-- LICENSE ADDITION
-
-In addition, as a special exception, the copyright holder gives permission 
-to link the code of this program with any version of the OpenSSL library which 
-is distributed under a license identical to that listed in the included 
-COPYING.OpenSSL file, and distribute linked combinations including the two. 
-You must obey the GNU General Public License in all respects for all of the
-code used other than OpenSSL. If you modify this file, you may extend this 
-exception to your version of the file, but you are not obligated to do so. 
-If you do not wish to do so, delete this exception statement from your version.
+You need to install libprelude on your system before compiling Prelude-Manager.
 
 
-- REQUIREMENTS
 
-You need to install libprelude on your system before compiling the Report server.
+IRC
+===
 
-
-- COPYRIGHT 
-
-Copyright (C) 1998-2001 Yoann Vandoorselaere <yoann@prelude-ids.org>
-All Rights Reserved
-
-This file is part of the Prelude program.
-
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by 
-the Free Software Foundation; either version 2, or (at your option)
-any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; see the file COPYING.  If not, write to
-the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+If there's something you just can't find out elsewhere, you want to
+give feedback directly to the authors or you're just bored, visit
+#prelude on irc.freenode.net
 
 
-- PORTABILITY
 
- * Linux (ppc, sparc32, alpha, x86).
- * FreeBSD (4.x-STABLE and 5.0-CURRENT on x86) port is actively maintained.
- * Should compile on Solaris.
+Get Support
+===========
 
+
+Prelude-user mailing list archives can be accessed at:
+        http://www.prelude-ids.org/mailman/listinfo
+
+
+Commercial Support is available through the PreludeIDS Technologies company:
+        http://www.prelude-ids.com, info@prelude-ids.com
+
+
+
+Help development
+================
+
+1. SUBMITTING PATCHES
+
+The Prelude source is constantly changing. If you want to submit a patch,
+please do so from the most recent CVS source tree, subscribe to the
+prelude-devel mailing list by sending a mail to:
+
+        prelude-devel-subscribe@prelude-ids.org
+
+and post your patch with a description of functionality.
+You can also attach patches to bugs on
+
+        http://trac.prelude-ids.org
+
+
+2. BUGS
+
+If you find any bugs, please report them to:
+
+        http://trac.prelude-ids.org
+
+Please make sure that what you're reporting is actually a BUG and not
+a problem on your side.
+
+
+3. SUGGESTIONS
+
+Subscribe to prelude-devel and give us your suggestions.

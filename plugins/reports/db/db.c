@@ -1,10 +1,10 @@
 /*****
 *
-* Copyright (C) 2002 Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>
-* Copyright (C) 2003-2005 Nicolas Delon <nicolas@prelude-ids.org>
-* All Rights Reserved
+* Copyright (C) 2002, 2003, 2004, 2005 PreludeIDS Technologies. All Rights Reserved.
+* Author: Nicolas Delon <nicolas.delon@prelude-ids.com>
+* Author: Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>
 *
-* This file is part of the Prelude program.
+* This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by

@@ -1,9 +1,9 @@
 /*****
 *
-* Copyright (C) 2002-2004 Yoann Vandoorselaere <yoann@mandrakesoft.com>
-* All Rights Reserved
+* Copyright (C) 2002, 2003, 2004, 2005 PreludeIDS Technologies. All Rights Reserved.
+* Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
-* This file is part of the Prelude program.
+* This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -905,7 +905,7 @@ int textmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *roo
         
         prelude_plugin_set_name(&textmod_plugin, "TextMod");
         prelude_plugin_set_author(&textmod_plugin, "Yoann Vandoorselaere");
-        prelude_plugin_set_contact(&textmod_plugin, "yoann@prelude-ids.org");
+        prelude_plugin_set_contact(&textmod_plugin, "yoann.v@prelude-ids.com");
         prelude_plugin_set_desc(&textmod_plugin, "Write alert to a file, or to stderr if requested");
         prelude_plugin_set_destroy_func(&textmod_plugin, textmod_destroy);
 

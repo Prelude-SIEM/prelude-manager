@@ -1,9 +1,9 @@
 /*****
 *
-* Copyright (C) 2002-2005 Yoann Vandoorselaere <yoann@prelude-ids.org>
-* All Rights Reserved
+* Copyright (C) 2002, 2003, 2004, 2005 PreludeIDS Technologies. All Rights Reserved.
+* Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
-* This file is part of the Prelude program.
+* This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -224,7 +224,7 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, vo
         
         prelude_plugin_set_name(&filter_plugin, "Filter");
         prelude_plugin_set_author(&filter_plugin, "Yoann Vandoorselaere");
-        prelude_plugin_set_contact(&filter_plugin, "yoann@prelude-ids.org");
+        prelude_plugin_set_contact(&filter_plugin, "yoann.v@prelude-ids.com");
         prelude_plugin_set_desc(&filter_plugin, "Match alert against IDMEF criteria");
 
         manager_filter_plugin_set_running_func(&filter_plugin, process_message);

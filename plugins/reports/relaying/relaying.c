@@ -1,10 +1,9 @@
 /*****
 *
-* Copyright (C) 2004 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2004, 2005 PreludeIDS Technologies. All Rights Reserved.
+* Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
-* All Rights Reserved
-*
-* This file is part of the Prelude program.
+* This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -161,7 +160,7 @@ int relaying_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *ro
         
         prelude_plugin_set_name(&relaying_plugin, "Relaying");
         prelude_plugin_set_author(&relaying_plugin, "Yoann Vandoorselaere");
-        prelude_plugin_set_contact(&relaying_plugin, "yoann@prelude-ids.org");
+        prelude_plugin_set_contact(&relaying_plugin, "yoann.v@prelude-ids.com");
         prelude_plugin_set_desc(&relaying_plugin, "Plugin that relay event to a parent manager");
 
         manager_report_plugin_set_running_func(&relaying_plugin, relaying_process);

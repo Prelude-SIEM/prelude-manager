@@ -1,10 +1,9 @@
 /*****
 *
-* Copyright (C) 2002, 2004 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2002, 2003, 2004, 2005 PreludeIDS Technologies. All Rights Reserved.
+* Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
-* All Rights Reserved
-*
-* This file is part of the Prelude program.
+* This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -87,19 +86,7 @@ do { \
                snprintf(buf, sizeof(buf), fmt, *ptr); \
                xmlNewChild(node, NULL, tag, buf); \
         } \
-} while (0) 
-
- 
-static void idmef_attr_uint64(xmlNodePtr node, const char *attr, uint64_t ident) 
-{
-        char buf[64];
-
-        if ( ! ident )
-                return;
-        
-        snprintf(buf, sizeof(buf), "%" PRIu64, ident);
-        xmlSetProp(node, attr, buf);
-}
+} while (0)
 
 
 
@@ -1058,7 +1045,7 @@ int xmlmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *root
         
         prelude_plugin_set_name(&xmlmod_plugin, "XmlMod");
         prelude_plugin_set_author(&xmlmod_plugin, "Yoann Vandoorselaere");
-        prelude_plugin_set_contact(&xmlmod_plugin, "yoann@prelude-ids.org");
+        prelude_plugin_set_contact(&xmlmod_plugin, "yoann.v@prelude-ids.com");
         prelude_plugin_set_desc(&xmlmod_plugin, "Convert from Prelude internal format to IDMEF-XML format");
         prelude_plugin_set_destroy_func(&xmlmod_plugin, xmlmod_destroy);
 
