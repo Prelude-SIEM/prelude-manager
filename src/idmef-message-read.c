@@ -392,13 +392,98 @@ static int address_get(prelude_msg_t *msg, idmef_address_t *addr)
 
 
 
+static int snmp_service_get(prelude_msg_t *msg, idmef_snmpservice_t *snmp) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);
+        if ( ret <= 0 )
+                return -1; /* Message should always terminate by END OF TAG */
+
+        switch (tag) {
+                
+        case MSG_SNMPSERVICE_OID:
+                extract_string(buf, len, snmp->oid);
+                break;
+
+        case MSG_SNMPSERVICE_COMMUNITY:
+                extract_string(buf, len, snmp->community);
+                break;
+
+        case MSG_SNMPSERVICE_COMMAND:
+                extract_string(buf, len, snmp->command);
+                break;
+
+        case MSG_END_OF_TAG:
+                return 0;
+
+        default:
+                log(LOG_ERR, "couldn't handle tag %d.\n", tag);
+                return -1;         
+        }
+
+        return snmp_service_get(msg, snmp);
+}
+
+
+
+static int web_service_get(prelude_msg_t *msg, idmef_webservice_t *web) 
+{
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+        
+        ret = prelude_msg_get(msg, &tag, &len, &buf);
+        if ( ret <= 0 )
+                return -1; /* Message should always terminate by END OF TAG */
+
+        switch (tag) {
+
+        case MSG_WEBSERVICE_URL:
+                extract_string(buf, len, web->url);
+                break;
+
+        case MSG_WEBSERVICE_CGI:
+                extract_string(buf, len, web->cgi);
+                break;
+
+        case MSG_WEBSERVICE_METHOD:
+                extract_string(buf, len, web->method);
+                break;
+
+        case MSG_WEBSERVICE_ARG:
+                extract_string(buf, len, web->arg);
+                break;
+
+        case MSG_END_OF_TAG:
+                return 0;
+
+        default:
+                log(LOG_ERR, "couldn't handle tag %d.\n", tag);
+                return -1;         
+        }
+
+        return web_service_get(msg, web);
+}
+
+
+
+
+
 static int service_get(prelude_msg_t *msg, idmef_service_t *service) 
 {
         int ret;
         void *buf;
         uint8_t tag;
         uint32_t len;
-
+        idmef_webservice_t *web;
+        idmef_snmpservice_t *snmp;
+        
+        
         ret = prelude_msg_get(msg, &tag, &len, &buf);
         if ( ret <= 0 )
                 return -1; /* Message should always terminate by END OF TAG */
@@ -421,6 +506,26 @@ static int service_get(prelude_msg_t *msg, idmef_service_t *service)
                 extract_string(buf, len, service->protocol);
                 break;
 
+        case MSG_WEBSERVICE_TAG:
+                web = idmef_service_webservice_new(service);
+                if ( ! web )
+                        return -1;
+                
+                ret = web_service_get(msg, web);
+                if ( ret < 0 )
+                        return -1;
+                break;
+
+        case MSG_SNMPSERVICE_TAG:
+                snmp = idmef_service_snmpservice_new(service);
+                if ( ! snmp )
+                        return -1;
+
+                ret = snmp_service_get(msg, snmp);
+                if ( ret < 0 )
+                        return -1;
+                break;
+                
         case MSG_END_OF_TAG:
                 return 0;
                 

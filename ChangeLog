@@ -1,5 +1,10 @@
 2001-12-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/idmef-message-read.c (service_get): handle
+	snmp and web service.
+	(web_service_get): 
+	(snmp_service_get): new functions.
+
 	* src/server-generic.c (setup_connection): handle
 	case were EOF is returned. Remove a debugging message.
 
