@@ -516,7 +516,7 @@ static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg)
         int ret, client;
         server_generic_client_t *cdata;
         
-        cdata = malloc(server->clientlen);
+        cdata = calloc(1, server->clientlen);
         if ( ! cdata ) {
                 log(LOG_ERR, "memory exhausted.\n");
                 return -1;
