@@ -1,1 +1,1 @@
-SUBDIRS = filter
+SUBDIRS = idmef-criteria

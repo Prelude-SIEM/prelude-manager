@@ -314,7 +314,7 @@ plugins/Makefile
 plugins/decodes/Makefile
 
 plugins/filters/Makefile
-plugins/filters/filter/Makefile
+plugins/filters/idmef-criteria/Makefile
 
 plugins/reports/Makefile
 plugins/reports/db/Makefile
