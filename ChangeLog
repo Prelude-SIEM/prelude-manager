@@ -1,3 +1,8 @@
+2003-12-28  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* src/prelude-manager.c (main): 
+	ignore SIGPIPE.
+
 2003-12-27  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* plugins/decodes/prelude-nids/decode.c: 

@@ -149,7 +149,8 @@ int main(int argc, char **argv)
          * start server
          */
         init_manager_server();
-        
+
+        signal(SIGPIPE, SIG_IGN);
         sigaction(SIGINT, &action, NULL);
         sigaction(SIGTERM, &action, NULL);
         sigaction(SIGABRT, &action, NULL);
