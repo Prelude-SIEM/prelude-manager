@@ -89,6 +89,7 @@ static int db_insert(const char *query)
         
         ret = PQexec(pgsql, query);
         if ( ! ret || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
+        	PQclear(ret);
                 log(LOG_ERR, "Query \"%s\" failed : %s.\n", query, PQerrorMessage(pgsql));
                 return -1;
         }
