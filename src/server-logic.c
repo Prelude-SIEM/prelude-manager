@@ -71,6 +71,12 @@ typedef struct {
         pthread_t thread;
 
         /*
+         * Used on startup
+         */
+        pthread_cond_t startup_cond;
+        pthread_mutex_t startup_mutex;
+        
+        /*
          * Array containing client / file descriptor polling related data.
          */
         struct pollfd pfd[MAX_FD_BY_THREAD];
@@ -267,7 +273,7 @@ static void *child_reader(void *ptr)
         struct sigaction act;
         int i, ret, active_fd;
         server_fd_set_t *set = ptr;
-
+        
         pthread_detach(set->thread);
 
         sigfillset(&s);
@@ -287,6 +293,13 @@ static void *child_reader(void *ptr)
                 return NULL;
         }
 
+        /*
+         * signal that we are ready to get connection.
+         */
+        pthread_mutex_lock(&set->startup_mutex);
+        pthread_cond_signal(&set->startup_cond);
+        pthread_mutex_unlock(&set->startup_mutex);
+        
         while ( set->parent->continue_processing ) {
                 
                 active_fd = poll(set->pfd, MAX_FD_BY_THREAD, -1);                
@@ -331,6 +344,9 @@ static server_fd_set_t *create_fd_set(server_logic_t *server)
 
         new->used_index = 0;
         new->parent = server;
+
+        pthread_cond_init(&new->startup_cond, NULL);
+        pthread_mutex_init(&new->startup_mutex, NULL);
         
         for ( i = 0; i < MAX_FD_BY_THREAD; i++ ) {
                 new->pfd[i].fd = -1;
@@ -387,14 +403,25 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
                         return -1;
 
                 add_connection(server, set, client);
-                
+
+                pthread_mutex_lock(&set->startup_mutex);
                 ret = pthread_create(&set->thread, NULL, &child_reader, set);
+                
                 dprint("Created thread %ld (used=%d)\n", set->thread, set->used_index);
                 
                 if ( ret < 0 ) {
+                        pthread_mutex_unlock(&set->startup_mutex);
                         log(LOG_ERR, "couldn't create thread.\n");
                         return -1;
                 }
+
+                /*
+                 * wait for the thread to be started.
+                 */
+                pthread_cond_wait(&set->startup_cond, &set->startup_mutex);
+                pthread_mutex_unlock(&set->startup_mutex);
+                pthread_cond_destroy(&set->startup_cond);
+                pthread_mutex_destroy(&set->startup_mutex);
         } 
                 
         return 0;

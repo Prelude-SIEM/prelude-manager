@@ -1,3 +1,9 @@
+2002-03-29  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server-logic.c (server_logic_process_requests): 
+	(child_reader): don't accept connection before the thread
+	install the signal handler for SIGUSR1.
+
 2002-03-29  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
 
 	* src/idmef-message-read.c: include <arpa/inet.h> 
