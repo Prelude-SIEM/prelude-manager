@@ -24,7 +24,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <netdb.h>
 #include <assert.h>
+
 
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
@@ -113,13 +115,22 @@ static xmlNodePtr build_ipv4_daddr(struct in_addr addr)
 
 
 
-static void build_port(xmlNodePtr addr, uint16_t port) 
+static void build_port(xmlNodePtr addr, uint16_t port, const char *proto) 
 {
+        struct servent *ptr;
         char buf[sizeof("65535")];
-        xmlNodePtr service;
-
+        xmlNodePtr service, node;
+        
         snprintf(buf, sizeof(buf), "%u", port);
         service = newService(newSimpleElement("port", buf), NULL);
+        
+        ptr = getservbyport(htons(port), proto);
+        if ( ptr ) {
+                addElement(service, newSimpleElement("name", ptr->s_name));
+                addElement(service, newSimpleElement("protocol", ptr->s_proto));
+        } else
+                addElement(service, newSimpleElement("protocol", proto));
+
         addElement(addr, service);
 }
 
@@ -128,22 +139,25 @@ static void build_port(xmlNodePtr addr, uint16_t port)
 static void packet_to_idmef(packet_t *p) 
 {
         int i;
+        uint8_t proto;
         
         for ( i = 0; p[i].proto != p_end; i++ ) {
                 
                 if ( p[i].proto == p_ip ) {                        
+                        proto = p[i].p.ip->ip_p;
+                        
                         source = build_ipv4_saddr(p[i].p.ip->ip_src);
                         target = build_ipv4_daddr(p[i].p.ip->ip_dst);
                 }
 
                 if ( p[i].proto == p_tcp ) {                        
-                        build_port(source, ntohs(p[i].p.tcp->th_sport));
-                        build_port(target, ntohs(p[i].p.tcp->th_dport));
+                        build_port(source, ntohs(p[i].p.tcp->th_sport), "tcp");
+                        build_port(target, ntohs(p[i].p.tcp->th_dport), "tcp");
                 }
 
                 if ( p[i].proto == p_udp ) {
-                        build_port(source, ntohs(p[i].p.udp_hdr->uh_sport));
-                        build_port(target, ntohs(p[i].p.udp_hdr->uh_dport));
+                        build_port(source, ntohs(p[i].p.udp_hdr->uh_sport), "udp");
+                        build_port(target, ntohs(p[i].p.udp_hdr->uh_dport), "udp");
                 }
 
                 if ( p[i].proto == p_data ) {

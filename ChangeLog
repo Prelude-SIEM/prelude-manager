@@ -1,3 +1,19 @@
+2001-10-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/auth.c (get_account_infos): better error reporting.
+	(auth_check): ditto.
+	(auth_check): logging of succeed / failed authentication is the caller job.
+
+	* plugins/decodes/prelude-nids/decode.c (build_port): 
+	Try to get information about the source and destination port
+	using the getservbyport() function. Also include the protocol used
+	by this packet.
+
+2001-10-04  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* plugins/decodes/prelude-nids/decode.c (build_port): 
+	Better service description.
+
 2001-10-03  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/ssl.c: 

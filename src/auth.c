@@ -157,7 +157,7 @@ static int get_account_infos(int sock, char **user, char **pass)
                 tlen = socket_read_delimited(sock, (void **) &buf, read);                
                 if ( tlen <= 0 ) {
                         if ( tlen < 0 )
-                                log(LOG_ERR, "read().\n");
+                                log(LOG_ERR, "error reading socket.\n");
                         goto err;
                 }
 
@@ -199,18 +199,15 @@ int auth_check(int sock)
         
         ret = get_account_infos(sock, &user, &pass);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't get account infos (username || / && password).\n");
+                log(LOG_ERR, "couldn't read remote authentication informations.\n");
                 return -1;
         }
         
         ret = check_account(user, pass);
-        if ( ret < 0 ) {
-                log(LOG_INFO, "authentication failed for user %s.\n", user);
+        if ( ret < 0 ) 
                 socket_write_delimited(sock, "failed", 6, write);
-        } else {
-                log(LOG_INFO, "authentication suceed for user %s.\n", user);
+        else
                 socket_write_delimited(sock, "ok", 2, write);
-        }
         
         free(user);
         free(pass);
