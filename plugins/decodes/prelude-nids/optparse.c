@@ -26,8 +26,10 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <inttypes.h>
+#include <netinet/in.h>
 
 #include <libprelude/prelude-log.h>
+#include <libprelude/extract.h>
 
 #include "nethdr.h"
 #include "optparse.h"
@@ -40,23 +42,6 @@
 
 #ifndef IPOPT_RA
  #define IPOPT_RA 148
-#endif
-
-#ifdef NEED_ALIGNED_ACCESS
-#define EXTRACT_16BITS(p) \
-        ((u_int16_t)*((const u_int8_t *)(p) + 0) << 8 | \
-        (u_int16_t)*((const u_int8_t *)(p) + 1))
-#define EXTRACT_32BITS(p) \
-        ((u_int32_t)*((const u_int8_t *)(p) + 0) << 24 | \
-        (u_int32_t)*((const u_int8_t *)(p) + 1) << 16 | \
-        (u_int32_t)*((const u_int8_t *)(p) + 2) << 8 | \
-        (u_int32_t)*((const u_int8_t *)(p) + 3))
-#else
-
-#define EXTRACT_16BITS(p) \
-        ((u_int16_t)ntohs(*(const u_int16_t *)(p)))
-#define EXTRACT_32BITS(p) \
-        ((u_int32_t)ntohl(*(const u_int32_t *)(p)))
 #endif
 
 
@@ -112,7 +97,7 @@ static int tcp_optval(unsigned char *optbuf, int opt, int datalen)
         switch (opt) {
                 
         case TCPOPT_MAXSEG:
-                printopt("mss %u", EXTRACT_16BITS(optbuf));
+                printopt("mss %u", extract_uint16(optbuf));
                 break;
                 
         case TCPOPT_WSCALE:
@@ -131,36 +116,36 @@ static int tcp_optval(unsigned char *optbuf, int opt, int datalen)
 
                         printopt("sack %d", datalen / 8 );
                         for ( i = 0; i < datalen; i += 8 ) {
-                                s = EXTRACT_32BITS(optbuf + i);
-                                e = EXTRACT_32BITS(optbuf + i + 4);
+                                s = extract_uint32(optbuf + i);
+                                e = extract_uint32(optbuf + i + 4);
                         }
                         
                 }
                 break;
                                 
         case TCPOPT_ECHO:
-                printopt("echo %u", EXTRACT_32BITS(optbuf));
+                printopt("echo %u", extract_uint32(optbuf));
                 break;
                               
         case TCPOPT_ECHOREPLY:
-                printopt("echoreply %u", EXTRACT_32BITS(optbuf));
+                printopt("echoreply %u", extract_uint32(optbuf));
                 break;
 
         case TCPOPT_TIMESTAMP:
                 printopt("timestamp %u %u",
-                         EXTRACT_32BITS(optbuf), EXTRACT_32BITS(optbuf + 4));
+                         extract_uint32(optbuf), extract_uint32(optbuf + 4));
                 break;
                 
         case TCPOPT_CC:
-                printopt("cc %u", EXTRACT_32BITS(optbuf));
+                printopt("cc %u", extract_uint32(optbuf));
                 break;
 
         case TCPOPT_CCNEW:
-                printopt("ccnew %u", EXTRACT_32BITS(optbuf));
+                printopt("ccnew %u", extract_uint32(optbuf));
                 break;
                 
         case TCPOPT_CCECHO:
-                printopt("ccecho %u", EXTRACT_32BITS(optbuf));
+                printopt("ccecho %u", extract_uint32(optbuf));
                 break;
 
         default:
