@@ -27,13 +27,13 @@ typedef struct server_struct server_t;
 /*
  * Callback function type for closing a connection.
  */
-typedef int (server_close_func_t)(int fd, void *cdata);
+typedef int (server_close_func_t)(prelude_io_t *pio, void *cdata);
 
 
 /*
  * Callback function type for handling data on a connection.
  */
-typedef int (server_read_func_t)(int fd, void *cdata);
+typedef int (server_read_func_t)(prelude_io_t *pio, void **cdata);
 
 
 
@@ -46,7 +46,7 @@ int server_logic_stop(server_t *server);
 /*
  *
  */
-int server_logic_process_requests(server_t *server, int cfd, void *cdata);
+int server_logic_process_requests(server_t *server, prelude_io_t *pio, void *cdata);
 
 
 /*

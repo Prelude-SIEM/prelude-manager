@@ -29,6 +29,7 @@
 
 #include <libprelude/list.h>
 #include <libprelude/common.h>
+#include <libprelude/prelude-io.h>
 
 #include "server-logic.h"
 
@@ -62,6 +63,7 @@ typedef struct {
          * Array containing client / file descriptor polling related data.
          */
         void *clientdata[MAX_FD_BY_THREAD];
+        prelude_io_t *pio[MAX_FD_BY_THREAD];
         struct pollfd pfd[MAX_FD_BY_THREAD];
         
         /*
@@ -97,14 +99,12 @@ struct server_struct {
 
 
 static void remove_connection(server_t *server, server_fd_set_t *set, int cnx_key) 
-{
-        struct pollfd *pfd = &set->pfd[cnx_key];
-        
+{        
         /*
          * Close the file descriptor associated with this set.
          * Handle the case where close could be interrupted.
          */
-        server->close(pfd->fd, set->clientdata[cnx_key]);
+        server->close(set->pio[cnx_key], set->clientdata[cnx_key]);
         
 
         /*
@@ -113,7 +113,8 @@ static void remove_connection(server_t *server, server_fd_set_t *set, int cnx_ke
          * If the value of fd is less than 0,
          * events is ignored and revents is set to 0 in that entry on return from poll().
          */
-        pfd->fd = -1;
+        set->pfd[cnx_key].fd = -1;
+        set->pio[cnx_key] = NULL;
         set->clientdata[cnx_key] = NULL;
 
         
@@ -168,7 +169,7 @@ static void remove_connection(server_t *server, server_fd_set_t *set, int cnx_ke
 
 
 
-static void add_connection(server_fd_set_t *set, int fd, void *cdata)
+static void add_connection(server_fd_set_t *set, prelude_io_t *pio, void *cdata)
 {
         int key;
 
@@ -202,14 +203,16 @@ static void add_connection(server_fd_set_t *set, int fd, void *cdata)
 
         /*
          * Client fd / data should always be -1 / NULL at this time.
-         */        
+         */
         assert(set->pfd[key].fd == -1);
+        assert(set->pio[key] == NULL);
         assert(set->clientdata[key] == NULL);
         
         /*
          * Setup This connection.
          */
-        set->pfd[key].fd = fd;
+        set->pio[key] = pio;
+        set->pfd[key].fd = prelude_io_get_fd(pio);
         set->pfd[key].events = POLLIN;
         set->clientdata[key] = cdata;
 }
@@ -226,7 +229,7 @@ static int handle_fd_event(server_t *server, server_fd_set_t *set, int cnx_key)
         if ( set->pfd[cnx_key].revents & POLLIN ) {
                 int ret;
                 
-                ret = server->read(set->pfd[cnx_key].fd, set->clientdata[cnx_key]);
+                ret = server->read(set->pio[cnx_key], &set->clientdata[cnx_key]);
                 dprint("thread=%ld - Data availlable (ret=%d)\n", pthread_self(), ret);
                 
                 if ( ret < 0 )
@@ -318,7 +321,7 @@ static server_fd_set_t *create_fd_set(server_t *server)
         new->free_index = MAX_FD_BY_THREAD;
         
         for ( i = 0; i < MAX_FD_BY_THREAD; i++ ) {
-
+                new->pio[i] = NULL;
                 new->pfd[i].fd = -1;
                 new->clientdata[i] = NULL;
                 new->free_tbl[i] = i;
@@ -354,7 +357,7 @@ static server_fd_set_t *create_fd_set(server_t *server)
  *
  * Returns: 0 on success, -1 otherwise.
  */
-int server_logic_process_requests(server_t *server, int cfd, void *cdata) 
+int server_logic_process_requests(server_t *server, prelude_io_t *pio, void *cdata) 
 {
         server_fd_set_t *set;
         
@@ -378,10 +381,10 @@ int server_logic_process_requests(server_t *server, int cfd, void *cdata)
                  * add_connection should never call
                  * list_del() at this time, so we don't need locking.
                  */
-                add_connection(set, cfd, cdata);
+                add_connection(set, pio, cdata);
         } else {
                 set = list_entry(server->free_set_list.next, server_fd_set_t, list);
-                add_connection(set, cfd, cdata);
+                add_connection(set, pio, cdata);
                 pthread_mutex_unlock(&server->free_set_list_mutex);
         }
         
@@ -432,7 +435,4 @@ server_t *server_logic_new(server_read_func_t *s_read, server_close_func_t *s_cl
 
         return new;
 }
-
-
-
 

@@ -1,3 +1,20 @@
+2001-10-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server.c (server_read_connection_cb): 
+	Fit prelude message API change.
+	(server_close_connection_cb): ditto.
+	(wait_connection): Set client socket non blocking.
+
+	* src/server-logic.c: Adapt to work with prelude_io_t
+	object instead of directly using file descriptor.
+
+	* src/alert-scheduler.c: Include pthread.h
+	(init_file_output): correct pthread_mutex_init usage.
+	(get_alert_from_file): prelude_msg_read() now take a 
+	prelude_io_t object as argument.
+
+	(alert_schedule): fit API change.
+
 2001-10-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 	
         * A lot of modification. Complete API change, use

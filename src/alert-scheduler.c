@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <pthread.h>
 
 #include <libxml/parser.h>
 
@@ -94,13 +95,14 @@ static void wait_for_alert(void)
  */
 static prelude_msg_t *get_alert_from_file(file_output_t *out) 
 {
+        int ret;
         prelude_msg_t *msg = NULL;
 
         pthread_mutex_lock(&out->mutex);
 
         if ( out->count ) {
-                msg = prelude_msg_read(out->fd);
-                if ( msg )
+                ret = prelude_msg_read(&msg, out->fd);
+                if ( ret )
                         out->count--;
         }
 
@@ -208,7 +210,7 @@ static void queue_alert_to_memory(prelude_msg_t *msg)
         
         in_memory_count++;
         prelude_list_add_tail((prelude_linked_object_t *) msg, &alert_list);
-
+        
         if ( in_memory_count == 1 )
                 pthread_cond_signal(&input_cond);
         
@@ -240,7 +242,7 @@ static int init_file_output(const char *filename, file_output_t *out)
         prelude_io_set_file_io(out->fd, fd);
 
         out->count = 0;
-        pthread_mutex_init(&out->mutex);
+        pthread_mutex_init(&out->mutex, NULL);
 
         return 0;
 }
@@ -267,14 +269,8 @@ void alert_schedule(prelude_msg_t *msg, prelude_io_t *src)
 
         priority = prelude_msg_get_priority(msg);
         
-        if ( in_memory_count < MAX_ALERT_IN_MEMORY || priority == PRELUDE_MSG_PRIORITY_HIGH ) {
-
-                ret = prelude_msg_read_content(msg, src);
-                if ( ret < 0 )
-                        return;
-                
+        if ( in_memory_count < MAX_ALERT_IN_MEMORY || priority == PRELUDE_MSG_PRIORITY_HIGH ) 
                 queue_alert_to_memory(msg);
-        }
 
         else if ( priority == PRELUDE_MSG_PRIORITY_MID ) {
                 

@@ -64,26 +64,26 @@ static server_t *manager_srvr;
 extern struct report_config config;
 
 
-static int server_read_connection_cb(int fd, void *clientdata) 
+static int server_read_connection_cb(prelude_io_t *src, void **clientdata) 
 {
         int ret;
         uint32_t dlen;
         uint8_t tag, priority;
-        prelude_msg_t *msg;
-        prelude_io_t *src = clientdata;
+
+        printf("read cb\n");
         
-        msg = prelude_msg_read_header(src);
-        if ( ! msg )
-                return -1;
-        
-        /*
-         * Handle non alert request here.
-         */
+        ret = prelude_msg_read((prelude_msg_t **) clientdata, src);
+        if ( ret < 0 )
+                return -1; /* an error occured */
+
+        if ( ret == 0 )
+                return 0;  /* message not fully read yet */
 
         /*
-         * This message is an alert. Queue it to the scheduler.
+         * If we get there, we have a whole message.
          */
-        alert_schedule(msg, src);
+        alert_schedule(*clientdata, src);
+        *clientdata = NULL;
         
         return 0;
 }
@@ -91,15 +91,18 @@ static int server_read_connection_cb(int fd, void *clientdata)
 
 
 
-static int server_close_connection_cb(int fd, void *clientdata) 
+static int server_close_connection_cb(prelude_io_t *pio, void *clientdata) 
 {
         int ret;
         
         log(LOG_INFO, "closing connection with %s.\n", "");
 
-        prelude_io_close(clientdata);
-        prelude_io_destroy(clientdata);
-                
+        prelude_io_close(pio);
+        prelude_io_destroy(pio);
+
+        if ( clientdata )
+                prelude_msg_destroy(clientdata);
+        
         return ret;
 }
 
@@ -314,8 +317,15 @@ static int wait_connection(int sock, struct sockaddr *addr, socklen_t addrlen, i
                         close(client);
                         continue;
                 }
+
+                ret = fcntl(client, F_SETFL, O_NONBLOCK);
+                if ( ret < 0 ) {
+                        log(LOG_ERR, "couldn't set non blocking mode for client.\n");
+                        prelude_io_close(pio);
+                        prelude_io_destroy(pio);
+                }
                 
-                ret = server_logic_process_requests(manager_srvr, client, pio);
+                ret = server_logic_process_requests(manager_srvr, pio, NULL);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "queueing client FD for server logic processing failed.\n");
                         close(sock);
