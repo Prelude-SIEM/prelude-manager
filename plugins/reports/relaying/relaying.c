@@ -116,7 +116,7 @@ prelude_plugin_generic_t *prelude_plugin_init(void)
         prelude_option_t *opt;
         static plugin_report_t plugin;
         
-        opt = prelude_plugin_option_add(NULL, CLI_HOOK|CFG_HOOK, '0', "relaying",
+        opt = prelude_plugin_option_add(NULL, CLI_HOOK|CFG_HOOK, 0, "relaying",
                                         "Relaying plugin option", optionnal_argument,
                                         relaying_activate, NULL);
 
