@@ -37,6 +37,7 @@
 #include <assert.h>
 #include <sys/stat.h>
 
+#include <libprelude/common.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/plugin-common.h>
@@ -270,7 +271,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                  * This is a hack, and using prelude-message for SSL authentication
                  * would be a good thing (if possible).
                  */
-                ret = handle_ssl_connection(client);
+                ret = handle_ssl_authentication(client);
                 if ( ret <= 0 )
                         return ret;
          
@@ -490,6 +491,8 @@ static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg)
                 free(cdata);
                 return -1;
         }
+
+        return 0;
 }
 
 
@@ -502,7 +505,7 @@ static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg)
  */
 static int wait_connection(server_generic_t **server, size_t nserver)
 {
-        int i, ret, active_fd;
+        int i, active_fd;
         prelude_msg_t *cfgmsg;
         struct pollfd pfd[nserver];
                 
