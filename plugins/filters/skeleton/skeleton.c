@@ -153,7 +153,7 @@ plugin_generic_t *plugin_init(int argc, char **argv)
         
         plugin_set_name(&plugin, "Skeleton");
         plugin_set_author(&plugin, "Yoann Vandoorselaere");
-        plugin_set_contact(&plugin, "yoann@mandrakesoft.com");
+        plugin_set_contact(&plugin, "yoann.v@prelude-ids.com");
         plugin_set_desc(&plugin, "Write alert to a file, or to stderr if requested");
 	plugin_set_running_func(&plugin, process_message);
                 
