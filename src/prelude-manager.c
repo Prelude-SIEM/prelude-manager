@@ -123,12 +123,6 @@ int main(int argc, char **argv)
         log(LOG_INFO, "- Initialized %d decoding plugins.\n", ret);
 
 
-
-        /*
-         * handle command line arguments.
-         */
-        prelude_option_parse_arguments(NULL, PRELUDE_MANAGER_CONF, argc, argv);
-        
         if ( pconfig_init(argc, argv) < 0 )
                 exit(1);
         

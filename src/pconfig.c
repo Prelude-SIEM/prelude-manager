@@ -38,7 +38,6 @@
 #include <libprelude/prelude-client-mgr.h>
 #include <libprelude/prelude-getopt.h>
 
-#include "libmissing.h"
 #include "config.h"
 #include "pconfig.h"
 #include "ssl.h"
@@ -48,71 +47,73 @@ struct report_config config;
 prelude_client_mgr_t *relay_managers = NULL;
 
 
-static void configure_admin_server(config_t *cfg) 
+static int print_version(const char *arg) 
 {
-        const char *ret;
+        printf("prelude-manager %s\n", VERSION);
+        return prelude_option_end;
+}
 
-        if ( ! config.admin_server_addr ) {
-                ret = config_get(cfg, "Prelude Manager", "admin-addr");
-                config.admin_server_addr = (ret) ? strdup(ret) : "0.0.0.0";
+
+static int get_version(char *buf, size_t size) 
+{
+        snprintf(buf, size, "prelude-manager %s", VERSION);
+        return prelude_option_success;
+}
+
+
+static int set_daemon_mode(const char *arg) 
+{
+        config.daemonize = 1;
+        return prelude_option_success;
+}
+
+
+static int set_pidfile(const char *arg) 
+{
+        config.pidfile = arg;
+        return prelude_option_success;
+}
+
+
+static int set_relay_manager(const char *arg) 
+{
+        relay_managers = prelude_client_mgr_new("relay", arg);
+}
+
+
+static int set_sensor_listen_address(const char *arg) 
+{
+        char *ptr = strdup(arg);
+        
+        config.addr = arg;
+        
+        ptr = strchr(arg, ':');
+        if ( ptr ) {
+                *ptr = '\0';
+                config.port = atoi(ptr + 1);
         }
         
-        if ( config.admin_server_port == 0 ) {        
-                ret = config_get(cfg, "Prelude Manager", "admin-port");
-                config.admin_server_port = (ret) ? atoi(ret) : 5555;
+        return prelude_option_success;
+}
+
+
+
+
+static int set_admin_listen_address(const char *arg) 
+{
+        char *ptr = strdup(arg);
+        
+        config.admin_server_addr = arg;
+        
+        ptr = strchr(arg, ':');
+        if ( ptr ) {
+                *ptr = '\0';
+                config.admin_server_port = atoi(ptr + 1);
         }
-}
-
-
-
-static void configure_relay(config_t *cfg) 
-{
-        const char *ret;
-
-        ret = config_get(cfg, "Prelude Manager", "relay-manager");        
-        if ( ret )
-                relay_managers = prelude_client_mgr_new("relay", ret);
-}
-
-
-
-
-static void configure_listen_address(config_t *cfg) 
-{
-        const char *ret;
         
-        if ( config.addr )
-                return;
-
-        ret = config_get(cfg, "Prelude Manager", "listen");
-        config.addr = (ret) ? strdup(ret) : "unix";
+        return prelude_option_success;
 }
 
-
-
-static void configure_listen_port(config_t *cfg) 
-{
-        const char *ret;
-        
-        if ( config.port != 0 )
-                return;
-        
-        ret = config_get(cfg, "Prelude Manager", "port");
-        config.port = (ret) ? atoi(ret) : 5554;
-}
-
-
-
-static void configure_as_daemon(config_t *cfg) 
-{
-        const  char *ret;
-        
-        ret = config_get(cfg, "Prelude Manager", "daemon");
-        if ( ret ) {
-                if ( strcmp(ret, "true") == 0 )
-                        config.daemonize = 1;
-        }
-}
 
 
 
@@ -131,105 +132,56 @@ static void configure_quiet(config_t *cfg)
 
 
 
-static void print_help(void) 
+static int print_help(const char *arg) 
 {
-        fprintf(stderr, "Usage :\n");
-        fprintf(stderr, "\t-v --version Printf version number.\n");
-        fprintf(stderr, "\t-l --listen Listen address.\n");
-        fprintf(stderr, "\t-p --port Listen port.\n");
-        fprintf(stderr, "\t-q --quiet Quiet mode.\n");
-        fprintf(stderr, "\t-d --daemonize Run in daemon mode.\n");
-        fprintf(stderr, "\t-P --pidfile [pidfile] Write PID to pidfile.\n");
-        
-        fprintf(stderr, "\t-u --user Create user.\n");
-
-        fprintf(stderr, "\nUsage (plugin help):\n\n");
         prelude_option_print(CLI_HOOK, 25);
+        return prelude_option_end;
 }
 
 
 
-int pconfig_init(int argc, char **argv)
+int pconfig_init(int argc, char **argv) 
 {
-	int c;
-        config_t *cfg;
-
-        struct option opts[] = {
-                { "version", no_argument, NULL, 'v'       },
-                { "quiet", no_argument, NULL, 'q'         },
-                { "daemonize", no_argument, NULL, 'd'     },
-                { "pidfile", required_argument, NULL, 'P' },
-                { "listen", required_argument, NULL, 'l'  },
-                { "port", required_argument, NULL, 'p'    },
-                { "help", no_argument, NULL, 'h'          },
-                { 0, 0, 0, 0 }
-        };
-
+        int ret;
         
 	/* Default */
-	config.addr = NULL;
-        config.admin_server_addr = NULL;
-	config.port = 0;
-        config.admin_server_port = 0;
+	config.addr = "0.0.0.0";
+        config.admin_server_addr = "0.0.0.0";
+	config.port = 5554;
+        config.admin_server_port = 5555;
 	config.daemonize = 0;
         config.pidfile = NULL;
-      
-	while ( (c = getopt_long(argc, argv, "l:p:qdhvP:", opts, NULL)) != -1 ) {
 
-		switch (c) {
-                    
-                case 'l':
-                        config.addr = optarg;
-                        break;
-                case 'p':
-                        config.port = atoi(optarg);
-                        break;
-                case 'q':
-                        prelude_log_use_syslog();
-                        break;
-                case 'd':
-                        config.daemonize = 1;
-                        break;
+        prelude_option_add(NULL, CLI_HOOK, 'h', "help",
+                           "Print this help", no_argument, print_help, NULL);
 
-                case 'P':
-                        config.pidfile = optarg;
-                        break;
+        prelude_option_add(NULL, CLI_HOOK|WIDE_HOOK, 'v', "version",
+                           "Print version number", no_argument, print_version, get_version);
 
-                case 'h':
-                        print_help();
-                        exit(0);
+        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'd', "daemon",
+                           "Run in daemon mode", no_argument, set_daemon_mode, NULL);
 
-                case 'v':
-                        printf("\n%s version %s.\n\n", PACKAGE, VERSION);
-                        exit(0);
+        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'P', "pidfile",
+                           "Write Prelude PID to pidfile", required_argument, set_pidfile, NULL);
 
-                default:
-                        return -1;
-		}
-	}
-
- end:
-
-        cfg = config_open(PRELUDE_MANAGER_CONF);
-        if ( ! cfg ) {
-                log(LOG_ERR, "couldn't open config file %s.\n", PRELUDE_MANAGER_CONF);
-                return -1;
-        }
+        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'r', "relay-manager",
+                           "List of address:port pair where sensors messages should be relayed",
+                           required_argument, set_relay_manager, NULL);
         
-        configure_listen_address(cfg);
-        if ( strcmp(config.addr, "unix") != 0 ) 
-                configure_listen_port(cfg);
-        
-        configure_as_daemon(cfg);
-        configure_quiet(cfg);
-        configure_relay(cfg);
-        configure_admin_server(cfg);
-        
-        config_close(cfg);
-        
-        return 0;
+        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 's', "sensors-srvr", 
+                           "Address the sensors server should listen on (addr:port)", required_argument,
+                           set_sensor_listen_address, NULL);
+
+        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'a', "admin-srvr",
+                           "Address the admin server should listen on (addr:port)", required_argument,
+                           set_admin_listen_address, NULL);
+
+        ret = prelude_option_parse_arguments(NULL, PRELUDE_MANAGER_CONF, argc, argv);
+        if ( ret == prelude_option_end )
+                exit(0);
+
+        return ret;
 }
-
 
 
 
