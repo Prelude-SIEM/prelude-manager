@@ -107,8 +107,8 @@ static int dh_params_load(gnutls_dh_params dh, uint16_t req_bits)
                 return -1;
         }
 
-        pfd = prelude_io_new();
-        if ( ! pfd ) {
+        ret = prelude_io_new(&pfd);
+        if ( ret < 0 ) {
                 fclose(fd);
                 return -1;
         }
@@ -178,8 +178,8 @@ static int dh_params_save(gnutls_dh_params dh, uint16_t dh_bits)
                 return -1;
         }
 
-        pfd = prelude_io_new();
-        if ( ! pfd ) {
+        ret = prelude_io_new(&pfd);
+        if ( ret < 0 ) {
                 close(fd);
                 free(prime.data);
                 free(generator.data);
@@ -416,6 +416,7 @@ int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
 {
         int ret;
         char keyfile[256], certfile[256];
+        prelude_client_profile_t *cp = prelude_client_get_profile(client);
 
         if ( ! dh_bits )
                 dh_bits = DEFAULT_DH_BITS;
@@ -428,12 +429,12 @@ int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
         
         gnutls_certificate_allocate_credentials(&cred);
 
-        prelude_client_get_tls_key_filename(client, keyfile, sizeof(keyfile));
-        prelude_client_get_tls_server_keycert_filename(client, certfile, sizeof(certfile));
+        prelude_client_profile_get_tls_key_filename(cp, keyfile, sizeof(keyfile));
+        prelude_client_profile_get_tls_server_keycert_filename(cp, certfile, sizeof(certfile));
 
         gnutls_certificate_set_x509_key_file(cred, certfile, keyfile, GNUTLS_X509_FMT_PEM);
 
-        prelude_client_get_tls_server_ca_cert_filename(client, certfile, sizeof(certfile));
+        prelude_client_profile_get_tls_server_ca_cert_filename(cp, certfile, sizeof(certfile));
         gnutls_certificate_set_x509_trust_file(cred, certfile, GNUTLS_X509_FMT_PEM);
         
         gnutls_dh_params_init(&cur_dh_params);

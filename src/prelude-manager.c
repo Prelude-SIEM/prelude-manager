@@ -95,8 +95,8 @@ static void init_manager_server(void)
 	if ( ret < 0 )
                 exit(1);
         
-        sensor_server = sensor_server_new(config.addr, config.port);
-        if ( ! sensor_server ) {
+        ret = server_generic_bind((server_generic_t *) sensor_server, config.addr, config.port);
+        if ( ret < 0 ) {
                 log(LOG_INFO, "- couldn't start sensor server.\n");
                 exit(1);
         }
@@ -185,29 +185,37 @@ int main(int argc, char **argv)
                 return -1;
         }
         log(LOG_INFO, "- Initialized %d filtering plugins.\n", ret);
+
+        reverse_relay_init();
+        sensor_server = sensor_server_new();
         
         ret = pconfig_init(argc, argv);
         if ( ret < 0 )
                 exit(1);
 
-        manager_client = prelude_client_new(PRELUDE_CLIENT_CAPABILITY_RECV_IDMEF);
-        if ( ! manager_client )
-                return -1;
-        
-        fill_analyzer_infos();        
-        prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
-                
-        ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, &argc, argv);
+        ret = prelude_client_new(&manager_client, 0, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, &argc, argv);
         if ( ret < 0 ) {
-                log(LOG_INFO, "%s: error initializing prelude-client object: %s.\n",
-                    prelude_strsource(ret), prelude_strerror(ret));
-
+                prelude_perror(ret, "error creating prelude-client object");
+                
                 if ( prelude_client_is_setup_needed(manager_client, ret) )
                         prelude_client_print_setup_error(manager_client);
-
+                
                 return -1;
         }
         
+        fill_analyzer_infos();        
+        prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
+        
+        ret = prelude_option_parse_arguments(manager_client, NULL, PRELUDE_MANAGER_CONF, &argc, argv);
+        if ( ret < 0 )
+                return -1;
+        
+        ret = prelude_client_start(manager_client);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "error starting prelude-client");
+                return -1;
+        }
+                
         ret = idmef_message_scheduler_init(manager_client);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't initialize alert scheduler.\n");
@@ -220,7 +228,6 @@ int main(int argc, char **argv)
          * start server
          */
         init_manager_server();
-        reverse_relay_init_initiator();
         
         /*
          * setup signal handling

@@ -64,13 +64,20 @@ typedef void (server_generic_close_func_t)(server_generic_client_t *client);
 typedef int (server_generic_read_func_t)(server_generic_client_t *client);
 
 
+/*
+ * Callback function type for writing a connection.
+ */
+typedef int (server_generic_write_func_t)(server_generic_client_t *client);
 
-server_generic_t *server_generic_new(const char *addr, uint16_t port,
-                                     size_t serverlen,
+
+
+server_generic_t *server_generic_new(size_t serverlen,
                                      server_generic_accept_func_t *accept,
                                      server_generic_read_func_t *read,
+                                     server_generic_write_func_t *write,
                                      server_generic_close_func_t *close);
 
+int server_generic_bind(server_generic_t *server, const char *addr, uint16_t port);
 
 void server_generic_start(server_generic_t **server, size_t nserver);
 

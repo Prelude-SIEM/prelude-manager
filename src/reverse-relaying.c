@@ -35,34 +35,35 @@
 #include "sensor-server.h"
 
 
+typedef struct {
+        pthread_mutex_t mutex;
+        prelude_connection_mgr_t *mgr;
+} reverse_relay_t;
+
+
+static reverse_relay_t receiver;
+static reverse_relay_t initiator;
+
 extern server_generic_t *sensor_server;
 extern prelude_client_t *manager_client;
 
-static prelude_connection_mgr_t *receiver_managers = NULL;
-static prelude_connection_mgr_t *initiator_managers = NULL;
-static pthread_mutex_t receiver_managers_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t initiator_managers_lock = PTHREAD_MUTEX_INITIALIZER;
 
 
-
-static void reverse_relay_notify_state(prelude_list_t *clist) 
+static int connection_event_cb(prelude_connection_mgr_t *mgr,
+                               prelude_connection_mgr_event_t event, prelude_connection_t *cnx) 
 {
         int ret;
-        prelude_list_t *tmp;
-        prelude_connection_t *cnx;
         
-        prelude_list_for_each(tmp, clist) {
-                cnx = prelude_linked_object_get_object(tmp, prelude_connection_t);
+        if ( ! (event & PRELUDE_CONNECTION_MGR_EVENT_ALIVE) )
+                return 0;
 
-                if ( prelude_connection_is_alive(cnx) < 0 ) 
-                        continue;
-                
-                ret = sensor_server_add_client(sensor_server, cnx);
-                if ( ret < 0 ) {
-                        log(LOG_ERR, "error adding new client to reverse relay list.\n");
-                        return;
-                }
-        }
+        prelude_connection_set_data(cnx, &initiator);
+        
+        ret = sensor_server_add_client(sensor_server, cnx);
+        if ( ret < 0 )
+                log(LOG_ERR, "error adding new client to reverse relay list.\n");
+
+        return 0;
 }
 
 
@@ -71,36 +72,26 @@ int reverse_relay_tell_receiver_alive(prelude_connection_t *cnx)
 {
         int ret;
 
-        if ( ! receiver_managers )
+        if ( ! receiver.mgr )
                 return 0;
         
-        pthread_mutex_lock(&receiver_managers_lock);
-        ret = prelude_connection_mgr_tell_connection_alive(receiver_managers, cnx);
-        pthread_mutex_unlock(&receiver_managers_lock);
+        pthread_mutex_lock(&receiver.mutex);
+        ret = prelude_connection_mgr_tell_connection_alive(receiver.mgr, cnx);
+        pthread_mutex_unlock(&receiver.mutex);
 
         return ret;
 }
 
 
 
-int reverse_relay_tell_dead(prelude_connection_t *cnx) 
+int reverse_relay_tell_dead(prelude_connection_t *cnx, prelude_connection_capability_t capability) 
 {
         int ret = -1;
-        prelude_client_capability_t capability;
+        reverse_relay_t *ptr = prelude_connection_get_data(cnx);
         
-        capability = prelude_client_get_capability(prelude_connection_get_client(cnx));
-        
-        if ( capability & PRELUDE_CLIENT_CAPABILITY_RECV_IDMEF ) {        
-                pthread_mutex_lock(&initiator_managers_lock);
-                ret = prelude_connection_mgr_tell_connection_dead(initiator_managers, cnx);
-                pthread_mutex_unlock(&initiator_managers_lock);
-        }
-
-        else if ( capability & PRELUDE_CLIENT_CAPABILITY_SEND_IDMEF ) {        
-                pthread_mutex_lock(&receiver_managers_lock);
-                ret = prelude_connection_mgr_tell_connection_dead(receiver_managers, cnx);
-                pthread_mutex_unlock(&receiver_managers_lock);
-        }
+        pthread_mutex_lock(&ptr->mutex);
+        ret = prelude_connection_mgr_tell_connection_dead(ptr->mgr, cnx);
+        pthread_mutex_unlock(&ptr->mutex);
         
         return ret;
 }
@@ -111,56 +102,89 @@ int reverse_relay_tell_dead(prelude_connection_t *cnx)
 int reverse_relay_add_receiver(prelude_connection_t *cnx) 
 {
         int ret;
+        prelude_client_profile_t *cp;
 
-        pthread_mutex_lock(&receiver_managers_lock);
-        ret = prelude_connection_mgr_add_connection(&receiver_managers, cnx, 0);
-        pthread_mutex_unlock(&receiver_managers_lock);
+        cp = prelude_client_get_profile(manager_client);
+        
+        pthread_mutex_lock(&receiver.mutex);
 
+        if ( ! receiver.mgr ) {
+                ret = prelude_connection_mgr_new(&receiver.mgr, cp, PRELUDE_CONNECTION_CAPABILITY_NONE);
+                if ( ! receiver.mgr ) {
+                        prelude_perror(ret, "error creating connection-mgr object");
+                        return -1;
+                }
+                
+                prelude_connection_mgr_set_flags(receiver.mgr, ~PRELUDE_CONNECTION_MGR_FLAGS_RECONNECT);
+                prelude_connection_mgr_init(receiver.mgr);
+        }
+
+        prelude_connection_set_data(cnx, &receiver);
+        
+        ret = prelude_connection_mgr_add_connection(receiver.mgr, cnx);
+        if ( ret < 0 ) 
+                prelude_perror(ret, "error adding connection");
+                
+        pthread_mutex_unlock(&receiver.mutex);
+        
         return ret;
 }
 
 
 
-
-prelude_connection_t *reverse_relay_search_receiver(const char *addr) 
+prelude_connection_t *reverse_relay_search_receiver(uint64_t analyzerid) 
 {
         prelude_connection_t *cnx;
+        prelude_list_t *head, *tmp;
 
-        pthread_mutex_lock(&receiver_managers_lock);
-        cnx = prelude_connection_mgr_search_connection(receiver_managers, addr);
-        pthread_mutex_unlock(&receiver_managers_lock);
+        if ( ! receiver.mgr )
+                return NULL;
+        
+        head = prelude_connection_mgr_get_connection_list(receiver.mgr);
+        
+        pthread_mutex_lock(&receiver.mutex);
+        
+        prelude_list_for_each(tmp, head) {
+                cnx = prelude_linked_object_get_object(tmp, prelude_connection_t);
+                
+                if ( analyzerid == prelude_connection_get_peer_analyzerid(cnx) ) {
+                        pthread_mutex_unlock(&receiver.mutex);
+                        return cnx;
+                }
+        }
+        
+        pthread_mutex_unlock(&receiver.mutex);
 
-        return cnx;
+        return NULL;
 }
 
 
 
-static prelude_msg_t *send_msgbuf(prelude_msgbuf_t *msgbuf)
-{
-        prelude_msg_t *msg = prelude_msgbuf_get_msg(msgbuf);
-
-        pthread_mutex_lock(&receiver_managers_lock);
-        prelude_connection_mgr_broadcast(receiver_managers, msg);
-        pthread_mutex_unlock(&receiver_managers_lock);
-        
-        prelude_msg_recycle(msg);
-        
-        return msg;
+static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
+{        
+        pthread_mutex_lock(&receiver.mutex);
+        prelude_connection_mgr_broadcast(receiver.mgr, msg);
+        pthread_mutex_unlock(&receiver.mutex);
+                
+        return 0;
 }
 
 
 
 void reverse_relay_send_msg(idmef_message_t *idmef) 
 {
+        int ret;
         static prelude_msgbuf_t *msgbuf = NULL;
         
-        if ( ! receiver_managers )
+        if ( ! receiver.mgr )
                 return;
 
         if ( ! msgbuf ) {
-                msgbuf = prelude_msgbuf_new(manager_client);
-                if ( ! msgbuf )
+                ret = prelude_msgbuf_new(&msgbuf);
+                if ( ! msgbuf ) {
+                        prelude_perror(ret, "error creating reverse relay msgbuf");
                         return;
+                }
                 
                 prelude_msgbuf_set_callback(msgbuf, send_msgbuf);
         }
@@ -174,20 +198,32 @@ void reverse_relay_send_msg(idmef_message_t *idmef)
 int reverse_relay_create_initiator(const char *arg)
 {
         int ret;
+        prelude_client_profile_t *cp;
         
-        initiator_managers = prelude_connection_mgr_new(manager_client);
-        if ( ! initiator_managers )
-                return -1;
-
-        ret = prelude_connection_mgr_set_connection_string(initiator_managers, arg);
+        cp = prelude_client_get_profile(manager_client);
+        
+        ret = prelude_connection_mgr_new(&initiator.mgr, cp, PRELUDE_CONNECTION_CAPABILITY_RECV_IDMEF);
         if ( ret < 0 ) {
-                prelude_connection_mgr_destroy(initiator_managers);
+                prelude_perror(ret, "error creating reverse relay");
+                return -1;
+        }
+        
+        prelude_connection_mgr_set_flags(initiator.mgr, PRELUDE_CONNECTION_MGR_FLAGS_RECONNECT);
+        prelude_connection_mgr_set_event_handler(initiator.mgr,
+                                                 PRELUDE_CONNECTION_MGR_EVENT_DEAD|PRELUDE_CONNECTION_MGR_EVENT_ALIVE,
+                                                 connection_event_cb);
+        
+        ret = prelude_connection_mgr_set_connection_string(initiator.mgr, arg);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "error setting reverse relay connection string");
+                prelude_connection_mgr_destroy(initiator.mgr);
                 return -1;
         }
 
-        ret = prelude_connection_mgr_init(initiator_managers);
+        ret = prelude_connection_mgr_init(initiator.mgr);
         if ( ret < 0 ) {
-                prelude_connection_mgr_destroy(initiator_managers);
+                prelude_perror(ret, "error initializing reverse relay");
+                prelude_connection_mgr_destroy(initiator.mgr);
                 return -1;
         }
         
@@ -196,13 +232,14 @@ int reverse_relay_create_initiator(const char *arg)
 
 
 
-int reverse_relay_init_initiator(void)
-{
-        if ( ! initiator_managers )
-                return -1;
 
-        prelude_connection_mgr_notify_connection(initiator_managers, reverse_relay_notify_state);
-        reverse_relay_notify_state(prelude_connection_mgr_get_connection_list(initiator_managers));
+int reverse_relay_init(void)
+{
+        receiver.mgr = NULL;
+        pthread_mutex_init(&receiver.mutex, NULL);
+
+        initiator.mgr = NULL;
+        pthread_mutex_init(&initiator.mutex, NULL);
 
         return 0;
 }

@@ -336,7 +336,7 @@ static void add_connection(server_logic_t *server, server_fd_set_t *set, server_
 static int handle_fd_event(server_fd_set_t *set, int cnx_key) 
 {
         int ret = -2;
-        
+
         assert(set->client[cnx_key]->key == cnx_key);
 
         if ( set->pfd[cnx_key].events & POLLIN && set->pfd[cnx_key].revents & POLLIN ) {                

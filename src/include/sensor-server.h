@@ -26,7 +26,7 @@
 
 void sensor_server_stop(server_generic_t *server);
 
-server_generic_t *sensor_server_new(const char *addr, uint16_t port);
+server_generic_t *sensor_server_new(void);
 
 int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *msg);
 

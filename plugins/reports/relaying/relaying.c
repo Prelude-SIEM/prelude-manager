@@ -48,30 +48,29 @@ static prelude_msgbuf_t *msgbuf = NULL;
 extern prelude_client_t *manager_client;
 
 
-static prelude_msg_t *send_msgbuf(prelude_msgbuf_t *msgbuf)
+static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 {
-        prelude_msg_t *msg = prelude_msgbuf_get_msg(msgbuf);
         prelude_connection_mgr_t *mgr = prelude_msgbuf_get_data(msgbuf);
         
         prelude_connection_mgr_broadcast(mgr, msg);
-        prelude_msg_recycle(msg);
-        
-        return msg;
+                
+        return 0;
 }
 
 
 
 static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idmef)
 {
+        int ret;
         relaying_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
 
         if ( ! plugin->parent_manager )
                 return 0;
         
         if ( ! msgbuf ) {
-                msgbuf = prelude_msgbuf_new(manager_client);
-                if ( ! msgbuf )
-                        return -1;
+                ret = prelude_msgbuf_new(&msgbuf);
+                if ( ret < 0 )
+                        return ret;
 
                 prelude_msgbuf_set_callback(msgbuf, send_msgbuf);
                 prelude_msgbuf_set_data(msgbuf, plugin->parent_manager);
@@ -105,17 +104,19 @@ static int relaying_activate(void *context, prelude_option_t *opt, const char *o
 static int relaying_set_manager(void *context, prelude_option_t *opt, const char *optarg)
 {
         int ret;
+        prelude_client_profile_t *cp;
         relaying_plugin_t *plugin = prelude_plugin_instance_get_data(context);
-        prelude_client_capability_t capability = prelude_client_get_capability(manager_client);
 
-        if ( ! plugin->parent_manager ) {       
-                plugin->parent_manager = prelude_connection_mgr_new(manager_client);
+        if ( ! plugin->parent_manager ) {
+                cp = prelude_client_get_profile(manager_client);
+                
+                ret = prelude_connection_mgr_new(&plugin->parent_manager, cp, PRELUDE_CONNECTION_CAPABILITY_CONNECT);
                 if ( ! plugin->parent_manager )
                         return -1;
+
+                prelude_connection_mgr_set_flags(plugin->parent_manager, PRELUDE_CONNECTION_MGR_FLAGS_RECONNECT);
         }
-        
-        prelude_client_set_capability(manager_client, capability|PRELUDE_CLIENT_CAPABILITY_SEND_IDMEF);
-        
+                
         ret = prelude_connection_mgr_set_connection_string(plugin->parent_manager, optarg);
         if ( ret < 0 )
                 return -1;

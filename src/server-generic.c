@@ -66,6 +66,7 @@ struct server_generic {
         size_t clientlen;
         struct server_logic *logic;
         server_generic_read_func_t *read;
+        server_generic_write_func_t *write;
         server_generic_close_func_t *close;
         server_generic_accept_func_t *accept;
 };
@@ -88,28 +89,28 @@ static int send_auth_result(server_generic_client_t *client, int result)
 {
         int ret;
         uint64_t nident;
+        prelude_client_profile_t *cp;
         
         if ( ! client->msg ) {
-                client->msg = prelude_msg_new(1, sizeof(uint64_t), PRELUDE_MSG_AUTH, 0);
-                if ( ! client->msg )
+                ret = prelude_msg_new(&client->msg, 1, sizeof(uint64_t), PRELUDE_MSG_AUTH, 0);
+                if ( ret < 0 )
                         return -1;
-
-                if ( result != PRELUDE_MSG_AUTH_SUCCEED )
-                        prelude_msg_set(client->msg, result, 0, NULL);
-                else {
-                        nident = prelude_hton64(prelude_client_get_analyzerid(manager_client));
-                        prelude_msg_set(client->msg, result, sizeof(nident), &nident);
-                }
+                
+                cp = prelude_client_get_profile(manager_client);
+                nident = prelude_hton64(prelude_client_profile_get_analyzerid(cp));
+                prelude_msg_set(client->msg, result, sizeof(nident), &nident);
         }
         
-        ret = prelude_msg_write(client->msg, client->fd); 
+        ret = prelude_msg_write(client->msg, client->fd);
+        
         if ( ret < 0 ) {
 		if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
 			server_logic_notify_write_enable((server_logic_client_t *) client);
 			return 0;
 		}
 
-		log(LOG_ERR, "error writing auth result message: %s.\n", prelude_strerror(ret));
+		log(LOG_INFO, "%s: error writing auth result message: %s.\n",
+                    prelude_strsource(ret), prelude_strerror(ret));
 		prelude_msg_destroy(client->msg);
 		return -1;
         }
@@ -170,9 +171,16 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
 
 
 static int write_connection_cb(void *sdata, server_logic_client_t *ptr)
-{        
-        server_logic_notify_write_disable(ptr);
-        return authenticate_client(sdata, (server_generic_client_t *) ptr);
+{
+        server_generic_t *server = sdata;
+        server_generic_client_t *client = (server_generic_client_t *) ptr;
+        
+        if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
+                return server->write(client);
+        else {
+                server_logic_notify_write_disable(ptr);
+                return authenticate_client(sdata, (server_generic_client_t *) ptr);
+        }
 }
 
 
@@ -191,7 +199,7 @@ static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
         int ret = 0;
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
-
+        
         do {    
                 if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
                         ret = server->read(client);
@@ -218,21 +226,21 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
         
+        if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED ) 
+                server->close(client);
+
+        server_generic_log_client(client, "closing connection.\n");
+        
         /*
          * layer above server-generic are permited to set fd to NULL so
          * that they can take control over the connection FD.
          */
         if ( client->fd ) {
-                server_generic_log_client(client, "closing connection.\n");
                 prelude_io_close(client->fd);
                 prelude_io_destroy(client->fd);
         }
         
-        free(client->addr);
-        
-        if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED ) 
-                server->close(client);
-        
+        free(client->addr);        
         free(ptr);
         
         return 0;
@@ -293,10 +301,7 @@ static int setup_client_socket(server_generic_t *server,
                 ret = tcpd_auth(cdata, client);
                 if ( ret < 0 )
                         return -1;
-        } else
-                server_generic_log_client(cdata, "accepted connection.\n");
-#else
-        server_generic_log_client(cdata, "accepted connection.\n");
+        }
 #endif
         /*
          * set client socket non blocking.
@@ -307,8 +312,8 @@ static int setup_client_socket(server_generic_t *server,
                 return -1;
         }
 
-        cdata->fd = prelude_io_new();
-        if ( ! cdata->fd ) 
+        ret = prelude_io_new(&cdata->fd);
+        if ( ret < 0 ) 
                 return -1;
 
         prelude_io_set_sys_io(cdata->fd, client);
@@ -651,13 +656,11 @@ static int resolve_addr(server_generic_t *server, const char *addr, uint16_t por
 /*
  *
  */
-server_generic_t *server_generic_new(const char *saddr, uint16_t port,
-                                     size_t clientlen, server_generic_accept_func_t *acceptf,
-                                     server_generic_read_func_t *readf, server_generic_close_func_t *closef)
+server_generic_t *server_generic_new(size_t clientlen, server_generic_accept_func_t *acceptf,
+                                     server_generic_read_func_t *readf,
+                                     server_generic_write_func_t *writef,
+                                     server_generic_close_func_t *closef)
 {
-        int ret;
-        char out[128];
-        void *in_addr;
         server_generic_t *server;
                 
         server = malloc(sizeof(*server));
@@ -667,21 +670,33 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
         }
 
         server->read = readf;
+        server->write = writef;
         server->accept = acceptf;
         server->close = closef;
         server->clientlen = clientlen;
-        
-        ret = resolve_addr(server, saddr, port);
-        if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't resolve %s.\n", saddr);
-                return NULL;
-        }
         
         server->logic = server_logic_new(server, read_connection_cb, write_connection_cb, close_connection_cb);
         if ( ! server->logic ) {
                 log(LOG_ERR, "couldn't initialize server pool.\n");
                 free(server);
                 return NULL;
+        }
+        
+        return server;
+}
+
+
+
+int server_generic_bind(server_generic_t *server, const char *saddr, uint16_t port)
+{
+        int ret;
+        char out[128];
+        void *in_addr;
+        
+        ret = resolve_addr(server, saddr, port);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "couldn't resolve %s.\n", saddr);
+                return -1;
         }
         
         if ( server->sa->sa_family == AF_UNIX )
@@ -692,7 +707,7 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
         if ( ret < 0 ) {
                 server_logic_stop(server->logic);
                 free(server);
-                return NULL;
+                return -1;
         }
 
         if ( server->sa->sa_family == AF_UNIX )
@@ -704,10 +719,8 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
         
         log(LOG_INFO, "- sensors server started (listening on %s port %d).\n", out, port);
 
-        return server;
+        return 0;
 }
-
-
 
 
 void server_generic_start(server_generic_t **server, size_t nserver) 

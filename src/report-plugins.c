@@ -169,6 +169,7 @@ static void failover_timer_expire_cb(void *data)
 
 static int setup_plugin_failover(prelude_plugin_instance_t *pi)
 {
+        int ret;
         char filename[256];
         plugin_failover_t *pf;
         prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
@@ -186,8 +187,9 @@ static int setup_plugin_failover(prelude_plugin_instance_t *pi)
                 return -1;
         }
         
-        pf->failover = prelude_failover_new(filename);
-        if ( ! pf->failover ) {
+        ret = prelude_failover_new(&pf->failover, filename);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "could not create failover object in %s", filename);
                 free(pf);
                 return -1;
         }
@@ -250,17 +252,17 @@ static void failover_init(prelude_plugin_generic_t *pg, prelude_plugin_instance_
 
 
 
-static prelude_msg_t *save_msgbuf(prelude_msgbuf_t *msgbuf)
+static int save_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 {
-        prelude_msg_t *msg = prelude_msgbuf_get_msg(msgbuf);
+        int ret;
         plugin_failover_t *pf = prelude_msgbuf_get_data(msgbuf);
         
-        prelude_failover_save_msg(pf->failover, msg);
-        prelude_msg_recycle(msg);
-
-        return msg;
+        ret = prelude_failover_save_msg(pf->failover, msg);
+        if ( ret < 0 )
+                prelude_perror(ret, "error saving message to disk");
+        
+        return ret;
 }
-
 
 
 
@@ -353,35 +355,38 @@ void report_plugins_close(void)
  */
 int report_plugins_init(const char *dirname, int argc, char **argv)
 {
-        int ret;
+        int ret, count;
         
-	ret = access(dirname, F_OK);
-	if ( ret < 0 ) {
+	ret = access(dirname, F_OK);        
+        if ( ret < 0 ) {
 		if ( errno == ENOENT )
 			return 0;
-		log(LOG_ERR, "can't access %s.\n", dirname);
+                
+		log(LOG_ERR, "could not access %s.\n", dirname);
 		return -1;
 	}
 
-        ret = prelude_plugin_load_from_dir(dirname, subscribe, unsubscribe);
-
+        count = prelude_plugin_load_from_dir(dirname, subscribe, unsubscribe);
+        
         /*
          * don't return an error if the report directory doesn't exist.
          * this could happen as it's normal to not use report plugins on
          * certain system.
          */
-        if ( ret < 0 && errno != ENOENT ) {
+        if ( count < 0 && errno != ENOENT ) {
                 log(LOG_ERR, "couldn't load plugin subsystem.\n");
                 return -1;
         }
 
-        msgbuf = prelude_msgbuf_new(NULL);
-        if ( ! msgbuf )
+        ret = prelude_msgbuf_new(&msgbuf);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "could not create message buffer");
                 return -1;
-
+        }
+        
         prelude_msgbuf_set_callback(msgbuf, save_msgbuf);
                 
-        return ret;
+        return count;
 }
 
 

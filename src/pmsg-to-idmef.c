@@ -187,8 +187,11 @@ int pmsg_to_idmef(idmef_message_t **idmef, prelude_msg_t *msg)
                 else if ( tag == MSG_OWN_FORMAT )
                         ret = handle_proprietary_msg(msg, *idmef, buf, len);
 
-                else log(LOG_ERR, "unknow tag: %d.\n", tag);
+                else if ( tag == MSG_END_OF_TAG )
+                        continue;
                 
+                else log(LOG_ERR, "unknow tag: %d.\n", tag);
+                        
                 if ( ret < 0 )
                         break;
         }

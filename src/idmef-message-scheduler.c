@@ -535,10 +535,11 @@ static int flush_existing_fifo(const char *filename, file_output_t *out, off_t s
 
 static prelude_io_t *new_sysio_from_fd(int fd)
 {
+        int ret;
         prelude_io_t *ptr;
 
-        ptr = prelude_io_new();
-        if ( ! ptr )
+        ret = prelude_io_new(&ptr);
+        if ( ret < 0 )
                 return NULL;
 
         prelude_io_set_sys_io(ptr, fd);
