@@ -37,29 +37,77 @@ static FILE *fd;
 static char *logfile = NULL;
 
 
+
+static void print_address(idmef_address_t *addr) 
+{
+        printf("Address: %s\n", addr->address);
+}
+
+
+
+
+static void print_source(idmef_source_t *source) 
+{
+        struct list_head *tmp;
+        idmef_address_t *addr;
+
+        list_for_each(tmp, &source->node.address_list) {
+                addr = list_entry(tmp, idmef_address_t, list);
+                print_address(addr);
+        }
+                        
+        
+        fprintf(fd, "Service port: %u\n", source->service.port);
+        fprintf(fd, "Service name: %s\n", source->service.name);
+        fprintf(fd, "Protocol: %s\n", source->service.protocol);
+}
+
+
+
+
 /*
  *
  */
-static void filemod_run(alert_t *alert, report_infos_t *rinfos) {
+static void filemod_run(idmef_alert_t *alert)
+{
         int i;
-        
-        fprintf(fd, "\n\n*** %s", rinfos->date_start);
+        struct list_head *tmp;
+        idmef_classification_t *class;
+        idmef_additional_data_t *data;
+        idmef_source_t *source;
+        idmef_target_t *target;
 
-        if ( rinfos->date_end ) {
-                fprintf(fd, " - %s\n", rinfos->date_end);
-        } else
-                fprintf(fd, "\n");
-
-        fprintf(fd, "Plugin\t: %s\n", plugin_name(alert_plugin(alert)));
-        fprintf(fd, "Author\t: %s\n", plugin_author(alert_plugin(alert)));
-        fprintf(fd, "Contact\t: %s\n", plugin_contact(alert_plugin(alert)));
-        fprintf(fd, "description\t: %s\n", plugin_desc(alert_plugin(alert)));
-        fprintf(fd, "kind\t\t: %s\n", rinfos->kind);
-        fprintf(fd, "received\t: %d time%s\n", alert_count(alert), plural(alert_count(alert)));
-        fprintf(fd, "message\t\t: %s\n\n", alert_message(alert));
+        fd = stdout;
         
-        if ( rinfos->sensor_data )
-                fprintf(fd, "%s\n", rinfos->sensor_data);
+        fprintf(fd, "\n*** Alert information ***\n");
+        fprintf(fd, "Ident: %s\n", alert->ident);
+        fprintf(fd, "Impact: %s\n", alert->impact);
+        fprintf(fd, "Action: %s\n", alert->action);
+        
+
+        fprintf(fd, "\n*** Source information ***\n");
+        list_for_each(tmp, &alert->source_list) {
+                target = list_entry(tmp, idmef_target_t, list);
+                print_source(target);
+        }
+        
+        fprintf(fd, "\n*** Target information ***\n");
+        list_for_each(tmp, &alert->target_list) {
+                target = list_entry(tmp, idmef_target_t, list);
+                print_source(target);
+        }
+        
+        fprintf(fd, "\n*** Classification information ***\n");
+        list_for_each(tmp, &alert->classification_list) {
+                class = list_entry(tmp, idmef_classification_t, list);
+                fprintf(stdout, "Origin: %s\nName: %s\nUrl: %s\n", class->origin, class->name, class->url);
+        }
+        
+        fprintf(fd, "\n*** Additional data ***\n");
+        list_for_each(tmp, &alert->additional_data_list) {
+                data = list_entry(tmp, idmef_additional_data_t, list);
+                fprintf(stdout, "%s: %s\n", data->meaning, data->data);
+        }
         
         fflush(fd);
 }
@@ -112,7 +160,7 @@ int plugin_init(unsigned int id)
         plugin_set_running_func(&plugin, filemod_run);
         plugin_set_closing_func(&plugin, filemod_close);
         
-        plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_REPORT_CONF);        
+        plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_MANAGER_CONF);        
         if ( ! logfile )
                 return -1;
                 

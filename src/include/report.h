@@ -26,11 +26,8 @@
 #include <libprelude/plugin-common.h>
 #include <libprelude/config-engine.h>
 
-#if 0
-#include "packet.h"
-#endif
-
-#include "report-infos.h"
 #include "plugin-report.h"
 
 #include "libmissing.h"
+
+#include "idmef.h"

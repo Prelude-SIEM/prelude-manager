@@ -61,9 +61,8 @@ static void cleanup(int sig)
         /*
          *
          */
-#if 0
         report_plugins_close();
-#endif
+
         /*
          *
          */
@@ -91,10 +90,10 @@ int main(int argc, char **argv)
         if ( pconfig_init(argc, argv) < 0 )
                 exit(1);
 
-#if 0
+
         do_init(report_plugins_init(REPORT_PLUGIN_DIR),
                 "Initializing report plugins");
-#endif
+
         
         do_init_nofail(decode_plugins_init(DECODE_PLUGIN_DIR),
                        "Initializing decode plugins.");
@@ -115,9 +114,9 @@ int main(int argc, char **argv)
         if ( ret == 0 )
                 manager_server_close();
 
-#if 0
+
         report_plugins_close();
-#endif   
+
 	exit(ret);	
 }
 

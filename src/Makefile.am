@@ -1,6 +1,6 @@
 SUBDIRS = include
 
-INCLUDES = @LIBPRELUDE_CFLAGS@ @LIBPRELUDE_SENSORS_CFLAGS@ @XML2_CFLAGS@ \
+INCLUDES = @LIBPRELUDE_CFLAGS@ @XML2_CFLAGS@ \
            -I$(top_srcdir)/ -I$(top_srcdir)/libmissing -I$(srcdir)/include/
 
 DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\"       \
@@ -20,6 +20,7 @@ prelude_manager_SOURCES =			\
 			server-logic.c		\
 			ssl.c			\
 			decode-plugins.c	\
-			alert-scheduler.c
+			alert-scheduler.c	\
+			idmef.c
 
 

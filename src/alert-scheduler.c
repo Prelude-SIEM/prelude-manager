@@ -30,16 +30,16 @@
 #include <assert.h>
 #include <pthread.h>
 
-#include <libxml/parser.h>
-
 #include <libprelude/common.h>
 #include <libprelude/prelude-list.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
+#include <libprelude/plugin-common.h>
 #include <libprelude/alert-id.h>
 
 #include "alert-scheduler.h"
-
+#include "plugin-decode.h"
+#include "plugin-report.h"
 
 #define MAX_ALERT_IN_MEMORY 200
 
@@ -164,9 +164,10 @@ static prelude_msg_t *get_low_priority_alert(void)
  */
 static void process_alert(void *arg) 
 {
-        uint8_t tag;
+        int ret;
         prelude_msg_t *msg;
-        xmlNodePtr idmef_msg;
+        idmef_message_t *idmef;
+        
 
         while ( 1 ) {
                 
@@ -184,17 +185,15 @@ static void process_alert(void *arg)
                         continue;
                 }
 
-                tag = prelude_msg_get_tag(msg);
-                
-                if ( tag == ID_IDMEF_ALERT ) {
-                        /*
-                         * Special case where we should directly
-                         * contact the DB subsystem.
-                         */
-                } else {
-                        idmef_msg = decode_plugins_run(msg, tag);
+                idmef = idmef_alert_new();
+                printf("decoding report\n");
+                ret = decode_plugins_run(msg, idmef->message.alert);
+                if ( ret >= 0 ) {
+                        printf("starting report plugins.\n");
+                        report_plugins_run(idmef->message.alert);
                 }
 
+                idmef_message_free(idmef);
                 prelude_msg_destroy(msg);
         }
 }

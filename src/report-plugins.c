@@ -58,14 +58,14 @@ static int report_plugin_register(plugin_container_t *pc)
 /*
  * Start all plugins of kind 'list'.
  */
-void report_plugins_run(xmlNodePtr idmef_msg)
+void report_plugins_run(idmef_alert_t *alert)
 {
         struct list_head *tmp;
         plugin_container_t *pc;
 
         list_for_each(tmp, &report_plugins_list) {
                 pc = list_entry(tmp, plugin_container_t, ext_list);
-                plugin_run(pc, plugin_report_t, idmef_msg);
+                plugin_run(pc, plugin_report_t, alert);
         }
 }
 

@@ -24,9 +24,12 @@
 #ifndef PLUGIN_REPORT_H
 #define PLUGIN_REPORT_H
 
+#include "idmef.h"
+
+
 typedef struct {
         PLUGIN_GENERIC;
-        void (*run)(xmlNodePtr idmef_msg);
+        void (*run)(idmef_alert_t *alert);
         void (*close)(void);
 } plugin_report_t;
 
@@ -42,7 +45,7 @@ typedef struct {
 
 int report_plugins_init(const char *dirname);
 
-void report_plugins_run(xmlNodePtr idmef_msg);
+void report_plugins_run(idmef_alert_t *alert);
 
 void report_plugins_close(void);
 

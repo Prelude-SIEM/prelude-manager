@@ -55,35 +55,36 @@ static int decode_plugin_register(plugin_container_t *pc)
 /*
  *
  */
-xmlNodePtr decode_plugins_run(prelude_msg_t *alert, uint8_t tag) 
+int decode_plugins_run(prelude_msg_t *msg, idmef_alert_t *alert) 
 {
-        xmlNodePtr idmef;
+        int ret;
+        uint8_t id;
         plugin_decode_t *p;
         struct list_head *tmp;
         plugin_container_t *pc;
 
+        id = prelude_msg_get_tag(msg);
+        
         list_for_each(tmp, &decode_plugins_list) {
             
                 pc = list_entry(tmp, plugin_container_t, ext_list);
+
                 p = (plugin_decode_t *) pc->plugin;
-                
-                if ( p->decode_id != tag )
+                if ( p->decode_id != id )
                         continue;
 
-                idmef = NULL;
-                
-                plugin_run_with_return_value(pc, &idmef, plugin_decode_t, alert);
-                if ( ! idmef ) {
+                plugin_run_with_return_value(pc, &ret, plugin_decode_t, msg, alert);
+                if ( ret < 0 ) {
                         log(LOG_ERR, "%s couldn't decode sensor data.\n", p->name);
-                        return NULL;
+                        return -1;
                 }
 
-                return idmef;
+                return 0;
         }
         
-        log(LOG_ERR, "No decode plugin for handling sensor id %d.\n", tag);
+        log(LOG_ERR, "No decode plugin for handling sensor id %d.\n", id);
         
-        return NULL;
+        return -1;
 }
 
 

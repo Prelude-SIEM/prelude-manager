@@ -20,6 +20,7 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,17 +28,13 @@
 #include <netdb.h>
 #include <assert.h>
 
-
+#include <libprelude/list.h>
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/alert-id.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 
-#include <parser.h>
-#include <tree.h>
-
-#include <libidmef/idmefxml.h>
 
 #include "nids-alert-id.h"
 #include "plugin-decode.h"
@@ -72,174 +69,164 @@ static char *hex(unsigned char *data, size_t len)
 
 
 
-static char *databuf;
-static xmlDocPtr xmldoc;
-static xmlNodePtr target = NULL, source = NULL, data = NULL;
-
-
-
-static xmlNodePtr build_ipv4_saddr(struct in_addr addr) 
+static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip) 
 {
-        xmlNodePtr saddr, node;
+        idmef_source_t *source;
+        idmef_target_t *target;
+        idmef_address_t *saddr, *daddr;
 
-        source = newSource(NULL);
-        node = newNode(NULL);
+        source = idmef_source_new(alert);
+        if ( ! source )
+                return -1;
         
-        saddr = newAddress(newSimpleElement("category", "ipv4-addr"),
-                           newSimpleElement("address", inet_ntoa(addr)),
-                           NULL);
+        target = idmef_target_new(alert);
+        if ( ! target )
+                return -1;
 
-        addElement(node, saddr);
-        addElement(source, node);
+        saddr = idmef_address_new(&source->node);
+        if ( ! saddr )
+                return -1;
 
-        return source;
+        daddr = idmef_address_new(&target->node);
+        if ( ! daddr )
+                return -1;
+        
+        source->spoofed = unknow;
+        source->node.category = unknow;
+
+        saddr->category = ipv4_addr;
+        saddr->address = strdup(inet_ntoa(ip->ip_src));
+        
+        target->spoofed = unknow;
+        target->node.category = unknow;
+
+        daddr->category = ipv4_addr;
+        daddr->address = strdup(inet_ntoa(ip->ip_dst));
+
+        return 0;
 }
 
 
 
-static xmlNodePtr build_ipv4_daddr(struct in_addr addr) 
+
+static void gather_protocol_infos(idmef_alert_t *alert, uint16_t sport, uint16_t dport, const char *proto) 
 {
-        xmlNodePtr daddr, node;
-
-        target = newTarget(NULL);
-        node = newNode(NULL);
-        
-        daddr = newAddress(newSimpleElement("category", "ipv4-addr"),
-                           newSimpleElement("address", inet_ntoa(addr)),
-                           NULL);
-
-        addElement(node, daddr);
-        addElement(target, node);
-
-        return target;
-}
-
-
-
-static void build_port(xmlNodePtr addr, uint16_t port, const char *proto) 
-{
+        const char *name;
         struct servent *ptr;
-        char buf[sizeof("65535")];
-        xmlNodePtr service, node;
-        
-        snprintf(buf, sizeof(buf), "%u", port);
-        service = newService(newSimpleElement("port", buf), NULL);
-        
-        ptr = getservbyport(htons(port), proto);
-        if ( ptr ) {
-                addElement(service, newSimpleElement("name", ptr->s_name));
-                addElement(service, newSimpleElement("protocol", ptr->s_proto));
-        } else
-                addElement(service, newSimpleElement("protocol", proto));
+        idmef_source_t *source;
+        idmef_target_t *target;
 
-        addElement(addr, service);
+        source = list_entry(alert->source_list.prev, idmef_source_t, list);
+        target = list_entry(alert->target_list.prev, idmef_target_t, list);
+
+        ptr = getservbyport(sport, proto);
+        name = (ptr) ? ptr->s_name : NULL;
+        
+        source->service.name = name;
+        source->service.port = ntohs(sport);
+        source->service.protocol = proto;
+
+        ptr = getservbyport(dport, proto);
+        name = (ptr) ? ptr->s_name : NULL;
+        
+        target->service.name = name;
+        target->service.port = ntohs(dport);
+        target->service.protocol = proto;
 }
 
 
 
-static void packet_to_idmef(packet_t *p) 
+
+static void gather_payload_infos(idmef_alert_t *alert, unsigned char *data, size_t len) 
+{
+        idmef_additional_data_t *pdata;
+
+        pdata = idmef_additional_data_new(alert);
+        if ( ! pdata )
+                return;
+        
+        pdata->type = string;
+        pdata->meaning = "Packet Payload";
+        pdata->data = hex(data, len);       
+}
+
+
+
+
+static void packet_to_idmef(idmef_alert_t *alert, packet_t *p) 
 {
         int i;
         uint8_t proto;
         
         for ( i = 0; p[i].proto != p_end; i++ ) {
                 
-                if ( p[i].proto == p_ip ) {                        
-                        proto = p[i].p.ip->ip_p;
-                        
-                        source = build_ipv4_saddr(p[i].p.ip->ip_src);
-                        target = build_ipv4_daddr(p[i].p.ip->ip_dst);
-                }
+                if ( p[i].proto == p_ip )           
+                        gather_ip_infos(alert, p[i].p.ip);
 
-                if ( p[i].proto == p_tcp ) {                        
-                        build_port(source, ntohs(p[i].p.tcp->th_sport), "tcp");
-                        build_port(target, ntohs(p[i].p.tcp->th_dport), "tcp");
-                }
+                else if ( p[i].proto == p_tcp )
+                        gather_protocol_infos(alert, p[i].p.tcp->th_sport, p[i].p.tcp->th_dport, "tcp");
 
-                if ( p[i].proto == p_udp ) {
-                        build_port(source, ntohs(p[i].p.udp_hdr->uh_sport), "udp");
-                        build_port(target, ntohs(p[i].p.udp_hdr->uh_dport), "udp");
-                }
-
-                if ( p[i].proto == p_data ) {
-                        databuf = hex(p[i].p.data, p[i].len);
-                        data = newAdditionalData(
-                                newAttribute("meaning", "Packet Payload"),
-                                newAttribute("type", "string"),
-                                newSimpleElement("value", databuf),
-                                NULL);
-                }
+                else if ( p[i].proto == p_udp )
+                        gather_protocol_infos(alert, p[i].p.udp_hdr->uh_sport, p[i].p.udp_hdr->uh_dport, "udp");
+                
+                else if ( p[i].proto == p_data ) 
+                        gather_payload_infos(alert, p[i].p.data, p[i].len);
         }        
 }
 
 
 
-static xmlNodePtr build_analyzer(void) 
-{
-        xmlNodePtr analyzer, node;
-
-        analyzer = newAnalyzer(newSimpleElement("analyzerid", "no id"), NULL);
-
-        node = newNode(NULL);
-        addElement(node, newSimpleElement("name", getenv("HOSTNAME")));
-
-        addElement(analyzer, node);
-
-        return analyzer;
-}
-
-
-
-
-static char *build_alert_id(void) 
-{
-        static unsigned long id = 0;
-
-        if ( ! id ) {
-                id = 1;
-                
-                id = getStoredAlertID("/var/log/prelude/alertid");
-                if ( id == 0 ) 
-                        log(LOG_ERR, "couldn't retrieve the stored alert id.\n");
-                
-                else if ( id == 1 )
-                        log(LOG_INFO, "no stored alert id, continuing with id == 1.\n");
-        }
-        
-        return ulongToString(id++);
-}
-
-
-
-
-static xmlNodePtr nids_decode_run(prelude_msg_t *pmsg) 
+static void msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert) 
 {
         void *buf;
         uint8_t tag;
         uint32_t len;
-        char *alertid;
-        int ret, i = 0;
+        int i = 0, ret;
         packet_t packet[MAX_PKTDEPTH + 1];
-        struct timeval tv;
-        xmlNodePtr origin = NULL, msg = NULL, analyzer = NULL;
-        xmlNodePtr alert, class = NULL, classname = NULL, refurl = NULL;
         
-        databuf = NULL;
-        data = source = target = NULL;
+                        
+        do {    
+                ret = prelude_msg_get(pmsg, &tag, &len, &buf);
+                if ( ret < 0 ) {
+                        log(LOG_ERR, "error decoding message.\n");
+                        return;
+                }
+                
+                if ( ret == 0 ) 
+                        break;
+                
+                packet[i].len = len;
+                packet[i].proto = tag;
+                packet[i].p.ip = buf;
+                
+        } while ( packet[i++].proto != p_end );
         
-        ret = createCurrentDoc("1.0");
-        if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't create an XML document.\n");
-                return NULL;
-        }
+        packet_to_idmef(alert, packet);
+}
 
-        
+
+
+
+static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert) 
+{
+        void *buf;
+        int ret;
+        uint8_t tag;
+        uint32_t len;
+        struct timeval tv;
+        idmef_classification_t *class;
+        idmef_additional_data_t *data;
+
+        class = idmef_classification_new(alert);
+        if ( ! class ) 
+                return -1;
+
         while ( 1 ) {
 
                 ret = prelude_msg_get(pmsg, &tag, &len, &buf);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "error decoding message.\n");
-                        return NULL;
+                        return -1;
                 }
 
                 /*
@@ -257,19 +244,21 @@ static xmlNodePtr nids_decode_run(prelude_msg_t *pmsg)
                         break;
                         
                 case ID_PRELUDE_NIDS_MESSAGE:
-                        msg = newAdditionalData(
-                                newAttribute("meaning", "Attack information"),
-                                newAttribute("type", "string"),
-                                newSimpleElement("value", buf),
-                                NULL);
+                        data = idmef_additional_data_new(alert);
+                        if ( ! data )
+                                return -1;
+                        
+                        data->type = string;
+                        data->meaning = "Attack information";
+                        data->data = buf;
                         break;
 
                 case ID_PRELUDE_NIDS_REFERENCE_ORIGIN:
-                        origin = newAttribute("origin", buf);
+                        class->origin = unknow;
                         break;
 
                 case ID_PRELUDE_NIDS_REFERENCE_URL:
-                        refurl = newSimpleElement("url", buf);
+                        class->url = buf;
                         break;
 
                 case ID_PRELUDE_NIDS_TS_SEC:
@@ -281,30 +270,11 @@ static xmlNodePtr nids_decode_run(prelude_msg_t *pmsg)
                         break;
                         
                 case ID_PRELUDE_NIDS_CLASSIFICATION_NAME:
-                        classname = newSimpleElement("name", buf);
+                        class->name = buf;
                         break;
 
                 case ID_PRELUDE_NIDS_PACKET:
-                        i = 0;
-                        
-                        do {    
-                                ret = prelude_msg_get(pmsg, &tag, &len, &buf);
-                                if ( ret < 0 ) {
-                                        log(LOG_ERR, "error decoding message.\n");
-                                        return NULL;
-                                }
-
-                                if ( ret == 0 ) 
-                                        break;
-
-                                packet[i].len = len;
-                                packet[i].proto = tag;
-                                packet[i].p.ip = buf;
-                                
-                        } while ( packet[i++].proto != p_end );
-                        
-                        packet_to_idmef(packet);
-                        
+                        msg_to_packet(pmsg, alert);
                         break;
 
                 default:
@@ -314,43 +284,10 @@ static xmlNodePtr nids_decode_run(prelude_msg_t *pmsg)
         }
 
 
-        alertid = build_alert_id();
+        alert->ident = "fixme";
+        alert->impact = "unknown";
         
-        alert = newAlert(newSimpleElement("ident", alertid),
-                         newSimpleElement("impact", "unknown"),
-                         build_analyzer(),
-                         newCreateTime(NULL), newDetectTime(&tv), source, target, NULL);
-        free(alertid);
-        
-        assert(classname);
-        
-        if ( ! origin )
-                origin = newAttribute("origin", "unknow");
-
-        if ( ! refurl )
-                refurl = newSimpleElement("url", "No URL available");
-
-        class = newClassification(origin, classname, refurl, NULL);
-        addElement(alert, class);
-        
-        if ( data ) 
-                addElement(alert, data);
-
-        if ( msg )
-                addElement(alert, msg);
-        
-        msg = newIDMEF_Message(newAttribute("version", IDMEF_MESSAGE_VERSION), alert, NULL);
-
-        validateCurrentDoc();
-        xmlKeepBlanksDefault(0);
-        printCurrentMessage(stderr);
-        
-        clearCurrentDoc();
-
-        if ( databuf )
-                free(databuf);
-        
-        return msg;
+        return 0;
 }
 
 
@@ -361,8 +298,6 @@ int plugin_init(unsigned int id)
         int ret;
         static plugin_decode_t plugin;
         
-        globalsInit("/home/yoann/idmef-message.dtd");        
-
         plugin_set_name(&plugin, "Prelude NIDS data decoder");
         plugin_set_author(&plugin, "Yoann Vandoorselaere");
         plugin_set_contact(&plugin, "yoann@mandrakesoft.com");

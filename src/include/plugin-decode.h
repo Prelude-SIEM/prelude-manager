@@ -24,11 +24,13 @@
 #ifndef PLUGIN_DECODE_H
 #define PLUGIN_DECODE_H
 
+#include "idmef.h"
+
 
 typedef struct {
         PLUGIN_GENERIC;
         uint8_t decode_id;
-        xmlNodePtr (*run)(prelude_msg_t *ac);
+        int (*run)(prelude_msg_t *ac, idmef_alert_t *alert);
 } plugin_decode_t;
 
 
@@ -37,10 +39,11 @@ typedef struct {
 #define plugin_set_running_func(p, f) plugin_run_func(p) = (f)
 
 
+
 int plugin_init(unsigned int id);
 
 void decode_plugins_init(const char *dirname);
 
-xmlNodePtr decode_plugins_run(prelude_msg_t *alert, uint8_t tag);
+int decode_plugins_run(prelude_msg_t *pmsg, idmef_alert_t *alert);
 
 #endif

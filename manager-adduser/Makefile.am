@@ -1,5 +1,5 @@
 DEFS = @LIBPRELUDE_CFLAGS@ -DCONFIG_DIR=\"@configdir@\"
-INCLUDES = -I$(top_srcdir)/src/include
+INCLUDES = -I$(top_srcdir)/src/include -I$(top_srcdir)
 
 bin_PROGRAMS = manager-adduser
 manager_adduser_LDADD = @LIBPRELUDE_LIBS@

@@ -1,3 +1,36 @@
+2001-10-23  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-manager.c (main): 
+	(cleanup): report plugins are back.
+	
+	* src/report-plugins.c (report_plugins_run): 
+	* src/decode-plugins.c (decode_plugins_run): 
+	cleanup, take a pointer to the IDMEF native binary
+	structure as argument.
+
+	* src/alert-scheduler.c (process_alert): call message
+	decoder the reporting plugins. 
+
+	* src/Makefile.am (INCLUDES): remove libprelude-sensors
+	CFLAGS from there.
+
+	* plugins/reports/Makefile.am (SUBDIRS): compile
+	mysql plugin.
+
+	* plugins/decodes/prelude-nids/decode.c: 
+	Fit API change, translate the NIDS message to the native
+	prelude-Manager IDMEF format.
+
+	* plugins/Makefile.am (SUBDIRS): 
+	reports plugins directory is back.
+
+	* manager-adduser/Makefile.am (INCLUDES): put $(top_srcdir)
+	in the include path. Should fix an error with config.h not
+	in the path.
+
+	* configure.ac: Do not check for libprelude-sensors,
+	Create mysql plugin Makefile.
+
 2001-10-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/server.c (server_read_connection_cb): 

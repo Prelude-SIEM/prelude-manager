@@ -43,13 +43,6 @@ AC_PATH_GENERIC(libprelude, 0.4.1, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
 
 
-dnl **************************************************
-dnl * Check for libprelude-sensors                   *
-dnl **************************************************
-
-AC_PATH_GENERIC(libprelude_sensors, 0.4.1, ,  
-  AC_MSG_ERROR(Cannot find libprelude-sensors: Is libprelude_sensors-config in the path?) )
-
 
 dnl **************************************************
 dnl * Check for XML library.                         *
@@ -291,7 +284,7 @@ plugins/decodes/Makefile
 plugins/decodes/prelude-nids/Makefile
 
 plugins/reports/Makefile
-plugins/reports/filemod/Makefile
+plugins/reports/mysql/Makefile
 
 ])
 
