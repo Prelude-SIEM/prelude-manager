@@ -156,7 +156,10 @@ static int print_help(prelude_option_t *opt, const char *arg, prelude_string_t *
 
 int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv) 
 {
-        prelude_option_t *opt;
+        int ret;
+        prelude_string_t *err;
+        prelude_option_t *init_first, *opt;
+        prelude_option_warning_t old_warnings;
         
         /* Default */
         config.addr = NULL;
@@ -164,12 +167,14 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         config.pidfile = NULL;
         config.dh_regenerate = 24 * 60 * 60;
         config.config_file = PRELUDE_MANAGER_CONF;
+
+        prelude_option_new_root(&init_first);
         
-        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 'h', "help",
+        prelude_option_add(init_first, &opt, PRELUDE_OPTION_TYPE_CLI, 'h', "help",
                            "Print this help", PRELUDE_OPTION_ARGUMENT_NONE, print_help, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
         
-        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 0, "config",
+        prelude_option_add(init_first, &opt, PRELUDE_OPTION_TYPE_CLI, 0, "config",
                            "Configuration file to use", PRELUDE_OPTION_ARGUMENT_REQUIRED,
                            set_conf_file, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
@@ -215,6 +220,21 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_report_plugin_failover, NULL);
         
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
-                        
-        return 0;
+
+
+        /*
+         * Some plugin might require manager_client to be already initialized,
+         * for example the relaying plugin. We need to process theses option
+         * first so that --help will be recognized even throught the initialization
+         * fail.
+         *
+         * We can't delay the error checking of manager_client initialization either since
+         * prelude_client_init() also need to know the configuration file that will be used.
+         */
+
+        prelude_option_set_warnings(0, &old_warnings);
+        ret = prelude_option_read(init_first, &config.config_file, argc, argv, &err, NULL);        
+        prelude_option_set_warnings(old_warnings, NULL);
+        
+        return ret;
 }
