@@ -34,7 +34,7 @@
 
 #include <libprelude/list.h>
 #include <libprelude/plugin-common.h>
-#include <libprelude/common.h>
+#include <libprelude/prelude-log.h>
 #include <libprelude/daemonize.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/prelude-io.h>

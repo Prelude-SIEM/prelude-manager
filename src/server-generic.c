@@ -37,7 +37,7 @@
 #include <assert.h>
 #include <sys/stat.h>
 
-#include <libprelude/common.h>
+#include <libprelude/prelude-log.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/prelude-io.h>
@@ -625,6 +625,12 @@ static int inet_server_start(server_generic_t *server, const char *saddr, uint16
         int ret, on = 1;
         struct sockaddr_in addr;
         
+        ret = prelude_resolve_addr(saddr, &addr.sin_addr);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "couldn't resolve %s.\n", saddr);
+                return -1;
+        }
+        
         server->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if ( server->sock < 0 ) {
                 log(LOG_ERR, "couldn't create socket.\n");
@@ -633,8 +639,7 @@ static int inet_server_start(server_generic_t *server, const char *saddr, uint16
         
         addr.sin_family = AF_INET;
         addr.sin_port = htons(port);
-        addr.sin_addr.s_addr = inet_addr(saddr);
-
+        
         ret = setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't set SO_REUSEADDR socket option.\n");

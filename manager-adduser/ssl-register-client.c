@@ -38,7 +38,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#include <libprelude/common.h>
+#include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/ssl-gencrypto.h>

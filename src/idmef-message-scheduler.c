@@ -34,7 +34,7 @@
 #include <errno.h>
 #include <sys/time.h>
 
-#include <libprelude/common.h>
+#include <libprelude/prelude-log.h>
 #include <libprelude/prelude-list.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>

@@ -1,3 +1,8 @@
+2002-01-19  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* Fit libprelude header change. Resolve address when
+	needed for server creation.
+
 2002-01-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/prelude-manager.c (cleanup): cleanly exit all

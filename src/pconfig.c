@@ -27,7 +27,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 
-#include <libprelude/common.h>
+#include <libprelude/prelude-log.h>
 #include <libprelude/prelude-path.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/plugin-common.h>

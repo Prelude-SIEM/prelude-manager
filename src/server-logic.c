@@ -32,7 +32,7 @@
 #include <sys/time.h>
 
 #include <libprelude/list.h>
-#include <libprelude/common.h>
+#include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/threads.h>
 
@@ -89,6 +89,8 @@ typedef struct {
 
 struct server_logic {
         void *sdata;
+
+        int continue_processing;
         
         server_logic_read_t *read;
         server_logic_close_t *close;
@@ -165,6 +167,7 @@ static void remove_connection(server_fd_set_t *set, int cnx_key)
          */
         else if ( set->used_index == 0 ) {
                 list_del(&set->list);
+                set->parent->continue_processing--;
                 pthread_mutex_unlock(&server->mutex);
                 
                 dprint("Killing thread %ld\n", pthread_self());
@@ -265,10 +268,11 @@ static void *child_reader(void *ptr)
         struct sigaction act;
         int i, ret, active_fd;
         server_fd_set_t *set = ptr;
-        
+
         pthread_detach(set->thread);
 
         sigfillset(&s);
+        sigdelset(&s, SIGUSR1);
         pthread_sigmask(SIG_SETMASK, &s, NULL);
         
         /*
@@ -284,7 +288,7 @@ static void *child_reader(void *ptr)
                 return NULL;
         }
 
-        while ( 1 ) {
+        while ( set->parent->continue_processing != -1 ) {
                 
                 active_fd = poll(set->pfd, MAX_FD_BY_THREAD, -1);                
                 if ( active_fd < 0 ) {
@@ -307,6 +311,10 @@ static void *child_reader(void *ptr)
                                 active_fd--;
                 }
         }
+
+        set->parent->continue_processing--;
+        log(LOG_INFO, "killing thread %ld on exit request.\n", set->thread);
+        pthread_exit(NULL);
 }
 
 
@@ -331,7 +339,8 @@ static server_fd_set_t *create_fd_set(server_logic_t *server)
                 new->client[i] = NULL;
                 new->free_tbl[i] = i;
         }
-        
+
+        server->continue_processing++;
         list_add_tail(&new->list, &server->free_set_list);
         
         return new;
@@ -419,7 +428,8 @@ server_logic_t *server_logic_new(void *sdata,
         new->sdata = sdata;
         new->read = s_read;
         new->close = s_close;
-
+        new->continue_processing = 0;
+        
         return new;
 }
 
@@ -431,4 +441,20 @@ server_logic_t *server_logic_new(void *sdata,
  */
 void server_logic_stop(server_logic_t *server) 
 {
+        int processing = server->continue_processing;
+        
+        /*
+         * quite ugly isn't it ?
+         * it have the advantage to be signal safe.
+         */
+        server->continue_processing = -1;
+        kill(0, SIGUSR1);
+      
+        while ( server->continue_processing != (-1 - processing) )
+                sched_yield();
+
+        printf("Okay (%d %d)\n", server->continue_processing, -1 - processing);
 }
+
+
+

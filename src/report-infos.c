@@ -28,7 +28,7 @@
 #include <time.h>
 #include <inttypes.h>
 
-#include <libprelude/plugin-common.h>
+#include <libprelude/plugin-prelude-log.h>
 
 #include "report-infos.h"
 

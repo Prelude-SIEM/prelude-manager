@@ -29,7 +29,7 @@
 #include <pthread.h>
 
 #include <libprelude/list.h>
-#include <libprelude/common.h>
+#include <libprelude/prelude-log.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>

@@ -28,7 +28,7 @@
 #include <fcntl.h>
 #include <assert.h>
 
-#include <libprelude/common.h>
+#include <libprelude/prelude-log.h>
 
 #include "plugin-util.h"
 

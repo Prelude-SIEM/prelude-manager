@@ -31,7 +31,7 @@
 #include <inttypes.h>
 
 #include <libprelude/list.h>
-#include <libprelude/common.h>
+#include <libprelude/prelude-log.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>
 
