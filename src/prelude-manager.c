@@ -31,11 +31,8 @@
 #include <pthread.h>
 #include <sys/time.h>
 
-#include <libprelude/prelude-inttypes.h>
-#include <libprelude/idmef.h>
-#include <libprelude/prelude-client.h>
+#include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/prelude-linked-object.h>
 
 #include "server-generic.h"
 #include "sensor-server.h"
@@ -201,8 +198,15 @@ int main(int argc, char **argv)
         prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
                 
         ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, &argc, argv);
-        if ( ret < 0 )
+        if ( ret < 0 ) {
+                log(LOG_INFO, "%s: error initializing prelude-client object: %s.\n",
+                    prelude_strsource(ret), prelude_strerror(ret));
+
+                if ( prelude_error_get_code(ret) & PRELUDE_CLIENT_NEED_SETUP )
+                        prelude_client_installation_error(manager_client);
+                
                 return -1;
+        }
         
         ret = idmef_message_scheduler_init(manager_client);
         if ( ret < 0 ) {

@@ -35,12 +35,12 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include <libprelude/prelude-inttypes.h>
+#include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-message-id.h>
-#include <libprelude/timer.h>
+#include <libprelude/prelude-timer.h>
 
 
 #include <gcrypt.h>
@@ -140,7 +140,10 @@ static int dh_params_load(gnutls_dh_params dh, uint16_t req_bits)
         ret = gnutls_dh_params_import_raw(dh, &prime, &generator);
         if ( ret < 0 )
                 log(LOG_ERR, "error importing Diffie-Hellman parameters.\n");
-        
+
+        free(bits);
+        free(prime.data);
+        free(generator.data);
         prelude_io_close(pfd);
         prelude_io_destroy(pfd);
         
@@ -230,8 +233,8 @@ static void dh_params_regenerate(void *data)
         log(LOG_INFO, "- Regenerated %d bits Diffie-Hellman key for TLS.\n", global_dh_bits);
 
         dh_params_save(cur_dh_params, global_dh_bits);
-        timer_set_expire(&dh_param_regeneration_timer, global_dh_lifetime);
-        timer_reset(&dh_param_regeneration_timer);
+        prelude_timer_set_expire(&dh_param_regeneration_timer, global_dh_lifetime);
+        prelude_timer_reset(&dh_param_regeneration_timer);
 }
 
 
@@ -381,7 +384,9 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
         ret = verify_certificate(client, session);
         if ( ret < 0 ) 
                 return -1;
-                
+
+        printf("okay authenticated\n");
+        
         return 1;
 }
 
@@ -439,21 +444,21 @@ int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
         ret = dh_check_elapsed();
                 
         if ( ret != -1 && dh_params_load(cur_dh_params, dh_bits) == 0 )
-                timer_set_expire(&dh_param_regeneration_timer, dh_lifetime - ret);
+                prelude_timer_set_expire(&dh_param_regeneration_timer, dh_lifetime - ret);
         else {
                 log(LOG_INFO, "- Generating %d bits Diffie-Hellman key for TLS...\n", dh_bits);
 
                 gnutls_dh_params_generate2(cur_dh_params, dh_bits);
                 dh_params_save(cur_dh_params, dh_bits);
 
-                timer_set_expire(&dh_param_regeneration_timer, dh_lifetime);
+                prelude_timer_set_expire(&dh_param_regeneration_timer, dh_lifetime);
         }
         
         gnutls_certificate_set_params_function(cred, get_params);
 
         if ( dh_lifetime ) {
-                timer_set_callback(&dh_param_regeneration_timer, dh_params_regenerate);
-                timer_init(&dh_param_regeneration_timer);
+                prelude_timer_set_callback(&dh_param_regeneration_timer, dh_params_regenerate);
+                prelude_timer_init(&dh_param_regeneration_timer);
         }
         
 	return 0;

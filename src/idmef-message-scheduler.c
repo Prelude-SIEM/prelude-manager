@@ -37,17 +37,10 @@
 #include <sys/time.h>
 #include <netinet/in.h> /* required by common.h */
 
-#include <libprelude/prelude-inttypes.h>
+#include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/prelude-list.h>
-#include <libprelude/prelude-linked-object.h>
-#include <libprelude/idmef.h>
-#include <libprelude/idmef-message-id.h>
-#include <libprelude/extract.h>
-#include <libprelude/threads.h>
-#include <libprelude/common.h>
-#include <libprelude/prelude-client.h>
-#include <libprelude/timer.h>
+#include <libprelude/prelude-timer.h>
+#include <libprelude/prelude-error.h>
 
 #include "libmissing.h"
 #include "plugin-decode.h"
@@ -162,7 +155,7 @@ static void wait_for_message(struct timeval *start)
                 ret = pthread_cond_timedwait(&input_cond, &input_mutex, &ts);
                 if ( ret == ETIMEDOUT ) {
                         start->tv_sec = 0;
-                        prelude_wake_up_timer();
+                        prelude_timer_wake_up();
                 } else {
                         gettimeofday(&end, NULL);
                         start->tv_sec += (end.tv_sec - start->tv_sec);
@@ -225,25 +218,25 @@ static void destroy_file_output(file_output_t *out)
  */
 static prelude_msg_t *get_message_from_file(file_output_t *out) 
 {
+        int ret;
         prelude_msg_t *msg = NULL;
-        prelude_msg_status_t status;
         
         if ( ! out->input_available )
                 return NULL;
                 
-        status = prelude_msg_read(&msg, out->rfd);
-        if ( status == prelude_msg_finished )
+        ret = prelude_msg_read(&msg, out->rfd);
+        if ( ret == 0 )
                 return msg;
 
-        else if ( status == prelude_msg_eof )
+        else if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EOF )
                 out->input_available = 0;
-
         
         else {
                 /*
                  * unfinished and error should never happen 
                  */
-                log(LOG_ERR, "on disk message fifo is corrupted (status=%d).\n", status);
+                log(LOG_ERR, "on disk message fifo is corrupted: %s %s.\n",
+                    prelude_strsource(ret), prelude_strerror(ret));
                 exit(1);
         }
 

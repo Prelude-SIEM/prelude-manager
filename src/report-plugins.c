@@ -34,13 +34,12 @@
 #include <fcntl.h>
 #include <assert.h>
 
-#include <libprelude/prelude-inttypes.h>
-#include <libprelude/prelude-message-buffered.h>
+#include <libprelude/prelude.h>
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-message-write.h>
 #include <libprelude/prelude-linked-object.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/timer.h>
+#include <libprelude/prelude-timer.h>
 #include <libprelude/common.h>
 #include <libprelude/prelude-failover.h>
 
@@ -161,9 +160,9 @@ static void failover_timer_expire_cb(void *data)
         
         ret = try_recovering_from_failover(pi, pf);
         if ( ret < 0 )
-                timer_reset(&pf->timer);
+                prelude_timer_reset(&pf->timer);
         else
-                timer_destroy(&pf->timer);
+                prelude_timer_destroy(&pf->timer);
 }
 
 
@@ -241,11 +240,11 @@ static void failover_init(prelude_plugin_generic_t *pg, prelude_plugin_instance_
                         
         log(LOG_INFO, "- Plugin %s[%s]: failure. Enabling failover.\n", pg->name, prelude_plugin_instance_get_name(pi));
 
-        timer_set_data(&pf->timer, pi);
-        timer_set_expire(&pf->timer, FAILOVER_RETRY_TIMEOUT);
-        timer_set_callback(&pf->timer, failover_timer_expire_cb);
+        prelude_timer_set_data(&pf->timer, pi);
+        prelude_timer_set_expire(&pf->timer, FAILOVER_RETRY_TIMEOUT);
+        prelude_timer_set_callback(&pf->timer, failover_timer_expire_cb);
 
-        timer_init(&pf->timer);
+        prelude_timer_init(&pf->timer);
 }
 
 

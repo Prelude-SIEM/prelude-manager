@@ -48,6 +48,7 @@
 #include <libprelude/extract.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-inet.h>
+#include <libprelude/prelude-error.h>
 
 #include "config.h"
 #include "libmissing.h"
@@ -86,7 +87,7 @@ static volatile sig_atomic_t continue_processing = 1;
 
 static int send_auth_result(server_generic_client_t *client, int result)
 {
-        prelude_msg_status_t ret;
+        int ret;
                 
         if ( ! client->msg ) {
                 client->msg = prelude_msg_new(1, 0, PRELUDE_MSG_AUTH, 0);
@@ -96,17 +97,18 @@ static int send_auth_result(server_generic_client_t *client, int result)
                 prelude_msg_set(client->msg, result, 0, NULL);
         }
         
-        ret = prelude_msg_write(client->msg, client->fd);        
-        if ( ret == prelude_msg_error ) {
-                prelude_msg_destroy(client->msg);
-                return -1;
+        ret = prelude_msg_write(client->msg, client->fd); 
+        if ( ret < 0 ) {
+		if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
+			server_logic_notify_write_enable((server_logic_client_t *) client);
+			return 0;
+		}
+
+		log(LOG_ERR, "error writing auth result message: %s.\n", prelude_strerror(ret));
+		prelude_msg_destroy(client->msg);
+		return -1;
         }
 
-        if ( ret == prelude_msg_unfinished ) {
-                server_logic_notify_write_enable((server_logic_client_t *) client);
-                return 0;
-        }
-        
         prelude_msg_destroy(client->msg);
 
         client->msg = NULL;

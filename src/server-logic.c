@@ -34,7 +34,6 @@
 #include <libprelude/prelude-list.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
-#include <libprelude/threads.h>
 
 #include "libmissing.h"
 #include "server-logic.h"

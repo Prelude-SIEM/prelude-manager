@@ -26,8 +26,8 @@
 
 
 #include <libprelude/prelude-io.h>
-#include <libprelude/prelude-message.h>
-#include <libprelude/prelude-getopt.h>
+#include <libprelude/prelude-msg.h>
+#include <libprelude/prelude-option.h>
 #include <libprelude/prelude-plugin.h>
 
 

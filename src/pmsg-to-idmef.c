@@ -33,6 +33,7 @@
 #include <libprelude/idmef-message-read.h>
 #include <libprelude/prelude-ident.h>
 #include <libprelude/prelude-client.h>
+#include <libprelude/prelude-error.h>
 
 #include "plugin-decode.h"
 #include "pmsg-to-idmef.h"
@@ -174,7 +175,7 @@ idmef_message_t *pmsg_to_idmef(prelude_msg_t *msg)
 		return NULL;
 	}
 
-        while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) > 0 ) {
+        while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) == 0 ) {
                 
                 if ( tag == MSG_ALERT_TAG ) 
 			ret = handle_alert_msg(msg, idmef);
@@ -191,10 +192,10 @@ idmef_message_t *pmsg_to_idmef(prelude_msg_t *msg)
                         break;
         }
         
-        if ( ret == 0 )
+        if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EOF )
                 return idmef;
         
-        log(LOG_ERR, "error reading IDMEF message.\n");
+        log(LOG_ERR, "error reading IDMEF message: %s %s.\n", prelude_strsource(ret), prelude_strerror(ret));
         idmef_message_destroy(idmef);
                 
         return NULL;

@@ -217,7 +217,7 @@ static int ether_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_
         type = switch_ethertype(t);
         prelude_string_sprintf(buf, "%s [ether_type=%s (%d)]", etheraddr_string(hdr->ether_dhost), type, t);
 
-        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string_released(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
                 prelude_string_destroy(buf);
                 return -1;
@@ -226,7 +226,6 @@ static int ether_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
 
-        prelude_string_dont_own(buf);
         prelude_string_destroy(buf);
         
         return 0;
@@ -310,7 +309,7 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         prelude_string_sprintf(buf, "spa=%s,sha=%s",
                                get_address(&tmp_addr), etheraddr_string(arp->arp_sha));
 
-        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string_released(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
                 prelude_string_destroy(buf);
                 return -1;
@@ -319,7 +318,6 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_string_dont_own(buf);
         prelude_string_destroy(buf);
         
         return 0;
@@ -343,7 +341,7 @@ static int ipopts_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet
                 return -1;
         }
 
-        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string_released(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
                 prelude_string_destroy(buf);
                 return -1;
@@ -352,7 +350,6 @@ static int ipopts_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
 
-        prelude_string_dont_own(buf);
         prelude_string_destroy(buf);
         
         return 0;
@@ -377,7 +374,7 @@ static int tcpopts_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packe
                 return -1;
         }
 
-        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string_released(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
                 prelude_string_destroy(buf);
                 return -1;
@@ -386,7 +383,6 @@ static int tcpopts_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packe
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
 
-        prelude_string_dont_own(buf);
         prelude_string_destroy(buf);
         
         return 0;
@@ -470,7 +466,7 @@ static int ip_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *
 
         prelude_string_sprintf(buf, "]");
 
-        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string_released(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
                 prelude_string_destroy(buf);
                 return -1;
@@ -479,7 +475,6 @@ static int ip_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_string_dont_own(buf);
         prelude_string_destroy(buf);
         
         return 0;
@@ -566,7 +561,7 @@ static int tcp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         prelude_string_sprintf(buf, ",win=%d]", win);
 
 
-        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string_released(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
                 prelude_string_destroy(buf);
                 return -1;
@@ -575,7 +570,6 @@ static int tcp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_string_dont_own(buf);
         prelude_string_destroy(buf);
         
         return 0;
@@ -601,7 +595,7 @@ static int udp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         
         prelude_string_sprintf(buf, "%d -> %d [len=%d]", sport, dport, len);
 
-        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string_released(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
                 prelude_string_destroy(buf);
                 return -1;
@@ -610,7 +604,6 @@ static int udp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_string_dont_own(buf);
         prelude_string_destroy(buf);
         
         return 0;
@@ -672,7 +665,7 @@ static int igmp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
         prelude_string_sprintf(buf, "type=%s code=%d group=%s",
                                type, igmp->igmp_code, get_address(&igmp->igmp_group));
 
-        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string_released(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
                 prelude_string_destroy(buf);
                 return -1;
@@ -681,7 +674,6 @@ static int igmp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_string_dont_own(buf);
         prelude_string_destroy(buf);
         
         return 0;
@@ -708,7 +700,7 @@ static int icmp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
         icmp = packet->p.icmp_hdr;
         prelude_string_sprintf(buf, "type=%d code=%d", icmp->icmp_type, icmp->icmp_code);
 
-        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string_released(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
                 prelude_string_destroy(buf);
                 return -1;
@@ -717,7 +709,6 @@ static int icmp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_string_dont_own(buf);
         prelude_string_destroy(buf);
 
         return 0;

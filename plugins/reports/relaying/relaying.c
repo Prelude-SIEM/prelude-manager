@@ -30,7 +30,6 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-plugin.h>
 #include <libprelude/prelude-client.h>
-#include <libprelude/prelude-message-buffered.h>
 #include <libprelude/idmef-message-write.h>
 
 #include "plugin-report.h"
@@ -65,6 +64,9 @@ static prelude_msg_t *send_msgbuf(prelude_msgbuf_t *msgbuf)
 static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idmef)
 {
         relaying_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+
+        if ( ! plugin->parent_manager )
+                return 0;
         
         if ( ! msgbuf ) {
                 msgbuf = prelude_msgbuf_new(manager_client);
@@ -92,7 +94,7 @@ static int relaying_activate(void *context, prelude_option_t *opt, const char *o
                 log(LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
-
+                
         prelude_plugin_instance_set_data(context, new);
         
         return 0;
@@ -105,24 +107,22 @@ static int relaying_set_manager(void *context, prelude_option_t *opt, const char
         int ret;
         relaying_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         prelude_client_capability_t capability = prelude_client_get_capability(manager_client);
+
+        if ( ! plugin->parent_manager ) {       
+                plugin->parent_manager = prelude_connection_mgr_new(manager_client);
+                if ( ! plugin->parent_manager )
+                        return -1;
+        }
         
         prelude_client_set_capability(manager_client, capability|PRELUDE_CLIENT_CAPABILITY_SEND_IDMEF);
         
-        plugin->parent_manager = prelude_connection_mgr_new(manager_client);
-        if ( ! plugin->parent_manager )
-                return -1;
-
         ret = prelude_connection_mgr_set_connection_string(plugin->parent_manager, optarg);
-        if ( ret < 0 ) {
-                prelude_connection_mgr_destroy(plugin->parent_manager);
+        if ( ret < 0 )
                 return -1;
-        }
 
         ret = prelude_connection_mgr_init(plugin->parent_manager);
-        if ( ret < 0 ) {
-                prelude_connection_mgr_destroy(plugin->parent_manager);
+        if ( ret < 0 )
                 return -1;
-        }       
 
         return 0;
 }
@@ -130,20 +130,35 @@ static int relaying_set_manager(void *context, prelude_option_t *opt, const char
 
 
 
+static int relaying_get_manager(void *context, prelude_option_t *opt, char *buf, size_t size)
+{
+        relaying_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+
+        if ( ! plugin->parent_manager )
+                return 0;
+
+        snprintf(buf, size, "%s", prelude_connection_mgr_get_connection_string(plugin->parent_manager));
+
+        return 0;
+}
+
+
+
 prelude_plugin_generic_t *relaying_LTX_prelude_plugin_init(void)
 {
         prelude_option_t *opt;
         static plugin_report_t plugin;
+        int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
-        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 0, "relaying",
-                                 "Relaying plugin option", optionnal_argument,
+        opt = prelude_option_add(NULL, hook, 0, "relaying",
+                                 "Relaying plugin option", PRELUDE_OPTION_ARGUMENT_OPTIONAL,
                                  relaying_activate, NULL);
 
         prelude_plugin_set_activation_option((void *) &plugin, opt, NULL);
 
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'p', "parent-managers",
+        prelude_option_add(opt, hook, 'p', "parent-managers",
                            "List of managers address:port pair where messages should be sent to",
-                           required_argument, relaying_set_manager, NULL);
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED, relaying_set_manager, relaying_get_manager);
         
         prelude_plugin_set_name(&plugin, "Relaying");
         prelude_plugin_set_author(&plugin, "Yoann Vandoorselaere");

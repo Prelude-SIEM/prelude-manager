@@ -26,8 +26,6 @@
 
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
-#include <libprelude/prelude-message.h>
-#include <libprelude/prelude-getopt.h>
 #include <libprelude/prelude-plugin.h>
 #include <libprelude/idmef-message-id.h>
 #include <libprelude/idmef-message-id-format.h>

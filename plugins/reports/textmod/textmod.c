@@ -28,7 +28,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include <libprelude/idmef.h>
+#include <libprelude/prelude.h>
 #include <libprelude/idmef-util.h>
 
 #include "libmissing.h"
@@ -851,12 +851,12 @@ static int textmod_activate(void *context, prelude_option_t *opt, const char *ar
         new = calloc(1, sizeof(*new));
         if ( ! new ) {
                 log(LOG_ERR, "memory exhausted.\n");
-                return prelude_option_error;
+                return prelude_error_from_errno(errno);
         }
 
         prelude_plugin_instance_set_data(context, new);
         
-        return prelude_option_success;
+        return 0;
 }
 
 
@@ -880,15 +880,15 @@ static void textmod_destroy(prelude_plugin_instance_t *pi)
 prelude_plugin_generic_t *textmod_LTX_prelude_plugin_init(void)
 {
 	prelude_option_t *opt;
+        int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
-        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "textmod",
-                                 "Option for the textmod plugin", optionnal_argument,
-                                 textmod_activate, NULL);
+        opt = prelude_option_add(NULL, hook, 0, "textmod", "Option for the textmod plugin",
+                                 PRELUDE_OPTION_ARGUMENT_OPTIONAL, textmod_activate, NULL);
         
         prelude_plugin_set_activation_option((void *) &textmod_init, opt, textmod_init);
         
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'l', "logfile",
-                           "Specify logfile to use", required_argument,
+        prelude_option_add(opt, hook, 'l', "logfile", "Specify logfile to use",
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED,
                            textmod_set_logfile, textmod_get_logfile);
 
         prelude_plugin_set_name(&textmod_plugin, "TextMod");

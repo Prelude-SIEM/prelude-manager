@@ -29,18 +29,14 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#include <libprelude/prelude-inttypes.h>
-#include <libprelude/prelude-list.h>
+#include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-message.h>
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-ident.h>
 #include <libprelude/extract.h>
 #include <libprelude/prelude-connection.h>
 #include <libprelude/prelude-connection-mgr.h>
-#include <libprelude/prelude-getopt.h>
-#include <libprelude/prelude-getopt-wide.h>
+#include <libprelude/prelude-option-wide.h>
 
 #include "server-logic.h"
 #include "server-generic.h"
@@ -48,7 +44,6 @@
 #include "idmef-message-scheduler.h"
 #include "pconfig.h"
 #include "reverse-relaying.h"
-
 
 typedef struct {
         SERVER_GENERIC_OBJECT;
@@ -111,7 +106,7 @@ static int forward_message_to_all(sensor_fd_t *client, prelude_msg_t *msg,
                         
                 do {
                         ret = prelude_msg_write(msg, cnx->fd);
-                } while ( ret == prelude_msg_unfinished );
+                } while ( ret == PRELUDE_ERROR_EAGAIN );
         }
         
         pthread_mutex_unlock(list_mutex);
@@ -142,7 +137,7 @@ static int forward_option_reply_to_admin(sensor_fd_t *cnx, uint64_t analyzerid, 
                 
         do {
                 ret = prelude_msg_write(msg, admin->fd);
-        } while ( ret == prelude_msg_unfinished );
+        } while ( ret == PRELUDE_ERROR_EAGAIN );
         
         pthread_mutex_unlock(&admins_list_mutex);
 
@@ -174,7 +169,7 @@ static int forward_option_request_to_sensor(sensor_fd_t *cnx, uint64_t analyzeri
         
         do {
                 ret = prelude_msg_write(msg, sensor->fd);
-        } while ( ret == prelude_msg_unfinished );
+        } while ( ret == PRELUDE_ERROR_EAGAIN );
         
         return ret;
 }
@@ -405,8 +400,9 @@ static int read_client_type(sensor_fd_t *cnx, prelude_msg_t *msg)
         uint32_t dlen;
         
         ret = prelude_msg_get(msg, &tag, &dlen, &buf);
-        if ( ret <= 0 ) {
-                server_generic_log_client((server_generic_client_t *) cnx, "error decoding message.\n");
+        if ( ret < 0 ) {
+                server_generic_log_client((server_generic_client_t *) cnx, "error decoding message - %s: %s.\n",
+                                          prelude_strsource(ret), prelude_strerror(ret));
                 return -1;
         }
 
@@ -441,12 +437,11 @@ static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg)
 
         ret = prelude_msg_get(msg, &tag, &dlen, &buf);
         if ( ret < 0 ) {
-                server_generic_log_client((server_generic_client_t *) cnx, "error decoding message.\n");
+                server_generic_log_client((server_generic_client_t *) cnx,
+                                          "error decoding message - %s:%s.\n",
+                                          prelude_strsource(ret), prelude_strerror(ret));
                 return -1;
         }
-
-        if ( ret == 0 ) 
-                return 0;
         
         switch (tag) {
                 
@@ -471,23 +466,20 @@ static int read_connection_cb(server_generic_client_t *client)
         int ret;
         uint8_t tag;
         prelude_msg_t *msg;
-        prelude_msg_status_t status;
         sensor_fd_t *cnx = (sensor_fd_t *) client;
         
-        status = prelude_msg_read(&cnx->msg, cnx->fd);
-        if ( status == prelude_msg_eof || status == prelude_msg_error ) {
-                /*
-                 * end of file on read
-                 */
+        ret = prelude_msg_read(&cnx->msg, cnx->fd);        
+        if ( ret < 0 ) {
+		if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
+                        return 0;
+                
+                if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
+                        server_generic_log_client((server_generic_client_t *) cnx, "%s: %s\n",
+                                                  prelude_strsource(ret), prelude_strerror(ret));
+
                 return -1;
         }
-
-        else if ( status == prelude_msg_unfinished )
-                /*
-                 * We don't have the whole message yet
-                 */
-                return 0;
-
+        
         msg = cnx->msg;
         cnx->msg = NULL;
         

@@ -28,7 +28,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include <libprelude/idmef.h>
+#include <libprelude/prelude.h>
 #include <libprelude/idmef-util.h>
 
 #include <libxml/parser.h>
@@ -937,12 +937,12 @@ static int xmlmod_activate(void *context, prelude_option_t *opt, const char *arg
         new = calloc(1, sizeof(*new));
         if ( ! new ) {
                 log(LOG_ERR, "memory exhausted.\n");
-                return prelude_option_error;
+                return prelude_error_from_errno(errno);
         }
 
         prelude_plugin_instance_set_data(context, new);
         
-        return prelude_option_success;
+        return 0;
 }
 
 
@@ -957,10 +957,10 @@ static int set_dtd_check(void *context, prelude_option_t *option, const char *ar
         plugin->idmef_dtd = xmlParseDTD(NULL, arg);
         if ( ! plugin->idmef_dtd ) {
                 log(LOG_ERR, "error loading IDMEF DTD %s.\n", arg);
-                return prelude_option_error;
+                return prelude_error_from_errno(errno);
         }
 
-        return prelude_option_success;
+        return 0;
 }
 
 
@@ -971,7 +971,7 @@ static int enable_formatting(void *context, prelude_option_t *option, const char
         
         plugin->format = ! plugin->format;
         
-        return prelude_option_success;
+        return 0;
 }
 
 
@@ -982,7 +982,7 @@ static int get_formatting(void *context, prelude_option_t *opt, char *buf, size_
         
         snprintf(buf, size, "%s", plugin->format ? "enabled" : "disabled");
 
-        return prelude_option_success;
+        return 0;
 }
 
 
@@ -993,7 +993,7 @@ static int disable_buffering(void *context, prelude_option_t *option, const char
         
         plugin->no_buffering = ! plugin->no_buffering;
         
-        return prelude_option_success;
+        return 0;
 }
 
 
@@ -1001,30 +1001,27 @@ static int disable_buffering(void *context, prelude_option_t *option, const char
 prelude_plugin_generic_t *xmlmod_LTX_prelude_plugin_init(void)
 {
 	prelude_option_t *opt;
-
+        int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
+        
         xmlInitParser();
         
-        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "xmlmod",
-                                 "Option for the xmlmod plugin", optionnal_argument,
-                                 xmlmod_activate, NULL);
+        opt = prelude_option_add(NULL, hook, 0, "xmlmod", "Option for the xmlmod plugin",
+                                 PRELUDE_OPTION_ARGUMENT_OPTIONAL, xmlmod_activate, NULL);
 
         prelude_plugin_set_activation_option((void *) &xmlmod_plugin, opt, xmlmod_init);
         
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'l', "logfile",
-                           "Specify output file to use", required_argument,
-                           xmlmod_set_logfile, xmlmod_get_logfile);
+        prelude_option_add(opt, hook, 'l', "logfile", "Specify output file to use",
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED, xmlmod_set_logfile, xmlmod_get_logfile);
         
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'v', "validate",
-                           "Validate IDMEF XML output against DTD", optionnal_argument,
-                           set_dtd_check, NULL);
+        prelude_option_add(opt, hook, 'v', "validate", "Validate IDMEF XML output against DTD",
+                           PRELUDE_OPTION_ARGUMENT_OPTIONAL, set_dtd_check, NULL);
 
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'f', "format",
-                           "Format XML output so that it is readable", no_argument,
-                           enable_formatting, get_formatting);
+        prelude_option_add(opt, hook, 'f', "format", "Format XML output so that it is readable",
+                           PRELUDE_OPTION_ARGUMENT_NONE, enable_formatting, get_formatting);
 
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'd', "disable-buffering",
-                           "Disable output file buffering to prevent truncated tags", no_argument,
-                           disable_buffering, NULL);
+        prelude_option_add(opt, hook, 'd', "disable-buffering",
+                           "Disable output file buffering to prevent truncated tags",
+                           PRELUDE_OPTION_ARGUMENT_NONE, disable_buffering, NULL);
        
         prelude_plugin_set_name(&xmlmod_plugin, "XmlMod");
         prelude_plugin_set_author(&xmlmod_plugin, "Yoann Vandoorselaere");

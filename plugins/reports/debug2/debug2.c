@@ -31,9 +31,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <libprelude/prelude-inttypes.h>
-#include <libprelude/prelude-list.h>
-#include <libprelude/idmef.h>
+#include <libprelude/prelude.h>
 
 #include "config.h"
 #include "report.h"
@@ -110,7 +108,7 @@ static int debug_set_object(void *context, prelude_option_t *option, const char 
 	object = calloc(1, sizeof(*object));
 	if ( ! object ) {
 		log(LOG_ERR, "memory exhausted.\n");
-		return prelude_option_error;
+		return prelude_error_from_errno(errno);
 	}
 
 	object->name = strdup(arg);
@@ -118,7 +116,7 @@ static int debug_set_object(void *context, prelude_option_t *option, const char 
 	object->object = idmef_object_new("%s", arg);
 	if ( ! object->object ) {
 		log(LOG_ERR, "object \"%s\" not found", arg);
-		return prelude_option_error;
+		return -1;
 	}
 	
 	prelude_list_add_tail(&object->list, &plugin->object_list);
@@ -129,7 +127,7 @@ static int debug_set_object(void *context, prelude_option_t *option, const char 
 	
 	free(numeric);
 	
-	return prelude_option_success;
+	return 0;
 }
 
 
@@ -141,7 +139,7 @@ static int debug_new(void *context, prelude_option_t *opt, const char *arg)
         new = malloc(sizeof(*new));
         if ( ! new ) {
                 log(LOG_ERR, "memory exhausted.\n");
-                return prelude_option_error;
+                return prelude_error_from_errno(errno);
         }
 
         PRELUDE_INIT_LIST_HEAD(&new->object_list);
@@ -149,7 +147,7 @@ static int debug_new(void *context, prelude_option_t *opt, const char *arg)
 
         prelude_plugin_subscribe(context);
         
-        return prelude_option_success;
+        return 0;
 }
 
 
@@ -181,16 +179,15 @@ static void debug_destroy(prelude_plugin_instance_t *pi)
 prelude_plugin_generic_t *debug2_LTX_prelude_plugin_init(void)
 {
 	prelude_option_t *opt;
+        int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
-        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "debug2",
-                                 "Option for the debug plugin", optionnal_argument,
-                                 debug_new, NULL);
+        opt = prelude_option_add(NULL, hook, 0, "debug2", "Option for the debug plugin",
+                                 PRELUDE_OPTION_ARGUMENT_OPTIONAL, debug_new, NULL);
 
         prelude_plugin_set_activation_option((void *) &debug_plugin, opt, NULL);
         
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'o', "object",
-                           "IDMEF object name", required_argument,
-                           debug_set_object, NULL);
+        prelude_option_add(opt, hook, 'o', "object", "IDMEF object name",
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED, debug_set_object, NULL);
 
         prelude_plugin_set_name(&debug_plugin, "Debug2");
         prelude_plugin_set_desc(&debug_plugin, "Test plugin.");

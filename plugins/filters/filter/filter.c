@@ -83,7 +83,7 @@ static int set_filter_hook(void *context, prelude_option_t *opt, const char *arg
                 ret = strcasecmp(arg, tbl[i].hook);
                 if ( ret == 0 ) {
                         filter_plugins_add_category(context, tbl[i].cat, NULL, plugin);
-                        return prelude_option_success;
+                        return 0;
                 }
         }
 
@@ -96,12 +96,12 @@ static int set_filter_hook(void *context, prelude_option_t *opt, const char *arg
         ptr = prelude_plugin_search_instance_by_name(pname, (ret == 2) ? iname : NULL);
         if ( ! ptr ) {
                 log(LOG_ERR, "category '%s' doesn't exist, or a plugin of that name is not loaded.\n", arg);
-                return prelude_option_error;
+                return -1;
         }
 
         filter_plugins_add_category(context, FILTER_CATEGORY_PLUGIN, ptr, plugin);
         
-        return prelude_option_success;
+        return 0;
 }
 
 
@@ -114,14 +114,14 @@ static int set_filter_rule(void *context, prelude_option_t *opt, const char *arg
 
         new = idmef_criteria_new_string(arg);
         if ( ! new ) 
-                return prelude_option_error;
+                return -1;
         
         if ( ! plugin->criteria )
                 plugin->criteria = new;
         else
                 idmef_criteria_or_criteria(plugin->criteria, new);
         
-        return prelude_option_success;
+        return 0;
 }
 
 
@@ -144,13 +144,13 @@ static int filter_activate(void *context, prelude_option_t *opt, const char *arg
         new = malloc(sizeof(*new));
         if ( ! new ) {
                 log(LOG_ERR, "memory exhausted.\n");
-                return prelude_option_error;
+                return -1;
         }
         
         new->criteria = NULL;
         prelude_plugin_instance_set_data(context, new);
         
-        return prelude_option_success;
+        return 0;
 }
 
 
@@ -160,19 +160,22 @@ prelude_plugin_generic_t *filter_LTX_prelude_plugin_init(void)
 {
         prelude_option_t *opt;
         
-        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "filter",
-                                 "Option for the filter plugin", optionnal_argument,
+        opt = prelude_option_add(NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
+                                 |PRELUDE_OPTION_TYPE_WIDE, 0, "filter",
+                                 "Option for the filter plugin", PRELUDE_OPTION_ARGUMENT_OPTIONAL,
                                  filter_activate, NULL);
 
         prelude_plugin_set_activation_option((void *) &filter_plugin, opt, NULL);
         
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'r', "rule",
-                           "Filtering rule", required_argument,
+        prelude_option_add(opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
+                           |PRELUDE_OPTION_TYPE_WIDE, 'r', "rule",
+                           "Filtering rule", PRELUDE_OPTION_ARGUMENT_REQUIRED,
                            set_filter_rule, get_filter_rule);
         
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'h', "hook",
+        prelude_option_add(opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
+                           |PRELUDE_OPTION_TYPE_WIDE, 'h', "hook",
                            "Where the filter should be hooked (reporting|reverse-relaying|plugin name)",
-                           required_argument, set_filter_hook, NULL);
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED, set_filter_hook, NULL);
         
         prelude_plugin_set_name(&filter_plugin, "Filter");
         prelude_plugin_set_author(&filter_plugin, "Krzysztof Zaraska");
