@@ -1,7 +1,12 @@
 2001-09-02  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* plugins/decodes/prelude-nids/decode.c (plugin_init): 
+	set id field to ID_PRELUDE_NIDS_ALERT.
+
 	* src/cnx.c (wait_raw_report): 
 	Handle the decode_plugins_run return value.
+	(wait_raw_report): added a special case if alert id is
+	ID_IDMEF_ALERT. Include alert-id.h.
 
 	* plugins/decodes/prelude-nids/decode.c (nids_decode_run): 
 	Add code to decode alert message.

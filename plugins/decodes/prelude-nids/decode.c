@@ -6,6 +6,8 @@
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/alert-read.h>
+#include <libprelude/alert-id.h>
+
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
@@ -646,7 +648,7 @@ int plugin_init(unsigned int id)
         plugin_set_desc(&plugin, "Decode Prelude NIDS message, and translate them to IDMEF.");
         plugin_set_running_func(&plugin, nids_decode_run);
 
-        plugin.decode_id = 1;
+        plugin.decode_id = ID_PRELUDE_NIDS_ALERT;
         
 	return plugin_register((plugin_generic_t *)&plugin);
 }

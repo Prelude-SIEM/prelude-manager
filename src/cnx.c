@@ -36,6 +36,7 @@
 #include <libprelude/alert-read.h>
 #include <libprelude/common.h>
 #include <libprelude/config-engine.h>
+#include <libprelude/alert-id.h>
 
 #include <libxml/parser.h>
 
@@ -67,11 +68,20 @@ static int wait_raw_report(int socket)
                 ac = prelude_alert_read(socket, &tag);
                 if ( ! ac )
                         return -1;
-                
-                idmef_msg = decode_plugins_run(ac, tag);
-                if ( ! idmef_msg ) {
+
+                if ( tag == ID_IDMEF_ALERT ) {
+                        /*
+                         * Special case where we should directly
+                         * contact the DB subsystem.
+                         */
                         free(ac);
                         return -1;
+                } else {
+                        idmef_msg = decode_plugins_run(ac, tag);
+                        if ( ! idmef_msg ) {
+                                free(ac);
+                                return -1;
+                        }
                 }
 
                 /*
