@@ -62,7 +62,7 @@ static int process_message(idmef_message_t *msg, void *priv)
 
 
 
-static int set_filter_hook(void *context, prelude_option_t *opt, const char *arg) 
+static int set_filter_hook(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
 {
         int i, ret;
         filter_plugin_t *plugin;
@@ -80,22 +80,22 @@ static int set_filter_hook(void *context, prelude_option_t *opt, const char *arg
         plugin = prelude_plugin_instance_get_data(context);
         
         for ( i = 0; tbl[i].hook != NULL; i++ ) {
-                ret = strcasecmp(arg, tbl[i].hook);
+                ret = strcasecmp(optarg, tbl[i].hook);
                 if ( ret == 0 ) {
                         filter_plugins_add_category(context, tbl[i].cat, NULL, plugin);
                         return 0;
                 }
         }
 
-        ret = sscanf(arg, "%255[^[][%255[^]]", pname, iname);
+        ret = sscanf(optarg, "%255[^[][%255[^]]", pname, iname);
         if ( ret == 0 ) {
-                log(LOG_ERR, "error parsing value: '%s'.\n", arg);
+                prelude_string_sprintf(err, "error parsing value: '%s'", optarg);
                 return -1;
         }
         
         ptr = prelude_plugin_search_instance_by_name(pname, (ret == 2) ? iname : NULL);
         if ( ! ptr ) {
-                log(LOG_ERR, "category '%s' doesn't exist, or a plugin of that name is not loaded.\n", arg);
+                prelude_string_sprintf(err, "Unknown hook '%s'", optarg);
                 return -1;
         }
 
@@ -107,12 +107,12 @@ static int set_filter_hook(void *context, prelude_option_t *opt, const char *arg
 
 
 
-static int set_filter_rule(void *context, prelude_option_t *opt, const char *arg) 
+static int set_filter_rule(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
 {
         idmef_criteria_t *new;
         filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);
 
-        new = idmef_criteria_new_string(arg);
+        new = idmef_criteria_new_string(optarg);
         if ( ! new ) 
                 return -1;
         
@@ -127,40 +127,22 @@ static int set_filter_rule(void *context, prelude_option_t *opt, const char *arg
 
 
 
-static int get_filter_rule(void *context, prelude_option_t *opt, char *buf, size_t size)
+static int get_filter_rule(void *context, prelude_option_t *opt, prelude_string_t *out)
 {
-        int ret;
-        prelude_string_t *out;
-        filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);
-
-        out = prelude_string_new();
-        if ( ! out )
-                return -1;
-        
-        ret = idmef_criteria_to_string(plugin->criteria, out);
-        if ( ret < 0 ) {
-                prelude_string_destroy(out);
-                return -1;
-        }
-
-        snprintf(buf, size, "%s", prelude_string_get_string(out));
-        prelude_string_destroy(out);
-
-        return 0;
+        filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);       
+        return idmef_criteria_to_string(plugin->criteria, out);
 }
 
 
 
 
-static int filter_activate(void *context, prelude_option_t *opt, const char *arg) 
+static int filter_activate(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
 {
         filter_plugin_t *new;
         
         new = malloc(sizeof(*new));
-        if ( ! new ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return -1;
-        }
+        if ( ! new )
+                return prelude_error_from_errno(errno);
         
         new->criteria = NULL;
         prelude_plugin_instance_set_data(context, new);

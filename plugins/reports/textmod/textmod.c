@@ -818,14 +818,13 @@ static int textmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 
 
 
-static int textmod_init(prelude_plugin_instance_t *pi)
+static int textmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
-        int ret;
         FILE *fd;
         textmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
         
         if ( ! plugin->logfile ) {
-                log(LOG_ERR, "no logfile specified.\n");
+                prelude_string_sprintf(out, "no logfile specified");
                 return -1;
         }
 
@@ -834,7 +833,7 @@ static int textmod_init(prelude_plugin_instance_t *pi)
         else {
                 fd = fopen(plugin->logfile, "a+");
                 if ( ! fd ) {
-                        log(LOG_ERR, "error opening %s in append mode.\n", plugin->logfile);
+                        prelude_string_sprintf(out, "error opening %s in append mode", plugin->logfile);
                         return -1;
                 }
         }
@@ -847,15 +846,13 @@ static int textmod_init(prelude_plugin_instance_t *pi)
 
 
 
-static int textmod_activate(void *context, prelude_option_t *opt, const char *arg) 
+static int textmod_activate(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
 {
         textmod_plugin_t *new;
         
         new = calloc(1, sizeof(*new));
-        if ( ! new ) {
-                log(LOG_ERR, "memory exhausted.\n");
+        if ( ! new )
                 return prelude_error_from_errno(errno);
-        }
 
         prelude_plugin_instance_set_data(context, new);
         
@@ -865,7 +862,7 @@ static int textmod_activate(void *context, prelude_option_t *opt, const char *ar
 
 
 
-static void textmod_destroy(prelude_plugin_instance_t *pi)
+static void textmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
 {
         textmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
 

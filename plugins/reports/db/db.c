@@ -94,7 +94,7 @@ static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 
 
 
-static void db_destroy(prelude_plugin_instance_t *pi)
+static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
         db_plugin_t *db = prelude_plugin_instance_get_data(pi);
 
@@ -127,7 +127,7 @@ static void db_destroy(prelude_plugin_instance_t *pi)
 
 
 
-static int db_init(prelude_plugin_instance_t *pi)
+static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
         int ret;
         char conn_string[256];
@@ -141,16 +141,13 @@ static int db_init(prelude_plugin_instance_t *pi)
                  param_value(db->name), param_value(db->user), param_value(db->pass));
 
         interface = prelude_db_interface_new_string(conn_string);
-        if ( ! interface ) {
-                log(LOG_ERR, "could not create libpreludedb interface.\n");
+        if ( ! interface )
                 return -1;
-        }
         
         ret = prelude_db_interface_connect(interface);
-        if ( ret < 0 ) {                
-                log(LOG_ERR, "could not connect libpreludedb.\n");
+        if ( ret < 0 ) {
                 prelude_db_interface_destroy(interface);
-                return -1;
+                return ret;
         }
         
         if ( db->interface )
@@ -163,15 +160,13 @@ static int db_init(prelude_plugin_instance_t *pi)
 
 
 
-static int db_activate(void *context, prelude_option_t *opt, const char *arg) 
+static int db_activate(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err) 
 {
         db_plugin_t *new;
         
         new = calloc(1, sizeof(*new));
-        if ( ! new ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return -1;
-        }
+        if ( ! new )
+                return prelude_error_from_errno(errno);
 
         prelude_plugin_instance_set_data(context, new);
         

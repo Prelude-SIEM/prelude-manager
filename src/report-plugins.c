@@ -115,12 +115,25 @@ static int try_recovering_from_failover(prelude_plugin_instance_t *pi, plugin_fa
         int ret;
         size_t totsize;
         const char *text;
+        prelude_string_t *err;
         prelude_plugin_generic_t *plugin;
         unsigned int available, count = 0;
-        
-        ret = prelude_plugin_instance_call_commit_func(pi);
-        if ( ret < 0 )
+
+        err = prelude_string_new();
+        if ( ! err )
                 return -1;
+        
+        ret = prelude_plugin_instance_call_commit_func(pi, err);
+        if ( ret < 0 ) {
+                if ( ! prelude_string_is_empty(err) )
+                        log(LOG_INFO, "error recovering from failover: %s.\n", prelude_string_get_string(err));
+                else
+                        log(LOG_INFO, "error recovering from failover: %s.\n", prelude_strerror(ret));
+
+                prelude_string_destroy(err);
+                return -1;
+        }
+        prelude_string_destroy(err);
         
         available = prelude_failover_get_available_msg_count(pf->failover);
         if ( ! available )

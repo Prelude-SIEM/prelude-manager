@@ -149,6 +149,7 @@ static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
 int main(int argc, char **argv)
 {
         int ret;
+        prelude_string_t *err;
         struct sigaction action;
         
         global_argv = argv;
@@ -208,9 +209,15 @@ int main(int argc, char **argv)
         fill_analyzer_infos();        
         prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
         
-        ret = prelude_option_parse_arguments(manager_client, manager_root_optlist, PRELUDE_MANAGER_CONF, &argc, argv);
-        if ( ret < 0 )
+        ret = prelude_option_parse_arguments(manager_client, manager_root_optlist, PRELUDE_MANAGER_CONF, &argc, argv, &err);
+        if ( ret < 0 ) {
+                if ( err )
+                        log(LOG_INFO, "error parsing options: %s.\n", prelude_string_get_string(err));
+                else
+                        prelude_perror(ret, "error parsing options");
+                
                 return -1;
+        }
         
         ret = prelude_client_start(manager_client);
         if ( ret < 0 ) {

@@ -85,15 +85,13 @@ static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idme
 
 
 
-static int relaying_activate(void *context, prelude_option_t *opt, const char *optarg)
+static int relaying_activate(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err)
 {
         relaying_plugin_t *new;
 
         new = calloc(1, sizeof(*new));
-        if ( ! new ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return -1;
-        }
+        if ( ! new ) 
+                return prelude_error_from_errno(errno);
                 
         prelude_plugin_instance_set_data(context, new);
         
@@ -102,7 +100,7 @@ static int relaying_activate(void *context, prelude_option_t *opt, const char *o
 
 
 
-static int relaying_set_manager(void *context, prelude_option_t *opt, const char *optarg)
+static int relaying_set_manager(void *context, prelude_option_t *opt, const char *optarg, prelude_string_t *err)
 {
         int ret;
         prelude_client_profile_t *cp;
@@ -113,18 +111,18 @@ static int relaying_set_manager(void *context, prelude_option_t *opt, const char
                 
                 ret = prelude_connection_mgr_new(&plugin->parent_manager, cp, PRELUDE_CONNECTION_CAPABILITY_CONNECT);
                 if ( ! plugin->parent_manager )
-                        return -1;
+                        return ret;
 
                 prelude_connection_mgr_set_flags(plugin->parent_manager, PRELUDE_CONNECTION_MGR_FLAGS_RECONNECT);
         }
                 
         ret = prelude_connection_mgr_set_connection_string(plugin->parent_manager, optarg);
         if ( ret < 0 )
-                return -1;
+                return ret;
 
         ret = prelude_connection_mgr_init(plugin->parent_manager);
         if ( ret < 0 )
-                return -1;
+                return ret;
 
         return 0;
 }
@@ -132,14 +130,14 @@ static int relaying_set_manager(void *context, prelude_option_t *opt, const char
 
 
 
-static int relaying_get_manager(void *context, prelude_option_t *opt, char *buf, size_t size)
+static int relaying_get_manager(void *context, prelude_option_t *opt, prelude_string_t *out)
 {
         relaying_plugin_t *plugin = prelude_plugin_instance_get_data(context);
 
         if ( ! plugin->parent_manager )
                 return 0;
 
-        snprintf(buf, size, "%s", prelude_connection_mgr_get_connection_string(plugin->parent_manager));
+        prelude_string_sprintf(out, "%s", prelude_connection_mgr_get_connection_string(plugin->parent_manager));
 
         return 0;
 }

@@ -45,21 +45,14 @@ struct manager_config config;
 
 
 
-static int print_version(void *context, prelude_option_t *opt, const char *arg) 
+static int print_version(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         printf("prelude-manager %s\n", VERSION);
         return prelude_error(PRELUDE_ERROR_EOF);
 }
 
 
-static int get_version(void *context, prelude_option_t *opt, char *buf, size_t size) 
-{
-        snprintf(buf, size, "prelude-manager %s", VERSION);
-        return 0;
-}
-
-
-static int set_daemon_mode(void *context, prelude_option_t *opt, const char *arg) 
+static int set_daemon_mode(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         prelude_daemonize(config.pidfile);
         prelude_log_use_syslog();
@@ -67,7 +60,7 @@ static int set_daemon_mode(void *context, prelude_option_t *opt, const char *arg
 }
 
 
-static int set_pidfile(void *context, prelude_option_t *opt, const char *arg) 
+static int set_pidfile(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         config.pidfile = strdup(arg);
         return 0;
@@ -76,7 +69,7 @@ static int set_pidfile(void *context, prelude_option_t *opt, const char *arg)
 
 
 
-static int set_reverse_relay(void *context, prelude_option_t *opt, const char *arg) 
+static int set_reverse_relay(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         return reverse_relay_create_initiator(arg);
 }
@@ -84,7 +77,7 @@ static int set_reverse_relay(void *context, prelude_option_t *opt, const char *a
 
 
 
-static int set_sensor_listen_address(void *context, prelude_option_t *opt, const char *arg) 
+static int set_sensor_listen_address(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         char *ptr = strdup(arg);
         
@@ -101,7 +94,7 @@ static int set_sensor_listen_address(void *context, prelude_option_t *opt, const
 
 
 
-static int set_report_plugin_failover(void *context, prelude_option_t *opt, const char *arg)
+static int set_report_plugin_failover(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err)
 {
         int ret;
         
@@ -114,14 +107,14 @@ static int set_report_plugin_failover(void *context, prelude_option_t *opt, cons
 
 
 
-static int set_dh_bits(void *context, prelude_option_t *opt, const char *arg) 
+static int set_dh_bits(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         config.dh_bits = atoi(arg);
         return 0;
 }
 
 
-static int set_dh_regenerate(void *context, prelude_option_t *opt, const char *arg) 
+static int set_dh_regenerate(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         config.dh_regenerate = atoi(arg) * 60 * 60;
         return 0;
@@ -129,7 +122,7 @@ static int set_dh_regenerate(void *context, prelude_option_t *opt, const char *a
 
 
 
-static int print_help(void *context, prelude_option_t *opt, const char *arg) 
+static int print_help(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         prelude_option_print(NULL, PRELUDE_OPTION_TYPE_CLI, 25);
         return prelude_error(PRELUDE_ERROR_EOF);
@@ -151,7 +144,7 @@ int pconfig_init(prelude_option_t *manager_root_optlist, int argc, char **argv)
                            "Print this help", PRELUDE_OPTION_ARGUMENT_NONE, print_help, NULL);
         
         prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI, 'v', "version",
-                           "Print version number", PRELUDE_OPTION_ARGUMENT_NONE, print_version, get_version);
+                           "Print version number", PRELUDE_OPTION_ARGUMENT_NONE, print_version, NULL);
 
         prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'd',
                            "daemon", "Run in daemon mode", PRELUDE_OPTION_ARGUMENT_NONE, set_daemon_mode, NULL);

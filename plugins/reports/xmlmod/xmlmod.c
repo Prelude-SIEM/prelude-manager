@@ -892,14 +892,14 @@ static int xmlmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 
 
 
-static int xmlmod_init(prelude_plugin_instance_t *pi)
+static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
         int ret;
         FILE *fd;
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
         
         if ( ! plugin->logfile ) {
-                log(LOG_ERR, "no logfile specified.\n");
+                prelude_string_sprintf(out, "no logfile specified");
                 return -1;
         }
 
@@ -908,7 +908,7 @@ static int xmlmod_init(prelude_plugin_instance_t *pi)
                 fd = stderr;
         
         else if ( ! (fd = fopen(plugin->logfile, "a+")) ) {
-                log(LOG_ERR, "error opening %s for writing.\n", plugin->logfile);
+                prelude_string_sprintf(out, "error opening %s for writing", plugin->logfile);
                 return -1;
         }
         
@@ -920,7 +920,7 @@ static int xmlmod_init(prelude_plugin_instance_t *pi)
         
         plugin->fd = xmlAllocOutputBuffer(NULL);
         if ( ! plugin->fd ) {
-                log(LOG_ERR, "error creating an XML output buffer.\n");
+                prelude_string_sprintf(out, "error creating an XML output buffer");
                 fclose(fd);
                 return -1;
         }
@@ -934,7 +934,7 @@ static int xmlmod_init(prelude_plugin_instance_t *pi)
 
 
 
-static void xmlmod_destroy(prelude_plugin_instance_t *pi)
+static void xmlmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
 
@@ -950,15 +950,13 @@ static void xmlmod_destroy(prelude_plugin_instance_t *pi)
 
 
 
-static int xmlmod_activate(void *context, prelude_option_t *opt, const char *arg) 
+static int xmlmod_activate(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         xmlmod_plugin_t *new;
         
         new = calloc(1, sizeof(*new));
-        if ( ! new ) {
-                log(LOG_ERR, "memory exhausted.\n");
+        if ( ! new )
                 return prelude_error_from_errno(errno);
-        }
 
         prelude_plugin_instance_set_data(context, new);
         
@@ -967,7 +965,7 @@ static int xmlmod_activate(void *context, prelude_option_t *opt, const char *arg
 
 
 
-static int set_dtd_check(void *context, prelude_option_t *option, const char *arg)
+static int set_dtd_check(void *context, prelude_option_t *option, const char *arg, prelude_string_t *err)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
@@ -976,8 +974,8 @@ static int set_dtd_check(void *context, prelude_option_t *option, const char *ar
                 
         plugin->idmef_dtd = xmlParseDTD(NULL, arg);
         if ( ! plugin->idmef_dtd ) {
-                log(LOG_ERR, "error loading IDMEF DTD %s.\n", arg);
-                return prelude_error_from_errno(errno);
+                prelude_string_sprintf(err, "error loading IDMEF DTD '%s'", arg);
+                return -1;
         }
 
         return 0;
@@ -985,7 +983,7 @@ static int set_dtd_check(void *context, prelude_option_t *option, const char *ar
 
 
 
-static int enable_formatting(void *context, prelude_option_t *option, const char *arg)
+static int enable_formatting(void *context, prelude_option_t *option, const char *arg, prelude_string_t *err)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
@@ -996,18 +994,18 @@ static int enable_formatting(void *context, prelude_option_t *option, const char
 
 
 
-static int get_formatting(void *context, prelude_option_t *opt, char *buf, size_t size)
+static int get_formatting(void *context, prelude_option_t *opt, prelude_string_t *out)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
-        snprintf(buf, size, "%s", plugin->format ? "enabled" : "disabled");
+        prelude_string_sprintf(out, "%s", plugin->format ? "true" : "false");
 
         return 0;
 }
 
 
 
-static int disable_buffering(void *context, prelude_option_t *option, const char *arg)
+static int disable_buffering(void *context, prelude_option_t *option, const char *arg, prelude_string_t *err)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         

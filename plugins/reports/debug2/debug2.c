@@ -105,28 +105,32 @@ static int debug_run(prelude_plugin_instance_t *pi, idmef_message_t *msg)
 
 
 
-static int debug_set_object(void *context, prelude_option_t *option, const char *arg)
+static int debug_set_object(void *context, prelude_option_t *option, const char *arg, prelude_string_t *err)
 {
 	char *numeric;
 	debug_object_t *object;
         debug_plugin_t *plugin = prelude_plugin_instance_get_data(context);
 
 	object = calloc(1, sizeof(*object));
-	if ( ! object ) {
-		log(LOG_ERR, "memory exhausted.\n");
+	if ( ! object )
 		return prelude_error_from_errno(errno);
-	}
-
+        
 	object->name = strdup(arg);
-	
-	object->object = idmef_object_new("%s", arg);
+	if ( ! object->name ) {
+                free(object);
+                return prelude_error_from_errno(errno);
+        }
+        
+	object->object = idmef_object_new("%s", object->name);
 	if ( ! object->object ) {
-		log(LOG_ERR, "object \"%s\" not found", arg);
-		return -1;
+                prelude_string_sprintf(err, "unknown IDMEF object '%s'", object->name);
+                free(object->name);
+                free(object);
+                return -1;
 	}
 	
 	prelude_list_add_tail(&object->list, &plugin->object_list);
-
+        
 	printf("debug2: object %s [%s]\n", 
 		idmef_object_get_name(object->object),
 		(numeric = idmef_object_get_numeric(object->object)));
@@ -138,15 +142,13 @@ static int debug_set_object(void *context, prelude_option_t *option, const char 
 
 
 
-static int debug_new(void *context, prelude_option_t *opt, const char *arg) 
+static int debug_new(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         debug_plugin_t *new;
         
         new = malloc(sizeof(*new));
-        if ( ! new ) {
-                log(LOG_ERR, "memory exhausted.\n");
+        if ( ! new )
                 return prelude_error_from_errno(errno);
-        }
 
         PRELUDE_INIT_LIST_HEAD(&new->object_list);
         prelude_plugin_instance_set_data(context, new);
@@ -156,7 +158,7 @@ static int debug_new(void *context, prelude_option_t *opt, const char *arg)
 
 
 
-static void debug_destroy(prelude_plugin_instance_t *pi)
+static void debug_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
 {
         debug_object_t *object;
         prelude_list_t *tmp, *bkp;
