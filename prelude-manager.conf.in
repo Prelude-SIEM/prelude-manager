@@ -115,7 +115,7 @@ sensors-srvr = 127.0.0.1
 #
 #
 # Tell Xmlmod to check generated XML against IDMEF DTD
-# check-dtd
+# validate
 #
 # 
 # Tell Xmlmod to produce a pretty, human readable xml output
@@ -137,6 +137,3 @@ sensors-srvr = 127.0.0.1
 #
 # Use wide format for lists.
 # wide-format
-
-
-
