@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -37,10 +37,10 @@
 #include "decode.h"
 #include "packet-decode.h"
 #include "nids-alert-id.h"
+#include "passive-os-fingerprint.h"
 
 
-
-
+pof_host_data_t pof_host_data;
 static char *sport_data = NULL;
 static char *dport_data = NULL;
 static char *shost_data = NULL;
@@ -197,7 +197,7 @@ static int msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert)
         uint8_t tag;
         uint32_t len;
         int i = 0, ret;
-                        
+
         do {    
                 ret = prelude_msg_get(pmsg, &tag, &len, &buf);
                 if ( ret < 0 ) {
@@ -220,9 +220,12 @@ static int msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert)
          */
         packet[i].proto = p_end;
         
+        passive_os_fingerprint_zero(&pof_host_data);
+        
         packet_to_idmef(alert, packet);
         nids_packet_dump(alert, packet);
-
+        passive_os_fingerprint_dump(alert, &pof_host_data);
+        
         return 0;
 }
 
@@ -270,8 +273,9 @@ static int decode_message(prelude_msg_t *pmsg, idmef_alert_t *alert)
 
 
 static int nids_decode_run(prelude_msg_t *pmsg, idmef_message_t *idmef) 
-{
+{        
         idmef_alert_new(idmef);
+
         return decode_message(pmsg, idmef->message.alert);
 }
 
@@ -308,7 +312,7 @@ static void nids_decode_free(void)
 plugin_generic_t *plugin_init(int argc, char **argv)
 {
         static plugin_decode_t plugin;
-        
+
         plugin_set_name(&plugin, "Prelude NIDS data decoder");
         plugin_set_author(&plugin, "Yoann Vandoorselaere");
         plugin_set_contact(&plugin, "yoann@mandrakesoft.com");

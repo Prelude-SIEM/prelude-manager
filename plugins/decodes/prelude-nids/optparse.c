@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1999,2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1999,2000, 2002, 2003 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -29,11 +29,13 @@
 #include <inttypes.h>
 #include <netinet/in.h>
 
+#include <libprelude/list.h>
+#include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
-
 #include "nethdr.h"
 #include "optparse.h"
+#include "passive-os-fingerprint.h"
 
 #define MAX_OPTS_LEN 40
 
@@ -71,6 +73,8 @@
 
 static char *buf;
 static size_t bsize;
+extern pof_host_data_t pof_host_data;
+
 
 
 static void printopt(const char *comment, ...) 
@@ -99,14 +103,17 @@ static int tcp_optval(unsigned char *optbuf, int opt, int datalen)
                 
         case TCPOPT_MAXSEG:
                 printopt("mss %u", extract_uint16(optbuf));
+                pof_host_data.mss = extract_uint16(optbuf);
                 break;
                 
         case TCPOPT_WSCALE:
                 printopt("wscale %u", *optbuf);
+                pof_host_data.wscale = *optbuf;
                 break;
 
         case TCPOPT_SACK_PERMITTED:
                 printopt("sackOK");
+                pof_host_data.sackok = 1;
                 break;
                 
         case TCPOPT_SACK:
@@ -133,6 +140,7 @@ static int tcp_optval(unsigned char *optbuf, int opt, int datalen)
                 break;
 
         case TCPOPT_TIMESTAMP:
+                pof_host_data.timestamp = 1;
                 printopt("timestamp %u %u",
                          extract_uint32(optbuf), extract_uint32(optbuf + 4));
                 break;
@@ -214,6 +222,7 @@ static int is_1byte_option(int opt)
 {
         if ( opt == TCPOPT_NOP ) {
                 printopt("nop");
+                pof_host_data.nop = 1;
                 return 0;
         }
 
@@ -368,17 +377,3 @@ const char *ip_optdump(unsigned char *optbuf, size_t optlen)
         
         return buffer;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,3 +1,30 @@
+2003-01-29  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/decodes/prelude-nids/packet-decode.c (ip_dump): 
+	fix a bug pointed out by Laurent Oudot <oudot.laurent@wanadoo.fr>, 
+	where packet dumped wouldn't show the DF (Don't Fragment) flag.
+
+	Include a modified patch (fixed coding style, and a few bugs), 
+	from Laurent Oudot <oudot.laurent@wanadoo.fr>, this patch 
+	implement passive os fingerprint, adding a fingerprint
+	to the alert additional data.
+
+	* plugins/decodes/prelude-nids/packet-decode.c (ip_dump): 
+	(tcp_dump): 
+	* plugins/decodes/prelude-nids/optparse.c (tcp_optval): 
+	(is_1byte_option): fill the POF structure.
+
+	* plugins/decodes/prelude-nids/decode.c (msg_to_packet):
+	zero the POF structure, and call passive_os_fingerprint_dump()
+	once the packet has been read.
+
+	* plugins/decodes/prelude-nids/Makefile.am (DEFS): 
+	add passive-os-fingerprint.c to the compilation.
+	
+	* plugins/decodes/prelude-nids/passive-os-fingerprint.h: 
+	* plugins/decodes/prelude-nids/passive-os-fingerprint.c: 
+	new files.
+
 2003-01-24  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* plugins/decodes/prelude-nids/packet-decode.c (arp_dump): 

@@ -39,6 +39,7 @@
 #include "optparse.h"
 #include "ethertype.h"
 #include "packet-decode.h"
+#include "passive-os-fingerprint.h"
 
 
 /* ARP protocol opcodes. */
@@ -69,6 +70,7 @@
 
 
 static idmef_alert_t *global_alert;
+extern pof_host_data_t pof_host_data;
 static char buf[1024], *payload = NULL;
 
 
@@ -349,8 +351,8 @@ static int ip_dump(idmef_additional_data_t *data, packet_t *packet)
         
         id = extract_uint16(&ip->ip_id);
         off = extract_uint16(&ip->ip_off);
-        len = extract_uint16(&ip->ip_len);
-        
+        pof_host_data.len = len = extract_uint16(&ip->ip_len);
+
         src = strdup(get_address(&ip->ip_src));
         dst = strdup(get_address(&ip->ip_dst));
         
@@ -358,15 +360,32 @@ static int ip_dump(idmef_additional_data_t *data, packet_t *packet)
                      "%s -> %s [hl=%d,version=%d,tos=%d,len=%d,id=%d,ttl=%d,prot=%d",
                      src, dst, IP_HL(ip) * 4, IP_V(ip), ip->ip_tos, len, id, ip->ip_ttl, ip->ip_p);
 
-        if ( off & 0x3fff ) {
-                r += snprintf(buf + r, sizeof(buf) - r, ",frag=[offset=%d",  (off & 0x1fff) * 8);
+        if ( ip->ip_ttl > 128 )
+                pof_host_data.ttl = 255;
 
-                if ( off & IP_MF )
-                        r += snprintf(buf + r, sizeof(buf) - r, ",MF");
+        else if ( ip->ip_ttl > 64 )
+                pof_host_data.ttl = 128;
 
-                if ( off & IP_DF )
-                        r += snprintf(buf + r, sizeof(buf) - r, ",DF");
+        else if ( ip->ip_ttl > 32 )
+                pof_host_data.ttl = 64;
+
+        else
+                pof_host_data.ttl = 32;
+
+        if ( off ) {
+                r += snprintf(buf + r, sizeof(buf) - r, ",frag=[");
+
+                if ( off & IP_OFFMASK )
+                        r += snprintf(buf + r, sizeof(buf) - r, "offset=%d ", (off & 0x1fff) * 8);
                 
+                if ( off & IP_MF )
+                        r += snprintf(buf + r, sizeof(buf) - r, "MF ");
+
+                if ( off & IP_DF ) {
+                        pof_host_data.df = 1;
+                        r += snprintf(buf + r, sizeof(buf) - r, "DF ");
+                }
+                                
                 r += snprintf(buf + r, sizeof(buf) - r, "]");
         }
         
@@ -393,7 +412,7 @@ static int tcp_dump(idmef_additional_data_t *data, packet_t *packet)
         tcphdr_t *tcp = packet->p.tcp;
         uint16_t urp, win, sport, dport;
         
-        win = extract_uint16(&tcp->th_win);
+        pof_host_data.win = win = extract_uint16(&tcp->th_win);
         urp = extract_uint16(&tcp->th_urp);
         sport = extract_uint16(&tcp->th_sport);
         dport = extract_uint16(&tcp->th_dport);
@@ -406,6 +425,13 @@ static int tcp_dump(idmef_additional_data_t *data, packet_t *packet)
               
         flags = tcp->th_flags;
 
+        if ( flags == TH_SYN )
+                pof_host_data.flags = 'S';
+
+        else if ( flags == (TH_SYN|TH_ACK) )
+                pof_host_data.flags = 'A';
+
+        
         if ( flags & (TH_SYN|TH_FIN|TH_RST|TH_PSH|TH_ACK|TH_URG) ) {
                 if (flags & TH_SYN)
                         r += snprintf(&buf[r], blen - r, "SYN ");
