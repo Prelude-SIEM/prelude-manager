@@ -352,6 +352,7 @@ static int web_service_get(prelude_msg_t *msg, idmef_webservice_t *web)
         void *buf;
         uint8_t tag;
         uint32_t len;
+        idmef_webservice_arg_t *arg;
         
         ret = prelude_msg_get(msg, &tag, &len, &buf);
         if ( ret <= 0 )
@@ -372,7 +373,11 @@ static int web_service_get(prelude_msg_t *msg, idmef_webservice_t *web)
                 break;
 
         case MSG_WEBSERVICE_ARG:
-                extract_idmef_string(buf, len, web->arg);
+                arg = idmef_webservice_arg_new(web);
+                if ( ! arg )
+                        return -1;
+                
+                extract_idmef_string(buf, len, arg->arg);
                 break;
 
         case MSG_END_OF_TAG:

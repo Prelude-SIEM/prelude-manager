@@ -21,5 +21,5 @@
 *
 *****/
 
-int idmef_db_output(const idmef_message_t *msg);
+int idmef_db_output(idmef_message_t *msg);
 
