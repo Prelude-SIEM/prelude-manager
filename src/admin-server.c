@@ -14,6 +14,8 @@
 #include "server-generic.h"
 #include "admin-server.h"
 #include "alert-scheduler.h"
+#include "sensor-server.h"
+
 
 typedef struct {
         prelude_io_t *fd;

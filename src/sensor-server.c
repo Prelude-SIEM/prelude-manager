@@ -204,7 +204,7 @@ static int accept_connection_cb(prelude_io_t *cfd, void **cdata)
 
 
 
-int sensors_server_start(const char *addr, uint16_t port) 
+int sensor_server_start(const char *addr, uint16_t port) 
 {
         int ret;
         server_generic_t *new;

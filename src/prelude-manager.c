@@ -39,7 +39,7 @@
 #include <libprelude/prelude-message.h>
 
 
-#include "sensors-server.h"
+#include "sensor-server.h"
 #include "pconfig.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
                 "Starting Administration server");
 
 #endif
-        do_init(sensors_server_start(config.addr, config.port), "Starting Manager server");
+        do_init(sensor_server_start(config.addr, config.port), "Starting Manager server");
      
  err:
         report_plugins_close();
