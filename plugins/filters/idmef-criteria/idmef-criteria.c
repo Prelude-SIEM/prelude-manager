@@ -106,7 +106,7 @@ static int set_filter_rule(prelude_option_t *opt, const char *optarg, prelude_st
         idmef_criteria_t *new;
         filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);
 
-        ret = idmef_criteria_new_string(&new, optarg);
+        ret = idmef_criteria_new_from_string(&new, optarg);
         if ( ret < 0 ) 
                 return ret;
         
