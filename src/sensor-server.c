@@ -54,6 +54,7 @@ typedef struct {
         SERVER_GENERIC_OBJECT;
         prelude_list_t list;
 
+        pthread_mutex_t mutex;
         idmef_queue_t *queue;
         prelude_connection_t *cnx;
         prelude_bool_t we_connected;
@@ -465,34 +466,41 @@ static int read_connection_cb(server_generic_client_t *client)
 
 static int write_connection_cb(server_generic_client_t *client)
 {
-        int ret;
+        int ret = 0;
         prelude_list_t *tmp;
         prelude_msg_t *cur = NULL;
         sensor_fd_t *sclient = (sensor_fd_t *) client;
-                        
+
+        pthread_mutex_lock(&sclient->mutex);
+        
         prelude_list_for_each(&sclient->write_msg_list, tmp) {
                 cur = prelude_linked_object_get_object(tmp);
-                
-                ret = prelude_msg_write(cur, sclient->fd);        
-                if ( ret < 0 ) {
-                        if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
-                                return 0;
-                        
-                        return -1;
-                }
-                
                 prelude_linked_object_del((prelude_linked_object_t *) cur);
                 break;
         }
         
+        pthread_mutex_unlock(&sclient->mutex);
+
+        if ( cur ) {
+                ret = prelude_msg_write(cur, sclient->fd);        
+                if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
+                        return 0;
+        
+                prelude_msg_destroy(cur);
+        }
+        
+        pthread_mutex_lock(&sclient->mutex);
+
         if ( prelude_list_is_empty(&sclient->write_msg_list) ) {
                 server_logic_notify_write_disable((server_logic_client_t *) client);
 
                 if ( server_generic_client_get_state(client) & SERVER_GENERIC_CLIENT_STATE_FLUSHING )
-                        return reverse_relay_set_receiver_alive(sclient->rrr, client);
+                        ret = reverse_relay_set_receiver_alive(sclient->rrr, client);
         }
+
+        pthread_mutex_unlock(&sclient->mutex);
         
-        return 0;
+        return ret;
 }
 
 
@@ -550,6 +558,8 @@ static int accept_connection_cb(server_generic_client_t *ptr)
         sensor_fd_t *fd = (sensor_fd_t *) ptr;
         
         fd->we_connected = FALSE;
+        pthread_mutex_init(&fd->mutex, NULL);
+        
         prelude_list_init(&fd->list);
         prelude_list_init(&fd->write_msg_list);
         
@@ -610,7 +620,9 @@ int sensor_server_add_client(server_generic_t *server, prelude_connection_t *cnx
         cdata->fd = prelude_connection_get_fd(cnx);
                 
         cdata->cnx = cnx;
+        cdata->rrr = NULL;
         cdata->we_connected = TRUE;
+        pthread_mutex_init(&cdata->mutex, NULL);
         prelude_list_init(&cdata->write_msg_list);
         cdata->ident = prelude_connection_get_peer_analyzerid(cnx);
         
@@ -629,20 +641,26 @@ int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *m
         int ret;
         sensor_fd_t *dst = (sensor_fd_t *) client;
 
+        pthread_mutex_lock(&dst->mutex);
+        
         if ( ! prelude_list_is_empty(&dst->write_msg_list) ) {
                 prelude_linked_object_add_tail(&dst->write_msg_list, (prelude_linked_object_t *) msg);
+                pthread_mutex_unlock(&dst->mutex);
                 return 0;
         }
         
         ret = prelude_msg_write(msg, dst->fd);        
-        if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {                
+        if ( ret == 0 )
+                prelude_msg_destroy(msg);
+        
+        else if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
+                pthread_mutex_lock(&dst->mutex);
                 prelude_linked_object_add_tail(&dst->write_msg_list, (prelude_linked_object_t *) msg);
+                pthread_mutex_unlock(&dst->mutex);
+                
                 server_logic_notify_write_enable((server_logic_client_t *) dst);
                 return ret;
         }
-
-        if ( ret >= 0 )
-                prelude_msg_destroy(msg);
-
+        
         return ret;
 }
