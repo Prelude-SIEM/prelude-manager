@@ -120,7 +120,7 @@ static int debug_run(prelude_plugin_instance_t *pi, idmef_message_t *msg)
                 cbdata.object = entry;
                 cbdata.plugin = plugin;
                 
-                idmef_value_iterate(val, &cbdata, iterator);
+                idmef_value_iterate(val, iterator, &cbdata);
                 idmef_value_destroy(val);
         }
 
