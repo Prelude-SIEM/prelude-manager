@@ -159,9 +159,8 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 		preludedb_sql_settings_set_name(settings, plugin->name);
 
         db = preludedb_new(plugin->type, settings, NULL);
-
-        preludedb_sql_settings_destroy(settings);
 	if ( ! db ) {
+		preludedb_sql_settings_destroy(settings);
 		log(LOG_ERR, "could not initialize libpreludedb.\n");
 		return -1;
 	}
