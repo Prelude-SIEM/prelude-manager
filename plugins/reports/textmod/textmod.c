@@ -349,7 +349,7 @@ static void process_inode(int depth, const idmef_inode_t *inode)
         if ( ! inode )
                 return;
         
-        print(depth, "Inode:");
+        print(depth, "* Inode:");
 
         if ( inode->number )
                 print(0, " number=%d", inode->number);
@@ -365,6 +365,8 @@ static void process_inode(int depth, const idmef_inode_t *inode)
 
         if ( inode->c_minor_device )
                 print(0, " c_minor=%d", inode->c_minor_device);
+
+        print(0, "\n");
         
         process_time(" ctime=", inode->change_time);
 }
@@ -385,16 +387,18 @@ static void process_file(int depth, const idmef_file_t *file)
 
         if ( idmef_string(&file->path) )
                 print(0, " path=%s", idmef_string(&file->path));
-
-        process_time(" ctime=", file->create_time);
-        process_time(" mtime=", file->modify_time);
-        process_time(" atime=", file->access_time);
-
+        
         if ( file->data_size )
                 print(0, " dsize=%u", file->data_size);
 
         if ( file->disk_size )
                 print(0, " disk-size=%u", file->disk_size);
+
+        print(0, "\n");
+        
+        process_time("* ctime=", file->create_time);
+        process_time("* mtime=", file->modify_time);
+        process_time("* atime=", file->access_time);
 
         process_file_access(depth, &file->file_access_list);
         process_file_linkage(depth, &file->file_linkage_list);

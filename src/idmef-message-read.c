@@ -620,6 +620,7 @@ static int file_get(prelude_msg_t *msg, idmef_file_t *file)
         uint8_t tag;
         uint32_t len;
         idmef_time_t *time;
+        idmef_inode_t *inode;
         idmef_linkage_t *linkage;
         idmef_file_access_t *access;
         
@@ -703,6 +704,17 @@ static int file_get(prelude_msg_t *msg, idmef_file_t *file)
                         return -1;
 
                 ret = file_linkage_get(msg, linkage);
+                if ( ret < 0 )
+                        return -1;
+
+                break;
+
+        case MSG_INODE_TAG:
+                inode = idmef_file_inode_new(file);
+                if ( ! inode )
+                        return -1;
+
+                ret = inode_get(msg, inode);
                 if ( ret < 0 )
                         return -1;
 
