@@ -77,6 +77,7 @@ struct server_generic_client {
 
 
 
+extern prelude_client_t *manager_client;
 static volatile sig_atomic_t continue_processing = 1;
 
 
@@ -86,13 +87,19 @@ static volatile sig_atomic_t continue_processing = 1;
 static int send_auth_result(server_generic_client_t *client, int result)
 {
         int ret;
-                
+        uint64_t nident;
+        
         if ( ! client->msg ) {
-                client->msg = prelude_msg_new(1, 0, PRELUDE_MSG_AUTH, 0);
+                client->msg = prelude_msg_new(1, sizeof(uint64_t), PRELUDE_MSG_AUTH, 0);
                 if ( ! client->msg )
                         return -1;
 
-                prelude_msg_set(client->msg, result, 0, NULL);
+                if ( result != PRELUDE_MSG_AUTH_SUCCEED )
+                        prelude_msg_set(client->msg, result, 0, NULL);
+                else {
+                        nident = prelude_hton64(prelude_client_get_analyzerid(manager_client));
+                        prelude_msg_set(client->msg, result, sizeof(nident), &nident);
+                }
         }
         
         ret = prelude_msg_write(client->msg, client->fd); 
