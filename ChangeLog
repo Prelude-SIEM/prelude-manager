@@ -1,3 +1,70 @@
+2002-11-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/relaying.c: 
+	new file providing thread safe operation on client-mgr...
+
+	* src/server-logic.c (remove_connection): 
+	the client key is now contained within the client datatype
+	itself to ease client removal, when we are not events driven.
+
+	(server_logic_stop): lock the server mutex, so that we don't
+	walk the list while a new client is potentially added.
+
+	(server_logic_remove_client): new function, so that we can remove
+	a given client, not in an event driven fashion.
+
+	(remove_connection): Instead of using pthread_exit(), 
+	use pthread_cancel() on the thread datatype contained within the
+	server set. This function can now be called to remove a connection
+	without exiting() the calling thread which might be different from
+	the thread handling the set.
+
+	(remove_connection): only exchange data if needed.
+
+	* src/server-generic.c (close_connection_cb): 
+	don't try to destroy the client if FD is set to NULL,
+	meaning one of the server subsystem took the control
+	over this file descriptor.
+	
+	(server_generic_add_client): new function, use to manualy
+	add a client to our server.
+
+	(handle_connection): use calloc() instead of malloc, 
+	so that data are zeroed.
+
+	* src/sensor-server.c (handle_declare_child_relay): 
+	renamed from handle_declare_relay() we are the parent
+	relay and the relay connected to us forward us messages
+	(child).
+
+	(close_connection_cb): if we are a parent manager connected
+	to a children manager, and that the connection got closed, notify
+	our subsystem that the connection is dead, so that we retry connecting
+	later.
+
+	(read_connection_cb): call read_client_type if needed.
+
+	(read_client_type): implemented. Read the type of the client.
+	Call handle_declare_(child|parent)_relay depending on what the
+	peer declare.
+
+	(handle_declare_parent_relay): implemented. 
+	
+	A parent relay is connecting to us, this mean *we* have to forward 
+	it the messages we get. First search if the same parent relay did 
+	already connect to ourself, and if yes, reuse the created client, 
+	this way we do support fallback to saving to a file as soon as we 
+	know the parent relay (uppon first connection).
+	
+
+	* src/pconfig.c (set_child_manager): 
+	(set_parent_manager): use relay.c specific function
+	in order to create the client-mgr for the given manager.
+
+	* plugins/reports/xmlmod/Makefile.am (DEFS): 
+	* plugins/reports/textmod/Makefile.am (DEFS):
+	64 bits file offset support.
+
 2002-10-29  Sylvain Gil <prelude-code@tootella.org>
 
 	* plugins/reports/xmlmod/xmlmod.c: added a \n

@@ -38,12 +38,15 @@
 #include <libprelude/prelude-getopt-wide.h>
 #include <libprelude/prelude-ident.h>
 #include <libprelude/extract.h>
+#include <libprelude/prelude-client.h>
+#include <libprelude/prelude-client-mgr.h>
 
 #include "server-logic.h"
 #include "server-generic.h"
 #include "sensor-server.h"
 #include "idmef-message-scheduler.h"
 #include "pconfig.h"
+#include "relaying.h"
 
 
 typedef struct {
@@ -144,9 +147,79 @@ static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen)
         list_add_tail(&cnx->list, &sensor_cnx_list);
 
         pthread_mutex_unlock(&list_mutex);
+                
+        return 0;
+}
 
-        log(LOG_INFO, "[%s] - sensor declared ident %llu (Relaying Manager).\n", cnx->addr, cnx->analyzerid);
 
+
+
+static int handle_declare_child_relay(sensor_fd_t *cnx) 
+{
+        /*
+         * our client is a relaying Manager.
+         * we want relaying Manager to be at the end of our list (see
+         * sensor_server_broadcast_admin_command).
+         */
+        pthread_mutex_lock(&list_mutex);
+
+        list_del(&cnx->list);
+        list_add_tail(&cnx->list, &sensor_cnx_list);
+
+        pthread_mutex_unlock(&list_mutex);
+
+        log(LOG_INFO, "[%s] - client declared to be a children relay (relaying to us).\n", cnx->addr);
+
+        return 0;
+}
+
+
+
+
+static int handle_declare_parent_relay(sensor_fd_t *cnx) 
+{
+        int state;
+        prelude_client_t *client;
+        
+        client = manager_parent_search_client(cnx->addr, PRELUDE_CLIENT_TYPE_MANAGER_PARENT);
+        if ( client ) {
+                /*
+                 * This reverse relay is already known:
+                 * Associate the new FD with it, and tell client-mgr, the client is alive.
+                 */
+                prelude_io_close(prelude_client_get_fd(client));
+                prelude_io_destroy(prelude_client_get_fd(client));
+                prelude_client_set_fd(client, cnx->fd);
+        } else {
+                /*
+                 * First time a child relay with this address connect here.
+                 * Add it to the manager list. Type of the created client is -parent-
+                 * because *we* are sending the alert to the child.
+                 */
+                client = prelude_client_new(cnx->addr, 0);
+                if ( ! client )
+                        return -1;
+
+                prelude_client_set_fd(client, cnx->fd);
+                prelude_client_set_type(client, PRELUDE_CLIENT_TYPE_MANAGER_PARENT);
+                manager_parent_add_client(client);
+        }
+
+        state = prelude_client_get_state(client) | PRELUDE_CLIENT_CONNECTED;
+        prelude_client_set_state(client, state);
+        
+        log(LOG_INFO, "[%s] - client declared to be a parent relay (we relay to him).\n", cnx->addr);
+
+        manager_parent_tell_alive(client);
+
+        /*
+         * set fd to NULL so that the client removal, which'll trigger the close callback,
+         * won't destroy the fd, that we still reference in order to send data to the
+         * remote manager.
+         */
+        cnx->fd = NULL;
+        server_logic_remove_client((server_logic_client_t *) cnx);
+        
         return 0;
 }
 
@@ -169,7 +242,7 @@ static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg)
 
         if ( ret == 0 ) 
                 return 0;
-
+        
         switch (tag) {
                 
         case PRELUDE_MSG_ID_DECLARE:
@@ -188,11 +261,48 @@ static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg)
 
 
 
+static int read_client_type(sensor_fd_t *cnx, prelude_msg_t *msg) 
+{
+        int ret;        
+        void *buf;
+        uint8_t tag;
+        uint32_t dlen;
+        
+        ret = prelude_msg_get(msg, &tag, &dlen, &buf);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "[%s] - error decoding message.\n", cnx->addr);
+                return -1;
+        }
+        
+        if ( ret == 0 ) 
+                return 0;
+
+        prelude_msg_destroy(msg);
+        
+        switch (tag) {
+
+        case PRELUDE_CLIENT_TYPE_MANAGER_CHILDREN:
+                ret = handle_declare_child_relay(cnx);
+                break;
+                
+        case PRELUDE_CLIENT_TYPE_MANAGER_PARENT:
+                ret = handle_declare_parent_relay(cnx);
+                break;
+                
+        default:
+                return 0;
+        }
+        
+        return ret;
+}
+
+
 
 
 static int read_connection_cb(server_generic_client_t *client)
 {
         int ret;
+        uint8_t tag;
         prelude_msg_t *msg;
         prelude_msg_status_t status;
         sensor_fd_t *cnx = (sensor_fd_t *) client;
@@ -213,11 +323,13 @@ static int read_connection_cb(server_generic_client_t *client)
 
         msg = cnx->msg;
         cnx->msg = NULL;
+
+        tag = prelude_msg_get_tag(msg);
         
         /*
          * If we get there, we have a whole message.
-         */
-        switch ( prelude_msg_get_tag(msg) ) {
+         */        
+        switch ( tag ) {
                 
         case PRELUDE_MSG_IDMEF:
                 idmef_message_schedule(msg);
@@ -225,6 +337,10 @@ static int read_connection_cb(server_generic_client_t *client)
 
         case PRELUDE_MSG_ID:
                 ret = read_ident_message(cnx, msg);
+                break;
+
+        case PRELUDE_MSG_CLIENT_TYPE:
+                ret = read_client_type(cnx, msg);
                 break;
                 
         case PRELUDE_MSG_OPTION_LIST:
@@ -240,7 +356,11 @@ static int read_connection_cb(server_generic_client_t *client)
                 break;
         }
 
-        prelude_msg_destroy(msg);
+        if ( tag != PRELUDE_MSG_CLIENT_TYPE )
+                /*
+                 * msg will be destroyed before for this kind of message.
+                 */
+                prelude_msg_destroy(msg);
         
         return ret;
 }
@@ -250,8 +370,22 @@ static int read_connection_cb(server_generic_client_t *client)
 
 static void close_connection_cb(server_generic_client_t *ptr) 
 {
+        int type;
         sensor_fd_t *cnx = (sensor_fd_t *) ptr;
-
+        
+        if ( cnx->client ) {
+                /*
+                 * We are a parent manager connected to a children
+                 * manager. The connection got closed. Notify our subsystem
+                 * that connection with the children is dead, so that we try
+                 * reconnecting.
+                 */
+                type = prelude_client_get_type(cnx->client);
+        
+                if ( type == PRELUDE_CLIENT_TYPE_MANAGER_PARENT ) 
+                        manager_children_tell_dead(cnx->client);
+        }
+        
         pthread_mutex_lock(&list_mutex);
         list_del(&cnx->list);
         pthread_mutex_unlock(&list_mutex);
@@ -271,7 +405,7 @@ static void close_connection_cb(server_generic_client_t *ptr)
 static int accept_connection_cb(server_generic_client_t *ptr) 
 {
         sensor_fd_t *client = (sensor_fd_t *) ptr;
-
+        
         /*
          * set the analyzer id to -1, because at this time,
          * the analyzer (or relay manager) didn't declared it's ID.
@@ -363,8 +497,6 @@ int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *m
 
         return -1;
 }
-
-
 
 
 

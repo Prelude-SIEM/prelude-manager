@@ -1,4 +1,4 @@
-DEFS=-I$(top_srcdir) -I$(top_srcdir)/src/include @xml2_includedir@ \
+DEFS=-D_FILE_OFFSET_BITS=64 -I$(top_srcdir) -I$(top_srcdir)/src/include @xml2_includedir@ \
      -DIDMEF_DTD=\"@manager_data_dir@/xmlmod/idmef-message.dtd\" @defined@
 
 xmlmod_la_LDFLAGS = -module -avoid-version

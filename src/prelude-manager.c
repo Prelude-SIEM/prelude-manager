@@ -40,6 +40,9 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/threads.h>
+#include <libprelude/prelude-client.h>
+#include <libprelude/prelude-client-mgr.h>
+#include <libprelude/prelude-list.h>
 
 #include "server-generic.h"
 #include "sensor-server.h"
@@ -51,12 +54,16 @@
 #include "plugin-db.h"
 #include "idmef-util.h"
 #include "idmef-message-scheduler.h"
+#include "relaying.h"
 
-#define sensor_server server[0]
-#define admin_server server[1]
+
 
 static size_t nserver = 0;
 static server_generic_t *server[2];
+
+server_generic_t *sensor_server;
+#define admin_server server[1]
+
 extern struct report_config config;
 
 
@@ -95,7 +102,7 @@ static void init_manager_server(void)
          */
         nserver++;
         
-        sensor_server = sensor_server_new(config.addr, config.port);
+        server[0] = sensor_server = sensor_server_new(config.addr, config.port);
         if ( ! sensor_server ) {
                 log(LOG_INFO, "- couldn't start sensor server.\n");
                 exit(1);
@@ -121,7 +128,6 @@ static void init_manager_server(void)
                 nserver++;
         }
 }
-
 
 
 
@@ -186,6 +192,7 @@ int main(int argc, char **argv)
         sigaction(SIGABRT, &action, NULL);
         sigaction(SIGQUIT, &action, NULL);
 
+        manager_relay_init();
         server_generic_start(server, nserver);
         
 	exit(0);	

@@ -1,4 +1,4 @@
-DEFS=-I$(top_srcdir) -I$(top_srcdir)/src/include @defined@
+DEFS=-D_FILE_OFFSET_BITS=64 -I$(top_srcdir) -I$(top_srcdir)/src/include @defined@
 
 textmod_la_SOURCES = textmod.c
 textmod_la_LDFLAGS = -module -avoid-version

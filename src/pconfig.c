@@ -38,16 +38,18 @@
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-client-mgr.h>
 #include <libprelude/prelude-getopt.h>
+#include <libprelude/prelude-list.h>
 
 #include "config.h"
 #include "pconfig.h"
+#include "relaying.h"
 #include "ssl.h"
 
 
 
 
 struct report_config config;
-prelude_client_mgr_t *relay_managers = NULL;
+
 
 
 static int print_version(prelude_option_t *opt, const char *arg) 
@@ -79,14 +81,32 @@ static int set_pidfile(prelude_option_t *opt, const char *arg)
 }
 
 
-static int set_relay_manager(prelude_option_t *opt, const char *arg) 
-{        
-        relay_managers = prelude_client_mgr_new(PRELUDE_CLIENT_TYPE_MANAGER, arg);
-        if ( ! relay_managers )
+
+static int set_parent_manager(prelude_option_t *opt, const char *arg) 
+{
+        int ret;
+        
+        ret = manager_parent_setup_from_cfgline(arg);
+        if ( ret < 0 )
                 return prelude_option_error;
 
         return prelude_option_success;
 }
+
+
+
+static int set_child_manager(prelude_option_t *opt, const char *arg) 
+{
+        int ret;
+
+        ret = manager_children_setup_from_cfgline(arg);
+        if ( ret < 0 )
+                return prelude_option_error;
+        
+        return prelude_option_success;
+}
+
+
 
 
 static int set_sensor_listen_address(prelude_option_t *opt, const char *arg) 
@@ -159,9 +179,13 @@ int pconfig_init(int argc, char **argv)
          */
         prelude_option_set_priority(opt, option_run_first);
         
-        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'r', "relay-manager",
-                           "List of address:port pair where sensors messages should be relayed",
-                           required_argument, set_relay_manager, NULL);
+        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'r', "parent-managers",
+                           "List of managers address:port pair where messages should be sent to",
+                           required_argument, set_parent_manager, NULL);
+
+        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'c', "child-managers",
+                           "List of managers address:port pair where messages should be gathered from",
+                           required_argument, set_child_manager, NULL);
         
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 's', "sensors-srvr", 
                            "Address the sensors server should listen on (addr:port)", required_argument,
@@ -178,13 +202,4 @@ int pconfig_init(int argc, char **argv)
                 exit(0);
 
         return ret;
-}
-
-
-
-
-void manager_relay_msg_if_needed(prelude_msg_t *msg) 
-{
-        if ( relay_managers )
-                prelude_client_mgr_broadcast(relay_managers, msg);
 }

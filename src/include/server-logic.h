@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -25,7 +25,9 @@
 #define _MANAGER_SERVER_LOGIC_H
 
 #define SERVER_LOGIC_CLIENT_OBJECT \
-        prelude_io_t *fd
+        prelude_io_t *fd;          \
+        int key;                   \
+        void *set
 
 
 typedef struct server_logic server_logic_t;
@@ -59,6 +61,12 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
  *
  */
 server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read, server_logic_close_t *s_close);
+
+
+/*
+ *
+ */
+void server_logic_remove_client(server_logic_client_t *client);
 
 #endif /* _MANAGER_SERVER_LOGIC_H */
 

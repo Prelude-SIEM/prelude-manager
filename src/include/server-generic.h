@@ -32,7 +32,8 @@
         prelude_msg_t *msg;          \
         int is_authenticated;        \
         int is_ssl;                  \
-        char *addr;
+        char *addr;                  \
+        prelude_client_t *client
 
 
 typedef struct server_generic server_generic_t;
@@ -63,6 +64,9 @@ server_generic_t *server_generic_new(const char *addr, uint16_t port,
                                      server_generic_accept_func_t *accept,
                                      server_generic_read_func_t *read,
                                      server_generic_close_func_t *close);
+
+
+int server_generic_add_client(server_generic_t *server, prelude_client_t *client);
 
 void server_generic_start(server_generic_t **server, size_t nserver);
 

@@ -47,6 +47,7 @@
 #include <libprelude/prelude-auth.h>
 #include <libprelude/prelude-path.h>
 #include <libprelude/extract.h>
+#include <libprelude/prelude-client.h>
 
 #include "config.h"
 #include "ssl.h"
@@ -348,15 +349,21 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
 {
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
-        
-        log(LOG_INFO, "[%s] - closing connection.\n", client->addr);
 
+        /*
+         * layer above server-generic are permited to set fd to NULL so
+         * that they can take control over the connection FD.
+         */
+        if ( client->fd ) {        
+                log(LOG_INFO, "[%s] - closing connection.\n", client->addr);
+
+                prelude_io_close(client->fd);
+                prelude_io_destroy(client->fd);
+        }
+        
         free(client->addr);
         
-        prelude_io_close(client->fd);
-        prelude_io_destroy(client->fd);
-        
-        if ( client->is_authenticated )
+        if ( client->is_authenticated ) 
                 server->close(client);
         
         free(ptr);
@@ -449,7 +456,6 @@ static int setup_client_socket(server_generic_t *server,
 
 
 
-
 static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg) 
 {
         int ret, client;        
@@ -458,8 +464,8 @@ static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg)
         server_generic_client_t *cdata;
         
         addrlen = sizeof(addr);
-
-        cdata = malloc(server->clientlen);
+        
+        cdata = calloc(1, server->clientlen);
         if ( ! cdata ) {
                 log(LOG_ERR, "memory exhausted.\n");
                 return -1;
@@ -467,13 +473,13 @@ static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg)
         
         if ( server->unix_srvr ) {
                 client = accept(server->sock, NULL, NULL);
-                cdata->addr = strdup("unix");
+                cdata->addr = strdup("127.0.0.1");
         } else {
                 client = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
                 if ( client > 0 )
                         cdata->addr = strdup(inet_ntoa(addr.sin_addr));
         }
-                
+        
         if ( client < 0 ) {
                 log(LOG_ERR, "couldn't accept connection.\n");
                 free(cdata);
@@ -765,6 +771,29 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
 
 
 
+int server_generic_add_client(server_generic_t *server, prelude_client_t *client) 
+{
+        server_generic_client_t *cdata;
+        
+        cdata = calloc(1, server->clientlen);
+        if ( ! cdata ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return -1;
+        }
+        
+        cdata->addr = strdup(prelude_client_get_daddr(client));
+        cdata->is_authenticated = 1;
+        cdata->fd = prelude_client_get_fd(client);
+        cdata->client = client;
+        
+        server_logic_process_requests(server->logic, (server_logic_client_t *) cdata);
+        
+        return server->accept(cdata);
+}
+
+
+
+
 void server_generic_start(server_generic_t **server, size_t nserver) 
 {
         wait_connection(server, nserver);
@@ -775,6 +804,7 @@ void server_generic_start(server_generic_t **server, size_t nserver)
 void server_generic_close(server_generic_t *server) 
 {
         char sockname[256];
+        
         close(server->sock);
         
         if ( server->unix_srvr ) {

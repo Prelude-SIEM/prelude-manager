@@ -36,6 +36,7 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-getopt-wide.h>
+#include <libprelude/prelude-client.h>
 
 #include "server-logic.h"
 #include "server-generic.h"

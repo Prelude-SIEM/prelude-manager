@@ -44,6 +44,7 @@
 #include <libprelude/idmef-tree-func.h>
 #include <libprelude/threads.h>
 #include <libprelude/common.h>
+#include <libprelude/prelude-client.h>
 
 #include "plugin-decode.h"
 #include "plugin-report.h"
@@ -52,6 +53,7 @@
 #include "pconfig.h"
 #include "idmef-message-read.h"
 #include "idmef-message-scheduler.h"
+#include "relaying.h"
 
 
 #define MAX_MESSAGE_IN_MEMORY 200

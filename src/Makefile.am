@@ -29,6 +29,7 @@ prelude_manager_SOURCES =			\
 			idmef-db-output.c	\
 			idmef-util.c		\
 			ntp.c			\
-			plugins-util.c	
+			plugins-util.c		\
+			relaying.c
 
 
