@@ -881,8 +881,8 @@ plugin_generic_t *plugin_init(int argc, char **argv)
         prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 's', "stderr",
                            "Dump alert to stderr", no_argument, set_output_stderr, NULL);
 
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'c', "check-dtd",
-                           "Check IDMEF XML output against DTD", optionnal_argument,
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'v', "validate",
+                           "Validate IDMEF XML output against DTD", optionnal_argument,
                            set_dtd_check, NULL);
 
         prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'f', "format",
