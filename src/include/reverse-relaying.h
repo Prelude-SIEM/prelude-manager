@@ -40,3 +40,4 @@ int reverse_relay_set_initiator_dead(prelude_connection_t *cnx);
 
 int reverse_relay_create_initiator(const char *arg);
 
+int reverse_relay_init(void);

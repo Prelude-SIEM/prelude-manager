@@ -58,6 +58,7 @@ struct reverse_relay_receiver {
 
 
 static PRELUDE_LIST(receiver_list);
+static prelude_msgbuf_t *msgbuf;
 static pthread_mutex_t receiver_mutex = PTHREAD_MUTEX_INITIALIZER;
 static reverse_relay_t initiator = { PTHREAD_MUTEX_INITIALIZER, NULL};
 
@@ -166,7 +167,7 @@ int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_cl
         int ret;
         char buf[512];
         reverse_relay_receiver_t *new;
-
+        
         new = malloc(sizeof(*new));
         if ( ! new )
                 return -1;
@@ -250,23 +251,9 @@ static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 
 void reverse_relay_send_receiver(idmef_message_t *idmef) 
 {
-        int ret;
-        static prelude_msgbuf_t *msgbuf = NULL;
-        
         if ( prelude_list_is_empty(&receiver_list) )
                 return;
                 
-        if ( ! msgbuf ) {
-                ret = prelude_msgbuf_new(&msgbuf);
-                if ( ! msgbuf ) {
-                        prelude_perror(ret, "error creating reverse relay msgbuf");
-                        return;
-                }
-                
-                prelude_msgbuf_set_callback(msgbuf, send_msgbuf);
-                prelude_msgbuf_set_flags(msgbuf, PRELUDE_MSGBUF_FLAGS_ASYNC);
-        }
-        
         idmef_message_write(idmef, msgbuf);
         prelude_msgbuf_mark_end(msgbuf);
 }
@@ -303,6 +290,24 @@ int reverse_relay_create_initiator(const char *arg)
                 prelude_connection_pool_destroy(initiator.pool);
                 return ret;
         }
+
+        return 0;
+}
+
+
+
+int reverse_relay_init(void)
+{
+        int ret;
+        
+        ret = prelude_msgbuf_new(&msgbuf);
+        if ( ! msgbuf ) {
+                prelude_perror(ret, "error creating reverse relay msgbuf");
+                return -1;
+        }
+        
+        prelude_msgbuf_set_callback(msgbuf, send_msgbuf);
+        prelude_msgbuf_set_flags(msgbuf, PRELUDE_MSGBUF_FLAGS_ASYNC);
 
         return 0;
 }

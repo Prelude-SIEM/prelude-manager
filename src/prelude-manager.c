@@ -250,6 +250,10 @@ int main(int argc, char **argv)
                 return -1;
         }
 
+        ret = reverse_relay_init();
+        if ( ret < 0 )
+                return -1;
+
         /*
          * prelude_client_start() should send it's initial heartbeat
          * before the scheduler start handling IDMEF messages, so that we don't refcount
