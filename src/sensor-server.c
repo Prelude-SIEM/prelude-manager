@@ -178,46 +178,52 @@ static int forward_option_request_to_sensor(sensor_fd_t *cnx, uint64_t analyzeri
 
 
 
-static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg, uint64_t *ident, int direction)
+static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
+                                uint64_t **target_ptr, uint32_t *hop_ptr, int direction)
 {
         int ret;
         void *buf;
         uint8_t tag;
         uint32_t len;
-        uint32_t hop = -1, tmp;
+        uint32_t hop, tmp, target_len = 0;
+
+        *target_ptr = NULL;
         
         while ( prelude_msg_get(msg, &tag, &len, &buf) == 0 ) {
 
-                if ( tag == PRELUDE_MSG_OPTION_HOP ) {
-                        ret = prelude_extract_int32_safe(&hop, buf, len);
-                        if ( ret < 0 )
-                                break;
-
-                        if ( direction == PRELUDE_MSG_OPTION_REQUEST )
-                                hop++;
-                        else
-                                hop--;
-
-                        tmp = htonl(hop);
-                        memcpy(buf, &tmp, sizeof(tmp));
-                        continue;
+                if ( tag == PRELUDE_MSG_OPTION_TARGET_ID ) {
+                        if ( (len % sizeof(uint64_t)) != 0 || len < 2 * sizeof(uint64_t) )
+                                return -1;
+                        
+                        target_len = len;
+                        *target_ptr = buf;
                 }
-                
-                 /*
-                  * We just need the target ident, so that we know
-                  * where to forward this message.
-                  */
-                if ( tag != PRELUDE_MSG_OPTION_TARGET_ID )
+
+                if ( tag != PRELUDE_MSG_OPTION_HOP )
                         continue;
+
+                if ( ! *target_ptr )
+                        return -1;
+                        
+                ret = prelude_extract_uint32_safe(&hop, buf, len);
+                if ( ret < 0 )
+                        break;
+
+                hop = (direction == PRELUDE_MSG_OPTION_REQUEST) ? hop + 1 : hop - 1;
                                 
-                if ( hop >= (len / sizeof(uint64_t)) ) {
-                        if ( (hop - 1) >= (len / sizeof(uint64_t)) )
-                                break;
-                        else
-                                hop--;
+                if ( hop == (target_len / sizeof(uint64_t)) ) {
+                        *hop_ptr = (hop - 1);
+                        return 0; /* we are the target */
                 }
                 
-                return prelude_extract_uint64_safe(ident, ((uint8_t *) buf) + (hop * sizeof(uint64_t)), sizeof(uint64_t));
+                tmp = htonl(hop);
+                memcpy(buf, &tmp, sizeof(tmp));
+                                
+                if ( hop >= (target_len / sizeof(uint64_t)) )
+                        break;
+
+                *hop_ptr = hop;                
+                return 0;
         }
 
         server_generic_log_client((server_generic_client_t *) client,
@@ -228,17 +234,55 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg, uint64_
 
 
 
+static int send_unreachable_message(sensor_fd_t *client, uint64_t *ident_list, uint32_t hop)
+{
+        ssize_t ret;
+        prelude_msg_t *msg;
+        char error[] = "Destination unreachable";
+
+        /*
+         * cancel the hop increment done previously.
+         * this function is only supposed to be called for failed request (not failed reply).
+         */
+        hop--;
+        
+        msg = prelude_msg_new(3,
+                              sizeof(error) +
+                              sizeof(uint32_t) +
+                              hop * sizeof(uint64_t), PRELUDE_MSG_OPTION_REPLY, 0);
+        if ( ! msg )
+                return -1;
+
+        prelude_msg_set(msg, PRELUDE_MSG_OPTION_ERROR, sizeof(error), error);
+        prelude_msg_set(msg, PRELUDE_MSG_OPTION_TARGET_ID, hop * sizeof(uint64_t), ident_list);
+        prelude_msg_set(msg, PRELUDE_MSG_OPTION_HOP, sizeof(hop), &hop);
+        
+        do {
+                ret = prelude_msg_write(msg, client->fd);
+        } while ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN );
+        
+        prelude_msg_destroy(msg);
+        
+        return 0;
+}
+
+
 
 static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg) 
 {
         int ret;
-        uint64_t target_sensor_ident = 0;
+        uint64_t ident;
+        uint32_t target_hop;
+        uint64_t *target_route;
 
-        ret = get_msg_target_ident(client, msg, &target_sensor_ident, PRELUDE_MSG_OPTION_REQUEST);
+        ret = get_msg_target_ident(client, msg, &target_route,
+                                   &target_hop, PRELUDE_MSG_OPTION_REQUEST);
         if ( ret < 0 )
                 return -1;
+
+        ident = prelude_extract_uint64(&target_route[target_hop]);
         
-        if ( target_sensor_ident == prelude_client_get_analyzerid(manager_client) ) {
+        if ( ident == prelude_client_get_analyzerid(manager_client) ) {
                 server_generic_log_client((server_generic_client_t *) client,
                                           "option request forwarded to [local manager].\n");
 
@@ -246,9 +290,9 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
                 return prelude_option_process_request(manager_client, client->fd, msg);
         }
         
-        ret = forward_option_request_to_sensor(client, target_sensor_ident, msg);
+        ret = forward_option_request_to_sensor(client, ident, msg);
         if ( ret < 0 )
-                return -1;
+                send_unreachable_message(client, target_route, target_hop);
         
         return 0;
 }
@@ -259,16 +303,19 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
 static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg) 
 {
         int ret;
-        uint64_t target_admin_ident = 0;
+        uint32_t target_hop;
+        uint64_t *target_route, ident;
 
-        ret = get_msg_target_ident(client, msg, &target_admin_ident, PRELUDE_MSG_OPTION_REPLY);
+        ret = get_msg_target_ident(client, msg, &target_route, &target_hop, PRELUDE_MSG_OPTION_REPLY);
         if ( ret < 0 ) 
                 return -1;
 
+        ident = prelude_extract_uint64(target_route + target_hop);
+        
         /*
          * The one replying the option doesn't care about client presence or not.
          */
-        forward_option_reply_to_admin(client, target_admin_ident, msg);
+        forward_option_reply_to_admin(client, ident, msg);
         return 0;
 }
 
