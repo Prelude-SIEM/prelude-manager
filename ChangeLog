@@ -1,5 +1,8 @@
 2002-05-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* plugins/reports/textmod/textmod.c (process_analyzer): 
+	print analyzerId.
+
 	* src/idmef-util.c (idmef_additional_data_to_string): 
 	* src/idmef-message-read.c (additional_data_get): 
 	* plugins/decodes/prelude-nids/packet-decode.c: 

@@ -398,6 +398,9 @@ static void process_target(int depth, const idmef_target_t *target)
 
 static void process_analyzer(const idmef_analyzer_t *analyzer) 
 {
+        if ( analyzer->analyzerid )
+                print(0, "* Analyzer ID: %llu\n", analyzer->analyzerid);
+        
         if ( idmef_string(&analyzer->model) )
                 print(0, "* Analyzer model: %s\n", idmef_string(&analyzer->model));
 
