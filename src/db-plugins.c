@@ -110,6 +110,7 @@ void db_plugins_run(idmef_message_t *idmef)
 
 
 
+
 void db_plugins_close(void)
 {        
         if ( plugin_close_func(db) )
@@ -142,4 +143,15 @@ int db_plugins_init(const char *dirname, int argc, char **argv)
         return ret;
 }
 
+
+
+/**
+ * db_plugins_available:
+ *
+ * Returns: 0 if there is active DB plugins, -1 otherwise.
+ */
+int db_plugins_available(void) 
+{
+        return list_empty(&db_plugins_list) ? -1 : 0;
+}
 

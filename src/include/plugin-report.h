@@ -44,6 +44,7 @@ typedef struct {
 #define plugin_set_closing_func(p, f) plugin_close_func(p) = (f)
 
 
+int report_plugins_available(void);
 
 int report_plugins_init(const char *dirname, int argc, char **argv);
 

@@ -1,3 +1,17 @@
+2002-03-22  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/db-plugins.c (db_plugins_available): 
+	new function, return 0 if there is active db plugins,
+	-1 otherwise.
+
+	* src/report-plugins.c (report_plugins_available): 
+	new function, return 0 if there is active report plugins,
+	-1 otherwise.
+
+	* src/idmef-message-scheduler.c (process_message): 
+	don't read the IDMEF message if there is no active plugins
+	(we are probably only a relay manager in this case).
+
 2002-03-21  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/decodes/prelude-nids/decode.c (msg_to_packet): 

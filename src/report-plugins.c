@@ -124,7 +124,15 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
 
 
 
-
+/**
+ * report_plugins_available:
+ *
+ * Returns: 0 if there is active REPORT plugins, -1 otherwise.
+ */
+int report_plugins_available(void) 
+{
+        return list_empty(&report_plugins_list) ? -1 : 0;
+}
 
 
 

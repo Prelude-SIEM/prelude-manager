@@ -48,8 +48,9 @@ typedef struct {
 
 
 
-int db_plugins_init(const char *dirname, int argc, char **argv);
+int db_plugins_available(void);
 
+int db_plugins_init(const char *dirname, int argc, char **argv);
 
 char *db_plugin_escape(const char *string);
 

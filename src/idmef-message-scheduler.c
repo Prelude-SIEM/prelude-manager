@@ -231,6 +231,15 @@ static int process_message(prelude_msg_t *msg)
         
         manager_relay_msg_if_needed(msg);
 
+        if ( db_plugins_available() < 0 && report_plugins_available() < 0 ) {
+                /*
+                 * We don't need to process the message here, we are probably
+                 * only a relay manager.
+                 */
+                prelude_msg_destroy(msg);
+                return 0;
+        }
+        
         /*
          * never return NULL.
          */
