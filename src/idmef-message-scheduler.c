@@ -46,7 +46,7 @@
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-filter.h"
-#include "pconfig.h"
+#include "manager-options.h"
 #include "reverse-relaying.h"
 #include "pmsg-to-idmef.h"
 #include "idmef-message-scheduler.h"

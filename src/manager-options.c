@@ -37,7 +37,7 @@
 #include "server-generic.h"
 #include "reverse-relaying.h"
 #include "plugin-report.h"
-#include "pconfig.h"
+#include "manager-options.h"
 
 
 

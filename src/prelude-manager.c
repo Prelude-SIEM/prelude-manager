@@ -36,7 +36,7 @@
 
 #include "server-generic.h"
 #include "sensor-server.h"
-#include "pconfig.h"
+#include "manager-options.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-filter.h"

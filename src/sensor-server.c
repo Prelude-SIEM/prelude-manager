@@ -43,7 +43,7 @@
 #include "server-generic.h"
 #include "sensor-server.h"
 #include "idmef-message-scheduler.h"
-#include "pconfig.h"
+#include "manager-options.h"
 #include "reverse-relaying.h"
 
 typedef struct {
