@@ -52,7 +52,6 @@ typedef struct {
 } sensor_fd_t;
 
 
-static server_generic_t *server;
 static LIST_HEAD(sensor_cnx_list);
 static prelude_ident_t *analyzer_ident;
 static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -327,40 +326,34 @@ static int accept_connection_cb(server_generic_client_t *ptr)
 
 
 
-int sensor_server_new(const char *addr, uint16_t port) 
+server_generic_t *sensor_server_new(const char *addr, uint16_t port) 
 {
         int ret;
+        server_generic_t *server;
 
         analyzer_ident = prelude_ident_new(CONFIG_DIR"/analyzer.ident");
         if ( ! analyzer_ident )
-                return -1;
+                return NULL;
         
         server = server_generic_new(addr, port, sizeof(sensor_fd_t), accept_connection_cb,
                                     read_connection_cb, close_connection_cb);
         if ( ! server ) {
                 log(LOG_ERR, "error creating a generic server.\n");
-                return -1;
+                return NULL;
         }
         
         ret = idmef_message_scheduler_init();
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't initialize alert scheduler.\n");
-                return -1;
+                return NULL;
         }
         
-        return 0;
+        return server;
 }
 
 
 
-void sensor_server_start(void) 
-{    
-        server_generic_start(server); /* Never return */
-}
-
-
-
-void sensor_server_close(void) 
+void sensor_server_close(server_generic_t *server) 
 {
         server_generic_close(server);
 }

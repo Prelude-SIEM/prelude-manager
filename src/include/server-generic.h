@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -61,6 +61,9 @@ server_generic_t *server_generic_new(const char *addr, uint16_t port,
                                      server_generic_read_func_t *read,
                                      server_generic_close_func_t *close);
 
-void server_generic_start(server_generic_t *server);
+void server_generic_start(server_generic_t **server, size_t nserver);
 
 void server_generic_close(server_generic_t *server);
+
+
+

@@ -23,8 +23,7 @@
 
 int admin_server_broadcast_sensor_optlist(prelude_msg_t *msg);
 
-int admin_server_new(const char *addr, uint16_t port);
+server_generic_t *admin_server_new(const char *addr, uint16_t port);
 
-void admin_server_start(void);
+void admin_server_close(server_generic_t *server);
 
-void admin_server_close(void);

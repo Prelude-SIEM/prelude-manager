@@ -120,7 +120,7 @@ static int send_plaintext_authentication_result(prelude_io_t *fd, uint8_t tag)
 /*
  * Start the SSL authentication process.
  */
-static prelude_msg_status_t handle_ssl_connection(server_generic_client_t *client) 
+static prelude_msg_status_t handle_ssl_authentication(server_generic_client_t *client) 
 {
 #ifdef HAVE_SSL
         int ret;
@@ -154,7 +154,7 @@ static prelude_msg_status_t handle_ssl_connection(server_generic_client_t *clien
  * Read authentication information contained in the passed message.
  * Then try to authenticate the peer.
  */
-static int handle_plaintext_connection(prelude_msg_t *msg, server_generic_client_t *client)
+static int handle_plaintext_authentication(prelude_msg_t *msg, server_generic_client_t *client)
 {
         int ret;
         void *buf;
@@ -204,7 +204,7 @@ static int handle_plaintext_connection(prelude_msg_t *msg, server_generic_client
  * Either plaintext, either SSL.
  * call the necessary authentication function.
  */
-static int handle_connection(prelude_msg_t *msg, server_generic_client_t *client) 
+static int handle_authentication(prelude_msg_t *msg, server_generic_client_t *client) 
 {
         int ret;
         void *buf;
@@ -226,12 +226,12 @@ static int handle_connection(prelude_msg_t *msg, server_generic_client_t *client
 
         case PRELUDE_MSG_AUTH_SSL:
                 client->is_ssl = 1;
-                ret = handle_ssl_connection(client);
+                ret = handle_ssl_authentication(client);
                 break;
                 
         case PRELUDE_MSG_AUTH_PLAINTEXT:
                 client->is_ssl = 0;
-                ret = handle_plaintext_connection(msg, client);
+                ret = handle_plaintext_authentication(msg, client);
                 break;
 
         default:
@@ -262,7 +262,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                 /*
                  * FIXME:
                  * 
-                 * handle_connection() was previously called, and it was an
+                 * handle_authentication() was previously called, and it was an
                  * SSL kind of connection. Don't try to read a prelude-message:
                  * directly call the SSL subsystem, so that we can finish
                  * authenticating the connection.
@@ -281,7 +281,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                 status = prelude_msg_read(&client->msg, client->fd);        
 
                 if ( status == prelude_msg_finished ) {        
-                        ret = handle_connection(client->msg, client);
+                        ret = handle_authentication(client->msg, client);
                         
                         prelude_msg_destroy(client->msg);
                         client->msg = NULL;
@@ -377,11 +377,11 @@ static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock)
 
         ret = hosts_access(&request);
         if ( ! ret ) {
-                log(LOG_INFO, "[%s] - refused connection.\n", cdata->addr);
+                log(LOG_INFO, "[%s] - tcp wrapper refused connection.\n", cdata->addr);
                 return -1;
         }
 
-        log(LOG_INFO, "[%s] - accepted connection.\n", cdata->addr);
+        log(LOG_INFO, "[%s] - tcp wrapper accepted connection.\n", cdata->addr);
         
         return 0;
 }
@@ -405,6 +405,8 @@ static int setup_client_socket(server_generic_t *server,
         ret = tcpd_auth(cdata, client);
         if ( ret < 0 )
                 return -1;
+#else
+        log(LOG_INFO, "[%s] - accepted connection.\n", cdata->addr);
 #endif
         /*
          * set client socket non blocking.
@@ -432,70 +434,98 @@ static int setup_client_socket(server_generic_t *server,
 
 
 
+static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg) 
+{
+        int ret, client;        
+        socklen_t addrlen;
+        struct sockaddr_in addr;
+        server_generic_client_t *cdata;
+        
+        addrlen = sizeof(addr);
+
+        cdata = malloc(server->clientlen);
+        if ( ! cdata ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return -1;
+        }
+        
+        if ( server->unix_srvr ) {
+                client = accept(server->sock, NULL, NULL);
+                cdata->addr = strdup("unix");
+        } else {
+                client = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
+                if ( client > 0 )
+                        cdata->addr = strdup(inet_ntoa(addr.sin_addr));
+        }
+                
+        if ( client < 0 ) {
+                log(LOG_ERR, "couldn't accept connection.\n");
+                free(cdata);
+                return -1;
+        }
+                
+        ret = setup_client_socket(server, cdata, client);
+        if ( ret < 0 ) {
+                free(cdata);
+                close(client);
+                return -1;
+        }
+                
+        ret = prelude_msg_write(cfgmsg, cdata->fd);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "couldn't send configuration message.\n");
+                prelude_io_close(cdata->fd);
+                prelude_io_destroy(cdata->fd);
+                free(cdata->addr);
+                free(cdata);
+                return -1;
+        }
+
+        ret = server_logic_process_requests(server->logic, (server_logic_client_t *) cdata);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "queueing client FD for server logic processing failed.\n");
+                prelude_io_close(cdata->fd);
+                prelude_io_destroy(cdata->fd);
+                free(cdata->addr);
+                free(cdata);
+                return -1;
+        }
+}
+
+
+
+
+
+
 /*
  * Wait for client to connect on the Prelude Manager.
  */
-static int wait_connection(server_generic_t *server)
+static int wait_connection(server_generic_t **server, size_t nserver)
 {
-        int ret, client;
-        socklen_t addrlen;
-        prelude_msg_t *msg;
-        struct sockaddr_in addr;
-        server_generic_client_t *cdata;
-
-        addrlen = sizeof(addr);
-        
-        msg = generate_config_message();
-        if ( ! msg )
+        int i, ret, active_fd;
+        prelude_msg_t *cfgmsg;
+        struct pollfd pfd[nserver];
+                
+        cfgmsg = generate_config_message();
+        if ( ! cfgmsg )
                 return -1;
+
+        for ( i = 0; i < nserver; i++ ) {                
+                pfd[i].events = POLLIN;
+                pfd[i].fd = server[i]->sock;
+        } 
         
         while ( 1 ) {
-                cdata = malloc(server->clientlen);
-                if ( ! cdata ) {
-                        log(LOG_ERR, "memory exhausted.\n");
-                        continue;
-                }
 
-                if ( server->unix_srvr ) {
-                        client = accept(server->sock, NULL, NULL);
-                        cdata->addr = strdup("unix");
-                } else {
-                        client = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
-                        if ( client > 0 )
-                                cdata->addr = strdup(inet_ntoa(addr.sin_addr));
-                }
-                
-                if ( client < 0 ) {
-                        log(LOG_ERR, "couldn't accept connection.\n");
-                        free(cdata);
+                active_fd = poll(pfd, nserver, -1);                
+                if ( active_fd < 0 )
                         continue;
-                }
-                
-                ret = setup_client_socket(server, cdata, client);
-                if ( ret < 0 ) {
-                        free(cdata);
-                        close(client);
-                        continue;
-                }
-                
-                ret = prelude_msg_write(msg, cdata->fd);
-                if ( ret < 0 ) {
-                        log(LOG_ERR, "couldn't send configuration message.\n");
-                        prelude_io_close(cdata->fd);
-                        prelude_io_destroy(cdata->fd);
-                        free(cdata->addr);
-                        free(cdata);
-                        return -1;
-                }
 
-                ret = server_logic_process_requests(server->logic, (server_logic_client_t *) cdata);
-                if ( ret < 0 ) {
-                        log(LOG_ERR, "queueing client FD for server logic processing failed.\n");
-                        prelude_io_close(cdata->fd);
-                        prelude_io_destroy(cdata->fd);
-                        free(cdata->addr);
-                        free(cdata);
-                        return -1;
+                for ( i = 0; i < nserver && active_fd > 0; i++ ) {
+                        if ( pfd[i].revents & POLLIN ) {
+                                active_fd--;
+                                handle_connection(server[i], cfgmsg);
+                        }
                 }
         }
 }
@@ -721,11 +751,10 @@ server_generic_t *server_generic_new(const char *addr, uint16_t port,
 
 
 
-void server_generic_start(server_generic_t *server) 
+void server_generic_start(server_generic_t **server, size_t nserver) 
 {
-        wait_connection(server);
+        wait_connection(server, nserver);
 }
-
 
 
 

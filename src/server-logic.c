@@ -89,8 +89,8 @@ typedef struct {
 
 struct server_logic {
         void *sdata;
-
-        int continue_processing;
+        
+        volatile sig_atomic_t continue_processing;
         
         server_logic_read_t *read;
         server_logic_close_t *close;
@@ -167,7 +167,6 @@ static void remove_connection(server_fd_set_t *set, int cnx_key)
          */
         else if ( set->used_index == 0 ) {
                 list_del(&set->list);
-                set->parent->continue_processing--;
                 pthread_mutex_unlock(&server->mutex);
                 
                 dprint("Killing thread %ld\n", pthread_self());
@@ -288,7 +287,7 @@ static void *child_reader(void *ptr)
                 return NULL;
         }
 
-        while ( set->parent->continue_processing != -1 ) {
+        while ( set->parent->continue_processing ) {
                 
                 active_fd = poll(set->pfd, MAX_FD_BY_THREAD, -1);                
                 if ( active_fd < 0 ) {
@@ -312,8 +311,9 @@ static void *child_reader(void *ptr)
                 }
         }
 
-        set->parent->continue_processing--;
         log(LOG_INFO, "killing thread %ld on exit request.\n", set->thread);
+        pthread_mutex_lock(&set->parent->mutex);
+        
         pthread_exit(NULL);
 }
 
@@ -339,8 +339,7 @@ static server_fd_set_t *create_fd_set(server_logic_t *server)
                 new->client[i] = NULL;
                 new->free_tbl[i] = i;
         }
-
-        server->continue_processing++;
+        
         list_add_tail(&new->list, &server->free_set_list);
         
         return new;
@@ -428,7 +427,7 @@ server_logic_t *server_logic_new(void *sdata,
         new->sdata = sdata;
         new->read = s_read;
         new->close = s_close;
-        new->continue_processing = 0;
+        new->continue_processing = 1;
         
         return new;
 }
@@ -441,19 +440,7 @@ server_logic_t *server_logic_new(void *sdata,
  */
 void server_logic_stop(server_logic_t *server) 
 {
-        int processing = server->continue_processing;
-        
-        /*
-         * quite ugly isn't it ?
-         * it have the advantage to be signal safe.
-         */
-        server->continue_processing = -1;
-        kill(0, SIGUSR1);
-      
-        while ( server->continue_processing != (-1 - processing) )
-                sched_yield();
-
-        printf("Okay (%d %d)\n", server->continue_processing, -1 - processing);
+        server->continue_processing = 0;
 }
 
 

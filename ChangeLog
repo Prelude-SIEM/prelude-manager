@@ -1,3 +1,36 @@
+2002-01-21  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server-logic.c: the continue_processing variable
+	is now a volatile sig_atomic_t.
+
+	(server_logic_stop): just set the continue_processing
+	variable to 0.
+
+	* src/prelude-manager.c (init_manager_server): 
+	stop using a separate thread for the administration server.
+	We are now able to multiplex event for differents servers.
+
+	* src/server-generic.c (server_generic_start): 
+	now take an array of server_generic_t, as well as a nserver
+	count. 
+	(handle_connection): new function.
+
+	(wait_connection): poll on the server(s) socket(s). 
+	Call handle_connection() when needed. 
+
+	We are now able to multiplex accept for differents server.
+
+	* src/sensor-server.c: 
+	(admin_server_new): 
+	(admin_server_close):
+	* src/admin-server.c 
+	(admin_server_new): 
+	(admin_server_close):
+	
+	return a new server_generic_t. We don't want to keep the server
+	identifier global. Function that used to use the global identifier
+	now take a server_generic_t as argument.
+
 2002-01-20  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
 	* configure.in: added AC_CANONICAL_SYSTEM macro to fix autoconf 2.5x
 	problem

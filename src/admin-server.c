@@ -49,7 +49,6 @@ typedef struct {
 } admin_client_t;
 
 
-static server_generic_t *server;
 static LIST_HEAD(admin_client_list);
 static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -195,29 +194,22 @@ static int accept_connection_cb(server_generic_client_t *ptr)
 
 
 
-int admin_server_new(const char *addr, uint16_t port) 
+server_generic_t *admin_server_new(const char *addr, uint16_t port) 
 {
+        server_generic_t *server;
+        
         server = server_generic_new(addr, port, sizeof(admin_client_t),
                                     accept_connection_cb, read_connection_cb, close_connection_cb);
-        if ( ! server ) {
+        if ( ! server ) 
                 log(LOG_ERR, "error creating a generic server.\n");
-                return -1;
-        }
 
-        return 0;
+        return server;
 }
 
 
 
 
-void admin_server_start(void) 
-{        
-        server_generic_start(server); /* Never return */
-}
-
-
-
-void admin_server_close(void) 
+void admin_server_close(server_generic_t *server) 
 {
         server_generic_close(server);
 }

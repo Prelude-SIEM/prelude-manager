@@ -41,6 +41,7 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/threads.h>
 
+#include "server-generic.h"
 #include "sensor-server.h"
 #include "admin-server.h"
 #include "pconfig.h"
@@ -50,8 +51,11 @@
 #include "idmef-util.h"
 #include "idmef-message-scheduler.h"
 
+#define sensor_server server[0]
+#define admin_server server[1]
 
-static pthread_t admin_server_thr;
+static size_t nserver = 0;
+static server_generic_t *server[2];
 extern struct report_config config;
 
 
@@ -65,15 +69,9 @@ static void cleanup(int sig)
         /*
          * stop the sensor server.
          */
-        sensor_server_close();
+        sensor_server_close(sensor_server);
+        admin_server_close(admin_server);
         
-        /*
-         * stop the admin server.
-         */
-        admin_server_close();
-        pthread_cancel(admin_server_thr);
-        pthread_join(admin_server_thr, NULL);
-
         /*
          * close the scheduler.
          */
@@ -87,19 +85,6 @@ static void cleanup(int sig)
 
 
 
-
-static void *start_admin_server(void *arg)
-{
-        sigset_t set;
-
-        sigfillset(&set);
-        pthread_sigmask(SIG_SETMASK, &set, NULL);
-        admin_server_start();
-        pthread_exit(0);
-}
-
-
-
 static void init_manager_server(void) 
 {
         int ret;
@@ -107,8 +92,10 @@ static void init_manager_server(void)
         /*
          * Initialize the sensors server.
          */
-        ret = sensor_server_new(config.addr, config.port);
-        if ( ret < 0 ) {
+        nserver++;
+        
+        sensor_server = sensor_server_new(config.addr, config.port);
+        if ( ! sensor_server ) {
                 log(LOG_INFO, "- couldn't start sensor server.\n");
                 exit(1);
         }
@@ -121,16 +108,16 @@ static void init_manager_server(void)
          */
         if ( config.admin_server_addr ) {
                 
-                ret = admin_server_new(config.admin_server_addr, config.admin_server_port);
-                if ( ret < 0 ) {
+                admin_server = admin_server_new(config.admin_server_addr, config.admin_server_port);
+                if ( ! admin_server ) {
                         log(LOG_INFO, "- couldn't start administration server.\n");
                         exit(1);
                 }
 
                 log(LOG_INFO, "- administration server started (listening on %s:%d).\n",
                     config.admin_server_addr, config.admin_server_port);
-                
-                pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
+
+                nserver++;
         }
 }
 
@@ -199,8 +186,8 @@ int main(int argc, char **argv)
                 if ( ret < 0 )
                         return -1;
         }
-                
-        sensor_server_start(); /* never return */
+
+        server_generic_start(server, nserver);
         
 	exit(0);	
 }
