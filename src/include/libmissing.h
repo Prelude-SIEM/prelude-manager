@@ -26,12 +26,12 @@
  * is generated dynamically by gnulib-tool, it can't go there.
  */
 
-#ifndef _PRELUDE_LML_LIBMISSING_H
-#define _PRELUDE_LML_LIBMISSING_H
+#ifndef _PRELUDE_MANAGER_LIBMISSING_H
+#define _PRELUDE_MANAGER_LIBMISSING_H
 
 #include "config.h"
 #include "poll.h"
 #include "snprintf.h"
 #include "vsnprintf.h"
 
-#endif /* _PRELUDE_LML_LIBMISSING_H */
+#endif /* _PRELUDE_MANAGER_LIBMISSING_H */
