@@ -67,6 +67,26 @@ logfile = /var/log/prelude.log;
 
 
 
+#
+# The Xmlmod plugin allow to report alert as IDMEF XML
+# in a file. Or to dump theses alert to stderr. 
+#
+# The default logfile for this plugin is /var/log/prelude-xml.log
+#
+
+[XmlMod]
+#
+# Tell Xmlmod to output to stderr
+# stderr;
+#
+# Tell Xmlmod to check generated XML against IDMEF DTD
+# check-dtd;
+#
+
+logfile = /var/log/prelude-xml.log;
+
+
+
 # [Debug]
 #
 # Print the value of each element.

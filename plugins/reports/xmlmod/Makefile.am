@@ -1,12 +1,18 @@
-DEFS += @defined@
+DEFS=-I$(top_srcdir) -I$(top_srcdir)/src/include @xml2_includedir@ \
+     -DIDMEF_DTD=\"@manager_data_dir@/xmlmod/idmef-message.dtd\" @defined@
 
-INCLUDES = -I$(top_srcdir)/libmissing -I$(top_srcdir) \
-           -I$(top_srcdir)/src/include \
-           @LIBPRELUDE_CFLAGS@
+xmlmod_la_LDFLAGS = -module -avoid-version
+
+if HAVE_XML2
 
 xmlmod_la_SOURCES = xmlmod.c
-xmlmod_la_LDFLAGS = -module -avoid-version
-xmlmoddir = $(libdir)/prelude/reports
+xmlmod_la_LIBADD  = @xml2_lib@
+xmlmoddir = $(report_plugin_dir)
 xmlmod_LTLIBRARIES = xmlmod.la
 
+xml_DATA = idmef-message.dtd
+xmldir   = $(manager_data_dir)/xmlmod
+EXTRA_DIST = $(xml_data)
+
+endif
 

@@ -94,7 +94,7 @@ else
 
 	for dir in /usr/include /usr/include/mysql /usr/local/include \
                    /usr/local/include/mysql; do
-		AC_CHECK_FILE($dir/mysql.h, mysql_inc=$dir)
+		AC_CHECK_HEADER($dir/mysql.h, mysql_inc=$dir)
 	done
 
 	if test $mysql_inc ; then
@@ -169,6 +169,27 @@ AM_CONDITIONAL(HAVE_PGSQL, test x$enable_pgsql = xyes)
 AC_SUBST(HAVE_PGSQL)
 AC_SUBST(PGSQL_LIBDIR)
 AC_SUBST(PGSQL_INCLUDEDIR)
+
+
+dnl ********************************************************
+dnl * Check for the Libxml2                                *
+dnl ********************************************************
+
+AC_CHECK_PROG(xml2_config, xml2-config, true, false)
+
+if test x$xml2_config = xtrue; then
+	enable_xmlmod=yes
+	xml2_lib=`xml2-config --libs`	
+	xml2_includedir=`xml2-config --cflags`
+
+else
+	enable_xmlmod=no
+fi
+
+AM_CONDITIONAL(HAVE_XML2, test x$enable_xmlmod = xyes)
+AC_SUBST(HAVE_XML2)
+AC_SUBST(xml2_lib)
+AC_SUBST(xml2_includedir)
 
 
 
@@ -436,6 +457,7 @@ plugins/filters/Makefile
 plugins/reports/Makefile
 plugins/reports/debug/Makefile
 plugins/reports/textmod/Makefile
+plugins/reports/xmlmod/Makefile
 
 ])
 
@@ -456,3 +478,4 @@ echo "    - Generate documentation : $enable_gtk_doc"
 echo "    - Enable profiling       : $enable_profiling"
 echo "    - Enable MySQL plugin    : $enable_mysql"
 echo "    - Enable PostgreSQL plugin : $enable_pgsql";
+echo "    - Enable Xml plugin        : $enable_xmlmod";
