@@ -56,8 +56,9 @@ static void print(int depth, const char *fmt, ...)
         va_list ap;
 
         va_start(ap, fmt);
-        
-        do_print(out_fd, depth, fmt, ap);
+
+        if ( out_fd )
+                do_print(out_fd, depth, fmt, ap);
 
         if ( out_stderr )
                 do_print(stderr, depth, fmt, ap);
