@@ -1,3 +1,8 @@
+2002-02-21  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* plugins/decodes/prelude-nids/packet-decode.c (get_address): 
+	correct typo in #ifdef.
+
 2002-02-20  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* acinclude.m4: 
