@@ -40,6 +40,8 @@
 #include <libprelude/extract.h>
 #include <libprelude/prelude-connection.h>
 #include <libprelude/prelude-connection-mgr.h>
+#include <libprelude/prelude-getopt.h>
+#include <libprelude/prelude-getopt-wide.h>
 
 #include "server-logic.h"
 #include "server-generic.h"
@@ -99,19 +101,13 @@ static sensor_fd_t *search_cnx(prelude_list_t *head, uint64_t analyzerid)
 static int forward_message_to_all(sensor_fd_t *client, prelude_msg_t *msg,
                                   prelude_list_t *head, pthread_mutex_t *list_mutex) 
 {
-        char buf[128];
         sensor_fd_t *cnx;
         prelude_list_t *tmp;
 
         pthread_mutex_lock(list_mutex);
         
         prelude_list_for_each(tmp, head) {
-                cnx = prelude_list_entry(tmp, sensor_fd_t, list);
-
-                server_generic_get_addr_string((server_generic_client_t *) cnx, buf, sizeof(buf));
-                server_generic_log_client((server_generic_client_t *) client,
-                                          "message forwarded to [%s].\n", buf);
-                
+                cnx = prelude_list_entry(tmp, sensor_fd_t, list);                        
                 prelude_msg_write(msg, cnx->fd);
         }
         
@@ -157,20 +153,20 @@ static int forward_option_request_to_sensor(sensor_fd_t *cnx, uint64_t analyzeri
         sensor_fd_t *sensor;
         
         pthread_mutex_lock(&sensors_list_mutex);
-
-        sensor = search_cnx(&sensors_cnx_list, analyzerid);
+        
+        sensor = search_cnx(&sensors_cnx_list, analyzerid);        
         if ( ! sensor ) {
                 pthread_mutex_unlock(&sensors_list_mutex);
                 return forward_message_to_all(cnx, msg, &managers_cnx_list, &managers_list_mutex);
         }
+        
+        pthread_mutex_unlock(&sensors_list_mutex);
 
         server_generic_get_addr_string((server_generic_client_t *) sensor, buf, sizeof(buf));
         server_generic_log_client((server_generic_client_t *) cnx,
                                   "option request forwarded to [%s].\n", buf);
                 
         ret = prelude_msg_write(msg, sensor->fd);
-        
-        pthread_mutex_unlock(&sensors_list_mutex);
 
         return ret;
 }
@@ -178,29 +174,13 @@ static int forward_option_request_to_sensor(sensor_fd_t *cnx, uint64_t analyzeri
 
 
 
-static int forward_option_list_to_admin(sensor_fd_t *cnx, prelude_msg_t *msg) 
+static int get_msg_target_ident(prelude_msg_t *msg, uint64_t *ident)
 {
-        if ( cnx->options_list )
-                prelude_msg_destroy(cnx->options_list);
-        
-        cnx->options_list = msg;
-
-        return forward_message_to_all(cnx, msg, &admins_cnx_list, &admins_list_mutex);
-}
-
-
-
-
-
-static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg) 
-{
-        int ret;
         void *buf;
         uint8_t tag;
         uint32_t len;
-        uint64_t target_sensor_ident = 0;
-
-        while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) > 0 ) {
+        
+        while ( prelude_msg_get(msg, &tag, &len, &buf) > 0 ) {
 
                  /*
                   * We just need the target ident, so that we know
@@ -209,14 +189,32 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
                 if ( tag != PRELUDE_MSG_OPTION_TARGET_ID )
                         continue;
                 
-                ret = extract_uint64_safe(&target_sensor_ident, buf, len);
-                if ( ret < 0 )
-                        return -1;
+                return extract_uint64_safe(ident, buf, len);
         }
-        
+
+        return -1;
+}
+
+
+
+
+static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg) 
+{
+        int ret;
+        uint64_t target_sensor_ident = 0;
+
+        ret = get_msg_target_ident(msg, &target_sensor_ident);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error decoding message.\n");
                 return -1;
+        }
+        
+        if ( target_sensor_ident == prelude_client_get_analyzerid(manager_client) ) {
+                server_generic_log_client((server_generic_client_t *) client,
+                                          "option request forwarded to [local manager].\n");
+
+                prelude_msg_recycle(msg);
+                return prelude_option_process_request(manager_client, client->fd, msg);
         }
         
         ret = forward_option_request_to_sensor(client, target_sensor_ident, msg);
@@ -234,25 +232,9 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
 static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg) 
 {
         int ret;
-        void *buf;
-        uint8_t tag;
-        uint32_t len;
         uint64_t target_admin_ident = 0;
 
-        while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) > 0 ) {
-
-                 /*
-                  * We just need the target ident, so that we know
-                  * where to forward this message.
-                  */
-                if ( tag != PRELUDE_MSG_OPTION_TARGET_ID )
-                        continue;
-                
-                ret = extract_uint64_safe(&target_admin_ident, buf, len);
-                if ( ret < 0 )
-                        return -1;
-        }
-        
+        ret = get_msg_target_ident(msg, &target_admin_ident);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error decoding message.\n");
                 return -1;
@@ -389,6 +371,14 @@ static int handle_declare_sensor(sensor_fd_t *cnx)
 
 static int handle_declare_admin(sensor_fd_t *cnx) 
 {
+        int state;
+        
+        cnx->cnx = prelude_connection_new(manager_client, "127.0.0.1", 0);
+        prelude_connection_set_fd(cnx->cnx, cnx->fd);
+
+        state = prelude_connection_get_state(cnx->cnx) | PRELUDE_CONNECTION_ESTABLISHED;
+        prelude_connection_set_state(cnx->cnx, state);
+
         cnx->client_type = "admin";
         
         server_generic_log_client((server_generic_client_t *) cnx,
@@ -399,7 +389,7 @@ static int handle_declare_admin(sensor_fd_t *cnx)
         pthread_mutex_unlock(&admins_list_mutex);
 
         cnx->list_mutex = &admins_list_mutex;
-        
+
         return 0;
 }
 
@@ -519,11 +509,7 @@ static int read_connection_cb(server_generic_client_t *client)
                 ret = (cnx->capability) ? -1 : read_client_type(cnx, msg);
                 break;
                 
-        case PRELUDE_MSG_OPTION_LIST:
-                ret = forward_option_list_to_admin(cnx, msg);
-                break;
-
-        case PRELUDE_MSG_OPTION_REQUEST:  
+        case PRELUDE_MSG_OPTION_REQUEST:
                 ret = request_sensor_option(cnx, msg);
                 break;
 
@@ -552,7 +538,7 @@ static void close_connection_cb(server_generic_client_t *ptr)
 {
         sensor_fd_t *cnx = (sensor_fd_t *) ptr;
         
-        if ( cnx->cnx )
+        if ( cnx->cnx && cnx->capability & PRELUDE_CLIENT_CAPABILITY_RECV_IDMEF )
                 reverse_relay_tell_dead(cnx->cnx);
 
         if ( cnx->list_mutex ) {
