@@ -29,8 +29,9 @@
 
 #define SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED  0x01
 #define SERVER_GENERIC_CLIENT_STATE_ACCEPTED       0x02
-#define SERVER_GENERIC_CLIENT_STATE_CLOSING        0x04
-#define SERVER_GENERIC_CLIENT_STATE_CLOSED         0x08
+#define SERVER_GENERIC_CLIENT_STATE_FLUSHING       0x04
+#define SERVER_GENERIC_CLIENT_STATE_CLOSING        0x08
+#define SERVER_GENERIC_CLIENT_STATE_CLOSED         0x10
 
 
 #define SERVER_GENERIC_OBJECT        \
@@ -94,6 +95,10 @@ void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t prior
 void server_generic_client_set_analyzerid(server_generic_client_t *client, uint64_t analyzerid);
 
 int server_generic_client_set_permission(server_generic_client_t *client, prelude_connection_permission_t permission);
+
+int server_generic_client_get_state(server_generic_client_t *client);
+
+void server_generic_client_set_state(server_generic_client_t *client, int state);
 
 #endif /* _MANAGER_SERVER_GENERIC_H */
 

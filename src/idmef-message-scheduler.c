@@ -800,10 +800,10 @@ void idmef_message_process(idmef_message_t *idmef)
         
         relay_filter_available = filter_plugins_available(MANAGER_FILTER_CATEGORY_REVERSE_RELAYING);
         if ( relay_filter_available < 0 )
-                reverse_relay_send_msg(idmef);
+                reverse_relay_send_receiver(idmef);
 
         else if ( filter_plugins_run_by_category(idmef, MANAGER_FILTER_CATEGORY_REVERSE_RELAYING) == 0 )
-                reverse_relay_send_msg(idmef);
+                reverse_relay_send_receiver(idmef);
         
         /*
          * run simple reporting plugin.

@@ -830,6 +830,18 @@ void server_generic_client_set_analyzerid(server_generic_client_t *client, uint6
 }
 
 
+void server_generic_client_set_state(server_generic_client_t *client, int state)
+{
+        client->state = state;
+}
+
+
+int server_generic_client_get_state(server_generic_client_t *client)
+{
+        return client->state;
+}
+
+
 
 int server_generic_client_set_permission(server_generic_client_t *client, prelude_connection_permission_t permission)
 {
