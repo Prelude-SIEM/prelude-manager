@@ -167,13 +167,13 @@ int reverse_relay_create_initiator(const char *arg)
 
         ret = prelude_connection_mgr_set_connection_string(initiator_managers, arg);
         if ( ret < 0 ) {
-                prelude_connection_mgr_destroy(manager_client);
+                prelude_connection_mgr_destroy(initiator_managers);
                 return -1;
         }
 
         ret = prelude_connection_mgr_init(initiator_managers);
         if ( ret < 0 ) {
-                prelude_connection_mgr_destroy(manager_client);
+                prelude_connection_mgr_destroy(initiator_managers);
                 return -1;
         }
         
