@@ -359,6 +359,8 @@ static void print_target(unsigned long alert_ident, const idmef_target_t *target
         ident = db_escape(target->ident);
         interface = db_escape(target->interface);
         decoy = db_escape(idmef_target_decoy_to_string(target->decoy));
+
+        printf("decoy=%s\n", decoy);
         
         /*
          * prepare query

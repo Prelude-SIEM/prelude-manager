@@ -212,7 +212,7 @@ idmef_source_t *idmef_source_new(idmef_alert_t *alert)
                 return NULL;
         }
 
-        ptr->spoofed = unknow;
+        ptr->spoofed = unknown;
         
         INIT_LIST_HEAD(&ptr->user.userid_list);
         INIT_LIST_HEAD(&ptr->node.address_list);
@@ -235,7 +235,7 @@ idmef_target_t *idmef_target_new(idmef_alert_t *alert)
                 return NULL;
         }
 
-        ptr->decoy = unknow;
+        ptr->decoy = unknown;
         
         INIT_LIST_HEAD(&ptr->user.userid_list);
         INIT_LIST_HEAD(&ptr->node.address_list);
@@ -351,7 +351,7 @@ const char *idmef_classification_origin_to_string(idmef_classification_origin_t 
 const char *idmef_address_category_to_string(idmef_address_category_t category) 
 {
         static const char *tbl[] = {
-                "unknow",
+                "unknown",
                 "atm",
                 "e-mail",
                 "lotus-notes",
@@ -381,7 +381,7 @@ const char *idmef_address_category_to_string(idmef_address_category_t category)
 const char *idmef_node_category_to_string(idmef_node_category_t category) 
 {
         static const char *tbl[] = {
-                "unknow",
+                "unknown",
                 "ads",
                 "afs",
                 "coda",
@@ -405,7 +405,7 @@ const char *idmef_node_category_to_string(idmef_node_category_t category)
 const char *idmef_user_category_to_string(idmef_user_category_t category) 
 {
         static const char *tbl[] = {
-                "unknow",
+                "unknown",
                 "application",
                 "os-device",
         };
@@ -439,7 +439,7 @@ const char *idmef_userid_type_to_string(idmef_userid_type_t type)
 const char *idmef_source_spoofed_to_string(idmef_spoofed_t spoofed) 
 {
         static const char *tbl[] = {
-                "unknow",
+                "unknown",
                 "yes",
                 "no",
         };
@@ -454,7 +454,7 @@ const char *idmef_source_spoofed_to_string(idmef_spoofed_t spoofed)
 const char *idmef_target_decoy_to_string(idmef_spoofed_t decoy) 
 {
         static const char *tbl[] = {
-                "unknow",
+                "unknown",
                 "yes",
                 "no",
         };
