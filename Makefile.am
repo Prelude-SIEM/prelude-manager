@@ -6,3 +6,7 @@ preludeconf_DATA = prelude-report.conf
 EXTRA_DIST = $(preludeconf_DATA) config.h \
              AUTHORS COPYING INSTALL NEWS README \
              ChangeLog
+
+install-data-local:
+	$(INSTALL) -d /var/log/prelude;
+	$(INSTALL) -d $(localstatedir)/prelude;

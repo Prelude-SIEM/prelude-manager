@@ -41,7 +41,7 @@ enable = yes;
 
 # Directory where XML log should be written in.
 #
-xmldir = @localstatedir@/log/prelude/xml;
+xmldir = /var/log/prelude/xml;
 
 
 [HtmlMod]
@@ -53,7 +53,7 @@ enable = yes;
 
 # Directory where HTML log should be written in.
 #
-htmldir = @localstatedir@/log/prelude/html;
+htmldir = /var/log/prelude/html;
 
 
 
@@ -67,5 +67,5 @@ enable = yes;
 
 # Filename where the log should be written in.
 #
-logfile = @localstatedir@/log/prelude/prelude.log;
+logfile = /var/log/prelude/prelude.log;
 
