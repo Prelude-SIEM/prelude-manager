@@ -99,14 +99,12 @@ static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_st
 
 
 
-
-static int set_filter_rule(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
+static int add_criteria(filter_plugin_t *plugin, const char *criteria)
 {
-	int ret;
+        int ret;
         idmef_criteria_t *new;
-        filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);
-
-        ret = idmef_criteria_new_from_string(&new, optarg);
+        
+        ret = idmef_criteria_new_from_string(&new, criteria);
         if ( ret < 0 ) 
                 return ret;
         
@@ -114,8 +112,51 @@ static int set_filter_rule(prelude_option_t *opt, const char *optarg, prelude_st
                 plugin->criteria = new;
         else
                 idmef_criteria_or_criteria(plugin->criteria, new);
-        
+
         return 0;
+}
+
+
+
+static int read_criteria_from_filename(filter_plugin_t *plugin, const char *filename, prelude_string_t *err)
+{
+        FILE *fd;
+        int ret = 0;
+        char buf[1024];
+        unsigned int line = 0;
+        
+        fd = fopen(filename, "r");
+        if ( ! fd ) {
+                prelude_string_sprintf(err, "error opening '%s' for reading: %s (%d)", filename, strerror(errno), errno);
+                return -1;
+        }
+
+        while ( prelude_read_multiline(fd, &line, buf, sizeof(buf)) == 0 ) {
+
+                ret = add_criteria(plugin, buf);
+                if ( ret < 0 ) {
+                        prelude_string_sprintf(err, "%s:%u: %s", filename, line, prelude_strerror(ret));
+                        break;
+                }
+        }
+
+        fclose(fd);
+
+        return ret;
+}
+
+
+
+static int set_filter_rule(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
+{
+	int ret;
+        filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+
+        ret = access(optarg, R_OK);
+        if ( ret == 0 )
+                return read_criteria_from_filename(plugin, optarg, err);
+
+        return add_criteria(plugin, optarg);
 }
 
 
