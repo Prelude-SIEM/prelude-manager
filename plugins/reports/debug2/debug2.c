@@ -1,7 +1,6 @@
 /*****
 *
-* Copyright (C) 2002 Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>
-* Copyright (C) 2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2004-2005 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -38,7 +37,7 @@
 #include "prelude-manager.h"
 
 
-int debug2_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
+int debug_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
 
 
 typedef struct {
@@ -234,7 +233,7 @@ static void debug_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
 
 
 
-int debug2_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
+int debug_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
 {
         int ret;
 	prelude_option_t *opt;
