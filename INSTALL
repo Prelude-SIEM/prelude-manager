@@ -3,10 +3,9 @@ How to install the Prelude Manager
 
 1. Prelude Library installation
 
-The Prelude Manager use the API provide by the Prelude Library to
-communication with the sensors. If you wish to use OpenSSL with, 
-the Prelude Manager, the library should be compiled with OpenSSL 
-support.
+The Prelude Manager uses the API provided by the Prelude Library to
+communicate with sensors. If you wish to use OpenSSL with the Prelude Manager, 
+the Prelude Library should be compiled with OpenSSL support.
 
 
 
@@ -15,9 +14,9 @@ support.
 The Prelude Manager can communicate with sensor using OpenSSL or plaintext 
 authentication.
 
-If you plan on using Prelude in a distributed environment (Prelude Manager
+If you plan to use Prelude in a distributed environment (Prelude Manager
 and Prelude sensors not on the same machine), you may want to use OpenSSL 
-for communication for obvious security reason.
+for communication for obvious security reasons.
 
 In case OpenSSL is not installed, the Prelude Manager will be built 
 without SSL support.
@@ -44,27 +43,27 @@ If everything works, su to root and type:
 
 4. Allowing sensor to communicate with the Prelude Manager
 
-Run the manager-adduser program and follow the instruction. This
+Run the manager-adduser program and follow the instructions. This
 program will also generate the Prelude Manager private SSL key 
-when started the first time.
+when started for the first time.
 
 
 
 5. Starting the Prelude Manager
 
 In order to start the Prelude Manager, su to root (or whatever
-user owning the $prefix/etc/prelude-manager directory) then Type:
+user owning the $prefix/etc/prelude-manager directory) then type:
 
 	prelude-manager
 
 This will start the Prelude Manager with default configuration. You
 have to know that no report plugin nor database plugin will be enabled.
 
-You may enable available plugin throught the command line, or the
+You may enable available plugin using the command line, or the
 configuration file (located in $prefix/etc/prelude-manager/prelude-manager.conf)
 
-Most command line option are available in the configuration file, 
-but command line option have higher priority.
+Most command line options are available in the configuration file, 
+but command line options have higher priority.
 
 
 

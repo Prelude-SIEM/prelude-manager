@@ -4,8 +4,8 @@ by Yoann Vandoorselaere <yoann@mandrakesoft.com>
 
 
 This is the Prelude Report server,
-it is ressponssible for generating user readable report throught plugin when
-it receive an alert from one of the sensors.
+responssible for generating an user readable report using plugins when
+it receives an alert from one of the sensors.
 
 
 
@@ -39,5 +39,6 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 - PORTABILITY
 
  * Linux (ppc, sparc32, alpha, x86).
- * Should compile on Solaris and FreeBSD.
+ * FreeBSD (4.x-STABLE and 5.0-CURRENT on x86) port is actively maintained.
+ * Should compile on Solaris.
 
