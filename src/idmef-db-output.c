@@ -455,9 +455,9 @@ static int insert_file(uint64_t alert_ident, uint64_t target_ident,
                 return -1;
         }
         
-        idmef_get_timestamp(file->create_time, ctime, sizeof(ctime));
-        idmef_get_timestamp(file->modify_time, mtime, sizeof(mtime));
-        idmef_get_timestamp(file->access_time, atime, sizeof(atime));
+        idmef_get_db_timestamp(file->create_time, ctime, sizeof(ctime));
+        idmef_get_db_timestamp(file->modify_time, mtime, sizeof(mtime));
+        idmef_get_db_timestamp(file->access_time, atime, sizeof(atime));
         
         db_plugin_insert("Prelude_File", "alert_ident, target_ident, ident, category, name, path, "
                          "create_time, modify_time, access_time, data_size, disk_size", "%llu, %llu, %llu, '%s', "
@@ -753,7 +753,7 @@ static int insert_createtime(uint64_t parent_ident, char parent_type, idmef_time
 {
         char utc_time[MAX_UTC_DATETIME_SIZE], ntpstamp[MAX_NTP_TIMESTAMP_SIZE], *u, *n;
 
-        idmef_get_timestamp(time, utc_time, sizeof(utc_time));
+        idmef_get_db_timestamp(time, utc_time, sizeof(utc_time));
         idmef_get_ntp_timestamp(time, ntpstamp, sizeof(ntpstamp));
         
         u = db_plugin_escape(utc_time);
@@ -784,7 +784,7 @@ static int insert_detecttime(uint64_t alert_ident, idmef_time_t *time)
         if ( ! time )
                 return 0;
         
-        idmef_get_timestamp(time, utc_time, sizeof(utc_time));
+        idmef_get_db_timestamp(time, utc_time, sizeof(utc_time));
         idmef_get_ntp_timestamp(time, ntpstamp, sizeof(ntpstamp));
         
         u = db_plugin_escape(utc_time);
@@ -815,7 +815,7 @@ static int insert_analyzertime(uint64_t parent_ident, char parent_type, idmef_ti
         if ( ! time )
                 return 0;
         
-        idmef_get_timestamp(time, utc_time, sizeof(utc_time));
+        idmef_get_db_timestamp(time, utc_time, sizeof(utc_time));
         idmef_get_ntp_timestamp(time, ntpstamp, sizeof(ntpstamp));
         
         u = db_plugin_escape(utc_time);

@@ -66,11 +66,15 @@ void idmef_alert_get_ident(idmef_alert_t *alert);
 void idmef_heartbeat_get_ident(idmef_heartbeat_t *heartbeat);
 
 
-#define MAX_UTC_DATETIME_SIZE  23   /* YYYY-MM-DDThh:mm:ss.ssZ */
+#define MAX_UTC_DATETIME_SIZE  64   /* YYYY-MM-DDThh:mm:ss.ssZ */
 #define MAX_NTP_TIMESTAMP_SIZE 21   /* 0xNNNNNNNN.0xNNNNNNNN   */
 
 void idmef_get_ntp_timestamp(const idmef_time_t *time, char *outptr, size_t size);
 
-void idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size);
+int idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size);
+
+int idmef_get_db_timestamp(const idmef_time_t *time, char *outptr, size_t size);
+
+int idmef_get_idmef_timestamp(const idmef_time_t *time, char *outptr, size_t size);
 
 #endif /* _MANAGER_IDMEF_UTIL_H */

@@ -107,20 +107,130 @@ void idmef_get_ntp_timestamp(const idmef_time_t *time, char *outptr, size_t size
 
 
 
-void idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size) 
+/**
+ * idmef_get_db_timestamp:
+ * @time: Pointer to an IDMEF time structure.
+ * @outptr: Output buffer.
+ * @size: size of the output buffer.
+ *
+ * Translate @time to a string suitable for insertion into a database field
+ * of type DATETIME.
+ */
+int idmef_get_db_timestamp(const idmef_time_t *time, char *outptr, size_t size) 
 {
-        struct tm *utc;
+        int ret;
+        struct tm utc;
         
         /*
          * Convert from localtime to UTC.
          */
-        utc = gmtime((const time_t *) &time->sec);
+        if ( ! gmtime_r((const time_t *) &time->sec, &utc) ) {
+                log(LOG_ERR, "error converting timestamp to gmt time.\n");
+                return 0;
+        }
+        
+        ret = strftime(outptr, size, "%Y-%m-%d%H:%M:%S", &utc);
+        if ( ret == 0 ) {
+                log(LOG_ERR, "error converting UTC time to string.\n");
+                return -1;
+        }
+        
+        return 0;
+}
 
+
+
+
+/**
+ * idmef_get_idmef_timestamp:
+ * @time: Pointer to an IDMEF time structure.
+ * @outptr: Output buffer.
+ * @size: size of the output buffer.
+ *
+ * Translate @time to an user readable string following the IDMEF
+ * specification.
+ *
+ * Returns: 0 on success, -1 if an error occured.
+ */
+int idmef_get_idmef_timestamp(const idmef_time_t *time, char *outptr, size_t size)
+{
+        int ret;
+        struct tm utc, local;
+                
+        /*
+         * Convert from localtime to UTC.
+         */
+        if ( ! gmtime_r((const time_t *) &time->sec, &utc) ) {
+                log(LOG_ERR, "error converting timestamp to gmt time.\n");
+                return -1;
+        }
+
+        if ( ! localtime_r((const time_t *) &time->sec, &local) ) {
+                log(LOG_ERR, "error converting timestamp to local time.\n");
+                return -1;
+        }
+        
         /*
          * Format as the IDMEF draft tell us to.
          */
-        /* strftime(outptr, size, "%Y-%m-%dT%H:%M:%S", utc); */
-        strftime(outptr, size, "%Y-%m-%d%H:%M:%S", utc);
+        ret = strftime(outptr, size, "%Y-%m-%dT%H:%M:%S", &utc);
+        if ( ret == 0 ) {
+                log(LOG_ERR, "error converting UTC time to string.\n");
+                return -1;
+        }
+
+        if ( local.tm_hour > utc.tm_hour )
+                snprintf(outptr + ret, size - ret, "+%.2d:00", local.tm_hour - utc.tm_hour);
+
+        else if ( local.tm_hour < utc.tm_hour )
+                snprintf(outptr + ret, size - ret, "-%.2d:00", utc.tm_hour - local.tm_hour);
+
+        else if ( local.tm_hour == utc.tm_hour )
+                snprintf(outptr + ret, size - ret, "Z");
+
+        return 0;
+}
+
+
+
+
+/**
+ * idmef_get_timestamp:
+ * @time: Pointer to an IDMEF time structure.
+ * @outptr: Output buffer.
+ * @size: size of the output buffer.
+ *
+ * Translate @time to an user readable string.
+ *
+ * Returns: 0 on success, -1 if an error occured.
+ */
+int idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size)
+{
+        struct tm lt;
+        int ret, len = 0;
+        
+        if ( ! localtime_r( (const time_t *) &time->sec, &lt) ) {
+                log(LOG_ERR, "error converting timestamp to local time.\n");
+                return -1;
+        }
+        
+        len += ret = strftime(outptr, size, "%Y-%m-%d %H:%M:%S", &lt);
+        if ( ret == 0 ) {
+                log(LOG_ERR, "error converting UTC time to string.\n");
+                return -1;
+        }
+
+        len += ret = snprintf(outptr + len, size - len, ".%u", time->usec / 10000);
+        
+        len += ret = strftime(outptr + len, size - len, "%z", &lt);
+        if ( ret == 0 ) {
+                log(LOG_ERR, "error converting UTC time to string.\n");
+                return -1;
+        }
+
+        len += ret;
+
+        return 0;
 }
 
 

@@ -1,3 +1,20 @@
+2002-05-31  Yoann Vandoorselaere  <yoann@mandrakesoft.com>	
+
+	* src/idmef-util.c (idmef_get_db_timestamp): 
+	new function, return a timestamp formatted for DB output.
+
+	(idmef_get_timestamp): modified so that it return time
+	in a readable format.
+
+	(idmef_get_idmef_timestamp): 
+	new function, return a timestamp following IDMEF specs.
+	
+	* src/idmef-db-output.c (insert_file): 
+	(insert_analyzertime): 
+	(insert_createtime): 
+	(insert_detecttime): use idmef_get_db_timestamp() 
+	instead of idmef_get_timestamp().
+
 2002-05-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/reports/textmod/textmod.c (process_analyzer): 
