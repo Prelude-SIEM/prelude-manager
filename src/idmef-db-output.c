@@ -401,6 +401,28 @@ static int insert_service(uint64_t alert_ident, uint64_t parent_ident,
 
 
 
+static int insert_inode(uint64_t alert_ident, uint64_t target_ident,
+                        uint64_t file_ident, idmef_inode_t *inode) 
+{
+        char ctime[MAX_UTC_DATETIME_SIZE] = { '\0' };
+
+        if ( ! inode )
+                return 0;
+
+        if ( inode->change_time )
+                idmef_get_db_timestamp(inode->change_time, ctime, sizeof(ctime));
+        
+        db_plugin_insert("Prelude_Inode", "alert_ident, target_ident, file_ident, "
+                         "change_time, major_device, minor_device, c_major_device, "
+                         "c_minor_device", "%llu, %llu, %llu, '%s', %d, %d, %d, %d",
+                         alert_ident, target_ident, file_ident, ctime, inode->major_device,
+                         inode->minor_device, inode->c_major_device, inode->c_minor_device);
+
+        return 0;
+}
+
+
+
 static int insert_linkage(uint64_t alert_ident, uint64_t target_ident,
                           uint64_t file_ident, idmef_linkage_t *linkage) 
 {
@@ -458,7 +480,8 @@ static int insert_file(uint64_t alert_ident, uint64_t target_ident,
         struct list_head *tmp;
         idmef_linkage_t *linkage;
         idmef_file_access_t *access;
-        char ctime[MAX_UTC_DATETIME_SIZE], mtime[MAX_UTC_DATETIME_SIZE], atime[MAX_UTC_DATETIME_SIZE];
+        char ctime[MAX_UTC_DATETIME_SIZE] = { '\0' };
+        char mtime[MAX_UTC_DATETIME_SIZE]= { '\0' }, atime[MAX_UTC_DATETIME_SIZE] = { '\0' };
 
         if ( ! file )
                 return 0;
@@ -513,6 +536,10 @@ static int insert_file(uint64_t alert_ident, uint64_t target_ident,
                         return -1;
         }
 
+        ret = insert_inode(alert_ident, target_ident, file->ident, file->inode);
+        if ( ret < 0 )
+                return -1;
+        
         return 0;
 }
 
