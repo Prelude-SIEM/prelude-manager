@@ -1,5 +1,8 @@
 2002-05-31  Yoann Vandoorselaere  <yoann@mandrakesoft.com>	
 
+	* plugins/reports/textmod/textmod.c (process_heartbeat): 
+	make heartbeat output look better.
+
 	* src/idmef-util.c (idmef_get_db_timestamp): 
 	new function, return a timestamp formatted for DB output.
 

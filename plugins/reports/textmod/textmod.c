@@ -581,16 +581,18 @@ static void process_heartbeat(const idmef_heartbeat_t *heartbeat)
         struct list_head *tmp;
         const idmef_additional_data_t *data;
 
-        print(0, "* Heartbeat ");
+        print(0, "********************************************************************************\n");
+        print(0, "* Heartbeat: ident=%llu\n", heartbeat->ident);
         
         process_analyzer(&heartbeat->analyzer);
-        process_time("Creation time", &heartbeat->create_time);
-        process_time("Analyzer time", heartbeat->analyzer_time);
+        process_time("* Creation time", &heartbeat->create_time);
+        process_time("* Analyzer time", heartbeat->analyzer_time);
 
         list_for_each(tmp, &heartbeat->additional_data_list) {
                 data = list_entry(tmp, idmef_additional_data_t, list);
                 process_data(data);
         }
+        print(0, "*\n********************************************************************************\n\n");
 }
 
 
