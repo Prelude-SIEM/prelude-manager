@@ -183,13 +183,6 @@ static int create_manager_key_if_needed(void)
         
         fprintf(stderr, "\n\n");
 
-        if ( expire == 0 ) 
-                /*
-                 * Does SSL allow for key that never expire ?
-                 */
-                expire = 30000;
-        
-
         ret = prelude_ssl_gen_crypto(keysize, expire, MANAGER_KEY, 0);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error creating SSL key.\n");
