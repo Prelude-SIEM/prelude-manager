@@ -1,5 +1,8 @@
 2002-02-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/sensor-server.c (handle_request_ident): 
+	use a mutex to protect ident creation.
+
 	* manager-adduser/Makefile.am (DEFS): 
 	* src/Makefile.am (DEFS): 
 	* plugins/decodes/prelude-nids/Makefile.am: 

@@ -55,6 +55,8 @@ typedef struct {
 static LIST_HEAD(sensor_cnx_list);
 static prelude_ident_t *analyzer_ident;
 static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t ident_request_lock = PTHREAD_MUTEX_INITIALIZER;
+
 
 
 static int option_list_to_xml(sensor_fd_t *cnx, prelude_msg_t *msg) 
@@ -128,9 +130,11 @@ static int handle_request_ident(sensor_fd_t *cnx)
         msg = prelude_msg_new(1, sizeof(uint64_t), PRELUDE_MSG_ID, 0);
         if ( ! msg )
                 return -1;
-        
-        cnx->analyzerid = prelude_ident_inc(analyzer_ident);
 
+        pthread_mutex_lock(&ident_request_lock);
+        cnx->analyzerid = prelude_ident_inc(analyzer_ident);
+        pthread_mutex_unlock(&ident_request_lock);
+        
         /*
          * Put in network byte order
          */
