@@ -21,8 +21,8 @@
 *
 *****/
 
-#ifndef PLUGIN_REPORT_H
-#define PLUGIN_REPORT_H
+#ifndef _MANAGER_PLUGIN_REPORT_H
+#define _MANAGER_PLUGIN_REPORT_H
 
 
 #include <libprelude/idmef-tree.h>
@@ -54,4 +54,4 @@ void report_plugins_close(void);
 
 plugin_generic_t *plugin_init(int argc, char **argv);
 
-#endif
+#endif /* _MANAGER_PLUGIN_REPORT_H */

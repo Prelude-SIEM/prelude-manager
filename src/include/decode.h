@@ -21,6 +21,9 @@
 *
 *****/
 
+#ifndef _MANAGER_DECODE_H
+#define _MANAGER_DECODE_H
+
 #include <libprelude/list.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/plugin-common.h>
@@ -32,3 +35,5 @@
 
 #include "plugin-decode.h"
 #include "plugin-util.h"
+
+#endif /* _MANAGER_DECODE_H */

@@ -21,8 +21,13 @@
 *
 *****/
 
+#ifndef _MANAGER_SENSOR_SERVER_H
+#define _MANAGER_SENSOR_SERVER_H
+
 void sensor_server_close(server_generic_t *server);
 
 server_generic_t *sensor_server_new(const char *addr, uint16_t port);
 
 int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *msg);
+
+#endif /* _MANAGER_SENSOR_SERVER_H */

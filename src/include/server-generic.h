@@ -21,6 +21,9 @@
 *
 *****/
 
+#ifndef _MANAGER_SERVER_GENERIC_H
+#define _MANAGER_SERVER_GENERIC_H
+
 #include <inttypes.h>
 
 
@@ -65,5 +68,6 @@ void server_generic_start(server_generic_t **server, size_t nserver);
 
 void server_generic_close(server_generic_t *server);
 
+#endif /* _MANAGER_SERVER_GENERIC_H */
 
 

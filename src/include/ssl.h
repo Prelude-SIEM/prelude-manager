@@ -21,6 +21,9 @@
 *
 *****/
 
+#ifndef _MANAGER_SSL_H
+#define _MANAGER_SSL_H
+
 #include "config.h"
 
 #ifdef HAVE_SSL
@@ -40,3 +43,4 @@ int ssl_create_certificate(config_t *cfg, int crypt_key);
 
 #endif
 
+#endif /* _MANAGER_SSL_H */

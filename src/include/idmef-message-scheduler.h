@@ -21,6 +21,11 @@
 *
 *****/
 
+#ifndef _MANAGER_IDMEF_MESSAGE_SCHEDULER_H
+#define _MANAGER_IDMEF_MESSAGE_SCHEDULER_H
+
 int idmef_message_scheduler_init(void);
 void idmef_message_scheduler_exit(void);
 void idmef_message_schedule(prelude_msg_t *msg);
+
+#endif /* _MANAGER_IDMEF_MESSAGE_SCHEDULER_H */

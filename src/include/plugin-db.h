@@ -21,8 +21,8 @@
 *
 *****/
 
-#ifndef PLUGIN_DB_H
-#define PLUGIN_DB_H
+#ifndef _MANAGER_PLUGIN_DB_H
+#define _MANAGER_PLUGIN_DB_H
 
 #define DB_INSERT_END ((void *)0x1)
 
@@ -62,7 +62,7 @@ void db_plugins_close(void);
 
 plugin_generic_t *plugin_init(int argc, char **argv);
 
-#endif
+#endif /* _MANAGER_PLUGIN_DB_H */
 
 
 

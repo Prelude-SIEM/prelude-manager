@@ -21,5 +21,10 @@
 *
 *****/
 
+#ifndef _MANAGER_IDMEF_MESSAGE_OUTPUT_H
+#define _MANAGER_IDMEF_MESSAGE_OUTPUT_H
+
 int idmef_db_output(idmef_message_t *msg);
+
+#endif /* _MANAGER_IDMEF_MESSAGE_OUTPUT_H */
 

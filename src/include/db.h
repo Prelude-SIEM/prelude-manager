@@ -21,6 +21,9 @@
 *
 *****/
 
+#ifndef _MANAGER_DB_H
+#define _MANAGER_DB_H
+
 #include <libprelude/list.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/idmef-tree.h>
@@ -32,3 +35,5 @@
 #include <libprelude/prelude-getopt.h>
 
 #include "plugin-db.h"
+
+#endif /* _MANAGER_DB_H */

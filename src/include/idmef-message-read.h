@@ -21,5 +21,9 @@
 *
 *****/
 
+#ifndef _MANAGER_IDMEF_MESSAGE_READ_H
+#define _MANAGER_IDMEF_MESSAGE_READ_H
+
 int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg);
 
+#endif /* _MANAGER_IDMEF_MESSAGE_READ_H */

@@ -21,6 +21,8 @@
 *
 *****/
 
+#ifndef _MANAGER_REPORT_H
+#define _MANAGER_REPORT_H
 
 #include <libprelude/list.h>
 #include <libprelude/prelude-log.h>
@@ -34,3 +36,5 @@
 #include <libprelude/prelude-getopt.h>
 
 #include "plugin-report.h"
+
+#endif /* _MANAGER_REPORT_H */

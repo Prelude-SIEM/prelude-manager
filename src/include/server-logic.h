@@ -21,6 +21,9 @@
 *
 *****/
 
+#ifndef _MANAGER_SERVER_LOGIC_H
+#define _MANAGER_SERVER_LOGIC_H
+
 #define SERVER_LOGIC_CLIENT_OBJECT \
         prelude_io_t *fd
 
@@ -40,7 +43,6 @@ typedef int (server_logic_close_t)(void *sdata, server_logic_client_t *client);
  */
 typedef int (server_logic_read_t)(void *sdata, server_logic_client_t *client);
 
-
 /*
  *
  */
@@ -58,9 +60,7 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
  */
 server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read, server_logic_close_t *s_close);
 
-
-
-
+#endif /* _MANAGER_SERVER_LOGIC_H */
 
 
 

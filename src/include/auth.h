@@ -20,4 +20,10 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
+#ifndef _MANAGER_AUTH
+#define _MANAGER_AUTH
+
 #define MANAGER_AUTH_FILE CONFIG_DIR"/manager.auth"
+
+#endif /* _MANAGER_AUTH */

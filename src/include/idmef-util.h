@@ -21,6 +21,9 @@
 *
 *****/
 
+#ifndef _MANAGER_IDMEF_UTIL_H
+#define _MANAGER_IDMEF_UTIL_H
+
 const char *idmef_additional_data_type_to_string(idmef_additional_data_type_t type);
 
 const char *idmef_classification_origin_to_string(idmef_classification_origin_t origin);
@@ -66,3 +69,5 @@ void idmef_alert_get_ident(idmef_alert_t *alert);
 void idmef_get_ntp_timestamp(const idmef_time_t *time, char *outptr, size_t size);
 
 void idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size);
+
+#endif /* _MANAGER_IDMEF_UTIL_H */

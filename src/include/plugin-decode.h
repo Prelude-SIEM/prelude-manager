@@ -21,8 +21,8 @@
 *
 *****/
 
-#ifndef PLUGIN_DECODE_H
-#define PLUGIN_DECODE_H
+#ifndef _MANAGER_PLUGIN_DECODE_H
+#define _MANAGER_PLUGIN_DECODE_H
 
 #include <libprelude/idmef-tree.h>
 
@@ -51,4 +51,4 @@ void decode_plugins_free_data(void);
 
 int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *pmsg, idmef_message_t *idmef);
 
-#endif
+#endif /* _MANAGER_PLUGIN_DECODE_H */

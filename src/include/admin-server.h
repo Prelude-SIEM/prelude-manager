@@ -21,9 +21,13 @@
 *
 *****/
 
+#ifndef _MANAGER_ADMIN_SERVER_H
+#define _MANAGER_ADMIN_SERVER_H
+
 int admin_server_broadcast_sensor_optlist(prelude_msg_t *msg);
 
 server_generic_t *admin_server_new(const char *addr, uint16_t port);
 
 void admin_server_close(server_generic_t *server);
 
+#endif /* _MANAGER_ADMIN_SERVER_H */

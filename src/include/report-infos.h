@@ -21,6 +21,8 @@
 *
 *****/
 
+#ifndef _MANAGER_REPORT_INFOS_H
+#define _MANAGER_REPORT_INFOS_H
 
 typedef struct {
         char *date_start, *date_end;
@@ -33,3 +35,5 @@ typedef struct {
 
 void report_infos_get(alert_t *alert, report_infos_t *rinfos);
 void report_infos_free(report_infos_t *rinfos);
+
+#endif /* _MANAGER_REPORT_INFOS_H */

@@ -21,6 +21,9 @@
 *
 *****/
 
+#ifndef _MANAGER_PCONFIG_H
+#define _MANAGER_PCONFIG_H
+
 int pconfig_init(int argc, char **argv);
 
 struct report_config {
@@ -29,7 +32,10 @@ struct report_config {
         
         char *admin_server_addr;
 	unsigned int admin_server_port;
-    
+
+	char *cm_comm_server_addr;
+	unsigned int cm_comm_server_port;
+
         const char *pidfile;
         int use_ssl;
 }; 
@@ -39,3 +45,5 @@ struct report_config {
  * FIXME: this has nothing to do here.
  */
 void manager_relay_msg_if_needed(prelude_msg_t *msg);
+
+#endif /* _MANAGER_PCONFIG_H */

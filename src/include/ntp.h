@@ -15,6 +15,8 @@
 *                                                                     *
 ***********************************************************************/
 
+#ifndef _MANAGER_NTP_H
+#define _MANAGER_NTP_H
 
 #define TS_MASK         0xfffff000      /* mask to usec, for time stamps */
 #define TS_ROUNDBIT     0x00000800      /* round at this bit */
@@ -84,3 +86,5 @@ extern unsigned long ustotshi[];
                         L_NEG((ts)); \
                 } \
         } while(0)
+
+#endif /* _MANAGER_NTP_H */

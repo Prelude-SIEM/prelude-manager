@@ -1,3 +1,9 @@
+2002-05-16  Baptiste Malguy  <baptiste@malguy.net>
+
+	* src/include/*.h:
+	added some #ifndef/#define and #endif in the header files for
+	dependency inclusion purposes.
+
 2002-05-14 Vincent Glaume <glaume@enseirb.fr>
 
 	* src/server-generic.c:
