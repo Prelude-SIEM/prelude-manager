@@ -5,6 +5,7 @@
 <!ENTITY prelude-manager-plugin-report SYSTEM "sgml/plugin-report.sgml">
 <!ENTITY prelude-manager-plugin-util SYSTEM "sgml/plugin-util.sgml">
 <!ENTITY prelude-manager-idmef-message-read SYSTEM "sgml/idmef-message-read.sgml">
+<!ENTITY prelude-manager-plugin-filter SYSTEM "sgml/plugin-filter.sgml">
 <!ENTITY prelude-manager-auth SYSTEM "sgml/auth.sgml">
 <!ENTITY prelude-manager-idmef-db-output SYSTEM "sgml/idmef-db-output.sgml">
 <!ENTITY prelude-manager-plugin-decode SYSTEM "sgml/plugin-decode.sgml">
@@ -30,6 +31,7 @@
     &prelude-manager-plugin-report;
     &prelude-manager-plugin-util;
     &prelude-manager-idmef-message-read;
+    &prelude-manager-plugin-filter;
     &prelude-manager-auth;
     &prelude-manager-idmef-db-output;
     &prelude-manager-plugin-decode;

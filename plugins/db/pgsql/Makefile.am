@@ -8,9 +8,9 @@ pgsql_la_LIBADD = -L@PGSQL_LIBDIR@ -lpq
 pgsqldir = $(db_plugin_dir)
 pgsql_LTLIBRARIES = pgsql.la
 
-EXTRA_DIST = postgres.sql
+sqlscript_DATA = postgres.sql
+sqlscriptdir = $(manager_data_dir)/pgsql
 
-install-data-local:
-	$(INSTALL) -d -m 755 $(DESTDIR)/$(manager_data_dir)/pgsql
-	$(INSTALL) -m 600 $(srcdir)/postgres.sql $(DESTDIR)/$(manager_data_dir)/pgsql; 
+EXTRA_DIST = $(sqlscript_DATA)
+
 endif

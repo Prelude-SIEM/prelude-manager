@@ -76,6 +76,22 @@ idmef_message_read
 </SECTION>
 
 <SECTION>
+<FILE>plugin-filter</FILE>
+filter_category_t
+filter_entry_t
+plugin_filter_t
+plugin_run_func
+plugin_close_func
+plugin_set_running_func
+plugin_set_closing_func
+filter_plugins_available
+filter_plugins_init
+filter_plugins_run_by_category
+filter_plugins_run_by_plugin
+plugin_init
+</SECTION>
+
+<SECTION>
 <FILE>auth</FILE>
 MANAGER_AUTH_FILE
 </SECTION>
@@ -117,6 +133,7 @@ manager_relay_msg_if_needed
 
 <SECTION>
 <FILE>idmef-util</FILE>
+idmef_additional_data_to_string
 idmef_additional_data_type_to_string
 idmef_classification_origin_to_string
 idmef_address_category_to_string
@@ -135,10 +152,13 @@ idmef_action_category_to_string
 idmef_ident_init
 idmef_ident_exit
 idmef_alert_get_ident
+idmef_heartbeat_get_ident
 MAX_UTC_DATETIME_SIZE
 MAX_NTP_TIMESTAMP_SIZE
 idmef_get_ntp_timestamp
 idmef_get_timestamp
+idmef_get_db_timestamp
+idmef_get_idmef_timestamp
 </SECTION>
 
 <SECTION>
