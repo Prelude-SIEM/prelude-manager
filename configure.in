@@ -443,5 +443,5 @@ echo "*** Dumping configuration ***"
 echo "    - Enable OpenSSL         : $enable_openssl"
 echo "    - Generate documentation : $enable_gtk_doc"
 echo "    - Enable profiling       : $enable_profiling"
-echo "    - Enable MySQL plugin    : $mysql_use"
+echo "    - Enable MySQL plugin    : $enable_mysql"
 echo "    - Enable PostgreSQL plugin : $enable_pgsql";
