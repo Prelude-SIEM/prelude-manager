@@ -66,7 +66,7 @@ dnl **************************************************
 dnl * Check for libpreludedb                         *
 dnl **************************************************
 
-AM_PATH_LIBPRELUDEDB(, enable_libpreludedb=yes, enable_libpreludedb=no)
+AM_PATH_LIBPRELUDEDB(0.9.0, enable_libpreludedb=yes, enable_libpreludedb=no)
 AM_CONDITIONAL(HAVE_LIBPRELUDEDB, test x$enable_libpreludedb = xyes)
 AC_SUBST(HAVE_LIBPRELUDEDB)
 
