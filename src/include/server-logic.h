@@ -29,8 +29,7 @@
 #define SERVER_LOGIC_CLIENT_OBJECT \
         prelude_io_t *fd;          \
         int key;                   \
-        void *set;                 \
-        pthread_mutex_t mutex
+        void *set;                 
 
 
 typedef struct server_logic server_logic_t;
@@ -91,7 +90,7 @@ server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read,
 /*
  *
  */
-void server_logic_remove_client(server_logic_client_t *client);
+int server_logic_remove_client(server_logic_client_t *client);
 
 
 void server_logic_notify_write_enable(server_logic_client_t *fd);

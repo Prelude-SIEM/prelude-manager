@@ -60,12 +60,7 @@
  */
 #define DEFAULT_MAX_FD_BY_THREAD 100
 
-
-#ifdef DEBUG
- #define dprint(args...) fprintf(stderr, args)
-#else
- #define dprint(args...) do { } while(0)
-#endif
+#define dprint(args...) prelude_log(PRELUDE_LOG_DEBUG, args)
 
 
 struct server_logic_client {
@@ -279,20 +274,21 @@ static void update_fd_set_status(server_logic_t *server, server_fd_set_t *set)
 
 
 
-static void remove_connection(server_fd_set_t *set, int cnx_key) 
+static int remove_connection(server_fd_set_t *set, int cnx_key) 
 {
+        int ret;
         server_logic_t *server = set->parent;
 
         dprint("removing connection\n");
-        
+                
         /*
          * Close the file descriptor associated with this set.
          */
-        pthread_mutex_lock(&set->client[cnx_key]->mutex);
-        set->client[cnx_key]->key = -1;
-        pthread_mutex_unlock(&set->client[cnx_key]->mutex);
-
-        server->close(server->sdata, set->client[cnx_key]);
+        ret = server->close(server->sdata, set->client[cnx_key]);
+        if ( ret < 0 ) {
+                dprint("remove connection not completed\n");
+                return ret;
+        }
         
         /*
          * As of now we need to obtain the server lock because
@@ -304,6 +300,8 @@ static void remove_connection(server_fd_set_t *set, int cnx_key)
         update_fd_set_status(server, set);
         
         pthread_mutex_unlock(&server->mutex);
+
+        return 0;
 }
 
 
@@ -331,15 +329,15 @@ static void add_connection(server_logic_t *server, server_fd_set_t *set, server_
 }
 
 
-
-
 static int handle_fd_event(server_fd_set_t *set, int cnx_key) 
 {
-        int ret = -2;
-
+        int ret = 0;
+        prelude_bool_t got_event = FALSE;
+        
         assert(set->client[cnx_key]->key == cnx_key);
-
+        
         if ( set->pfd[cnx_key].events & POLLIN && set->pfd[cnx_key].revents & POLLIN ) {                
+                got_event = TRUE;
                 ret = set->parent->read(set->parent->sdata, set->client[cnx_key]);
                 dprint("thread=%ld: key=%d, fd=%d: Data available (ret=%d)\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd, ret);
         }
@@ -347,20 +345,26 @@ static int handle_fd_event(server_fd_set_t *set, int cnx_key)
         /*
          * POLLHUP and POLLOUT are mutually exclusive.
          */
-        if ( set->pfd[cnx_key].revents & (POLLERR|POLLHUP|POLLNVAL) ) {
+        if ( ret >= 0 && set->pfd[cnx_key].revents & (POLLERR|POLLHUP|POLLNVAL) ) {
+                got_event = TRUE;
                 dprint("thread=%ld: key=%d, fd=%d: Hanging up.\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd);
-                ret = -1;
+                ret = -1; /* trigger remove_connection() */
         }
 
-        else if ( ret != -1 && set->pfd[cnx_key].events & POLLOUT && set->pfd[cnx_key].revents & POLLOUT ) {
+        else if ( ret >= 0 && set->pfd[cnx_key].events & POLLOUT && set->pfd[cnx_key].revents & POLLOUT ) {
+                got_event = TRUE;
                 dprint("thread=%ld: key=%d, fd=%d: Output possible.\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd);
                 ret = set->parent->write(set->parent->sdata, set->client[cnx_key]);
         }
+
+        if ( ! got_event )
+                return -1;
         
         if ( ret < 0 ) {
-                if ( ret == -2 ) 
-                        return -1;
-
+                if ( ret == -2 )
+                        /* callback asked to stop processing connection */
+                        return 0;
+                
                 remove_connection(set, cnx_key);
         }
                 
@@ -567,8 +571,6 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
 {
         int ret;
         server_fd_set_t *set;
-
-        pthread_mutex_init(&client->mutex, NULL);
         
         /*
          * Hold the list lock until we add the connection.
@@ -681,9 +683,9 @@ void server_logic_set_max_fd_by_thread(server_logic_t *server, unsigned int max)
  * @client:
  *
  */
-void server_logic_remove_client(server_logic_client_t *client) 
+int server_logic_remove_client(server_logic_client_t *client) 
 {
-        remove_connection(client->set, client->key);
+        return remove_connection(client->set, client->key);
 }
 
 
@@ -733,18 +735,8 @@ void server_logic_notify_write_enable(server_logic_client_t *fd)
 {
         server_fd_set_t *set = fd->set;
         
-        pthread_mutex_lock(&fd->mutex);
-        
-        if ( fd->key < 0 ) {
-                pthread_mutex_unlock(&fd->mutex);
-                return;
-
-        }
-        
         set->pfd[fd->key].events |= POLLOUT;
         pthread_kill(set->thread, SIGUSR1);
-
-        pthread_mutex_unlock(&fd->mutex);
 }
  
 
