@@ -136,11 +136,12 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
         int ret;
 
         if ( ! client->msg && ! (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ) {
-                ret = manager_auth_client(client, client->fd);
+
+                ret = manager_auth_client(client, client->fd);                
                 if ( ret == 0 )
-                        return ret;
+                        return ret; /* EAGAIN happened */
                 
-                if ( ret < 0 ) {
+                if ( ret < 0 ) {                        
                         server_generic_log_client(client, "TLS authentication failed.\n");
                         return send_auth_result(client, PRELUDE_MSG_AUTH_FAILED);
                 }
@@ -199,15 +200,18 @@ static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
         
-        do {    
-                if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
+        do {
+                if ( client->state & SERVER_GENERIC_CLIENT_STATE_CLOSING ) {
+                        ret = server_logic_remove_client(ptr);
+                        return (ret == 0) ? -2 /* stop further processing */ : 0;
+                }
+                
+                else if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
                         ret = server->read(client);
+                
                 else
                         ret = authenticate_client(server, client);
-                
-                if ( ret == -2 )
-                        return 0;
-                
+                                
         } while ( ret == 0 && prelude_io_pending(client->fd) > 0 );
         
         return ret;
@@ -222,25 +226,38 @@ static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
  */
 static int close_connection_cb(void *sdata, server_logic_client_t *ptr) 
 {
+        int ret;
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
-        
-        if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED ) 
-                server->close(client);
 
-        server_generic_log_client(client, "closing connection.\n");
+        client->state |= SERVER_GENERIC_CLIENT_STATE_CLOSING;
+        
+        if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED && ! (client->state & SERVER_GENERIC_CLIENT_STATE_CLOSED) ) {
+                
+                ret = server->close(client);
+                if ( ret < 0 )
+                        return ret;
+
+                client->state |= SERVER_GENERIC_CLIENT_STATE_CLOSED;
+        }
         
         /*
          * layer above server-generic are permited to set fd to NULL so
          * that they can take control over the connection FD.
          */
         if ( client->fd ) {
-                prelude_io_close(client->fd);
+                
+                ret = prelude_io_close(client->fd);
+                if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
+                        return -1;
+                
                 prelude_io_destroy(client->fd);
         }
         
+        server_generic_log_client(client, "closing connection.\n");
+        
         free(client->addr);        
-        free(ptr);
+        free(client);
         
         return 0;
 }
@@ -805,7 +822,7 @@ void server_generic_log_client(server_generic_client_t *cnx, const char *fmt, ..
         va_start(ap, fmt);
         vsnprintf(buf, sizeof(buf), fmt, ap);
         va_end(ap);
-        
+
         prelude_log(PRELUDE_LOG_WARN, "[%s %s:0x%" PRIx64 "]: %s",
                     cnx->addr, cnx->client_type, cnx->ident, buf);
 }
@@ -827,4 +844,11 @@ const char *server_generic_get_addr_string(server_generic_client_t *client, char
                 snprintf(buf + ret, size - ret, " %s:0x%" PRIx64, client->client_type, client->ident);        
         
         return buf;
+}
+
+
+
+void server_generic_client_set_analyzerid(server_generic_client_t *client, uint64_t analyzerid)
+{
+        client->ident = analyzerid;
 }

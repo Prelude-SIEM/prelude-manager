@@ -30,6 +30,8 @@
 
 #define SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED  0x01
 #define SERVER_GENERIC_CLIENT_STATE_ACCEPTED       0x02
+#define SERVER_GENERIC_CLIENT_STATE_CLOSING        0x04
+#define SERVER_GENERIC_CLIENT_STATE_CLOSED         0x08
 
 
 #define SERVER_GENERIC_OBJECT        \
@@ -55,7 +57,7 @@ typedef int (server_generic_accept_func_t)(server_generic_client_t *client);
 /*
  * Callback function type for closing a connection.
  */
-typedef void (server_generic_close_func_t)(server_generic_client_t *client);
+typedef int (server_generic_close_func_t)(server_generic_client_t *client);
 
 
 /*
@@ -90,6 +92,8 @@ void server_generic_process_requests(server_generic_t *server, server_generic_cl
 const char *server_generic_get_addr_string(server_generic_client_t *client, char *buf, size_t size);
 
 void server_generic_log_client(server_generic_client_t *cnx, const char *fmt, ...);
+
+void server_generic_client_set_analyzerid(server_generic_client_t *client, uint64_t analyzerid);
 
 #endif /* _MANAGER_SERVER_GENERIC_H */
 
