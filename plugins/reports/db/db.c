@@ -49,6 +49,7 @@
 static char *dbformat = NULL;
 static char *dbtype = NULL;
 static char *dbhost = NULL;
+static char *dbport = NULL;
 static char *dbname = NULL;
 static char *dbuser = NULL;
 static char *dbpass = NULL;
@@ -56,7 +57,7 @@ static char *dbpass = NULL;
 static plugin_report_t plugin;
 static int enabled = 0;
 
-prelude_db_interface_t *db_interface = NULL;
+static prelude_db_interface_t *db_interface = NULL;
 
 
 #define param_value(param) (param ? param : "")
@@ -81,8 +82,7 @@ static void write_idmef_message(const idmef_message_t *message)
 
 static void process_message(const idmef_message_t *message)
 {
-	if ( enabled )
-		write_idmef_message(message);
+        write_idmef_message(message);
 }
 
 
@@ -106,9 +106,9 @@ static int set_db_state(prelude_option_t *opt, const char *arg)
 		}
 
 		snprintf(conn_string, sizeof (conn_string),
-			 "interface=iface1 class=sql type=%s format=%s host=%s name=%s user=%s pass=%s",
+			 "interface=iface1 class=sql type=%s format=%s host=%s port=%s name=%s user=%s pass=%s",
 			 param_value(dbtype), param_value(dbformat), param_value(dbhost),
-			 param_value(dbname), param_value(dbuser), param_value(dbpass));
+                         param_value(dbport), param_value(dbname), param_value(dbuser), param_value(dbpass));
 
 		db_interface = prelude_db_interface_new_string(conn_string);
 		if ( ! db_interface ) {
@@ -153,6 +153,7 @@ static int set_db_ ## name(prelude_option_t *opt, const char *arg)	\
 set_db(format)
 set_db(type)
 set_db(host)
+set_db(port)
 set_db(name)
 set_db(user)
 set_db(pass)
@@ -187,7 +188,11 @@ plugin_generic_t *plugin_init(int argc, char **argv)
 	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'h', "host",
 			   "The host where the database is running", required_argument,
 			   set_db_host, NULL);
-
+        
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'p', "port",
+			   "The port where the database is running", required_argument,
+			   set_db_port, NULL);
+        
 	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'd', "dbname",
 			   "The name of the database where the alerts will be stored", required_argument,
 			   set_db_name, NULL);
@@ -196,7 +201,7 @@ plugin_generic_t *plugin_init(int argc, char **argv)
 			   "User of the database", required_argument,
 			   set_db_user, NULL);
 
-	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'p', "pass",
+	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'P', "pass",
 			   "Password for the user", required_argument,
 			   set_db_pass, NULL);
 

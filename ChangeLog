@@ -1,3 +1,10 @@
+2003-12-28  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/reports/db/db.c (process_message): 
+	no need to check if enabled is set. If we are not
+	enabled, we won't be called.
+	(set_db_state, plugin_init): add a port option.
+
 2003-12-28  Nicolas Delon  <delon.nicolas@wanadoo.fr>
 
 	* plugins/reports/db/db.c:
