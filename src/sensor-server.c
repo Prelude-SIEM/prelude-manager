@@ -168,8 +168,6 @@ static int forward_option_request_to_sensor(sensor_fd_t *cnx, uint64_t analyzeri
 
 static int forward_option_list_to_admin(sensor_fd_t *cnx, prelude_msg_t *msg) 
 {
-//        int ret;
-        
         if ( cnx->options_list )
                 prelude_msg_destroy(cnx->options_list);
         
