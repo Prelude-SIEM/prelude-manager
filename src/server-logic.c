@@ -60,7 +60,7 @@
  */
 #define DEFAULT_MAX_FD_BY_THREAD 100
 
-#define dprint(args...) prelude_log(PRELUDE_LOG_DEBUG, args)
+#define dprint(args...) prelude_log_debug(10, args)
 
 
 struct server_logic_client {
@@ -406,7 +406,9 @@ static void poll_fd_set(server_fd_set_t *set)
 static void destroy_fd_set(server_logic_t *server, server_fd_set_t *set) 
 {
         int i;
-
+        
+        dprint("killing thread %ld on exit request.\n", set->thread);
+        
         prelude_list_del(&set->list);
         server->thread_num--;
 
@@ -414,7 +416,7 @@ static void destroy_fd_set(server_logic_t *server, server_fd_set_t *set)
         
         for ( i = 0; i < set->used_index; i++ )
                 server->close(server->sdata, set->client[i]);
-
+        
         pthread_cond_destroy(&set->startup_cond);
         pthread_mutex_destroy(&set->startup_mutex);
         
@@ -470,8 +472,7 @@ static void *child_reader(void *ptr)
                 
                 poll_fd_set(set);
         }
-
-        dprint("killing thread %ld on exit request.\n", set->thread);
+        
         pthread_exit(NULL);
 
         return NULL; /* not needed, but avoid a warning. */
