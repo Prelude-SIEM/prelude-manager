@@ -22,18 +22,6 @@ AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 
 
-if test "x$prefix" = "xNONE"; then
-	prefix="/usr/local"
-fi
-
-if test "x$localstatedir" = "x\${prefix}/var"; then
-	localstatedir="$prefix/var"
-fi
-
-if test "x$sysconfdir" = "x\${prefix}/etc"; then
-    sysconfdir="$prefix/etc"
-fi
-
 
 dnl **************************************************
 dnl * Check for libprelude                           *
@@ -393,7 +381,7 @@ plugindir=$libdir/prelude-manager
 report_plugin_dir=$plugindir/reports/
 decode_plugin_dir=$plugindir/decodes/
 db_plugin_dir=$plugindir/db/
-
+manager_fifo_dir=$localstatedir/spool/prelude-manager
 
 AC_DEFINE_UNQUOTED(PRELUDE_MANAGER_CONFDIR, "$configdir")
 AC_DEFINE_UNQUOTED(PRELUDE_MANAGER_CONF, "$prelude_manager_conf")
@@ -406,6 +394,7 @@ AC_SUBST(report_plugin_dir)
 AC_SUBST(decode_plugin_dir)
 AC_SUBST(db_plugin_dir)
 AC_SUBST(LIBWRAP_LIBS)
+AC_SUBST(manager_fifo_dir)
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wmissing-declarations \
 -Wbad-function-cast -Wcast-qual -Wcast-align -Wnested-externs -Wunused"

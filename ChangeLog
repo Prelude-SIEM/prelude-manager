@@ -1,3 +1,12 @@
+2002-05-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/include/Makefile.am: 
+	* src/Makefile.am: 
+	* Makefile.am:
+	* src/idmef-message-scheduler.c: 
+
+	fix make distcheck.
+	
 2002-04-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/pconfig.c (set_relay_manager): 
