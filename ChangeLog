@@ -1,3 +1,9 @@
+2002-04-30  Laurent Oudot  <oudot.laurent@wanadoo.fr>
+
+	* prelude-db-create.sh:
+	fix some bugs that occured with old version of different 
+	shells (owing to Arnaud Guignard's test).
+	
 2002-04-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/server-generic.c (server_generic_new): 

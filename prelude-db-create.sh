@@ -55,7 +55,7 @@ warning () {
 	echo
 	echo "Do you want to install a dedicated database for prelude ?"
  	echo -n " (y)es / (n)o : "
-	read -n 1 answer
+	read answer
 	case $answer in
 	    y)
 		echo
@@ -81,7 +81,7 @@ ask_db_type () {
 	echo "*** Phase 1/5 ***"
 	echo
 	echo -n "Enter the type of the database [mysql|pgsql]: "
-	read -n 5 answer
+	read answer
 	
 	if [[ "${answer}" == "mysql" || "${answer}" == "pgsql" ]]; then
 		db_type=${answer}
@@ -151,11 +151,15 @@ ask_manager_user() {
 ask_password () {
 	answer=""
         echo -n "Please enter a password: "
-	read -s answer
+	stty -echo
+	read answer
+	stty sane
 	echo
 
 	echo -n "Please comfirm entered password: "
-	read -s answerbis
+	stty echo
+	read answerbis
+	stty sane
 	echo
 
 	if [[ "${answer}" != "${answerbis}" ]]; then
