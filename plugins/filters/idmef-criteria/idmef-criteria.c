@@ -205,7 +205,7 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, vo
         
         ret = prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
                                  |PRELUDE_OPTION_TYPE_WIDE, 'r', "rule",
-                                 "Filtering rule", PRELUDE_OPTION_ARGUMENT_REQUIRED,
+                                 "Filter rule, or filename containing rule", PRELUDE_OPTION_ARGUMENT_REQUIRED,
                                  set_filter_rule, get_filter_rule);
         if ( ret < 0 )
                 return ret;
