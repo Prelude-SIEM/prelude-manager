@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 #include <netinet/in.h>
 #include <sys/types.h>
@@ -139,9 +140,11 @@ static int read_connection_cb(server_generic_client_t *ptr)
 {
         int ret;
         prelude_msg_t *msg;
-        admin_client_t *client = (admin_client_t *) ptr;
-                 
+
         /*
+         *
+         * admin_client_t *client = (admin_client_t *) ptr;
+         *
          * Handle XML stream here. And convert it to prelude message.
          * use prelude_io_read_nowait() for reading the message.
          */

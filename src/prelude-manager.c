@@ -47,6 +47,7 @@
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-db.h"
+#include "idmef-util.h"
 
 
 static pthread_t admin_server_thr;
@@ -93,6 +94,43 @@ static void *start_admin_server(void *arg)
 
 
 
+static void init_manager_server(void) 
+{
+        int ret;
+        
+        /*
+         * Initialize the sensors server.
+         */
+        ret = sensor_server_new(config.addr, config.port);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "- couldn't start sensor server.\n");
+                exit(1);
+        }
+
+        log(LOG_INFO, "- sensors server started (listening on %s:%d).\n",
+            config.addr, config.port);
+
+        /*
+         * Initialize the admin server if specified.
+         */
+        if ( config.admin_server_addr ) {
+                
+                ret = admin_server_new(config.admin_server_addr, config.admin_server_port);
+                if ( ret < 0 ) {
+                        log(LOG_INFO, "- couldn't start administration server.\n");
+                        exit(1);
+                }
+
+                log(LOG_INFO, "- administration server started (listening on %s:%d).\n",
+                    config.admin_server_addr, config.admin_server_port);
+                
+                pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
+        }
+}
+
+
+
+
 
 int main(int argc, char **argv)
 {
@@ -123,7 +161,8 @@ int main(int argc, char **argv)
         log(LOG_INFO, "- Initialized %d decoding plugins.\n", ret);
 
 
-        if ( pconfig_init(argc, argv) < 0 )
+        ret = pconfig_init(argc, argv);
+        if ( ret < 0 )
                 exit(1);
         
         ret = idmef_ident_init();
@@ -138,27 +177,7 @@ int main(int argc, char **argv)
         /*
          * start server
          */
-        ret = sensor_server_new(config.addr, config.port);
-        if ( ret < 0 ) {
-                log(LOG_INFO, "- couldn't start sensor server.\n");
-                exit(1);
-        }
-        log(LOG_INFO, "- sensors server started (listening on %s:%d).\n",
-            config.addr, config.port);
-        
-        if ( config.admin_server_addr ) {
-                
-                ret = admin_server_new(config.admin_server_addr, config.admin_server_port);
-                if ( ret < 0 ) {
-                        log(LOG_INFO, "- couldn't start administration server.\n");
-                        exit(1);
-                }
-
-                log(LOG_INFO, "- administration server started (listening on %s:%d).\n",
-                    config.admin_server_addr, config.admin_server_port);
-                
-                pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
-        }
+        init_manager_server();
         
         /*
          * Start prelude as a daemon if asked.
@@ -167,7 +186,6 @@ int main(int argc, char **argv)
                 ret = prelude_daemonize(config.pidfile);
                 if ( ret < 0 )
                         return -1;
-                prelude_log_use_syslog();
         }
                 
         sensor_server_start(); /* never return */

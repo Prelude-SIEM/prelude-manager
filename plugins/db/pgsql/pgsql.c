@@ -203,7 +203,6 @@ static int get_pgsql_state(char *buf, size_t size)
 
 plugin_generic_t *plugin_init(int argc, char **argv)
 {
-        int ret;
         prelude_option_t *opt;
 
         opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "pgsql",

@@ -66,6 +66,7 @@ static int get_version(char *buf, size_t size)
 
 static int set_daemon_mode(const char *arg) 
 {
+        prelude_log_use_syslog();
         config.daemonize = 1;
         return prelude_option_success;
 }

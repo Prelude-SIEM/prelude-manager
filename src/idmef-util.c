@@ -28,8 +28,6 @@ int idmef_ident_init(void)
 }
 
 
-
-
 void idmef_ident_exit(void) 
 {
         prelude_ident_destroy(alert_ident);
@@ -75,7 +73,7 @@ void idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size)
         /*
          * Convert from localtime to UTC.
          */
-        utc = gmtime((time_t *) &time->sec);
+        utc = gmtime((const time_t *) &time->sec);
 
         /*
          * Format as the IDMEF draft tell us to.
