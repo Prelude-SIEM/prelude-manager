@@ -1,3 +1,7 @@
+* 2002-09-10, prelude-manager-0.8.5:
+	- Fix possible heartbeat insertion problem.
+	  (Yoann Vandoorselaere)
+
 * 2002-09-02, prelude-manager-0.8.4:
 
 	- New XML reporting plugin, to report alert in IDMEF-XML.
