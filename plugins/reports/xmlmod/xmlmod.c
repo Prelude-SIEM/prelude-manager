@@ -545,8 +545,9 @@ static void process_analyzer(xmlNodePtr parent, idmef_analyzer_t *analyzer)
         new = xmlNewChild(parent, NULL, "Analyzer", NULL);
         if ( ! new )
                 return;
-
+        
         idmef_attr_uint64(new, "analyzerid", idmef_analyzer_get_analyzerid(analyzer));
+        idmef_attr_string(new, "name", idmef_analyzer_get_name(analyzer));
         idmef_attr_string(new, "manufacturer", idmef_analyzer_get_manufacturer(analyzer));
         idmef_attr_string(new, "model", idmef_analyzer_get_model(analyzer));
         idmef_attr_string(new, "version", idmef_analyzer_get_version(analyzer));

@@ -532,17 +532,12 @@ static void process_analyzer(textmod_plugin_t *plugin, idmef_analyzer_t *analyze
                 return;
         
 	print(plugin, 0, "* Analyzer ID: %" PRIu64 "\n", idmef_analyzer_get_analyzerid(analyzer));
-        
+        print_string(plugin, 0, "* Analyzer name: %s\n", idmef_analyzer_get_name(analyzer));
 	print_string(plugin, 0, "* Analyzer model: %s\n", idmef_analyzer_get_model(analyzer));
-
 	print_string(plugin, 0, "* Analyzer version: %s\n", idmef_analyzer_get_version(analyzer));
-
 	print_string(plugin, 0, "* Analyzer class: %s\n", idmef_analyzer_get_class(analyzer));
-        
 	print_string(plugin, 0, "* Analyzer manufacturer: %s\n", idmef_analyzer_get_manufacturer(analyzer));
-
 	print_string(plugin, 0, "* Analyzer OS type: %s\n", idmef_analyzer_get_ostype(analyzer));
-        
 	print_string(plugin, 0, "* Analyzer OS version: %s\n", idmef_analyzer_get_osversion(analyzer));
 
         if ( idmef_analyzer_get_node(analyzer) )
