@@ -36,6 +36,9 @@
 #include "plugin-report.h"
 
 
+prelude_plugin_generic_t *relaying_LTX_prelude_plugin_init(void);
+
+
 typedef struct {
         prelude_connection_mgr_t *parent_manager;
 } relaying_plugin_t;
@@ -114,7 +117,7 @@ static int relaying_set_manager(void *context, prelude_option_t *opt, const char
 
 
 
-prelude_plugin_generic_t *prelude_plugin_init(void)
+prelude_plugin_generic_t *relaying_LTX_prelude_plugin_init(void)
 {
         prelude_option_t *opt;
         static plugin_report_t plugin;

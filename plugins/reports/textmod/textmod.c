@@ -32,6 +32,9 @@
 #include "report.h"
 
 
+prelude_plugin_generic_t *textmod_LTX_prelude_plugin_init(void);
+
+
 typedef struct {
         FILE *fd;
         char *logfile;
@@ -809,7 +812,7 @@ static void textmod_destroy(prelude_plugin_instance_t *pi)
 
 
 
-prelude_plugin_generic_t *prelude_plugin_init(void)
+prelude_plugin_generic_t *textmod_LTX_prelude_plugin_init(void)
 {
 	prelude_option_t *opt;
         

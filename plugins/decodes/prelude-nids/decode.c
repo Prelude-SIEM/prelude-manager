@@ -42,6 +42,9 @@
 #include "passive-os-fingerprint.h"
 
 
+prelude_plugin_generic_t *prelude_nids_LTX_prelude_plugin_init(void);
+
+
 pof_host_data_t pof_host_data;
 
 
@@ -323,7 +326,7 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_message_t *message)
 
 
 
-prelude_plugin_generic_t *prelude_plugin_init(void)
+prelude_plugin_generic_t *prelude_nids_LTX_prelude_plugin_init(void)
 {
         static plugin_decode_t plugin;
 

@@ -45,6 +45,9 @@
 #include "report.h"
 
 
+prelude_plugin_generic_t *db_LTX_prelude_plugin_init(void);
+
+
 #define param_value(param) (param ? param : "")
 
 
@@ -176,7 +179,7 @@ static int db_activate(void *context, prelude_option_t *opt, const char *arg)
 
 
 
-prelude_plugin_generic_t *prelude_plugin_init(void)
+prelude_plugin_generic_t *db_LTX_prelude_plugin_init(void)
 {
         int ret;
 	prelude_option_t *opt;

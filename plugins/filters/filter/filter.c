@@ -37,6 +37,9 @@
 #include "plugin-filter.h"
 
 
+prelude_plugin_generic_t *filter_LTX_prelude_plugin_init(void);
+
+
 static plugin_filter_t filter_plugin;
 
 
@@ -153,7 +156,7 @@ static int filter_activate(void *context, prelude_option_t *opt, const char *arg
 
 
 
-prelude_plugin_generic_t *prelude_plugin_init(void)
+prelude_plugin_generic_t *filter_LTX_prelude_plugin_init(void)
 {
         prelude_option_t *opt;
         

@@ -34,6 +34,9 @@
 #include "report.h"
 
 
+prelude_plugin_generic_t *xmlmod_LTX_prelude_plugin_init(void);
+
+
 static void process_file(xmlNodePtr parent, idmef_file_t *file);
 
 
@@ -949,7 +952,7 @@ static int disable_buffering(void *context, prelude_option_t *option, const char
 
 
 
-prelude_plugin_generic_t *prelude_plugin_init(void)
+prelude_plugin_generic_t *xmlmod_LTX_prelude_plugin_init(void)
 {
 	prelude_option_t *opt;
 
