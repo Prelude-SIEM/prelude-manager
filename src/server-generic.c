@@ -107,7 +107,6 @@ static int send_auth_result(server_generic_client_t *client, int result)
 			return 0;
 		}
                 
-		server_generic_log_client(client, PRELUDE_LOG_WARN, "error writing auth result message: %s.\n", prelude_strerror(ret));
 		prelude_msg_destroy(client->msg);
 		return -1;
         }
