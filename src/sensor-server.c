@@ -183,7 +183,7 @@ static int get_msg_target_ident(prelude_msg_t *msg, uint64_t *ident)
         uint8_t tag;
         uint32_t len;
         
-        while ( prelude_msg_get(msg, &tag, &len, &buf) > 0 ) {
+        while ( prelude_msg_get(msg, &tag, &len, &buf) == 0 ) {
 
                  /*
                   * We just need the target ident, so that we know
@@ -208,7 +208,7 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
 
         ret = get_msg_target_ident(msg, &target_sensor_ident);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error decoding message.\n");
+                log(LOG_INFO, "option request does not contain a target.\n");
                 return -1;
         }
         
