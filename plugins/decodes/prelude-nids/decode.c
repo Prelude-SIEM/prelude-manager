@@ -56,30 +56,21 @@ static const char *get_address(struct in_addr *addr)
 static idmef_node_t *create_node(const char *addr_string)
 {
         idmef_node_t *node;
-        idmef_string_t *tmp;
         idmef_address_t *addr;
-
-        tmp = idmef_string_new_dup(addr_string);
-        if ( ! tmp )
-                return NULL;
-        
-        addr = idmef_address_new();
-        if ( ! addr ) {
-                idmef_string_destroy(tmp);
-                return NULL;
-        }
-
-        idmef_address_set_address(addr, tmp);
-        idmef_address_set_category(addr, ipv4_addr);
         
         node = idmef_node_new();
-        if ( ! node ) {
-                idmef_address_destroy(addr);
+        if ( ! node ) 
+                return NULL;
+        
+        addr = idmef_node_new_address(node);
+        if ( ! addr ) {
+                idmef_node_destroy(node);
                 return NULL;
         }
-                        
-        idmef_node_set_address(node, addr);
-        
+
+        idmef_address_set_category(addr, ipv4_addr);
+        idmef_string_set_dup(idmef_address_new_address(addr), addr_string);
+                
         return node;
 }
 
@@ -98,31 +89,29 @@ static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip)
         if ( ! snode )
                 return -1;
         
-        source = idmef_source_new();
-        if ( ! source ) {
+        source = idmef_alert_get_next_source(alert, NULL);        
+        if ( ! source && !(source = idmef_alert_new_source(alert)) ) {
                 idmef_node_destroy(snode);
                 return -2;
         }
 
         idmef_source_set_node(source, snode);
-
+        
         /* set target ip */
         dnode = create_node(get_address(&ip->ip_dst));
         if ( ! dnode ) {
                 idmef_source_destroy(source);
                 return -3;
         }
-
-        target = idmef_target_new();
-        if ( ! target ) {
+        
+        target = idmef_alert_get_next_target(alert, NULL);
+        if ( ! target && !(target = idmef_alert_new_target(alert)) ) {
                 idmef_node_destroy(dnode);
                 idmef_source_destroy(source);
                 return -1;
         }
 
         idmef_target_set_node(target, dnode);
-        idmef_alert_set_source(alert, source);
-        idmef_alert_set_target(alert, target);
         
         return 0;
 }
@@ -132,29 +121,16 @@ static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip)
 static int set_idmef_service(idmef_service_t *service, uint16_t port, const char *proto)
 {
         struct servent *ptr;
-        idmef_string_t *port_str, *proto_str;
-                
-        proto_str = idmef_string_new_ref(proto);
-        if ( ! proto_str ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return -1;
-        }
         
         idmef_service_set_port(service, port);
-        idmef_service_set_protocol(service, proto_str);
+        idmef_string_set_ref(idmef_service_new_protocol(service), proto);
 
         ptr = getservbyport(htons(port), proto);
         if ( ! ptr )
                 return 0;
-        
-        port_str = idmef_string_new_dup(ptr->s_name);
-        if ( ! port_str ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return -1;
-        }
-        
-        idmef_service_set_name(service, port_str);
 
+        idmef_string_set_dup(idmef_service_new_name(service), ptr->s_name);
+        
         return 0;
 }
 
@@ -166,29 +142,27 @@ static int gather_protocol_infos(idmef_alert_t *alert, uint16_t sport, uint16_t 
         idmef_source_t *source;
         idmef_target_t *target;
         idmef_service_t *service;
-
+        
         if ( (source = idmef_alert_get_next_source(alert, NULL)) ) {
 
-                service = idmef_service_new();
+                service = idmef_source_new_service(source);
                 if ( ! service ) {
                         log(LOG_ERR, "memory exhausted.\n");
                         return -1;
                 }
                 
                 set_idmef_service(service, sport, proto);
-                idmef_source_set_service(source, service);
         }
         
         if ( (target = idmef_alert_get_next_target(alert, NULL)) ) {
                 
-                service = idmef_service_new();
+                service = idmef_target_new_service(target);
                 if ( ! service ) {
                         log(LOG_ERR, "memory exhausted.\n");
                         return -1;
                 }
 
                 set_idmef_service(service, dport, proto);
-                idmef_target_set_service(target, service);
         }
         
         return 0;

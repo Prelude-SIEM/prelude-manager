@@ -1,3 +1,9 @@
+2003-12-27  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/decodes/prelude-nids/decode.c: 
+	cleanup. If a source / target already exist then 
+	use them.
+
 2003-12-26  Nicolas Delon  <delon.nicolas@wanadoo.fr>
 
 	* plugins/reports/db/db.c:
