@@ -8,7 +8,8 @@ dnl $id$
 # Werner Koch   99-12-09
 
 dnl AM_PATH_LIBPRELUDE([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]]])
-dnl Test for libprelude, and define LIBPRELUDE_PREFIX, LIBPRELUDE_CFLAGS, LIBPRELUDE_LDFLAGS, and LIBPRELUDE_LIBS
+dnl Test for libprelude, and define LIBPRELUDE_PREFIX, LIBPRELUDE_CFLAGS, LIBPRELUDE_PTHREAD_CFLAGS, 
+dnl LIBPRELUDE_LDFLAGS, and LIBPRELUDE_LIBS
 dnl
 AC_DEFUN([AM_PATH_LIBPRELUDE],
 [dnl
@@ -32,6 +33,7 @@ AC_ARG_WITH(libprelude-prefix,
     no_libprelude=yes
   else
     LIBPRELUDE_CFLAGS=`$LIBPRELUDE_CONFIG $libprelude_config_args --cflags`
+    LIBPRELUDE_PTHREAD_CFLAGS=`$LIBPRELUDE_CONFIG $libprelude_config_args --pthread-cflags`
     LIBPRELUDE_LDFLAGS=`$LIBPRELUDE_CONFIG $libprelude_config_args --ldflags`
     LIBPRELUDE_LIBS=`$LIBPRELUDE_CONFIG $libprelude_config_args --libs`
     LIBPRELUDE_PREFIX=`$LIBPRELUDE_CONFIG $libprelude_config_args --prefix`
@@ -107,6 +109,7 @@ main ()
 ],, no_libprelude=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
        CFLAGS="$ac_save_CFLAGS"
        LIBS="$ac_save_LIBS"
+       LDFLAGS="$ac_save_LDFLAGS"
   fi
 
   if test "x$no_libprelude" = x ; then
@@ -163,6 +166,7 @@ main ()
   fi
   rm -f conf.libpreludetest
   AC_SUBST(LIBPRELUDE_CFLAGS)
+  AC_SUBST(LIBPRELUDE_PTHREAD_CFLAGS)
   AC_SUBST(LIBPRELUDE_LDFLAGS)
   AC_SUBST(LIBPRELUDE_LIBS)
   AC_SUBST(LIBPRELUDE_PREFIX)

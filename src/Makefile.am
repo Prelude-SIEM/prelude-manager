@@ -9,8 +9,7 @@ AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing \
         -DMANAGER_RUN_DIR=\"@manager_run_dir@\"
 
 bin_PROGRAMS = prelude-manager
-prelude_manager_LDADD = @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@ @PTHREAD_CFLAGS@ \
-                        @PTHREAD_LIBS@ $(top_builddir)/libmissing/libmissing.la
+prelude_manager_LDADD = @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@ $(top_builddir)/libmissing/libmissing.la
 
 if HAVE_XML2
  XML_OBJS= -dlopen $(top_builddir)/plugins/reports/xmlmod/xmlmod.la
@@ -26,7 +25,7 @@ endif
 
 DLOPENED_OBJS=$(XML_OBJS) $(DB_OBJS)
 
-prelude_manager_LDFLAGS = -export-dynamic \
+prelude_manager_LDFLAGS = -export-dynamic @LIBPRELUDE_LDFLAGS@ \
         -dlopen $(top_builddir)/plugins/filters/idmef-criteria/idmef-criteria.la \
         -dlopen $(top_builddir)/plugins/reports/debug/debug.la \
         -dlopen $(top_builddir)/plugins/reports/relaying/relaying.la \

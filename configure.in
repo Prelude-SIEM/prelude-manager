@@ -59,18 +59,7 @@ dnl **************************************************
 AM_PATH_LIBPRELUDE(0.9.0, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
 
-defined="$defined $LIBPRELUDE_CFLAGS $pthread_cflags -DPRELUDE_CONFIG_DIR=\\\"$LIBPRELUDE_CONFIG_PREFIX\\\""
-
-
-
-dnl **************************************************
-dnl * Check for pthread                              *
-dnl **************************************************
-
-ACX_PTHREAD(, AC_MSG_ERROR(couldn't find suitable pthread implementation))
-defined="$defined $PTHREAD_CFLAGS"
-CC="$PTHREAD_CC"
-
+defined="$defined $LIBPRELUDE_PTHREAD_CFLAGS -DPRELUDE_CONFIG_DIR=\\\"$LIBPRELUDE_CONFIG_PREFIX\\\""
 
 
 dnl **************************************************
