@@ -608,20 +608,17 @@ static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *
         size_t dlen;
         xmlNodePtr new;
         const char *tmp;
-        unsigned char buf[128];
+        char buf[128];
 
         if ( ! ad )
                 return;
         
         dlen = sizeof(buf);
         
-	tmp = idmef_additionaldata_data_to_string(ad, buf, &dlen);
+	tmp = idmef_additional_data_data_to_string(ad, buf, &dlen);
 	if ( ! tmp )
 		return;
 
-        if ( idmef_additional_data_get_type(ad) == IDMEF_ADDITIONAL_DATA_TYPE_BYTE )
-                tmp = "<FIXME: binary data>";
-        
         new = xmlNewChild(parent, NULL, "AdditionalData", tmp);
         if ( ! new )
                 return;

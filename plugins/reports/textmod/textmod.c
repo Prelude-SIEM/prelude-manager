@@ -587,21 +587,16 @@ static void process_data(textmod_plugin_t *plugin, idmef_additional_data_t *ad)
 {
         size_t dlen;
         const char *tmp;
-        idmef_data_t *data;
-        unsigned char buf[128];
+        char buf[128];
 
         if ( ! ad )
                 return;
         
         dlen = sizeof(buf);
-        data = idmef_additional_data_get_data(ad);
         
-        tmp = idmef_additionaldata_data_to_string(ad, buf, &dlen);
+        tmp = idmef_additional_data_data_to_string(ad, buf, &dlen);
         if ( ! tmp )
                 return;
-        
-        if ( idmef_additional_data_get_type(ad) == IDMEF_ADDITIONAL_DATA_TYPE_BYTE )
-                tmp = "<FIXME: binary data>";
 
 	print_string(plugin, 0, "* %s:", idmef_additional_data_get_meaning(ad));
         
