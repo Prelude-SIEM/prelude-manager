@@ -209,7 +209,7 @@ int db_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
         static manager_report_plugin_t db_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
 
-	ret = preludedb_init(NULL, NULL);
+	ret = preludedb_init();
 	if ( ret < 0 )
 		return ret;
 
