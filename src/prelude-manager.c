@@ -32,17 +32,11 @@
 #include <pthread.h>
 #include <sys/time.h>
 
-#include <libprelude/idmef-tree.h>
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-message.h>
-#include <libprelude/prelude-getopt.h>
-#include <libprelude/prelude-plugin.h>
-#include <libprelude/prelude-log.h>
-#include <libprelude/daemonize.h>
-#include <libprelude/config-engine.h>
-#include <libprelude/threads.h>
+#include <libprelude/sensor.h>
 #include <libprelude/idmef.h>
-#include <libprelude/prelude-client.h>
+#include <libprelude/prelude-log.h>
+#include <libprelude/prelude-client-mgr.h>
+#include <libprelude/prelude-linked-object.h>
 
 #include "server-generic.h"
 #include "sensor-server.h"
@@ -51,13 +45,15 @@
 #include "plugin-report.h"
 #include "plugin-filter.h"
 #include "idmef-message-scheduler.h"
-#include "relaying.h"
+#include "reverse-relaying.h"
 
 
 
 static size_t nserver = 0;
 server_generic_t *sensor_server;
 extern struct report_config config;
+
+
 
 
 /*
@@ -72,6 +68,7 @@ static void cleanup(int sig)
          */
         sensor_server_stop(sensor_server);
 }
+
 
 
 
@@ -142,14 +139,15 @@ int main(int argc, char **argv)
         sigaction(SIGABRT, &action, NULL);
         sigaction(SIGQUIT, &action, NULL);
 
-        manager_relay_init();
+        reverse_relay_init_initiator();
+        
         server_generic_start(&sensor_server, nserver);
         
         /*
          * we won't get here unless a signal is caught.
          */
         server_generic_close(sensor_server);
-
+        
         idmef_message_scheduler_exit();
 
         if ( config.pidfile )
