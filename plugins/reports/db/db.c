@@ -133,11 +133,11 @@ static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
 static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
-        int ret;
+        db_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
         preludedb_t *db;
         preludedb_sql_t *sql;
-        db_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
 	preludedb_sql_settings_t *settings;
+        int ret;
 
 	settings = preludedb_sql_settings_new();
 	if ( ! settings )
@@ -158,20 +158,27 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 	if ( plugin->name )
 		preludedb_sql_settings_set_name(settings, plugin->name);
 
-        db = preludedb_new(plugin->type, settings, NULL);
-	if ( ! db ) {
+	ret = preludedb_sql_new(&sql, plugin->type, settings);
+	if ( ret < 0 ) {
 		preludedb_sql_settings_destroy(settings);
 		log(LOG_ERR, "could not initialize libpreludedb.\n");
-		return -1;
+		return ret;
 	}
 
 	if ( plugin->log ) {
-		sql = preludedb_get_sql(db);
 		ret = preludedb_sql_enable_query_logging(sql, plugin->log);
 		if ( ret < 0 ) {
-			preludedb_destroy(db);
+			preludedb_sql_destroy(sql);
+			log(LOG_ERR, "could not initialize libpreludedb.\n");
 			return ret;
 		}
+	}
+
+        db = preludedb_new(sql, NULL);
+	if ( ! db ) {
+		preludedb_sql_destroy(sql);
+		log(LOG_ERR, "could not initialize libpreludedb.\n");
+		return -1;
 	}
 
         if ( plugin->db )
