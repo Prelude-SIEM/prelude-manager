@@ -29,13 +29,15 @@ static int fill_local_analyzer_infos(idmef_analyzer_t *analyzer)
 {
         idmef_analyzer_t *next, *local;
         
-        if ( ! analyzer || ! (local = get_local_analyzer()) )
+        if ( ! analyzer )
                 return -1;
         
         do {
                 next = idmef_analyzer_get_analyzer(analyzer);
-                if ( ! next ) 
-                        idmef_analyzer_set_analyzer(analyzer, prelude_client_get_analyzer(manager_client));
+                if ( ! next ) {
+                        local = idmef_analyzer_ref(prelude_client_get_analyzer(manager_client));
+                        idmef_analyzer_set_analyzer(analyzer, local);
+                }
                 
                 analyzer = next;
 
