@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2001-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -433,7 +433,7 @@ static int setup_server(void)
 
 
 
-static int print_help(prelude_option_t *opt, const char *optarg)
+static int print_help(void **context, prelude_option_t *opt, const char *optarg)
 {
 	prelude_option_print(NULL, CLI_HOOK, 20);
 	return prelude_option_end;
@@ -441,7 +441,7 @@ static int print_help(prelude_option_t *opt, const char *optarg)
 
 
 
-static int set_keepalive(prelude_option_t *opt, const char *optarg)
+static int set_keepalive(void **context, prelude_option_t *opt, const char *optarg)
 {
 	keepalive = keepalive ? 0 : 1;
 	return prelude_option_success;
@@ -449,7 +449,7 @@ static int set_keepalive(prelude_option_t *opt, const char *optarg)
 
 
 
-static int set_prompt(prelude_option_t *opt, const char *optarg)
+static int set_prompt(void **context, prelude_option_t *opt, const char *optarg)
 {
 	prompt = prompt ? 0 : 1;
 	return prelude_option_success;
@@ -473,7 +473,7 @@ static void handle_options(int argc, char **argv)
 		"Prompt for one-shot password (rather than generate it)",
 		no_argument, set_prompt, NULL);
 
-	ret = prelude_option_parse_arguments(NULL, NULL, argc, argv);
+	ret = prelude_option_parse_arguments(NULL, NULL, NULL, argc, argv);
 	if ( ( ret == prelude_option_end ) || ( ret == prelude_option_error ) )
 		exit(ret);		
 }
