@@ -61,16 +61,28 @@ dnl * Check for the MySQL library (MySQL plugin       *
 dnl ***************************************************
 
 AC_CHECK_PROG(MYSQL_CONFIG, mysql_config, true, false)
-AM_CONDITIONAL(HAVE_MYSQL, x$MYSQL_CONFIG = xtrue)
-AC_SUBST(HAVE_MYSQL)
 
 if test x$MYSQL_CONFIG = xtrue; then
 	MYSQL_LIBS=`mysql_config --libs`
 	MYSQL_CFLAGS=`mysql_config --cflags`
 fi
 
+AC_ARG_ENABLE(mysql, [  --enable-mysql  Enable MySQL plugin [default=auto]], enable_mysql="$enableval", enable_mysql=auto)
+
+if test x$enable_mysql = xauto; then
+        if test x$MYSQL_CONFIG = xtrue; then
+                enable_mysql=yes;
+        else
+                enable_mysql=no;
+        fi
+fi
+
+AM_CONDITIONAL(HAVE_MYSQL, test x$enable_mysql = xyes)
+AC_SUBST(HAVE_MYSQL)
 AC_SUBST(MYSQL_LIBS)
 AC_SUBST(MYSQL_CFLAGS)
+
+
 
 
 dnl ********************************************************
@@ -78,16 +90,27 @@ dnl * Check for the PostgreSQL library (PostgreSQL plugin) *
 dnl ********************************************************
 
 AC_CHECK_PROG(PGSQL_CONFIG, pg_config, true, false)
-AM_CONDITIONAL(HAVE_PGSQL, test x$PGSQL_CONFIG = xtrue)
-AC_SUBST(HAVE_PGSQL)
 
 if test x$PGSQL_CONFIG = xtrue; then
 	PGSQL_LIBDIR=`pg_config --libdir`
 	PGSQL_INCLUDEDIR=`pg_config --includedir`
 fi
 
+AC_ARG_ENABLE(pgsql, [  --enable-pgsql  Enable PostgreSQL plugin [default=auto]], enable_pgsql="$enableval", enable_pgsql=auto)
+
+if test x$enable_pgsql = xauto; then
+        if test x$PGSQL_CONFIG = xtrue; then
+                enable_pgsql=yes;
+        else
+                enable_pgsql=no;
+        fi
+fi
+
+AM_CONDITIONAL(HAVE_PGSQL, test x$enable_pgsql = xyes)
+AC_SUBST(HAVE_PGSQL)
 AC_SUBST(PGSQL_LIBDIR)
 AC_SUBST(PGSQL_INCLUDEDIR)
+
 
 
 

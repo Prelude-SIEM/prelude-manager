@@ -1,7 +1,9 @@
 2001-12-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
-
-	* acconfig.h:
+	
 	* configure.ac :
+	Ability to disable MySQL / PostgreSQL plugin on command line.
+	
+	* acconfig.h:
 	* plugins/db/pgsql/Makefile.am: 
 	Only enable PostgreSQL / MySQL compilation if needed.
 
