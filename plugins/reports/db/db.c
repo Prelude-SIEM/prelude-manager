@@ -37,7 +37,7 @@
 #include <libpreludedb/preludedb-sql-settings.h>
 #include <libpreludedb/preludedb-sql.h>
 #include <libpreludedb/preludedb-error.h>
-#include <libpreludedb/preludedb-object-selection.h>
+#include <libpreludedb/preludedb-path-selection.h>
 #include <libpreludedb/db.h>
 #include <libpreludedb/preludedb.h>
 
