@@ -69,12 +69,11 @@ static int wait_raw_report(int socket)
                         return -1;
                 
                 idmef_msg = decode_plugins_run(ac, tag);
-#if 0
                 if ( ! idmef_msg ) {
                         free(ac);
                         return -1;
                 }
-#endif
+
                 /*
                  * Commented out report infos call / report plugins
                  * call, as with the protocol change, we now need to

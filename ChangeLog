@@ -1,3 +1,12 @@
+2001-09-02  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/cnx.c (wait_raw_report): 
+	Handle the decode_plugins_run return value.
+
+	* plugins/decodes/prelude-nids/decode.c (nids_decode_run): 
+	Add code to decode alert message.
+	(plugin_init): this is now a real plugin.
+
 2001-08-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/decode-plugins.c (decode_plugins_run): 

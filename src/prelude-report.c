@@ -34,6 +34,7 @@
 #include <libprelude/common.h>
 #include <libprelude/daemonize.h>
 #include <libprelude/config-engine.h>
+#include <libprelude/alert-read.h>
 
 #include <libxml/parser.h>
 

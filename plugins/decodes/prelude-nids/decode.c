@@ -2,11 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
-#include <libprelude/plugin-common.h>
 
+#include <libprelude/common.h>
+#include <libprelude/plugin-common.h>
+#include <libprelude/alert-read.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
+#include "nids-alert-id.h"
 #include "plugin-decode.h"
 #include "packet.h"
 #include "optparse.h"
@@ -435,7 +438,7 @@ static char *tcpopt_dump(packet_t *p)
         size_t len = sizeof(buf);
         
         ptr = buf + snprintf(buf, sizeof(buf), "Tcp opts  : ");
-        tcp_optdump(p->p.opts, p->len, &ptr, &len);
+        //tcp_optdump(p->p.opts, p->len, &ptr, &len);
                 
         return strdup(buf);
 }
@@ -446,7 +449,7 @@ static char *ipopt_dump(packet_t *p)
         size_t len = sizeof(buf);
         
         ptr = buf + snprintf(buf, sizeof(buf), "Ip opts   : ");
-        ip_optdump(p->p.opts, p->len, &ptr, &len);
+        //ip_optdump(p->p.opts, p->len, &ptr, &len);
         
         return strdup(buf);
 }
@@ -540,7 +543,7 @@ static void create_pktdump(packet_t *p)
                         break;
 
                 case p_ipopts:
-                        pktdump[j++] = ipopt_dump(&p[i]);
+                        //pktdump[j++] = ipopt_dump(&p[i]);
                         break;
                         
                 case p_icmp:
@@ -557,7 +560,7 @@ static void create_pktdump(packet_t *p)
                         break;
 
                 case p_tcpopts:
-                        pktdump[j++] = tcpopt_dump(&p[i]);
+                        //pktdump[j++] = tcpopt_dump(&p[i]);
                         break;
                         
                 case p_udp:
@@ -578,16 +581,72 @@ static void create_pktdump(packet_t *p)
 
 
 
+static xmlNodePtr nids_decode_run(alert_container_t *ac) 
+{
+        int ret;
+        int i = 0;
+        uint8_t tag;
+        uint32_t len;
+        packet_t packet[MAX_PKTDEPTH + 1];
+        unsigned char *buf;
+
+        while ( 1 ) {
+
+                ret = prelude_alert_read_msg(ac, &tag, &len, &buf);
+                if ( ret < 0 ) {
+                        log(LOG_ERR, "error decoding message.\n");
+                        break;
+                }
+
+                if ( ret == 0 )
+                        return;
+
+                switch (tag) {
+                        
+                case ID_PRELUDE_NIDS_PLUGIN_NAME:
+                case ID_PRELUDE_NIDS_PLUGIN_AUTHOR:
+                case ID_PRELUDE_NIDS_PLUGIN_CONTACT:
+                case ID_PRELUDE_NIDS_PLUGIN_DESC:
+                case ID_PRELUDE_NIDS_QUICKMSG:
+                case ID_PRELUDE_NIDS_MESSAGE:
+                case ID_PRELUDE_NIDS_REFERENCE:
+                        printf("[%d][%d] - %s\n", tag, len, buf);
+                        break;
+                        
+                case ID_PRELUDE_NIDS_PACKET:
+                        printf("[%d][%d]\n", tag, len);
+                        do {    
+                                prelude_alert_read_msg(ac, &tag, &len, &buf);
+                                
+                                printf("packet[%d] len=%d\n", tag, len);
+                                
+                                packet[i].proto = tag;
+                                packet[i].len = len;
+                                
+                        } while ( tag != p_end );
+                        break;
+
+                default:
+                        printf("unknow tag : %d.\n", tag);
+                        
+                }
+        }
+}
+
+
+
 
 int plugin_init(unsigned int id)
 {
         static plugin_decode_t plugin;
         
-        plugin_set_name(&plugin, "Prelude NIDS datadecoder");
+        plugin_set_name(&plugin, "Prelude NIDS data decoder");
         plugin_set_author(&plugin, "Yoann Vandoorselaere");
         plugin_set_contact(&plugin, "yoann@mandrakesoft.com");
         plugin_set_desc(&plugin, "Decode Prelude NIDS message, and translate them to IDMEF.");
-        // plugin_set_running_func(&plugin, filemod_run);
+        plugin_set_running_func(&plugin, nids_decode_run);
+
+        plugin.decode_id = 1;
         
 	return plugin_register((plugin_generic_t *)&plugin);
 }

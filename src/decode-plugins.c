@@ -65,7 +65,7 @@ xmlNodePtr decode_plugins_run(alert_container_t *ac, uint8_t tag)
             
                 pc = list_entry(tmp, plugin_container_t, ext_list);
                 p = (plugin_decode_t *) pc->plugin;
-
+                
                 if ( p->decode_id != tag )
                         continue;
 
