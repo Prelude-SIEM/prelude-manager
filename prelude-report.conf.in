@@ -1,0 +1,71 @@
+#######################################
+# Configuration for the Report Server #
+#######################################
+[Prelude Report]
+
+# Address where Prelude Report Server is listening on.
+# if value is "unix", it mean the report server is listening
+# on the same machine via a local (UNIX) socket.
+#
+listen = unix
+
+# only if listening on other than 'unix' socket.
+#
+# port = 5554
+
+
+# Length of the RSA private key.
+#
+key = 1024
+
+
+# Number of day to make a certificate valide for
+# (only used when creating a certificate)
+#
+days = 3650
+
+
+
+
+####################################
+# Here start plugins configuration #
+####################################
+
+
+[XmlMod]
+
+# Tell if this plugin should be enabled or not.
+#
+enable = yes
+
+
+# Directory where XML log should be written in.
+#
+xmldir = @localstatedir@/log/prelude/xml
+
+
+[HtmlMod]
+
+# Tell if this plugin should be enabled or not.
+#
+enable = yes
+
+
+# Directory where HTML log should be written in.
+#
+htmldir = @localstatedir@/log/prelude/html
+
+
+
+
+[FileMod]
+
+# Tell if this plugin should be enabled or not.
+#
+enable = yes
+
+
+# Filename where the log should be written in.
+#
+logfile = @localstatedir@/log/prelude/prelude.log
+

@@ -1,0 +1,3867 @@
+2001-08-19  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rules_parsing.c (signature_parser_add_post_processing): 
+	renamed from add_post_processing.
+	(signature_parser_post_processing): now return an int.
+
+	Remove the rule_parsed variable (used to communicate with yacc/lex),
+	This belong to the rule parser plugin.
+
+	* src/prelude/Makefile.am (prelude_SOURCES):
+	rules_grammar.y and rules_lexer.c belong to the rules parser plugin.
+
+	* src/prelude/protocol-plugins.c (protocol_plugin_init_port_list): 
+	Ooops, not memcmp... memset.
+
+	* src/prelude/rules-type.c 
+	(print_segment): Remove un-necessary \n. 
+	(print_flags): ditto.
+	(print_integer): ditto.
+	(print_ip): ditto.
+
+	* src/prelude/capture.c (set_device_variable): 
+	(setup_capture_from_device): Set the device_ADDRESS variable.
+	This fix bug #452731.
+
+	* src/prelude/rules.c (signature_engine_process_packet): 
+	Convert the leaf test result to boolean then XOR it against
+	leaf_match->inversed.
+
+	* src/plugins/detects/rules/rules.c (parse_signature_file): don't
+	set rule counter to 0 here. This fix the bug were 0 rules added 
+	/ ignored when reported in case there was several rules files 
+	included.
+
+2001-08-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* configure.ac: bump version number to 0.4.1.
+
+	* src/prelude/include/plugin-detect.h: 
+	* src/prelude/detect-plugins.c (detect_plugins_run): 
+
+	* src/plugins/detects/arpspoof/arpspoof.c: 
+	Final version is now able to look at ARP cache overwrite
+	attack. Use a hash table to store ARP entry. The hash 
+	function is a little weak, but it will be ok for now.
+
+	* prelude-report.conf.in:
+	Update to fit latest changes.
+
+	* src/plugins/reports/xmlmod/xmlmod.c: 
+	* src/plugins/reports/filemod/filemod.c: 
+	* src/plugins/reports/htmlmod/htmlmod.c: 
+	* src/plugins/reports/execmod/execmod.c: 
+	* src/plugins/protocols/telnet/telnet.c: 
+	* src/plugins/protocols/rpc/rpc-plugin.c: 
+	* src/plugins/protocols/http/http.c: 
+	* src/plugins/detects/scandetect/scandetect.c: 
+	* src/plugins/detects/rules/rules.c: 
+	* src/plugins/detects/debug/debug.c: 
+	* src/plugins/detects/arpspoof/arpspoof.c: 
+
+	Update to fit latest configuration API change.
+	
+	* src/libprelude/plugin-common.c: Several cleanup,
+	comment the code a little.
+	(plugin_config_get): 
+	(generate_options_string): 
+	(get_missing_options):  New function to be used by
+	plugin to get their configuration. This will remove
+	the configuration mess in all plugins. 
+
+	* prelude.conf: Update the configuration file to fit
+	the latest changes.
+
+	* src/libprelude/config-engine.c (config_get): 
+	If entry is found but not followed by an '=' character
+	return an empty string, not NULL. Also, all config line 
+	should end with a ';' except section line.
+
+	* src/prelude/Makefile.am (t): Applied patch from 
+	Sylvain Gil <tootella@tootella.org>. This should fix the 
+	problem some people where having with Prelude not compiling 
+	because of the way it include libpcap.
+
+	* include/nethdr.h: added some definition for ARP header.
+
+	* src/plugins/detects/arpspoof/arpspoof.c: 
+	Start of the ArpSpoof detection plugins.
+
+2001-08-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* prelude-report.conf.in: new file.
+	* prelude-report.conf: deleted.
+	* configure.ac : generate prelude-report.conf from 
+	prelude-report.conf.in
+	* Makefile.am (install-data-local): log directory is
+	a subdirectory of $(localstatedir).
+
+	This was done with the help of Sylvain Gil <tootella@tootella.org>
+	
+	* prelude.spec: updated.
+
+
+2001-08-15  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* configure.ac: 
+	Bump version to 0.4.0.
+	
+	Handle the case when pthread_ function are in libc_r.
+
+	* src/plugins/protocols/rpc/rpc-decode.c: 
+	* src/prelude-report/ssl.c: 
+	* src/prelude/rules_default.c: 
+	* src/prelude/write-func.c: 
+	* src/libprelude/ssl_config.c: 
+	* src/prelude/ssl.c:
+
+	Portability fix.
+
+2001-08-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* Added missing copyright notice everywhere.
+
+	* src/plugins/detects/rules/rules.c (plugin_init): 
+	Change contact informations, and set author to : "The Prelude Team".
+	
+	* src/prelude/rqueue.c: Change support mail address.
+
+	* src/prelude/packet-decode.c (handle_ip_fragment): 
+	Fix cast.
+	(handle_ip_fragment): do not free allocated_data here,
+	this is packet_release job.
+	
+	(handle_ip_fragment): Commented out the hlen > caplen test
+	done after defragmentation. This should never happen (put an
+	assert instead).
+
+	* include/packet.h: captured_data and allocated data are 
+	unsigned char ptr.
+
+2001-08-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/pconfig.c (pconfig_set): 
+	* src/prelude/rules.c (signature_engine_process_packet): 
+	Added the -o option (report-all), the effect of this option
+	is to report all matching signature against a packet.
+	
+	* Makefile.am (install-data-local): 
+	create /var/log/prelude at install time.
+
+	* prelude-report.conf (logfile): 
+	log in /var/log/prelude/prelude.log
+
+	* src/libprelude/auth-common.c (ask_account_infos): 
+	Added a fprintf explaining what to do.
+
+	* src/prelude/rules_default.c (match_id):
+	(match_seq): Use network to host byte order translation function.
+	(match_ack): ditto.
+	(match_icmp_id): ditto.
+	(match_icmp_seq): ditto.
+
+	* src/prelude/rules_default.c: 
+	Integrated patch by Laurent Oudot <oudot.laurent@wanadoo.fr> that 
+	implement the TCP window test (Snort 1.8 compatibility).
+
+
+	* src/prelude/rules_default.c (parse_sameip): 
+	(match_sameip): New function, handle the sameip test.
+	(signature_engine_init): handle the sameip test.
+	(match_win): 
+
+	* include/list.h (list_entry): Use void pointer.
+
+2001-08-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/detects/rules/rules.c (signature_matched_cb): 
+	Call the rqueue_report function (renamed).
+
+	* src/prelude-report/report-infos.c (get_cleartext_alert_kind): 
+	handle the guess alert kind.
+
+	* src/prelude/rules_operations.c: 
+	* src/prelude/rules_default.c: 
+	* src/prelude/rules.c:  Warnings fix.
+	
+	* src/prelude/Makefile.am: Make dist should work now.
+
+2001-08-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/include/Makefile.am (noinst_HEADERS):
+	(EXTRA_DIST): add missing headers files.
+
+	* src/prelude/Makefile.am (DEFS): correct for new method
+	of compilation.
+
+	* src/libprelude/include/Makefile.am (noinst_HEADERS): 
+	add missing headers files.
+
+	* Makefile.am (SUBDIRS): remove libpcap from SUBDIRS.
+	(EXTRA_DIST): add libpcap.tar and libpcap.diff.
+
+2001-08-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/protocols/telnet/telnet.c: 
+	Options / config file handling.
+
+	* src/plugins/protocols/rpc/rpc-plugin.c : 
+	* src/plugins/protocols/rpc/rpc-decode.c: 
+	Big cleanup, almost total rew-write. 
+	Handle fragment records the right way.
+
+2001-08-09  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/protocols/telnet/telnet.c: 
+	New plugin, that handle telnet nogotiation character.
+
+	* src/plugins/protocols/rpc/rpc-decode.c (decode_rpc): 
+	correct handling of the msg_type enumeration.
+
+	* src/plugins/protocols/rpc/rpc-plugin.c (setup_own_default): 
+	default port is 111.
+
+	* src/prelude/pconfig.c (print_usage): 
+	Request protocol plugin option printing.
+
+	* src/libprelude/config-engine.c (chomp): 
+	Only NULL terminate the line if it is ended with a \n.
+
+	* src/plugins/protocols/rpc/:
+	completly rew-written the RPC plugin. 
+
+	* src/prelude/protocol-plugins.c (protocol_plugin_is_port_ok): 
+	(protocol_plugin_add_port_to_list): 
+	(protocol_plugin_add_string_port_to_list): 
+	(protocol_plugin_init_port_list): new function. This is the port_list
+	API used by protocol plugins to see if a packet match a set of destination
+	port.
+
+	* src/plugins/protocols/http/http.c (match_uricontent): 
+	If there is no preprocessed URI, analyze the raw data.
+	(decode_http_packet): return 0 when we matched an URI,
+	as the payload is not modified.
+
+	cleaned up, fixed some bugs.
+
+2001-08-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet-decode.c (packet_new): 
+	(SliceAndStoreDataPkt): 
+
+	Set application layer depth.
+	
+	(SliceAndStoreTcpPkt): 
+	(SliceAndStoreUdpPkt):
+
+	Set transport layer depth.
+	
+	(SliceAndStoreIpPkt): 
+
+	Set network layer depth.
+	
+
+	* src/prelude/rules_default.c: 
+	* src/prelude/rqueue.c (determine_alert_kind): 
+	* src/plugins/protocols/rpc/rpc.c (decode_rpc): 
+	* src/plugins/protocols/http/http.c (http_decode): 
+
+	Modified to use the new packet_t member.
+	
+	* include/proto.h: depth_* enum are no longer used.
+
+	* include/packet.h: new members : network_layer_depth,
+	application_layer_depth, transport_layer_depth. This is used
+	to locate certain kind of headers in the packet. 
+
+	This fix the bug people using not fully understood link layer
+	protocol were having.
+
+	Converted some member to int8_t in the packet_container_t structure.
+
+	
+
+2001-08-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/protocols/rpc/rpc.c: 
+	* src/plugins/protocols/http/http.c:
+
+	Add command line / configuration file options handling.
+	The HTTP protocol plugin now also handle a portlist.
+
+2001-08-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rules_default.c (match_ip_src): 
+	(match_ip_dst): correct debuging output.
+
+	* src/libprelude/plugin-common.c (plugin_register): 
+	Only increase plugins_id_max if the plugin registered
+	succesfully.
+	(plugin_get_highest_id): cleanup
+	(plugin_load_single): don't increase plugins_id_max here.
+
+	* src/prelude/include/timer.h: 
+	* src/prelude/include/hostdb.h: 
+	* src/prelude/tcp-stream.c (tcp_stream_new): 
+
+	cleanup.
+
+	* src/prelude/rules_default.c (match_content): 
+	this function is static.
+
+	* src/prelude/rules.c (MAX_RULES_CALLED): 
+	set to 10000 instead of 50. This is a temporary workarround
+	for getting all leaf match tested.
+
+	* src/prelude/rsend.c (expire): 
+
+	* src/prelude/ip_fragment.c (ip_defrag_init): 
+	Id that are gonna be used into the host database should
+	always be allocated before first hostdb usage.
+
+	* src/prelude/prelude.c (main): 
+	call ip_defrag_init().
+	
+
+2001-08-03  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/protocols/http/http.c: 
+	New protocol plugin that decode the http protocol.
+	It also provide the uricontent key (Snort compatibility).
+
+	* src/prelude/rules_default.c (signature_engine_match_content): 
+	renamed from match_content, and made public. This function is to
+	be accessed by certain protocol plugins.
+	
+	(signature_parser_parse_content): 
+	renamed from parse_content, and made public. This function is to
+	be accessed by certain protocol plugins.
+	
+	(parse_content_list): New function, to handle the content-list
+	test. This is not working yet.
+	
+	(signature_engine_init): handle the content-list test, fit other
+	changes.
+
+	(parse_depth): error checking.
+	(parse_offset):	error checking.
+
+	(signature_engine_match_content): comment the code.
+
+2001-08-02  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rqueue.c (plugin_rqueue_report): 
+	fix a bug that was making a crash possible when the alert kind
+	was guessed. 
+
+	* src/prelude/rules_default.c: remove the ignore key
+	macro (that was creating a new function for each use of this
+	macro) just add a dummy function for test that we want to 
+	ignore.
+	
+	(match_ip_src): 
+	(match_ip_dst): Added temporary debuging printf in theses
+	function.
+
+	(signature_engine_init): handle the sid, rev, react, resp,
+	logto, key correctly (Snort 1.8 compatibility)
+
+	(match_ip_proto): 
+	new function that match an IP packet protocol member.
+	(signature_engine_init): 
+	Handle the ip_proto test (Snort 1.8 compatibility).
+	
+
+	* src/prelude/packet-decode.c (SliceAndStoreDataPkt): 
+	fix several possible bug related to protocol plugins handling.
+
+	(SliceAndStoreIpPkt): Match the packet against the new IP root
+	node.
+
+	(SliceAndStoreIcmpPkt): Len should *never* be zero (use 
+	ICMP_MINLEN if the type is unknow).
+	This should fix a report server crash we were seeing.
+	
+
+	* src/prelude/prelude.c: 
+	Updated copyright notice.
+
+	* src/plugins/detects/rules/rules.c (get_protocol_node): 
+	handle the "ip" protocol (Snort 1.8 compatibility).
+
+	* src/prelude/ip_fragment.c (ip_frag_destroy): 
+	(nfrag): minor cleanup. 
+	The frag_item_t structure don't need a prev member.
+
+2001-07-31  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet-decode.c (SliceAndStoreIcmpPkt): 
+	len should *never* be 0. If we don't know the Icmp type,
+	handle the first 8 bytes of the icmp packet. Not the rest.
+
+2001-07-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/protocols/rpc/rpc.c: complete version
+	of the RPC plugins.
+
+	* src/prelude/rules_default.c (match_ip_src): 
+	(match_ip_dst): 
+	(match_port_src): 
+	(match_port_dst): 
+	(match_tcp_flags): 
+	(match_fragbits): 
+	(match_ttl): 
+	(match_tos): 
+	(match_id): 
+	(match_data_size): 
+	(match_seq): 
+	(match_ack): 
+	(match_itype): 
+	(match_icode): 
+	(match_icmp_id): 
+	(match_icmp_seq): 
+	(match_ipopts): 
+	(match_content): 
+
+	Matching function always return -1 on faillure.
+	This is for coherency with the rest of the Prelude sources.
+
+	* src/prelude/rules.c (signature_engine_process_packet): 
+	check explicitly that the match_packet function pointer
+	return a negative value or not. Do the same for leaf 
+	function call (now test function return -1 in case of error).
+
+	* src/prelude/packet-decode.c (packet_new): 
+	set the new protocol plugins members.
+
+	(handle_ip_fragment): turn IP defragmentation back on.
+
+	(SliceAndStoreDataPkt): if there is no more payload after
+	a protocol plugin ran, just return.
+
+	(SliceAndStoreDataPkt): comment the function.
+	
+	(SliceAndStoreDataPkt): analyze the part of the payload not
+	handled by a protocol plugin. But always dump the whole payload
+	(including protocol plugin data) at reporting time.
+
+	* include/packet.h: Comment the different structures.
+	add the protocol_plugin_id and protocol_plugin_data members to
+	the packet_container_t structure. Theses members are used to
+	store private protocol data by the protocol plugins.
+
+	* src/prelude-report/report-infos.c (udp_dump): 
+	convert to host byte order before printing the len value
+	of an UDP packet.
+
+	* src/plugins/protocols/Makefile.am (SUBDIRS): 
+	this file was missing.
+
+2001-07-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/protocols/rpc/rpc.c: 
+	(match_rpc): current_data is not a pointer.
+	(add_rpc_rules): better error checking.
+	(parse_rpc): no parse the rpc rule cleanly.
+
+	* src/prelude/rules_default.c (parse_port_type): 
+	fix bug where a rule containing the port 0, would be rejected.
+	Port 0 is a valid port. Ditto for port 65535.
+
+	(signature_engine_init): handle the classtype rule 
+	(used in Snort 1.8), this avoid us to reject rules using it.
+
+2001-07-25  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/Makefile.am (SUBDIRS): 
+	* src/plugins/protocols/Makefile.am (SUBDIRS): 
+	* configure.in (CFLAGS): add the protocols plugins
+	directory / rpc protocols plugins directory to the
+	compilation path.
+
+	* src/plugins/protocols/rpc/decode.c (parse_rpc): 
+	squeleton for the rpc plugin.
+
+	* src/prelude/include/plugin-protocol.h (plugin_protocol): 
+	(plugin_set_protocol): new macro.
+
+2001-07-23  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/include/rules.h: leaf_match_f_t now take a void pointer
+	not a data_t.
+
+	* src/prelude/rules_operations.c (add_leaf_match_by_id): 
+	new function to add a leaf match with care of it's priority.
+	Not used for now.
+	
+	(add_rule_leaf_match): Now take a void argument pointing 
+	on a data type to pass when executing the leaf test callback.
+
+	* src/prelude/rules_default.c: 
+	(match_ipopts): don't use a flag_t anymore. 
+	(match_content): use the new string_t structure, 
+	do not loop throught the global rule data anymore.
+	(parse_offset): ditto
+	(parse_depth): ditto
+	(parse_content): ditto
+	(set_nocase): new function (set the global string pointer to NULL for each rule parsed).
+	(signature_engine_init): parse_ipopts is now a leaf test, 
+	add the new set_nocase() function to the post processing list.
+
+	(parse_ipopts): Ipopts test are now leaf tests. This'll correct the memory
+	problem we had because of theses test and the factorial tree duplication they 
+	result in.
+
+	* src/prelude/rules.c (signature_engine_process_packet): 
+	Do not pass global rules data anymore, pass the data corresponding
+	to our test.
+
+	Coding style change. -1 is always to be returned in case of error.
+	
+
+2001-07-03  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/include/packet-decode.h: 
+	don't include pcap.h here, as it will be a problem for people
+	that don't have libpcap installed (as we use our own local 
+	libpcap). To avoid warning, declare an opaque pcap_pkthdr 
+	structure.
+
+2001-07-01  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/reports/filemod/filemod.c: flush
+	the file descriptor.
+
+	* src/prelude-report/server.c (wait_connection): 
+	(unix_server_start): 
+	(inet_server_start): Don't use tcp wrapper if we arre
+	listening on an UNIX socket.
+
+	* configure.in (LIBWRAP_PATH): tcp wrapper check wasn't
+	working anymore.
+
+	* src/prelude-report/server.c (tcpd_auth): oops, correct
+	a double declaration.
+
+	* Still working on code readability, function renaming...
+	  Also fixed several bug and simplified several function.
+
+2001-06-22  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* Too much change to list,
+	  Signature engine modified to fit the Prelude coding style,
+	  several part simplified, function renaming, try to make as
+	  much auto documenting code as possible.
+
+2001-06-21  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	Applied portability patch from Jeremie Brebec <brebec@enseirb.fr>
+
+	* src/libprelude/rxdr.c (xdr_alert): convert
+	the time_t argument to an unsigned long. 
+	use xdr_u_long().
+
+	* src/libprelude/plugin-common.c (RTLD_NOW): 
+	if RTLD_NOW isn't defined, define it to have 
+	the same value as RTLD_LAZY.
+
+	* configure.in: check for inet_aton.
+
+2001-06-20  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* include/nethdr.h: use uintxx_t not u_intxx_t which
+	isn't portable. Do not define the arphdr structure
+	(this is creating conflict on several OS), instead, 
+	make the arphdr_t type.
+
+	Thanks to Jeremie Brebec <brebec@enseirb.fr> who pointed 
+	this out.
+
+2001-06-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/detects/rules/rules.c: big, big cleanup.
+
+2001-06-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/plugin-common.c (plugin_load_from_dir): 
+	fix a memory leak on error condition.
+
+2001-06-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/cnx.c (wait_raw_report):
+	(wait_xdr_report): 
+	reference the new alert_t plugin member.
+	
+
+	* src/prelude/write-func.c (write_raw_report): 
+	(writev_raw_report): update to use the new alert_t plugin member.
+
+	* src/prelude/rqueue.c (plugin_rqueue_report): 
+	(prelude_rqueue_report): set the alert->plugin member to
+	a localy declared plugin (prelude_core_plugin).
+
+	* src/plugins/reports/xmlmod/xmlmod.c (create_plugin_infos): 
+	* src/plugins/reports/htmlmod/html.c (output_plugin_infos): 
+	* src/plugins/reports/filemod/filemod.c (filemod_run): 
+	* src/plugins/reports/execmod/execmod.c (execmod_run): 
+	* src/libprelude/rxdr.c (xdr_alert): 
+	* src/libprelude/alert-common.c (read_alert): 
+	(alert_free): update to use the new alert_t plugin member.
+	
+
+	* include/alert-prv.h: instead of declaring plugin_generic_t
+	member here, use a plugin_generic_t pointer. This make the
+	code cleaner.
+
+	* src/prelude-report/optparse.c (ip_optval): 
+	Corrected a 2 bytes out of bound access (thanks
+	to Electric Fence). The code was assuming the kind
+	and length bytes of the option were still in the buffer.
+
+	* configure.in: 
+	* src/plugins/reports/xmlmod/Makefile.am: 
+	* src/plugins/reports/xmlmod/xmlmod.c: 
+
+	Big change : revert to not using libxml, as it involve
+	several performance drawback for what we want to do that
+	I don't want to deal with.
+	
+2001-06-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/reports/xmlmod/xmlmod.c (xmlmod_run): 
+	(create_xml_document): use xmlNewDocRawNode.
+
+	* src/plugins/reports/xmlmod/Makefile.am (xmlmoddir):
+	New xmlmod plugin, convert a report to XML.
+	This will serve as a future replacement to htmlmod
+	when combined to a stylesheet.
+
+	* src/plugins/reports/Makefile.am (SUBDIRS): 
+	include the xmlmod subdirectory.
+
+	* prelude-report.conf: 
+	Add default config for the new xml reporting plugin.
+	
+	* configure.in: 
+	Add an entry for the new xml reporting plugin.
+
+	* src/plugins/reports/filemod/filemod.c (check_opts): 
+	* src/plugins/reports/execmod/execmod.c (check_opts): 
+	* src/plugins/reports/htmlmod/htmlmod.c (check_opts): close
+	the config file on error.
+	Also, fix a bug in some of thoses function where the plugin
+	would be disabled, if the enable flag was set on the command
+	line *and* in the config file.
+	
+	* src/plugins/reports/htmlmod/html.c: 
+	cleanup the mess.
+	(create_detailled_report): divided into several function.
+
+	(output_hexdump): new function, also, escape "<", ">", 
+	and "&" character that were handled by the browser, even
+	inside a <pre> tag. (So the report isn't screwed anymore
+	when payload is html).
+	
+	(output_pktdump): new function.
+	(output_report_infos): new function.
+	(output_plugin_infos): new function.
+
+	* src/prelude/rsave.c (backout_existing_report): 
+	new function.
+
+	* src/prelude/protocol-plugins.c (protocol_plugins_run): 
+	return an integer (the len of the handled part of the payload),
+	also, break as soon as a protocole plugin that can handle the
+	payload is found.
+	(protocol_plugins_run): Initialize ret, cause the list
+	could be empty.
+
+	* src/prelude/packet-decode.c (SliceAndStoreDataPkt): 
+	Run the protocol plugins.
+
+2001-06-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/prelude.c (main): use do_init_nofail
+	macros for loading of protocol plugin, we don't want
+	to exit if this subsystem fail.
+
+	* src/libprelude/include/common.h (do_init_nofail): 
+	new macros (do not exit in case of faillure).
+
+	* src/prelude-report/report-plugins.c: 
+	Some cleanup.
+	
+	(report_plugins_init): Issue a warning and return -1
+	if no plugin were loaded.
+
+
+	* src/prelude/include/rqueue.h (prelude_do_report): 
+	(plugin_do_report): initialize the report member to
+	NULL. Good catch, by Jeremie Brebec <brebec@enseirb.fr>
+
+	* src/prelude/rsave.c (setup_fd): Create the target
+	directory if it doesn't exist (we don't want to fail
+	here).
+
+2001-06-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet-decode.c (SliceAndStoreTcpPkt): 
+	* src/prelude/rqueue.c (determine_alert_kind): 
+	Disable tcp stream for the moment, it's not ready.
+
+	* src/prelude/ip_fragment.c (ip_frag_destroy): 
+	(ip_frag_reasm): release packet.
+	(ip_frag_create): lock packet.
+
+	Lock the initial fragmented packet.
+
+2001-06-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/include/plugin-protocol.h: 
+	run function for this plugin return an integer.
+	The plugin_protocol_t structure also contain a list of detection
+	plugin.
+
+	* src/prelude/protocol-plugins.c (plugin_subscribe): intialize
+	the list that contain detect plugin for this protocol plugin.
+	(protocol_plugins_run): use plugin_run_with_return_value() macro.
+	If a protocol plugin return 0 (which mean it could handle the payload),
+	start the detection plugin associated with this protocol plugin.
+	(protocol_plugins_search): New function, search for a protocol plugin
+	that can handle passed in protocol.
+
+	* src/prelude/detect-plugins.c (register_to_plugin_provided_protocol): 
+	New function, search a protocol plugin that handle the protocol
+	specified by the detect plugin. Associate the detection plugin 
+	to the protocol plugin if found.
+	(register_to_internal_protocol): renamed.
+
+	* include/proto.h: added p_external to the protocol enumeration.
+	This is to be used to specify a protocol plugin.
+
+	* src/libprelude/include/plugin-common-prv.h (plugin_run_with_return_value): 
+	new macro, permit to get the plugin_run function return value.
+
+2001-06-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/include/detect-plugins.h: move the content
+	of this header to plugin-detect.h. Removed.
+
+	* include/packet.h: Add a refcount member,
+	and two member containing data and tcp depth.
+
+	* src/prelude/capture.c (pktalloc): 
+	(setup_capture_from_device): Use malloc, stop using recycler here.
+
+	* src/libprelude/plugin-common.c (plugin_request_new_id): 
+	new function that return a valid, not used, plugin identity.
+
+	Many change in this commit, we stop using recycler because of
+	the locking issue they bring and the little, almost non existant
+	performance improvment they bring. We'll see for reinclusion later.
+	Some cleanup.
+	
+2001-05-27  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rqueue.c (plugin_rqueue_report): 
+	(prelude_rqueue_report): if alert kind is guess,
+	check if the packet is part of a known stream.
+
+	* src/plugins/detects/rules/rules.c: use the guess
+	alert kind.
+
+	* include/alert.h (enum): new kind of alert : guess,
+	which will use the tcp_stream provided mechanism to test
+	if the stream is known.
+
+	* src/prelude/tcp-stream.c: completly reworked the tcp
+	stream reassembler... This one should now work and fix 
+	all leak. It also implement it's own hash table (inspired
+	from tcpdump one) instead of hostdb in order to gather
+	connection in duplex ( src / dst in the same entry wether
+	they are reversed or not).
+
+2001-05-24  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/optparse.c (option_is_set): new function
+	check if a given option is in the option buffer.
+	Return 0 on success, -1 on error.
+
+	* src/prelude/hostdb.c (host_free): renamed host_del
+	to host_free() as it make more obvious what this function
+	does.
+	(hostdb_del): call packet_release before calling host_free().
+
+2001-05-23  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/tcp-stream.c (tcp_stream_is_known): 
+	new function, tell if the current tcp packet is part 
+	of a tcp stream.
+	(sequence_match_current_packet): 
+	(sequence_match_new_packet): 
+	New function.
+
+	* src/prelude/recycler.c 
+	(RecyclerLockChunk): Decrease the semaphore count. 
+	(RecyclerReleaseChunk): Increase the semaphore count.
+	(RecyclerGetChunk): Wait for the semaphore count to be positive,
+	but don't decrease it when sem_wait() return.
+
+	* src/prelude/include/recycler.h: declare recycler_get_chunk_nowait()
+	here.
+
+	* src/prelude/recycler.c (RecyclerGrow): got rid of an
+	unused variable.
+
+	* src/plugins/detects/scandetect/scandetect.c (new_cnx): 
+	don't lock the packet here anymore.
+	(expire_cnx): ditto.
+	(_cnxInfo ): don't need to carry a pointer to the packet
+	anymore.
+
+	* src/prelude/ip_fragment.c (ip_frag_create): don't
+	lock the packet anymore, as hostdb is doing it for us.
+	(ipq_kill): ditto.
+	(ip_frag_reasm): ditto.
+
+	* src/prelude/hostdb.c (hostdb_new): now take the
+	packet_container_t argument and manage locking it.
+	(hostdb_del): release the packet when refcount is 0.
+
+	* src/prelude/tcp-stream.c: still working on tcp stream
+	reassembly... The core should now be stable, and it's 
+	cleaner.
+
+	* src/prelude/prelude.c: include pcap.h to avoid warnings.
+
+	* src/prelude/packet-decode.c (SliceAndStoreTcpPkt): 
+	call tcp_stream_store().
+
+	* src/prelude/tcp-stream.c: start of TCP stream reassembly code.
+	We don't reassemble the whole data yet, but it will be easy.
+
+	There is some problem with using the hostdb hash table for this stuff,
+	and we end up having duplicate entry. Whole goal would be to make hostdb
+	generic enought to be handle to handle this.
+
+2001-05-21  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/ip_fragment.c (ip_frag_queue): return an int.
+	(ip_frag_queue): remove the err: goto, and replace it with
+	return -1. return 0 on success.
+
+	(ip_frag_reasm): don't kill ip queue here in case of error.
+	
+	(ip_defrag): check the ip_frag_queue /ip_frag_reasm return value, 
+	kill queued entry on any error.
+
+	This fix a leak on fragmentation attack detection.
+	
+2001-05-04  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* include/nethdr.h: add missing compatibility header.
+	* Modify the whole sources to use the new type.
+	
+2001-05-03  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/reports/htmlmod/html.c (create_detailled_report): 
+	use report infos provided kind.
+
+	* src/prelude-report/report-infos.c (get_cleartext_alert_kind): 
+	new function, return a readable kind for the current report.
+
+	* src/prelude/rqueue.c (rqueue_init): new function,
+	create the Report Queue recycler.
+
+	* src/prelude/prelude.c (main): call decode_init()
+	here. (main): call rqueue_init().
+
+	* src/prelude/packet-decode.c (decode_init): use
+	MAX_PKTINUSE for recycler creation.
+
+	* src/prelude/capture.c (capture_start): don't call
+	decode_init() here.
+
+	* src/prelude/async-write.c: remove the MAX_IO limit.
+	This limit is now achieved in rqueue.c when there is no
+	more free chunk in the recycler.
+
+	* include/packet.h (MAX_PKTINUSE): define the maximum 
+	number of packet that can be locked simultaneously in 
+	Prelude. (Attack Detection / Alert reporting).
+
+	* src/plugins/reports/execmod/execmod.c: new plugin
+	that execute a given program with a report as argument.
+	[untested].
+
+
+2001-04-27  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/include/rules.h: Remove rules_t type
+	which is redondant with rule_t. Include a list member
+	to rule_t.
+
+2001-04-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/rules_parsing.c: 
+	* src/libprelude/include/rules-variable.h (variable_unset): 
+	* src/libprelude/rules-variable.c:
+
+	Move the variable code to it's own file, cause this is 
+	generic code and is much cleaner.
+
+2001-04-24  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* too many changes to list,
+	  we do not use memcpy to copy the packet anymore,
+	  we furnish a patched version of libpcap that allow Prelude
+	  to use it's own packet memory managment.
+
+	  This avoid us a lot of recycler hack,
+	  and this represent a BIG performance gain.
+
+2001-04-20  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/capture.c (search_datalink_handler): 
+	Add DLT_LOOP, and DLT_RAW to the list.
+
+	* src/prelude/packet-decode.c (SliceAndStoreRawPkt): 
+	New function, for PPPOE handling.
+
+	* src/prelude/capture.c (search_datalink_handler): 
+	Print the datalink type as an integer.
+
+2001-04-19  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet-decode.c (SliceAndStoreIcmpPkt): 
+	Better ICMP handling.
+	When handling ICMP unreachable code, also decode
+	associated IP header/availlable data.
+
+	* src/plugins/detects/rules/rules.c: subscribe to
+	all protocol.
+	(_r_parse_rules_file): redesign parser to be more
+	modular / readable.
+	Each keyword as it's own function.
+
+2001-04-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* Merged back prelude_0_3 stable branch into HEAD.
+
+2001-04-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet-decode.c (handle_ip_fragment): 
+	(SliceAndStoreIpPkt): move the fragment handling
+	part in another function.
+	(SliceAndStoreIpPkt): check the option before any
+	fragment operation.
+
+	* include/packet.h (struct __tcphdr): 
+	(struct __iphdr): 
+	Snapend member is unused.
+	
+	* src/plugins/reports/htmlmod/htmlmod.c: 
+	complete re-work, should fix almost all problem there
+	was with the previous plugins.
+	
+	Also, we now use a symlink to point to the latest report
+	which avoid us to move generated file arround...
+	this also make counting the number of report directory 
+	at init time a O(1) operation, not O(n), 
+	thanks to Renaud Chaillat <rino@mandrakesoft.com> for this idea.
+	
+	* src/plugins/reports/htmlmod/Makefile.am : 
+	* src/plugins/reports/htmlmod/html.c: 
+	* src/plugins/reports/htmlmod/html.h: 
+	Move all code responssible for HTML code generation
+	to html.c.
+
+	* src/prelude-report/prelude_report.c (cleanup): 
+	reset the signal to it's default behavior before
+	anything else.
+
+2001-04-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/server.c (is_unix_socket_already_used): 
+	(unix_server_start): This should now handle the case where
+	a UNIX socket already exist on filesystem but isn't used.
+
+	* src/prelude-report/ssl_register_client.c: 
+	(wait_connection): 
+	(send_own_certificate): 
+	(wait_certificate): 
+	(ssl_register_client): 
+	BIG cleanup, divided into several function.
+
+	* src/libprelude/ssl_gencrypto.c (get_full_hostname): 
+	new function.
+	(add_DN_object): defaut name for certificate if the
+	full machine name.
+
+	* src/plugins/reports/htmlmod/htmlmod.c (html_run): 
+	handle case where there is no more disk space.
+
+	* src/prelude/rsave.c (sendfile_send): fix a typo.
+	(sendfile_send): cast st.st_size to size_t.
+
+2001-04-03  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/reports/htmlmod/htmlmod.c (write_host_infos): 
+	don't gather packet information ourself, use the informations
+	provided in the report_infos structure.
+
+	* src/prelude-report/report-infos.c (arp_dump): use inet_ntoa.
+	(create_pktdump): fill sport / dport / saddr / daddr.
+
+	* src/plugins/reports/htmlmod/htmlmod.c (write_host_infos): 
+	use report_infos structure. Do not take a Packet_t argument,
+	but a report_infos_t argument.
+	(update_host_index): Suit write_host_infos changes.
+
+	* src/prelude-report/include/report-infos.h: sp and dp
+	are uint16_t.
+
+
+2001-04-15  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rwrite.c: removed writing function
+	from there, use function now provided in write-func.c
+
+	* src/prelude/rsave.c (backup_report): 
+	use writev_raw_report().
+
+	* src/libprelude/alert-common.c (do_read): 
+	use socket_read_nowait().
+	(read_alert): use socket_read() for the first read call.
+	(alert_read): protocol and len member are now written in
+	two time, adapt read call.
+
+	* configure.in (enable_sendfile): oops, 
+	HAVE_SENDFILE was never defined.
+
+	* src/libprelude/socket-op.c (do_socket_read): 
+	(socket_write): 
+	oops fix a bug where errno was set to EINTR
+	but was checked even when read was returning 0.
+	This was causing an endless loop.
+
+2001-04-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/alert-common.c (read_alert):
+	* src/prelude/rwrite.c (write_raw_report): 
+	* include/alert-prv.h (alert_message_len): 
+	* src/prelude/rqueue.c (prelude_rqueue_report): 
+	(plugin_rqueue_report): 
+	Don't write more than what is needed.
+
+	* include/packet.h (struct __iphdr): 
+	(struct __tcphdr ): opts_len should not be unsigned.
+
+	* src/prelude/packet-decode.c (SliceAndStoreNullPkt): 
+	don't call incr_depth (we don't stock anything about this
+	layer).
+	(SliceAndStorePppPkt): ditto.
+	(SliceAndStorePppBsdosPkt): ditto. 
+	(SliceAndStoreFddiPkt): ditto.
+
+	* src/prelude/pconfig.c: no need to include pcap.h here.
+
+	* src/prelude/capture.c: use poll() instead of select(),
+	that avoid us set managment...
+	capture function share more code.
+	commented public function.
+	
+
+2001-04-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rwrite.c (rwrite_write): if there is an error
+	writing the report, send the PIPE signal to the main thread
+	anyway.
+
+	* src/libprelude/socket-op.c (socket_write):(do_socket_read): 
+	cast buf to unsigned char (pointer arithmetic not allowed
+	on pointer to void).
+
+	* src/prelude/rqueue.c (prelude_rqueue_report): 
+	move the vsnprintf call out of the report_new() func.
+
+	* src/plugins/reports/htmlmod/htmlmod.c :
+	use PATH_MAX, not NAME_MAX.
+	(plugin_init): create the default HTML page if
+	symlink does not exist.
+
+	* src/prelude-report/report-infos.c (tcp_dump): 
+	(tcp_dump): use %ld in snprintf for seq/ack.
+
+	* include/nethdr.h: include sys/types.h
+
+	* src/prelude/packet-decode.c (SliceAndStoreIgmpPkt): 
+	(SliceAndStoreIcmpPkt): use portable structure name.
+
+	* src/prelude-report/report-infos.c: 
+	* src/prelude/hostdb.c: 
+	* src/prelude/ip_fragment.c:
+	Correct header inclusion.
+	
+	* src/prelude-report/cnx.c: 
+	* src/prelude/rwrite.c: 
+	* src/libprelude/rxdr.c:
+	include rpc/types.h
+
+	* include/nethdr.h: 
+	* include/packet.h: 
+	all needed header for portable network compilation
+	should go in nethdr.h
+
+	* src/prelude-report/server.c (inet_server_start): 
+	call auth_init() here.
+
+	* src/prelude-report/cnx.c (setup_connection): 
+	use socket_read/write_delimited().
+
+	* src/prelude-report/auth.c (get_account_infos): 
+	use socket_read_delimited().
+	(separate_string): avoid un-necessary strlen() call.
+	(cmp): cleanup.
+	(auth_check): use socket_write_delimited.
+
+	* src/prelude/rsend.c (setup_connection): 
+	read / write config_string function were renamed...
+	(do_connect): oops, auth_init / auth_client call was
+	not ok.
+
+	* src/prelude/auth.c (write_auth_infos): cleanup, use
+	socket_write_delimited.
+	(read_auth_result): use socket_read_delimited(),
+	we do not need a so large buffer.
+
+	* src/libprelude/socket-op.c (do_socket_read): new function.
+	(socket_read): use do_socket_read().
+	(socket_read_nowait): new function, use do_socket_read().
+	(socket_read_delimited): renamed from read_config_string.
+	(socket_write_delimited): renamed from write_config_string.
+
+	* configure.in: cleanup, check for some function
+	in libnsl and libsocket for portability.
+
+2001-04-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/auth-common.c (parse_auth_line): 
+	use strtok instead of strsep, as strsep isn't ANSI.
+
+	* configure.in: Version is 0.3b1
+	* Merge stable change from head to prelude_0_3 branch.
+	
+2001-04-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/report-infos.c: define ARPOP_* and
+	ARPHRD_* ourself, as it is not defined in many system.
+
+	* src/prelude-report/optparse.c: define IPOPT_SECURITY
+	and IPOPT_RA if not defined in common include file.
+
+	* src/prelude/rsend.c (inet_connect): 
+	use IPPROTO_TCP in setsockopt, not SOL_TCP (non standard).
+
+	* src/libprelude/include/compat.h: 
+	* src/libprelude/compat.c : new file.
+	(getopt_long): provide a wrapper to getopt_long function
+	if it is not present on this system.
+
+	Include compatibility header where it's needed.
+	Include in the build.
+	
+	* src/prelude/ip_fragment.c: 
+	include netinet/in_systm.h
+
+	* src/prelude/pconfig.c: 
+	* src/plugins/detects/scandetect/scandetect.c: 
+	* src/plugins/detects/debug/debug.c: 
+	* src/libprelude/include/plugin-common.h: 
+	do not include getopt.h, this is not a standard header,
+	and this have nothing to do here.
+
+	
+	* src/prelude-report/optparse.c (tcp_optval): 
+	* src/libprelude/include/extract.h:
+	use uint32_t instead of u_int32_t.
+
+	* include/packet.h: 
+	include sys/socket.h, net/if.h
+
+	* configure.in: check for getopt_long.
+
+2001-04-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/socket-op.c: new file.
+	(socket_read): read as many byte as requested or die.
+	(socket_write): write as many byte as requested or die.
+	(read_config_string):
+	(write_config_string): 
+
+	* src/prelude/rwrite.c (write_raw_report): 
+	use a macro that check the return value of
+	the write() call for us. It make the code much more readable.
+
+	* src/prelude/rsend.c (set_options): new function.
+	(setup_connection): divide in two function.
+	(setup_connection): use the new function call
+	read_config_string / write_config_string.
+
+	* src/libprelude/alert-common.c: 
+	(read_alert): use a macro that check the return value of
+	the read() call for us. It make the code much more readable.
+
+	* src/libprelude/common.c: removed.
+	* configure.in: cleanup.
+
+2001-04-09  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rqueue.c (report_new): return -1
+	when updating.
+
+2001-04-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* Merged back prelude_0_3 stable branch into HEAD.
+
+2001-04-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet-decode.c (handle_ip_fragment): 
+	(SliceAndStoreIpPkt): move the fragment handling
+	part in another function.
+	(SliceAndStoreIpPkt): check the option before any
+	fragment operation.
+
+	* include/packet.h (struct __tcphdr): 
+	(struct __iphdr): 
+	Snapend member is unused.
+	
+	* src/plugins/reports/htmlmod/htmlmod.c: 
+	complete re-work, should fix almost all problem there
+	was with the previous plugins.
+	
+	Also, we now use a symlink to point to the latest report
+	which avoid us to move generated file arround...
+	this also make counting the number of report directory 
+	at init time a O(1) operation, not O(n), 
+	thanks to Renaud Chaillat <rino@mandrakesoft.com> for this idea.
+	
+	* src/plugins/reports/htmlmod/Makefile.am : 
+	* src/plugins/reports/htmlmod/html.c: 
+	* src/plugins/reports/htmlmod/html.h: 
+	Move all code responssible for HTML code generation
+	to html.c.
+
+	* src/prelude-report/prelude_report.c (cleanup): 
+	reset the signal to it's default behavior before
+	anything else.
+
+2001-04-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/server.c (is_unix_socket_already_used): 
+	(unix_server_start): This should now handle the case where
+	a UNIX socket already exist on filesystem but isn't used.
+
+	* src/prelude-report/ssl_register_client.c: 
+	(wait_connection): 
+	(send_own_certificate): 
+	(wait_certificate): 
+	(ssl_register_client): 
+	BIG cleanup, divided into several function.
+
+	* src/libprelude/ssl_gencrypto.c (get_full_hostname): 
+	new function.
+	(add_DN_object): defaut name for certificate if the
+	full machine name.
+
+	* src/plugins/reports/htmlmod/htmlmod.c (html_run): 
+	handle case where there is no more disk space.
+
+	* src/prelude/rsave.c (sendfile_send): fix a typo.
+	(sendfile_send): cast st.st_size to size_t.
+
+2001-04-03  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/reports/htmlmod/htmlmod.c (write_host_infos): 
+	don't gather packet information ourself, use the informations
+	provided in the report_infos structure.
+
+	* src/prelude-report/report-infos.c (arp_dump): use inet_ntoa.
+	(create_pktdump): fill sport / dport / saddr / daddr.
+
+	* src/plugins/reports/htmlmod/htmlmod.c (write_host_infos): 
+	use report_infos structure. Do not take a Packet_t argument,
+	but a report_infos_t argument.
+	(update_host_index): Suit write_host_infos changes.
+
+	* src/prelude-report/include/report-infos.h: sp and dp
+	are uint16_t.
+
+
+2001-04-02  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/ip_fragment.c: Use uint8_t.
+
+	* src/prelude/hostdb.c: 
+	* include/packet.h: added missing include in_systm.h 
+	for BSD kind system.
+
+	* src/libprelude/plugin-common.c: getopt.h isn't
+	a standard header... getopt() function should be
+	defined in unistd.h
+
+	* src/libprelude/ssl_gencrypto.c: include e_os.h
+	in order for this to compile with OpenSSL 0.9.5.
+
+2001-03-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/ssl_gencrypto.c (ssl_gen_crypto): 
+	* src/libprelude/ssl_registration_msg.c (save_cert):
+
+	Set umask before creating the certificate / creating the key.
+	This is a workaround because of our lack of knowledge about
+	a BIO function that would permit to set permission.
+	We use umask instead of chmod() to avoid a potential race
+	(window of time where the destination file would be readable
+	by all). I also put a FIXME for this issue.
+
+2001-03-29  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* configure.in: 
+	bump version to 0.3.
+
+	* src/plugins/reports/htmlmod/htmlmod.c (create_link_if_needed): 
+	use a relative path.
+
+	* src/prelude-report/server.c (wait_connection):
+	call report_server_close() on return.
+	
+	(report_server_close): new function, 
+	close server socket.
+
+	* src/prelude/rsave.c (backout_report): set fd to -1
+	after a backout. Return -1 if fd is not valid 
+	(and do not try anything).
+
+	* src/prelude/rsend.c (setup_connection): cleanup.
+
+2001-03-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/cnx.c (wait_xdr_report): 
+	set the packet member after the memset.
+
+	* src/prelude/rwrite.c (rwrite_write): 
+	* src/prelude/async-write.c (flush_aio_queue): 
+	unlock the packet and free the alert here not
+	in rwrite_write().
+
+	* src/prelude/rsave.c (save_report): forgot
+	to write some member of alert_t to filedes.
+
+	* src/prelude-report/cnx.c (wait_xdr_report): oops.
+
+	* src/prelude-report/report-infos.c (report_infos_get): 
+	set date_end member to NULL if there is no ending date.
+
+	* src/plugins/reports/htmlmod/htmlmod.c (create_dir): 
+	don't return an error if errno is EEXIST.
+
+	* src/plugins/reports/sysplug/sysplug.c: use rinfo
+	pre - decoded date.
+
+	* src/prelude/pconfig.c (pconfig_set): 
+	(configure_port): 
+	(configure_address): 
+	* src/prelude-report/pconfig.c: 
+	(configure_listen_port): 
+	(configure_listen_address): 
+
+	Fixed bug reported by Jeremie Brebec <brebec@enseirb.fr>
+	related to data in the prelude config file never being
+	read.
+	
+	* src/prelude-report/cnx.c (wait_raw_report): pass an
+	alert_t to report_infos_get, not a packet.
+
+	* src/prelude-report/report-infos.c (report_infos_get): 
+	* src/prelude-report/include/report-infos.h (report_infos_get): 
+	Now take an alert argument.
+	Convert the start / end time_t into date here cause the ctime()
+	function is expensive.
+	
+	* src/prelude-report/optparse.c: remove \n from string.
+
+	* src/prelude/timer.c (wake_up_timer): removed a
+	debuging printf.
+
+	* src/prelude/recycler.c (RecyclerIsLocked): return
+	the current refcount for this chunk.
+
+	* src/prelude/detect-plugins-api.c (packet_release):
+	(packet_lock): 
+	Cleanly deal with the recycler refcount.
+	Document thoses function.
+
+2001-03-27  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/rxdr.c (xdr_ip): en/de code ip_hl
+	member.
+
+	* src/prelude/capture.c (capture_from_single_device): 
+	put back our filedes in our set on timeout.
+
+	* src/prelude/ip_fragment.c (ip_defrag): never
+	call ip_frag_destroy() directly, call ipq_kill().
+	We were leaking a timer on some very special case,
+	resulting in an assert later when walking the timer
+	list.
+
+2001-03-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/reports/htmlmod/htmlmod.c (html_run): 
+	use the .html extension.
+
+	* src/prelude/packet-decode.c (decode_init): maximum data size
+	was determined using snaplen. This is wrong, and was resulting
+	in a crash on big defragmented packet.
+	Maximum defragmented packet size is 65535 bytes, 
+	use this size for now.
+
+2001-03-23  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/plugin-common.c 
+	(plugin_get_opts): 
+	some version of getopt where crashing on this...
+	always set a default argv when argc is 0.
+
+	(plugin_set_args): 
+	Set help_flag to 1 if argc && argv are NULL.
+	
+	* src/prelude-report/pconfig.c: removed -x (--use-xdr) 
+	flag from prelude-report, it now turn on XDR if Prelude client
+	request it.
+
+2001-03-23  root  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/cnx.c (setup_connection): check errno.
+
+2001-03-23  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rwrite.c: 
+	* src/prelude/rsend.c (setup_connection): 
+	* src/prelude-report/cnx.c (setup_connection):
+	start to implement XDR negotiation, should now be able
+	to compile without XDR.
+	
+
+2001-03-22  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rsend.c: move the writing part of the
+	interface to rwrite.c.
+
+	(setup_connection): 
+	* src/prelude-report/cnx.c (setup_connection): 
+	implemented SSL negotiation between
+	client and server. (XDR negotiation to come soon).
+
+	* src/prelude/rsave.c: completly rewritten (but not
+	finished). Also, use sendfile under linux when doing
+	the backout (this permit us to benefit of zero copy).
+
+	* src/prelude/pconfig.c (pconfig_set):
+	* src/prelude-report/pconfig.c (pconfig_init): 
+	* src/prelude/pconfig.c (print_usage): 
+	added the -n (--not-crypt) option usable with -c in
+	order to not crypt the private key.
+
+	* src/prelude/rwrite.c (rwrite_write): 
+	use the kill function to send a SIGPIPE to our parent
+	when write return EPIPE.
+
+	* src/prelude/async-write.c (aio_thread): 
+	block the SIGPIPE signal.
+
+	* src/libprelude/include/ssl_gencrypto.h (ssl_gen_crypto): 
+	* src/libprelude/ssl_gencrypto.c (ssl_gen_crypto): 
+	add a crypt argument that specify if the private key 
+	should be crypted or not.
+
+	* configure.in: check for XDR.
+
+2001-03-20  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/reports/sysplug/sysplug.c (check_opts): 
+	added options checking.
+
+	* src/prelude-report/include/report.h: include
+	config-engine.h
+
+	* src/prelude-report/cnx.c (wait_raw_report): set the
+	packet member.
+	(wait_xdr_report): ditto.
+
+	* src/plugins/reports/htmlmod/htmlmod.c (create_index): 
+	set offset at 0 when we create index.
+	Also corrected some of the table usage, thanks to the
+	help of Odile Darmet <o.darmet@netdev.net>
+	Renamed some function name.
+
+	* prelude.conf (htmldir): add a default entry
+	for HtmlMod.
+
+	* src/prelude-report/ssl_register_client.c (ssl_register_client): 
+	get listening port from prelude report own config.
+
+	* src/prelude/ssl_register.c (ssl_add_certificate): 
+	output a little more use friendly.
+	(ssl_add_certificate): use Prelude config provided
+	address and port.
+
+	* src/prelude-report/pconfig.c: 
+	* src/prelude/pconfig.c (pconfig_set): 
+	Error message when trying to create / wait certificate
+	and report address is not set or is UNIX.
+	Use port 5554 as a default. Set report addr to "unix"
+	as default.
+	
+	* src/libprelude/ssl_config.c:
+	(ssl_read_config): Prelude and Prelude report should
+	use their own config structure for getting report server
+	address / port.
+
+	* src/libprelude/ssl_gencrypto.c (add_DN_object): use
+	sizeof.
+	(add_DN_object): cleanup.
+	(prompt_info): ditto.
+
+	* src/libprelude/ssl_config.c (ssl_get_cert_filename): 
+	remove debuging message.
+
+	* src/prelude-report/cnx.c (handle_inet_connection):
+	free (from) on authentication faillure. Also be verbose
+	about authentication.
+
+	* src/libprelude/rxdr.c (rxdr_encode): removed
+	a debugging printf.
+
+	* src/prelude-report/pconfig.c: missing break.
+
+	* src/prelude-report/cnx.c (wait_raw_report): 
+	(wait_xdr_report): divide wait_cnx into 2 differents function.
+
+	* src/prelude-report/include/plugin-report.h :
+	new macro to access plugin_report_t member.
+
+	* src/prelude-report/report-plugins.c (report_plugins_close): 
+	new function, close all report plugins.
+
+	* src/prelude-report/prelude_report.c (cleanup): call
+	report_plugins_close().
+	(main): ditto.
+	(main): don't use the do_init macro to check the return
+	value of report_server_start... this fix the bug where
+	prelude_report exited before unlinking the UNIX socket.
+
+	* src/prelude-report/pconfig.c (print_help): new
+	function, also call plugins_print_opts().
+	call plugin_set_args() on -h option and -m option.
+	call config close...
+
+	* src/prelude-report/cnx.c (read_alert): read all
+	new alert members.
+	(free_alert): free new member.
+
+	* src/prelude/include/plugin-detect.h: new macro
+	to access the plugin_detect_t structure.
+
+	* src/prelude/include/detect.h: commented,
+	also include config-engine.h.
+
+	* src/prelude/rsend.c (write_raw_report): write new
+	information members.
+
+	* src/prelude/rqueue.c (prelude_rqueue_report): fill
+	all the alert information members.
+	(plugin_rqueue_report): ditto.
+
+	* src/plugins/* : modified all plugins to have consistant
+	configuration options.
+
+	* src/libprelude/include/plugin-common.h: new macro
+	to access the plugin_generic_t structure that also fill
+	the size of the seted member...
+	(PLUGIN_GENERIC): now contain a size member of each 
+	char * member...
+
+	* src/libprelude/plugin-common.c (plugin_register): if
+	the register callback is not set, just return 0.
+	(Normal case for plugin to print help).
+	(plugins_print_opts): now take a dirname argument,
+	load all plugin from this directory...
+	plugin then call the new plugin_get_opts() function
+	to get their argument and react accrodingly (in this 
+	case argument list must contain the --help arg).
+	(get_plugin_opts): new function, parse the argument list
+	in order to gather the argument of one plugin identified
+	by pname.
+	(plugin_get_opts): new function, that give access to
+	the plugin to it's argument list.
+	(plugin_set_args): called by the program configuration
+	stuff if the help option is found or if the start of plugin
+	option is found....
+
+	* src/libprelude/config-engine.c (config_set): add
+	missing variable.
+
+	* include/alert-prv.h: add all possible information
+	about plugins, also add a size members for each of theses.
+	define macro to access the alert structure and to access the 
+	len of a given members...
+
+2001-03-19  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/config-engine.c (config_close): check
+	if content is not NULL before calling free_file_content...
+	This avoid a NULL pointer dereference on close if the file :
+	- was created on open.
+	- nothing was written to it.
+	(config_set): only set the need_sync flag if the file operations
+	were successfull.
+
+2001-03-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/reports/htmlmod/htmlmod.c:
+	Thanks to Odile Darmet <o.darmet@netdev.net> for her help
+	in correcting HTML output, and making it nicer.
+	bugfix and cleanup.
+
+	* src/prelude-report/include/plugin-report.h: 
+	
+	* src/prelude-report/server.c: 
+	(wait_connection): cleanup.
+	(wait_connection): use the handle_connection() function 
+	pointer (that prevent us to check if we're on UNIX / INET
+	socket everytime).
+
+	* src/prelude-report/report-plugins.c (report_plugins_run): 
+	pass the report infos structure.
+
+	* src/prelude-report/prelude_report.c (main): 
+	remove the UNIX socket if the report_server_start
+	function return...
+	
+
+	* src/prelude-report/cnx.c (read_raw_report): 
+	handle error better.
+	(decode_alert): if 0'ed out some memset that shouldn't
+	be needed anymore.
+	(wait_report): use the new report_infos_* interface,
+	pass the rinfo structure to plugins.
+	(wait_report): don't call xdr_destroy here...
+	(handle_inet_connection): do it here...
+	(get_sock_addr): new function to get connecting address.
+	(handle_inet_connection): 
+	(handle_unix_connection): log connection opening / closure.
+
+	* src/prelude/pconfig.c (print_usage): better explaination
+	of how to set the -s (snaplen) option.
+
+	* src/prelude/packet-decode.c (_get_chunk):
+	lock chunk if packet is already locked.
+	(SliceAndStoreDataPkt): only verify snapend if
+	there is frag_ptr is NULL. (snapend is not valid
+	anymore when processing a packet we reassembled).
+	(SliceAndStoreDataPkt): packet data len now equal
+	sizeof(PktData_t) + caplen... (which is always < than snaplen).
+	(SliceAndStoreIpPkt): if we are processing a fragment, don't
+	try to analyze header beyond IP.
+	(decode_init): Size of a data recycler element is now
+	sizeof(PktData_t) + snaplen.
+
+	(SliceAndStoreIcmpPkt): BSD icmp structure is 28 bytes long,
+	when setting size of the structure, tell it is 8 bytes.
+
+	* src/prelude/ip_fragment.c: several cleanup.
+	corrected some wrong alert... added one.
+	(ip_frag_reasm): directly set structure member instead
+	of casting data...
+
+	* include/packet.h (struct): data isn't statically set
+	to 2500 anymore... allocate it depending on snaplen.
+
+2001-03-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/reports/htmlmod/htmlmod.c: finished...
+	now make eyes candy report, and should be safe on 
+	Prelude Report restart...
+
+2001-03-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+        * Added the fsmod and htmlmod reporting module,
+	- fsmod is for generating report using directly your 
+	filesystem hierarchy, it could easily be used by external
+	program (like cgi) that would generate dinamycally any kind
+	of user readable report.
+
+	- htmlmod, which create html report.
+	
+	* src/plugins/detects/scandetect/scandetect.c (expire_cnx): 
+	Don't release the packet here, 
+	as it will be re-locked because of async IO.
+
+	* src/prelude/rsend.c (_write_raw_report): send the
+	description too.
+
+	* src/prelude-report/cnx.c (read_raw_report):
+	read description size, alloc the description member,
+	read the description data.
+	(free_alert): free description if present.
+
+	* src/plugins/reports/sysplug/sysplug.c: 
+	removed uneeded	code.
+	(_log): removed.
+	(sysplug_run): use fprintf.
+
+	* src/prelude/detect-plugins-api.c (packet_release): 
+	don't release the packet if it isn't locked...
+	(packet_lock): don't lock the packet if it is already
+	locked.
+
+2001-03-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rqueue.c (rqueue_generic): don't lock the
+	packet here... the plugin has to do it by itself.
+
+	* src/plugins/detects/scandetect/scandetect.c (expire_cnx): 
+	don't release the packet here... it will be done after it is
+	written.
+
+2001-03-12  Jeremie Brebec / Toussaint Mathieu
+
+	* Added secure communication plugin system into prelude.
+	These plugins have to secure the communication between 
+	prelude and the prelude-report.
+	* a ssl plugin using it, based on OpenSSL library. 
+	
+2001-03-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/recycler.c: comment the sources.
+	Removed un-necessary check.
+	* src/prelude/include/recycler.h:
+	Made some function be macro.
+
+2001-03-09  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* configure.in: bumped version to 0.2
+
+	* src/prelude-report/server.c (get_sock_addr): cast
+	our sockaddr_in structure to sockaddr, this fix the
+	wrong reported address problem.
+	(wait_cnx): put back the code to serve > 1 Prelude
+	client.
+
+	* src/prelude/pconfig.c (pconfig_set): added 'a' to
+	the getopt_long optstring.
+
+	* src/prelude/packet-decode.c (_get_chunk): 
+	(verify_depth): fix a warning.
+
+	* src/prelude/timer.c: 
+	* src/prelude/hostdb.c: 
+	added gtkdoc format style comment.
+	
+	* src/prelude/include/async-write.h:
+	* src/prelude/async-write.c (_add_aio_item): made
+	this function void.
+	(async_write): ditto.
+	added gtkdoc format style comment.
+
+	* configure.in: check for gtkdoc, 
+	also check for an user provided html output dir,
+	create Makefile in the docs and docs/api subdir.
+
+	* Makefile.am (SUBDIRS): added the docs subdir.
+	
+
+2001-03-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/auth-common.c (_auth_create_account): 
+	Ooops, do not close fd if it is NULL.
+
+	* src/prelude-report/cnx.c (is_endian_convertion_needed): 
+	* src/prelude-report/pconfig.c: 
+	* src/prelude-report/include/pconfig.h (__config_init): 
+	* src/prelude/rsend.c (is_endian_convertion_needed): 
+	(rsend_init): 
+	(expire): 
+	* src/prelude/include/pconfig.h:
+
+	Add the -x (--use-xdr) option to Prelude and Prelude Report
+	to set the report sending / receiving mode...
+	this will be automated in the future...
+
+	* src/prelude/pconfig.c (print_usage): 
+	(pconfig_set): Added a --version (-v) option to dump
+	the version number.
+
+	* src/prelude/rsend.c (_write_func): free the alert and
+	release the packet.
+
+	* src/prelude/include/rqueue.h: the rqueue_t structure
+	doesn't contain anymore the alert_t structure but a pointer
+	to it.
+
+	* src/prelude/rsend.c: (_write_report):
+	removed this function as we don't need to duplicate
+	the alert anymore.
+	(rsend_emmit): directly call async_write().
+
+	* src/prelude/rqueue.c (plugin_rqueue_report): 
+	(prelude_rqueue_report): allocate an alert_t structure using malloc
+	instead of using an statically allocated one used for each, same 
+	report. (We need this because the alert_t structure shouldn't be
+	modified after we write it (and as we're using asynchronous write
+	the write is delayed)).
+
+	* src/prelude/async-write.c: the wqueue_t structure
+	no longer exist. Renamed some function to suit this change.
+	(_add_aio_item): removed allocation of the wqueue_t item
+	as we now have a list member in the alert structure itself.
+	(_flush_aio_queue): Directly deal with the alert_t structure.
+
+	* include/alert-prv.h: add a list member.
+
+	Now we don't need to copy the alert anymore before
+	adding it to the async IO queue.
+
+2001-03-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* Many change, inclusion of Asynchronous Write of 
+	report (see async_write.c) integration with XDR reporting,
+	Raw report reporting and backup solution.
+
+	* Added the possibility to bypass XDR reporting by
+	directly sending binary report. Code to detect the
+	remote (Prelude-Report) machine type should come soon.
+
+	* Cleaned up the whole autoconf mess, insure that make
+	dist and make distcheck work.
+
+	* src/prelude/ip_fragment.c : Lock the whole packet
+	else we will get wrong reporting.
+
+2001-03-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rqueue.c: commented the module a little.
+
+	* src/plugins/detects/scandetect/scandetect.c (do_report_if_needed):
+	set report kind to normal.
+
+2001-02-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rsend.c (inet_connect): turn the tcp Nagle
+	algorithm off...
+
+2001-02-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/ip_fragment.c (ip_frag_create): avoid
+	a memcpy here, just lock the chunk using the recycler.
+	(ip_frag_reasm): 
+	the IPQ structure ip member is now a pointer.
+	(ip_frag_reasm): when fixing the header of the new 
+	IP defragmented packet, operate directly on the copied data.
+	(ipq_kill): release the ip associated chunk.
+	(frag_alloc_queue): kill this function.
+
+2001-02-09  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/prelude.c (main): done some reordering
+	in the module initialization.
+
+2001-02-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/auth.c (get_account_infos): 
+	unless the two first provided command are the username
+	and the password, close the connection.
+
+	* src/prelude/timer.c (wake_up_timer): commented
+	debug stuff.
+
+	* src/plugins/reports/sysplug/sysplug.c: 
+	* src/libprelude/rxdr.c (xdr_alert): 
+	* src/prelude/rqueue.c (rqueue_update): 
+	(plugin_rqueue_report): 
+	(prelude_rqueue_report): 
+	* include/alert-prv.h: 
+
+	Now dump the time between the start / end of
+	a given attack...
+
+	* src/* :
+	more convertion to the new log macro.
+	
+	* src/prelude-report/cnx.c (do_read): 
+	* src/prelude/rsend.c (_write): commented out debuging
+	printf.
+
+	* src/prelude-report/cnx.c (decode_alert): removed
+	redundant message / check.
+
+	* src/plugins/reports/sysplug/sysplug.c: 
+	* include/alert-prv.h: 
+	* src/prelude/rqueue.c:
+	* src/prelude/rxdr.c :
+
+	do not decode the date inside prelude, just
+	store a time_t returned by time() inside the report 
+	structure. Do the ctime() in sysplug.c.
+	> 50 % performance improvment when making a report.
+	(ctime() + strdup() were really taking too much time here).
+
+	Next step is to suppress XDR convertion when making a report
+	to an UNIX socket... this take far too much time and isn't needed
+	in this case.
+
+	* src/libprelude/rxdr.c : put \n at the end of 
+	log() macro call.
+
+2001-02-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* TODO: updated.
+
+	* src/libprelude/plugin-common.c :
+	many change, added the ability for a plugin to 
+	register itself which mean a plugin (the .so) can 
+	now contain > 1 plugin. This is a needed change
+	for plugin like auth/crypt.
+
+	* src/prelude/rsend.c (rsend_emmit): oops, fixed
+	a change I shouldn't have commited yet (ability
+	to not translate report to XDR if we're using an
+	UNIX socket).
+	This fix should make Prelude work again.
+
+	* include/print.h: removed.
+	* src/libprelude/include/common.h: added the log macro.
+	* src/* : Use the new log() macro everywhere.
+
+	This fix the issue where prelude was sending message
+	to stdout / stderr, even in daemon mode.
+
+2001-02-02  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* TODO: updated.
+
+	* remove two unused file.
+	* src/prelude/detect-plugins-api.c: remove obsolete prelude_GetDepth().
+	* src/prelude/capture.c (capture_from_multiple_devices): cleanup.
+
+2001-01-31  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/hostdb.c (search): slight optimisations.
+
+	* src/prelude-report/pconfig.c (configure_listen_address): 
+	* src/prelude/pconfig.c (configure_address): copy the
+	returned value.
+
+	* src/prelude/rsave.c (backout_report): 
+	* src/prelude/rsend.c (_write_xdr): first arg should
+	be (char *), not (void *)...
+
+	* src/libprelude/config-engine.c (config_get): strip
+	trailling white space at the end of the string.
+
+	* src/prelude/daemonize.c :
+	* src/prelude/include/daemonize.h :
+	moved to libprelude.
+	
+	* src/prelude-report/prelude_report.c (main): if daemonize
+	is set, start prelude_report as a daemon.
+
+	* src/prelude/rsend.c (generic_connect): correct the error
+	message.
+
+	Also, fixed lot of warning.
+
+2000-11-24  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet-decode.c (SliceAndStoreIpPkt): made
+	it tail recursive.
+
+	* include/alert-prv.h: set message to be maximum 1024
+	character long.
+
+	* src/prelude/rqueue.c: got rid of rqueue_init().
+
+2000-11-22  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rsave.c (backout_report): modification
+	to the report save module to fit report send interface
+	modifications.
+
+2000-11-20  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/rxdr.c : revert change from 4 days ago.
+	
+	* src/prelude/prelude.c (main): rqueue init function
+	must be called before plugins one.
+
+	* src/plugins/detects/debug/debug.c (_debug_run): remove
+	unused variable i.
+
+	* src/prelude/packet-decode.c (SliceAndStoreIpPkt): 
+	plugins we run depend if we are in the main IP header,
+	or in an encap IP header.
+
+	* src/prelude/detect-plugins.c: add an ipencap plugins
+	list.
+
+2000-11-19  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/plugin-common.c (plugin_run): removed,
+	now that each kind of plugin can have different arguments
+	passed to their run function, each plugin specify their
+	own run function prototype, and each kind-of-plugin module
+	use the plugin_run macros, which is generic for all plugins.
+
+	* src/libprelude/include/plugin-common-prv.h (plugin_run): 
+	Added the plugin_run macro.
+
+	* src/prelude/rqueue.c (rqueue_report): do not update
+	queued report if kind is normal (report of normal kind
+	aren't queued).
+	(rqueue_report): set count to 1 before sending a report
+	with a normal 'kind'.
+
+	* src/libprelude/plugin-common.c (plugin_load_single): pass
+	the current plugin_generic_t to add_plugin_entry().
+	(add_plugin_entry): take a plugin_generic_t arg.
+	(add_plugin_entry): set the plugin member.
+
+	* src/libprelude/config-engine.c (config_open): set content
+	member to NULL.
+
+2000-11-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/report-plugins-api.c (switch_ethertype): 
+	print the well known ethertype.
+
+	* src/libprelude/rxdr.c: many change, use xdr_opaque
+	everywhere it is possible... encoding / decoding should
+	now be much faster.
+
+	* src/libprelude/plugin-common.c : many change,
+	now plugin_container_t contain 2 lists : 
+	one to be registered internally (by the plugin-common module)
+	the other to be registered externally (by other modules).
+	also, it now contain a pointer on the entry of the 
+	plugin (the parent of the container).
+
+2000-11-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* include/packet.h: not arphdr, ether_arp.
+
+	* src/plugins/detects/debug/debug.c: added the debug plugin.
+
+	* src/prelude-report/report-plugins-api.c (igmp_dump): created,
+	dump igmp header...
+
+	* src/libprelude/plugin-common.c (plugin_load_single): change
+	from RTLD_LAZY to RTLD_NOW to lookup all symbol at init time.
+
+2000-11-15  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* TODO: updated.
+
+	* src/libprelude/config-engine.c: more code cleanup.
+
+2000-11-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/prelude.c (sighandler): ooops,
+	missing include + typo fix.
+
+	* src/libprelude/config-engine.c (config_get): don't
+	return space, if present, at the begining of the value.
+
+	* src/prelude/rsend.c (inet_connect): correct a typo
+	(inet_connect): return an error if connect fail.
+
+	* src/plugins/detects/scandetect/scandetect.c (_check_opts): removed
+	debuging printf.
+
+	* src/prelude-report/pconfig.c : 
+	* src/prelude/pconfig.c: update to use new configuration
+	engine.
+
+	* src/libprelude/include/config-engine.h: updated header.
+
+	* src/libprelude/config-engine.c (config_open): ok,
+	finished the new configuration stuff. Work but need
+	cleanup.
+
+	* src/prelude/pconfig.c (pconfig_set): 
+	* src/libprelude/plugin-common.c (_plugin_set_opts): 
+	* src/plugins/detects/scandetect/scandetect.c (_check_opts): 
+
+	Do the bad work for the plugin, cleanup argc/argv before
+	passing to it, that avoid the plugin to have to check if
+	it is already parsing it's own options.
+	
+2000-11-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/include/plugin-common.h (NEXT_PLUGIN_OPT): new define.
+
+	* src/plugins/detects/scandetect/scandetect.c (_check_opts): updated.
+
+	* src/libprelude/plugin-common.c (add_plugin_entry): created,
+	add a new plugin_entry to the list all_plugin list.
+	(plugin_load_single): call add_plugin_entry().
+	(plugin_set_opts): created, set option for plugin designed by
+	name.
+	(plugins_print_opts): created
+	(plugins_print_stats): created
+
+	Now plugins are able to provide options.
+	
+	* TODO: updated.
+
+	* src/prelude/prelude.c (sighandler): reset to default
+	signal (was under #if 0).
+
+	* src/prelude-report/auth.c (get_account_infos): oops,
+	read auth infos on socket while we don't have an username
+	and a password... 
+
+2000-11-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/libprelude/plugin-common.c (plugin_print_stats_for_each):
+	created, walk throught a plugin container list, and dump stat
+	for each plugin.
+
+2000-11-09  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+        * Too many change too list :
+	basically cleaned up all the include mess,
+	changed some function location to better place,
+	make all composant of prelude use the new plugin
+	architecture.
+
+	* src/libprelude/plugin-common.c (plugin_destroy): new function.
+	created the plugin_entry_t private type, which contain handle for
+	all plugins.
+	(plugin_register): use list_add_tail.
+
+2000-11-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/include/plugin-detect.h: 
+	Define the new plugin_detect_t type, 
+	to be used with new Plugin shared api.
+
+	* src/libprelude/include/plugin-common.h: 
+	* src/libprelude/include/plugin-common-prv.h: 
+	* src/libprelude/plugin-common.c: 
+	(is_a_plugin): 
+	(generate_filename): 
+	(plugin_load_single): 
+	(create_container): 
+	(copy_container): 
+	(plugin_load_from_dir): 
+	(plugin_register): 
+	(plugin_run): 
+	(plugin_dump_stats): 
+
+	First attempt at sharing the plugins code between 
+	Prelude and Prelude Report. Dedicated plugins structure
+	member are hidden from the shared plugins function that
+	use an abstract of the structure.
+
+2000-11-04  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rsave.c (create_fd_if_needed): new function,
+	create the backup file descriptor if it do not exist.
+	(rewind_stream): new function, rewind a file stream by
+	a specified amount of byte.
+	(save_report): make the int argument const,
+	also, if the second write file, call rewind_stream() 
+	in order to not have a truncated report.
+	(read_report): 
+	(backout_report): cleanup.
+
+	Lot of cleanup, better error handling, written some comment.
+
+	* src/prelude/rsend.c: 
+	(sigpipe_handler): handler for the sigpipe signal.
+	(do_connect): new function, 
+	connect to the report server of the right manner.
+
+	(expire): call do_connect, don't reinit the rsend module.
+	using a do { } while () loop make the code cleaner here.
+
+	(rsend_init): set a signal handler for SIGPIPE,
+	use do_connect()
+
+	Lot of cleanup, written some comment.
+
+	* src/prelude/include/rsave.h (backup_report): 
+	* src/prelude/rsend.c (generic_connect): correct a typo.
+	* src/prelude/rsave.c (read_report): some cleanup.
+
+2000-10-31  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/server.c (generic_server): attach
+	an handler to the SIGCHLD signal.
+	(child_exit): function called when SIGCHLD is received.
+	Call wait(NULL) in order to inform the parent that a child
+	just exited.
+
+2000-10-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/pconfig.c : 
+	* src/libprelude/include/config-engine.h :
+	* src/libprelude/config-engine.c: 
+	* src/libprelude/Makefile.am (libprelude_la_SOURCES):
+
+	completly rewritten the configuration engine, made
+	that Prelude & Prelude Report use it.
+
+2000-10-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	Too much change to list, basically,
+	added authentication from prelude to prelude-report,
+	prelude-report have better event logging,
+	we user SOCK_STREAM for unix socket.
+	Many cleanup...
+
+2000-10-03  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* TODO: updated (pcap problem)
+
+	* src/prelude/capture.c (setup_capture_from_device): 
+	timeout for pcap set to 1000 ms.
+	(capture_from_single_device): back to pcap_read.
+
+2000-09-27  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/detects/scandetect/scandetect.c: 
+	removed assert.
+	(_cnxInfo ): kind is not const.
+	(_cnxInfo ): no need for ip member anymore.
+	(expire_cnx): free cnx->kind
+	(new_cnx): take a kind argument
+	(update_cnx): new_cnx take a kind argument.
+	(create_cnx): ditto, do not set tmp->kind here,
+	but int new_cnx, so when other function call new_cnx,
+	the created structure have a kind member.
+	Note: This plugin should be cleaned up.
+	(plug_run): use an assert to check depth is OK.
+
+	clean the mess a little.
+
+	* src/prelude/detect_plugins.c (pluginInit): don't increase
+	global plugins id counter in case of initialization faillure.
+
+2000-09-15  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/hostdb.c (hostdb_set_plugin_data): oops,
+	increment refcount.
+
+	* src/plugins/detects/scandetect/scandetect.c :
+	addapt to hostdb interface change.
+
+	* src/prelude/include/hostdb.h: 
+	* src/prelude/hostdb.c: completly reworked, larger set of 
+	function which avoid making unneeded operation...
+	all public function have prefix hostdb_.
+
+2000-09-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/detects/scandetect/scandetect.c (kind_cnxInfo): 
+	beautification.
+
+2000-09-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rsend.c (__rsend_emmit): increment saved_report
+	there too.
+
+	* src/prelude/rqueue.c (rqueue_expire): update to reflect
+	rsend.c change.
+
+	* src/prelude/rsend.c (__rsend_emmit): made the function
+	void.
+
+	* src/prelude/rsave.c: set fd to NULL at init time.
+
+	* src/prelude/rsend.c: tweaked a lot, made it cleaner.
+
+	* src/prelude/rsave.c (backup_destroy): new function.
+	(save_report): return number of character written for this 
+	report (not including additionnal informations).
+	(read_report): cleanup, better error handling.
+
+	* src/prelude/rsend.c (expire): update for rsave.c change. 
+
+	* src/prelude/rsave.c (save_report): return the number
+	of character written.
+
+	* src/prelude/rqueue.c (__rqueue_report): commented
+	(__rqueue_report): removed uneeded return.
+
+	* src/prelude-report/Makefile.am (INCLUDES): 
+	-I$(top_srcdir) for config.h
+
+	* src/prelude-report/server.c :
+	include config.h
+	
+	* src/prelude-report/server.c (HandleInetConnection): 
+	don't try to use tcp wrapper if tcpd.h isn't there.
+	use the tcpd_auth function.
+	(tcpd_auth): new function, handle tcp wrapper authentication.
+	return 0 on success, -1 if auth was denyed. 
+	Only compiled if tcpd.h is present.
+
+	* configure.in (LIBWRAP_PATH): add a check for tcpd.h
+
+	* src/prelude/rqueue.c (__rqueue_report): If this
+	is a normal attack, don't queue it.
+	(__rqueue_report):
+	(rqueue_update): 
+	(rqueue_first): function don't need an alert_t argument,
+	access the alert_t structure via item.
+	(__rqueue_report): basic kind handling.
+
+2000-09-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* CREDITS: added.
+
+	* README: heavilly modified.
+
+	* src/plugins/reports/sysplug/sysplug.c: added another tab
+
+	* src/libprelude/include/log.h: 
+	* src/libprelude/log.c: 
+	* src/prelude/include/rid.h: 
+	* src/prelude/include/do_report.h: 
+	* src/prelude/do_report.c: 
+	* include/priority.h: deleted.
+
+	* src/prelude-report/include/report_plugins.h:
+	new macros to access the ReportPlugin_t structure.
+
+	* src/prelude/include/detect_plugins.h:
+	new macros, prelude_Pkt* aren't existing anymore,
+	include inline version of PktLock & PktRelease here.
+
+	* src/prelude/include/detect.h: 
+	only used by detect plugins, define REPORTING_FUNC.
+	include alert.h, do not include do_report.h & priority.h anymore.
+
+	* src/prelude/include/daemonize.h (__daemonize): 
+
+	* src/prelude/tcpip_options.c:
+	* src/prelude/include/rqueue.h (__rqueue_report):
+	* src/prelude/rqueue.c (alert_set_date): new function.
+	do not use the priority anymore, use kind.
+
+	* src/prelude/packet_handler.c: 
+	* src/prelude/ip_fragment.c: 
+	use kind instead of priority for reporting.
+
+	* src/prelude/detect_plugins_api.c: 
+	removed __PktLock & __PktRelease from here.
+
+	* src/prelude/detect_plugins.c (plugin_destroy): 
+	(plugin_add): 
+	(plugin_cpy): new private functions, cleaned up.
+
+	* src/prelude/prelude.c (main):	
+	* src/prelude/include/daemonize.h (__daemonize): 
+	* src/prelude/daemonize.c (__daemonize): renamed function.
+
+	* src/prelude/Makefile.am (prelude_SOURCES): 
+	do_report.c not included anymore, s/packet_capture.c/capture.c/
+
+	* src/prelude/packet_capture.c: renamed to capture.c
+
+	* src/plugins/reports/sysplug/sysplug.c : do logging ourself,
+	use new macros to access plugin structure.
+
+	* src/plugins/detects/scandetect/scandetect.c (expire_cnx): 
+	(plug_init): 
+	* src/plugins/detects/nopsearch/nopsearch.c: Use
+	new macros to access plugin structure.
+	(do_report): do not set a priority, set a kind of report.
+
+	* src/libprelude/rxdr.c (__rxdr_encode): 
+	do not xdr encode / decode priority members.
+	Just use kind members.
+	Trying to get rid of 'depth', not encoded/decoded
+	anymore.
+
+	* src/libprelude/log.c: removed
+
+	* src/libprelude/Makefile.am (libprelude_la_SOURCES): 
+	do not compile log.c anymore.
+
+	* include/alert.h (RID_PPPBSDOS_TRUNC): rid.h merged with
+	alert.h. actually, we do not use priority_t, remove it.
+	Include reporting function, they are small, so they better
+	be inlined.
+	Only compile reporting function if REPORTING_FUNC is defined.
+
+	plugin_do_report and prelude_do_report merged to one function :
+	__do_report(), new macros : plugin_do_report & prelude_do_report
+	point on it.
+	
+	* src/libprelude/log.c (prelude_Log): removed debuging
+	printf
+
+	* src/prelude/Makefile.am (prelude_SOURCES): 
+	renamed packet_capture.c to capture.c
+	
+	* src/prelude/prelude.c (main): 
+	* src/prelude/daemonize.c (__daemonize): 
+	* src/prelude/include/daemonize.h (__daemonize): 
+	renamed function to __daemonize
+	
+2000-09-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/detect_plugins.c (__plugins_init): remove
+	unnecessary test.
+
+2000-08-31  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/report_plugins_api.c (tcpopt_dump): fix a typo.
+	(tcpopt_dump): 
+	(ipopt_dump): when an unknow option is found, print it's value.
+
+	* src/prelude-report/tcp_options.c (prelude_GetNextTcpOption): 
+	* src/prelude-report/ip_options.c (prelude_GetNextIpOption): 
+
+	On option parsing error, set opts_len to -1, so we don't try
+	to parse next option anymore on next function call.
+	Always return the current valid options value, not -1.
+
+2000-08-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet_handler.c (SliceAndStoreAtmPkt): 
+	(SliceAndStoreFddiPkt): 
+	(SliceAndStorePppBsdosPkt): 
+	(SliceAndStorePppPkt): 
+	(SliceAndStoreNullPkt):
+	All of theses weren't adaptated to use Recycler, that
+	is now done.
+
+	* configure.in: 
+	* src/prelude/include/detect_plugins.h: removed all
+	occurence to prelude filter.
+
+	* TODO: updated, removed the report save item :
+	it is done, it work great.
+
+	* src/prelude/rsend.c (InetConnect): 
+	(UnixConnect): set sock to -1 when closing socket
+	if connecting fail.
+
+	* src/prelude/include/rsave.h:
+	* src/prelude/rsave.c: 
+	Provide two public function :
+	__rbackup_report(char *mem, int mlen)
+	which save a report (located in mem, of size mlen)
+	in /var/spool/prelude/report.
+
+	__rbackout_report(char *mem, int *mlen)
+	which read a report and it's size and store them
+	respectively in the mem and mlen pointer.
+
+	* src/prelude/include/timer.h: added some macros
+	to access timer structure members. This is done for
+	compatibility in case the structure change.
+	Make the actual timer_set_* define uses theses macros.
+
+	* src/prelude/rsend.c: removed some unused include file.
+	report saving function aren't there anymore, see rsave.c.
+	(__rsend_emmit): use a prelude timer.
+	(expire): new function, for timer expiration.
+	Use the new __rbackup_report / __rbackout_report function,
+	provided by rsave.c
+
+	* src/plugins/detects/match/match.c (plug_run): 
+	Packet_t shouldn't be const anymore.
+
+	* src/prelude-report/report_plugins_api.c (prelude_HexDump): 
+	remove an unused variable.
+
+2000-08-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/include/recycler.h: 
+	* src/prelude/recycler.c (RecyclerIsLocked): new function.
+
+2000-08-21  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/timer.c (__prelude_WakeUpTimer): print
+	the execution time.
+
+2000-08-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/do_report.c (prelude_do_report): 
+	(plugin_do_report): don't copy the report here, now done in
+	rqueue.c
+
+	* src/prelude/rqueue.c (__rqueue_report): message is copied here.
+
+	* src/prelude/detect_plugins.c (__plugins_run): no need to set
+	p_end here anymore.
+
+	* src/prelude/ip_fragment.c (ip_frag_reasm): oops,
+	corrected a dumb bug which prevented correct IP defragmentation :
+	advance our pointer while we copy data on the memory block pointed to.
+
+2000-08-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/detect_plugins_api.c (prelude_PktAlloc): 
+	(prelude_PktCpy): 
+	(prelude_PktFree): use the err macros.
+
+	* src/prelude/tcpip_options.c (VerifyOptions): do not set p_end here.
+
+	* src/prelude/ip_fragment.c (ip_frag_create): set len to 0.
+
+	* src/prelude/packet_handler.c (SliceAndStoreIpPkt): put the
+	truncated IP check before the defragmentation.
+	( IP len of a defragmented packet will always be > than caplen ).
+
+	* src/prelude/ip_fragment.c (IPQ_HASHSZ): 1024 buckets.
+
+2000-08-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/xdr_encode.c (xdr_packet): merge p_ip & p_ipencap
+	case.
+
+	* src/prelude/detect_plugins_api.c (prelude_PktCpy): set proto
+	to p_ipencap not to p_ip when copying a pkt (with ip encapsulation).
+	
+
+2000-08-09  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* added missing copyright notice.
+
+2000-08-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/include/timer.c:
+	* src/prelude/include/timer.h: (timer_elapsed): renamed
+	timer_get() to timer_elapsed, use a timeval struct passed
+	as argument to store the elapsed time.
+
+	in timer_t, 
+	start_time renamed to start and is now a timeval structure.
+
+2000-08-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/detect_plugins_api.c (prelude_PktCpy): added
+	copy for ip encap.
+
+	* src/prelude/hostdb.c (prelude_AddCnx): hash of 1024 positions.
+
+	* Many work done on the report queue,
+	  too much too list.
+
+	* src/prelude/xdr_encode.c (xdr_packet): use one loop
+	instead of two...
+
+2000-08-04  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* include/detect.h: 
+	* src/prelude/include/do_report.h (prelude_do_report): 
+	* src/prelude/include/detect_plugins_api.h: 
+	* src/prelude/Makefile.am (prelude_SOURCES): 
+	* src/prelude/do_report.c: 
+	* src/prelude/detect_plugins_api.c: moved prelude_do_report()
+	and plugin_do_report() to do_report.[ch]
+
+2000-08-03  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/report_communication.c (generic_connect): reuse 
+	O_NONBLOCK.
+	(SendReport): even when an error occur, call rewind_xdr_stream().
+
+	* src/prelude/ip_fragment.c (ip_frag_create): set timer expire to 1.
+
+	* src/prelude/packet_capture.c (capture_from_single_device): 
+	finished. 
+
+2000-08-02  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+	
+	* include/proto.h: give minimum depth for depth_data & depth_ipencap.
+
+	* src/prelude/detect_plugins_api.c: removed prelude_GetDepth from
+	here, it is now inlined, in detect_plugins_api.h
+
+	* src/prelude/packet_handler.c (SliceAndStoreIpPkt): do not
+	inline this function, cause it can be called recursively if
+	there is ip encapsulation.
+	Take an proto_t argument which define if the current ip packet
+	decapsulated is an ip header, or an ip header encapsulated in 
+	another one.
+	(switch_ethertype): inline this one.
+
+	* src/plugins/detects/match/match.c (plug_run): no getdepth
+	needed here.
+
+	* src/prelude/packet_capture.c (packet_capture_start): no
+	need to FD_ZERO here.
+
+	* src/prelude/timer.c (timer_init): removed the timeritem
+	stuff which are not so usefull.
+
+	* src/prelude/include/timer.h: documented.
+
+2000-08-01  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet_capture.c (listen_multiple):
+	Try to do self documenting code...
+
+2000-07-31  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* include/packet.h: 
+	* src/prelude/ip_fragment.c (ip_defrag): 
+	removed some warning...
+	
+	* src/prelude/packet_capture.c (PreludeCapture): restore the
+	fds usign it's backup, instead of recalling FD_SET macros.
+
+	* src/prelude/include/pconfig.h (struct ): use a linked
+	list for devices listing.
+
+2000-07-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins/detects/nopsearch/nopsearch.c: use bytestring
+	in order to optimize the comparison with packet data...
+	This isn't finished, and the plugins do not work anymore.
+
+2000-07-27  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/detect_plugins.c (__DetectPlugins_run): added
+	plugins / pfr statistic gathering.
+
+	* src/plugins/detects/nopsearch/nopsearch.c: finished.
+
+2000-07-25  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+	
+	* src/prelude/detect_plugins.c (__prelude_InitDetectPlugins): set
+	plugin id before copying the plugin in random category.
+
+	* src/prelude/rsched.c (rsched_new): avoid memcpy here.
+
+2000-07-24  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet_handler.c: add printing of the function
+	to the verify_depth macros.
+
+	* src/prelude-report/handle_connection.c (free_report): 
+	(print_info): 
+	* include/detect-report.h (struct): removed detect_proto
+	related stuff : it is not used anymore.
+
+	* src/prelude-report/xdr_decode.c (xdr_detectreport): 
+	* src/prelude/xdr_encode.c (xdr_detectreport): 
+	detect_proto was removed from DetectReport structure.
+
+	* include/detect.h: removed hostdb macros, function
+	can now be directly used, removed the prelude_do_report_async
+	macros.
+
+	* src/plugins/detects/match/match.c (read_conf): 
+	* src/plugins/detects/scandetect/scandetect.c: 
+	* src/plugins/detects/nopsearch/nopsearch.c: 
+	* src/plugins/detects/ipfrag/ipfrag.c (plug_init): 
+	* src/prelude/rsched.c (__rsched_auth): 
+	* src/prelude/include/rsched.h (__rsched_auth): 
+	sed s/DetectPublic_t/DetectPlugin_t/
+
+	* include/detect.h: include priority.h
+
+	* src/prelude/detect_plugins.c: do not include detect-prv.h,
+	which do not exist anymore.
+	(init_detect_plugin): 
+	* src/prelude/include/detect-prv.h: no more public /
+	private branch : that is idiot.
+
+	* src/prelude/detect_plugins.c (__DetectPlugins_run): 
+	Made reentrant, the dirty stuff are out now.
+
+	* src/plugins/detects/scandetect/scandetect.c: inlined
+	some function.
+	(expire_cnx): use plugin_do_report(), not 
+	prelude_do_report_async() anymore.
+	
+	* src/plugins/detects/match/match.c: 
+	* src/plugins/detects/nopsearch/nopsearch.c: 
+	* src/plugins/detects/opts/opts.c: 
+	add packet to the plugin_do_report() args.
+	add a DetectPlugin_t to the plug_run() args.
+
+	* src/prelude/include/detect_plugins_api.h : commented
+	the source.
+
+2000-07-23  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/rsched.c : made some function inline.
+
+2000-07-22  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/handle_connection.c: include common.h
+
+	* src/prelude/packet_capture.c: include print.h.
+
+	* src/prelude/timer.c: 
+	* src/prelude/include/timer.h : 
+	made some function inline.
+	
+	* src/prelude/packet_capture.c (prelude_capture_from_device): 
+	use p_print in some place.
+	
+	* src/prelude/include/pconfig.h: 
+	* src/prelude/pconfig.c (PreludeConfig): 
+	* src/prelude-report/config.c (PreludeReportConfig): 
+	* src/prelude-report/include/report_config.h (struct report_config): 
+	ditto.
+	
+	* src/prelude-report/report_plugins.c: 
+	* src/prelude-report/handle_connection.c: 
+	* src/prelude-report/prelude_report.c: 
+	* src/prelude/prelude.c: 
+	* src/prelude/report_communication.c: 
+	* src/prelude/pconfig.c: 
+	* src/prelude/packet_handler.c: 
+	* src/libprelude/tcp_options.c: 
+	* src/libprelude/include/common.h: 
+	* src/prelude/detect_plugins.c:
+
+	* include/print.h (p_print): created, contain inline
+	p_print function.
+
+	* src/prelude/packet_capture.c: 
+	(prelude_capture_from_device): 
+	* src/prelude/packet_handler.c (SliceAndStoreDataPkt): 
+	Alloc directly __pkt_data.data in packet_capture do not use
+	an extern pointer to reference __pkt_data.data all the time...
+	This fix a sigsegv when the first packet received when running 
+	prelude was not a packet containing data.
+	
+	* src/plugins/detects/match/match.c (plug_run): match use
+	p-medium to do report, not p_high... ideally, we should be
+	able to specify a priority for each rules. It will be implemented.
+
+	* src/prelude/include/init_funcs.h: added declaration for
+	__prelude_InitRsched().
+
+	* src/prelude/rsched.c (schedule_pmedium): new function,
+	call schedule_plow at the moment.
+	(schedule_plow): 
+	(rsched_schedule): splitted in two function.
+
+	* src/prelude/packet_capture.c (prelude_print_stats): 
+	print number of : page faults, page reclaims, swap, volontary
+	context switch.
+
+	* src/prelude/rsched.c (__rsched_auth): only reset timer if
+	we issue a report.
+
+	* src/prelude/detect_plugins.c (__prelude_InitDetectPlugins): 
+	set the plugin id.
+
+	* src/plugins/detects/nopsearch/nopsearch.c: use medium
+	report priority cause it is only speculation.
+
+	* src/prelude/timer.c (prelude_GetTimer): new function,
+	permit to get the time when timer was lastly set...
+
+	* src/prelude/rsched.c (__prelude_InitRsched): use calloc.
+
+2000-07-21  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/detect_plugins.c (__DetectPlugins_run): removed
+	a debuging printf.
+
+	* src/prelude/plugin_filters.c (DetectPluginFilter_init): removed
+	one #if 0 and an not needed p_print.
+
+	* src/prelude/filter_funcs.c: removed p_print on compile_*,
+	because this just blow up the screen at init time.
+
+	
+	* src/prelude/include/rsched.h : created.
+
+	* src/prelude/include/hostdb.h : 
+	* src/prelude/hostdb.c (__prelude_InitHostdb): by convention,
+	all init function should return 0 on success.
+
+	* src/prelude/report_communication.c : corrected the use of the
+	err macros...
+
+	* src/prelude/prelude.c (DO_INIT): provide the DO_INIT macros,
+	  thanks to (Francis Galiegue), use it to init random part of
+	  prelude.
+
+	* src/prelude/include/detect_plugins.h: readded the "id" member.
+
+	* src/prelude/rsched.c: added the report scheduler.
+
+	* src/prelude/Makefile.am (prelude_SOURCES): added the report
+	scheduler.
+
+2000-07-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-report/report_plugins_api.c (ip_dump): use
+	off & 0x3fff to know if the packet is fragmented.
+
+	* aclocal.m4: 
+	* configure.in: Check if unaligned access is OK, stolen 
+	from tcpdump...
+
+	* src/prelude/ip_fragment.c: include ip_fragment.h,
+	constified a little.
+
+	* src/prelude/packet_handler.c (SliceAndStoreFddiPkt): 
+	depth = -1, as we don't store any fddi header at the moment.
+	(SliceAndStoreAtmPkt): same.
+
+	* src/prelude/packet_capture.c (prelude_capture_from_device): 
+	Capture in promiscuous mode... duh...
+
+2000-07-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/packet_handler.c (SliceAndStoreNullPkt): 
+	Handle the loopback interface.
+	(SliceAndStoreFddiPkt): Handle FDDI interface.
+	(SliceAndStorePppPkt): handle PPP interface.
+	(SliceAndStorePppBsdosPkt): Handle PPP ( bsd specific ) interface.
+	(SliceAndStoreAtmPkt): Handle ATM.
+
+	* src/prelude/packet_capture.c: added handling call for null,
+	ppp, ppp bsdos, fddi, atm interface...
+
+	* src/prelude/ip_fragment.c : added (from ip_fragment-2.4.0test3.c), 
+	cleanup.
+	(ip_frag_reasm): removed some debuging printf.
+
+	* src/prelude/ip_fragment.c (ip_frag_queue): Added a report
+	about Ip Defragmentation attack, and a report about last 
+	fragment received but data missing.
+	(ip_frag_queue): Do not free 'frag', but 'free_it'...
+	This fix the memory corruption bug.
+
+	* src/prelude/filter_funcs.c: extern declaration of Packet_t.
+	(verify_proto): use prelude_GetDepth().
+
+2000-07-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/ip_fragment-2.4.0test3.c: 
+	adaptated the new 2.4.0test4 IP defragmentation stack to prelude.
+	There is probably some bug sitting... 
+	Not compiled by default at the moment.
+
+2000-07-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/filter_funcs.c: removed unused structure.
+
+	* src/plugins/detects/scandetect/scandetect.c : indentation
+	fix, corrected some comments, plugins definitions correction.	
+
+	* src/prelude/report_communication.c (rewind_xdr_stream): indent
+	fixes.
+
+	* src/prelude/report_communication.c (UnixConnect): corrected
+	a typo.
+
+	* src/prelude/Makefile.am (prelude_SOURCES): added
+	sched.c
+
+	* src/prelude/sched.c: start of a new report scheduler.
+
+2000-07-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/report_communication.c 
+	(UnixConnect): use the err macros.
+
+	* src/plugins/detects/match/match.c: include common.h,
+	to avoid undefined err macros.
+
+	* src/plugins/reports/Makefile.am :
+	* configure.in : don't compile reportsrv, cause it
+	does not work at the moment and make prelude crash.
+
+	* src/prelude-report/xdr_decode.c (xdr_tcphdr): fix
+	a compile warning.
+
+	* src/prelude/xdr_encode.c (xdr_packet): more detailled
+	error message.
+
+	* src/prelude/filter_funcs.c (verify_tcpflag): fix a
+	compile warning.
+
+	* src/prelude/ip_fragment.c (ip_create): reindent
+	some things.
+	(ip_frag_create): ditto.
+
+	* src/prelude/hostdb.c (__prelude_SearchCnx): split
+	in two function.
+	(search_data): new function;
+	reindent.
+
+2000-07-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/ip_fragment.c: removed some commented
+	out include.
+	(ip_find): code cleanup.
+
+	* src/libprelude/pluginlib.c: included common.h.
+
+	* src/prelude-report/report_sched.c: included common.h.
+
+	* src/libprelude/config_engine.c: included common.h
+	to avoid compile warning; removed some not needed
+	extern function declaration.
+
+2000-07-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude/ip_fragment.c (ip_glue): More complete
+	attack detection report, in case of an Oversized packet
+	caught.
+	(ipfrag): ditto.
+
+* Tue Jun 27 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+
+- detect.h : added FIXME for broken prelude_report_async.
+- hostdb.c : little cleanup ( new function __cnx_del() ),
+	     should not sigsegv anymore, but i'm not sure the bug
+	     is definitively fixed.
+- scandetect.c : removed an unused variable, don't feel unused plugin
+	         structure field.
+- match.c : use err() macros.
+- config_engine.c : ditto.
+- match.c : ditto. 
+- report_communication.c, xdr_encode.c : added debuging printf.
+- xdr_decode.c : include common.h
+- detect_plugins_api.c : prelude_do_report() set depth.
+
+* Mon Jun 26 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+
+- detect-report.h : depth back in the DetectReport struct, data_depth removed.
+- scandetect.c : fix a typo, remove debuging printf.
+- sysplug.c : check if prelude_PktDump() returned NULL,
+  to avoid a pointer dereference.
+- detect_plugins.c : set DetectReport depth member to depth.
+- ip_fragment.c : cleanup, do it's own report instead of printf,
+- moved the overlap check part out of ipfrag() in check_overlap(),
+  fixed a possible overlap bug by the way.
+- packet_handler.c : do it's own report instead of outputing on stdout.
+- xdr_encode.c : use the err macros instead of perror.
+- handle_connection.c : removed not used global variable depth.
+  added a check for report wo packet, use err macros.
+- report_plugins.c : use the err macros.
+- report_plugins_api.c : remove unused global extern variable depth,
+  added a check for NULL packet in packet analyzing function.
+- server.c : use err macros.
+- xdr_decode.c : ditto.
+- ip_fragment.c : oops, fix argument passing for check_overlap().
+- packet.h : remove unused #if 0'd code.
+- aclocal.m4 : removed from cvs.
+	
+* Thu Jun 22 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+
+- scandetect.c : completly rewritten, detect the type of scan,
+	cleaned up, detect udp scan.
+- daemonize.c : use the err macros instead of fprintf.
+- detect_plugins.c : use the err macros instead of perror.
+- detect_plugins_api.c : ditto, removed err macros from here,
+	and put it in libprelude/include/common.h, when copying a
+	packet, if an udp header is found, copy it as p_udp, not p_tcp,
+	this fix a segfault.
+- hostdb.c : use the err macros instead of perror, don't use ip_id
+	to generate the hashing key.
+- ip_fragment.c : use the err macros, cleanup.
+- packet_capture.c : use the err macros.
+- report_communication.c : ditto.
+- timer.c : ditto.
+- xdr_encode.c : use xdr_u_short for th_urp.
+- xdr_decode.c : ditto.
+- report_plugin_api.c : correct a typo.
+- filter_funcs.c : use the err macros instead of perror.
+
+* Mon Jun 19 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+
+- Removed the opts plugins ( now theses check are done by prelude itself ).
+- Added the reportsrv report plugins ( which will serv report to whatever
+  client in realtime. ).
+- Don't even threat invalids options.
+- Added some copyright headers.
+- Remove __MAX_TCPOPT_LEN / __MAX_IPOPT_LEN and user __MAX_OPTS_LEN everywhere.
+- scandetect.c : fixed a bug which could lead to sigsegv if the dst port was
+  set to 0 / > 65535. cleanup.
+- detect_plugins.c : when subscribing a plugins in more than one category, 
+  duplicate it, this will avoid list pointer to point on the same category.
+- detect_plugins_api.c : added the err() macros, giving way more debug
+  informations ( should be used instead of perror ).
+  include errno.h and string.h; added prelude_do_report() function, which allow
+  prelude to do report itself.
+- detect_plugins_api.h : added declaration for prelude_do_report().
+- packet_handler.c : VerifyOptions() now take an Packet_t argument in order to
+  do it's own report.
+- report_communications : all report saved in *1* file.
+- tcpip_options.c :  do it's own report when it see invalid options.
+- xdr_encode.c : use xdr_int, not xdr_u_int for opts_len.
+- xdr_decode.c : ditto.
+- handle_connection.c : set ip_opts & tcp_opts to NULL at init time;
+  when something goes wrong decoding a report, do not return, just continue and
+  wait for another report.
+
+* Fri Jun 09 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+
+- libprelude/log.c : include log.h, changed function name from
+  Prelude* to prelude_*, commented out fflush call.
+- libprelude/pluginlib.c : Test realloc return value, remove
+  pktalloc_called and pktcpy_called now not needed in this place.
+- libprelude/log.h : modify function name, according to log.c modifications.
+- match.c : remove the no more used print_data function.
+- nopsearch.c : remove \n at the end of the constant passed to
+  plugin_do_report.
+- sysplug.c : log too many thing for syslog, just log into
+  /var/log/prelude.log, use the log.[ch] API, use the new prelude_HexDump()
+  function to log an hexadecimal data dump.
+- detect_plugins_api.c : added pktalloc_called & pktcpy_called variable,
+  prelude_GetDepth doesn't cache data anymore, this could lead to bug, and
+  we're not sure how many time gain we do with it.
+- prelude.c : remove the open / close log call at the start / end of prelude.
+- prelude_report.c : ditto.
+- report_communication.c : remove a debuging printf.
+- xdr_types.h : Packet_t is const here.
+- handle_connection.c : free ip / tcp opts and data, set them to NULL 
+  (could lead to  bug if not ).
+- report_plugins_api.c : added the prelude_HexDump() function, to make 
+  hexadecimal dump from data, removed old print_data(), all 'proto'_dump()
+  function now return dynamically allocated value (ie : do not use static
+  buffer anymore, because it can lead to problem for encapsulated protocol ).
+- report_plugins_api.h: added prelude_HexDump declaration.
+- xdr_decodes.c : remove the tcp / ip opts and packet data allocation, 
+  this was a wrong fix to the prelude-report sigsegv problem because xdr_bytes
+  return already allocated data.
+- libprelude/lookup.[ch] : added.
+- report_plugins_api.c : corrected siome problem in prelude_HexDump().
+- packet_handler.c : after the top level protocol is handled, set the first 
+  byte of data to 0, this will prevent plugins to issue warning on following 
+  packet with no data.
+- log.c : put fflush back in.
+
+* Wed Jun 06 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+
+- include/proto.h : Added the 'p_all' protocol, 
+  which mean a plugins can be run against all protocol
+- match.c : subscribe to p_all.
+- libprelude/tcp_options.c / ip_options.c : make it reantrant.
+- libprelude/ip_options.c : added prelude_SearchIpOption 
+  ( like in tcp_option.c )
+- libprelude/tcp_options.c : removed some debuging printf.
+- libprelude/pluginlib.h : match the new ip/tcp options parsing API.
+- libprelude/lookup.c : all the prelude lookup table goes here, 
+  to avoid code duplication.
+- filter_funcs.c : added the verify / compile tcp/ip options functions.
+  verify_content() / verify_regcontent : check if data size if 0, if so, return -1.
+  Functions now use the table parsing function provided by lookup.c.
+  Modularized a little.
+- packet_handler.c : add a call for running plugins from "all" category.
+- plugins_filter.c : added ip_opt and tcp_opt rules.
+- prelude-report/handle_connection.c : alloc dynamically the options buffer
+  sometime the way xdr work is really weird.
+- report_plugins_api.c : frag[0] = '\0', to avoid outputing garbage, use
+  lookup.c and adapt to the new tcp/ip options parsing api.
+- match.c : don't read line starting with #.
+  if no rules registered, unregister the plugins. ( init return -1 )
+
+* Mar Jun 06 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+
+- Big cleanup, many file renamed, many include file added.
+- split / merge of some files.
+- change functions name.
+- Do not put only used by one program function in libprelude.
+- Corrected a bug in prelude_PktDump() which made the tcp opt dump
+  return NULL (which also prevented data printing).
+- Added the opts plugins, which must issue warning on DOS tentative
+  via invalid tcp / ip opts... 
+- Modification of the prelude core in progress in order to have
+  a good plugins implementation for such verification ( opts )
+- prelude-report : Correct some wrong include entry.
+
+* Mon Jun 05 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+
+- configure.in : removed -fno-inline from the CFLAGS, should be defined
+  by the developper using the CFLAGS variable if he want to. Add -pg,
+  in order to make function execution statistic using gprof.
+- detect.h : added declaration for connection database function.
+- hostdb2.c : Completly reworked, use a different hash, implemented
+  much more cleanly. Also, the Add / Del / Search function now take
+  an ip header as argument instead of the two in_addr structure...
+  prelude_AddCnx return a pointer on an persistant struct ip.
+  Put hostdb2 where it belong, it is only used by Detect plugins, so
+  it should go in prelude main code.
+- plugins/scandetect.c : Modified to work with the new hostdb stuff.
+- detect_plugin_filter.c : DetectPluginFilter_run() is Improved in speed 
+  by about 10 %, do not use recursive function call anymore, but use goto.
+- prelude.c : sighandler() : Temporarily use exit(2), 
+  for gmon.out ( gprof ) generation.
+	
+* Wed May 31 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+
+- Added filtering rule "regcontent", which is to specify regex.
+- Done some experimentation about the string / byte string search
+  into data buffer, strstr is the best for string against all 
+  implementation of Boyer Moore algorithm i have found ( they
+  seem to implement this algorithm, and seem to be asm optimized ).
+- For the bytestring search, i'm currently using regex ( which are
+  compiled at init time ), this is fast, but i think regex
+  is overkill for this task, so it will probably change.
+- Corrected a problem in packet_handler.c : always add an \0
+  at the end of the data, this is very usefull because we are
+  not cleaning the memory before slicing each packet ( this'll
+  take too long ), so the buffer was never ending and contained 
+  part of previously received packet whis is not good and leaded 
+  to some duplicated plugins warning.
+- filter.c : Corrected 2 off by one error.
+- filter.c : tcp_flag rule can now take > 1 flag as argument ( separated by
+  virgule ) 
+- detect_plugin_filter.c : there was problem parsing quoted rules.
+- plugins/detect/match.c : avoid a NULL pointer dereference.
+- plugins/detect/match.conf : added a winnuke detection rule.
+- plugins/detect/winnuke : removed, now handled by the match plugin.
+- plugins/detect/Makefile.am : remove the winnuke subdir.
+- plugins/detect/match.c : added the plugin description.
+- configure.in : remove the winnuke plugin Makefile generation.
+- libprelude/pkt_dump.c : do not use asprintf / vasprintf anymore,
+  use snprintf in statically allocated buffer.
+
+* Tue May 30 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+
+- Cleanup the code in some place.
+- Renaming of public internal function to being with __
+- Removed some temporary file.
+- Create includes files with function declaration instead
+  of declaring by hand.
+- Removed sync.c
+- Made it possible to declare filter from plugins.
+- Added the content and hexcontent PF rules.
+- Added copyright notice to new file.
+- Updated TODO
+- Makefile.am : install prelude.conf
+- make match plugins read rules from the match.conf config file.
+- install match.conf
+- cleanup configure script, installation path.
+- plug_init should return an int for / OK / failled.
+- match.c / match.conf Add a custom msg= argument to a rule for the warning
+  if the rule is matched.
+- remove strdetect plugin, match does it's work.
+
+* Mon May 29 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+- added match plugins.
+
+* Fry May 28 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+- src/prelude-report/xdr_decode.c: alloc data buf, this will prevent
+	prelude-report to sigsegv everytime.
+- Removed all optimisations for debuging purpose.
+- solved a bug in hostdb2.c, the data ptr was wrong.
+- src/prelude/ip_fragment.c : When we find a list entry for this fragment,
+	just reset the timer, do not delete it... This fix a fragmentation bug
+	which was resulting in a sigsegv.
+
+* Mon Mar 06 2000 Francis Galiegue
+- src/libprelude/newstack.c: Oops, bug - FIXED
+- src/libprelude/newstack.c: new stack implementation with defragmentation and
+  alignment, compiles but needs testing.
+- src/libprelude/newstack.c: a few changes
+
+* Sun Mar 05 2000 Vandoorselaere Yoann
+- Added documentation on fast algorithm for ip routing table,
+  this is similar at what we do in hostdb, and we'll probably need
+  to implement one of these algorithm.
+
+* Sat Mar 04 2000 Vandoorselaere Yoann
+- work on the new connection database.
+
+* Thu Mar 02 2000 Francis Galiegue
+- src/libprelude/hostdb.c: complete rewrite
+
+* Wed Mar 01 2000 Vandoorselaere Yoann
+- stack.c bug is fixed...
+- Better error handling.
+- Cleanup a little, commented the code
+- More work on the alignement problem
+- Made hostdb.c faster.
+
+* Thu Feb 29 2000 Vandoorselaere Yoann
+- Added alloc error check, in this part of the code we must absolutly
+	handle an alloc error cleanly.
+- Moved packet copy related functions to pktcpy.c
+- Made it really clean, use a function for each header copy.
+- use p_free to free data->data structure member.
+
+* Mon Feb 28 2000 Vandoorselaere Yoann
+- Many work on the stack, this is becomming better and better,
+	however  there is a bug somewhere in the packet cpy stuff....
+	and it dereference a pointer which give us a sigsegv... 
+
+* Mon Feb 28 2000 Francis Galiegue
+- src/libprelude/newstack.c: new file, try at a total new stack implementation
+- src/libprelude/newstack.c: lots of changes
+- src/libprelude/newstack.c: grr, added missing semicolon...
+- src/libprelude/newstack.c: rename p_* to pn_* to compare with other stacks
+- src/libprelude/Makefile.am: added newstack.c to targets
+- src/libprelude/newstack.c: now deleted, a bug in it which I don't get
+- src/libprelude/Makefile.am: fixed
+
+* Mon Feb 28 2000 Vandoorselaere Yoann
+- rewritten the libprelude stack from scratch...
+  it is far from being finished, but will be more easy to
+  extend... currently my bench show a 40% CPU gain with the
+  cache... But this is not real world test...
+  Real test scheduled to tomorrow.
+
+* Fri Feb 25 2000 Francis Galiegue
+- src/libprelude/hostdb.c: added malloc() failure checks
+- src/libprelude/hostdb.c: tons of other checks 
+- src/libprelude/hostdb.c: macro for debugging, added more checks
+
+* Fri Feb 25 2000 Vandoorselaere Yoann
+- Clean up stack.c, fix a bug, attempt using it
+	in prelude_PktCpy too see if we gain in performance.
+
+* Fri Feb 25 2000 Francis Galiegue
+- src/libprelude/hostdb.c: undid last change in hash_value()
+
+* Fri Feb 25 2000 Vandoorselaere Yoann
+- Cleanup of stack.c, use the new list scheme, include at compile time.
+
+* Fri Feb 25 2000 Francis Galiegue
+- src/libprelude/hostdb.c: remove ntohl() calls into hash_value()
+- src/libprelude/hostdb.c: completely redefined hash_value()
+- src/libprelude/hostdb.c: simplified hash_value(), again
+
+* Fri Feb 25 2000 Vandoorselaere Yoann
+- Use the snaplen config entry ( if provided ) to
+	setup the data buffer.
+
+- config.c -s ( for report server addr ) changed to -a,
+	 -s is now used to setup snaplen.
+
+- packet_capture.c / packet_handler.c : 
+	dynamically alloc the data buffer at startup time following
+	the snaplen arg ( which currently doesn't exist ).
+	never free / realloc it after...
+
+- hostdb : removed some warning warning.
+
+- packet_capture : print hash statistic;
+	Francis : please say me when you change variable name :)
+
+* Thu Feb 24 2000 Francis Galiegue
+- src/libprelude/hostdb.c (yes, again!): #if 0'ed table dump, added extern
+  variables on host/cnx/pdata usage. FIXME: malloc()s need to be checked, this
+  is scheduled for tomorrow - it will require an API change!
+
+* Thu Feb 24 2000 Vandoorselaere Yoann
+- Made prelude_GetCleanData faster.
+- today it was a ip stress test day,
+	we discovered some bug ( in fact place where timeout
+	were too high ) and the memory was growing far too much.
+	We corrected them.
+	
+* Thu Feb 24 2000 Francis Galiegue
+- src/libprelude/hostdb.c: only dump table usage every 256 entries
+
+* Thu Feb 24 2000 Vandoorselaere Yoann
+- Use the new cnx related API,
+	only do scan detection, the rest of the detection stuff
+	syn / stream will now be in other plugins.
+
+* Thu Feb 24 2000 Francis Galiegue
+- src/libprelude/hostdb.c: oops, bug - bad list_add usage
+- src/libprelude/hostdb.c: Grrr... Have to check for whether hash tables are
+  initialized in every public function. UGLY. FIXME.
+- src/libprelude/hostdb.c: (yes, again) Fixed hogs in debugging functions
+
+* Thu Feb 24 2000 Vandoorselaere Yoann
+- hostdb: renamed public function.
+-         made it k&r compliant :-P :)
+- scandetect: new version on the way,
+	there is some problem with hostdb at the moment
+	
+* Thu Feb 24 2000 Francis Galiegue
+- src/libprelude/Makefile.am: added hostdb.c into targets
+- src/libprelude/hostdb.c: finished, now it needs testing
+- autogen.sh: added -c flag to automake
+
+* Wed Feb 23 2000 Vandoorselaere Yoann
+-  removed the id things completly ( not used ).
+- detect_plugins.c, detect.h, detect-prv.h : Moved the plugins 
+	id from the private plugin structure to the public one.
+
+* Wed Feb 23 2000 Francis Galiegue
+- src/prelude/detect_plugins.c: fixed not unlikely case where the detection
+  plugins directory did not end with a "/" - a double slash doesn't hurt
+
+* Wed Feb 23 2000 Vandoorselaere Yoann
+- hostdb.c: clean up... Do not use memcmp
+	in order to compare two address as it is not
+	the best way.
+- Fix some typos.
+
+* Wed Feb 23 2000 Francis Galiegue
+- src/prelude/detect_plugins.c: cleanup
+
+- src/libprelude/hostdb.c: fully done, but for plugins interaction - we need to
+  know which plugin calls us!
+
+* Wed Feb 23 2000 Vandoorselaere Yoann
+- libprelude/plugins.c use the new list interface.
+
+* Tue Feb 22 2000 Vandoorselaere Yoann
+- Use the list.h provided by the linux kernel for linked list handling.
+- plugins_run : use the new list interface.
+- detect_plugins.c : use the new list interface.
+- detect_plugins.c : removed unused 'all_plugins' structure.
+- timer.c : use the new list interface.
+- starting work on hostdb.c for caching connection ( needed for some plugins, )
+  this will prevent a lot of duplicated code.
+  Francis is working on hash table for hostdb.
+- handle_connection, report_plugins : use the new list interface.
+
+* Sun Feb 20 2000 Vandoorselaere Yoann
+- Parsing of prelude filters work again.
+- modified some plugins to check that getdepth doesn't return -1.
+  this was causing random crash when plugin tryed to access packet[depth]
+  if the value returned for depth was -1
+- Renamed prelude_do_report_self() to __prelude_do_report_async()
+- created the prelude_do_report_async macro which call __prelude_do_report_async
+	and automatically fill the plugin argument.
+- Fix a bug in timer.c where the callback could be called and Del the current timer
+	by itself, the result was that item->next was dereferenced && crash.
+- Fix a bug in prelude_PktCpy().
+- Fix a bug with plugin which aren't of the good category executed.
+
+* Fri Feb 18 2000 Vandoorselaere Yoann
+- Worked on the depth bug... work better. :)
+- Revert to wenesday version, not good to touch code after
+	too many beer.
+
+* Wed Feb 16 2000 Vandoorselaere Yoann
+- ip_fragment.c : little cleanup
+- ip_expire : delete timer
+- Try to fix scandetect.c again
+- Fix a little bug occuring when reseting timer.
+- Scan detect work again, it should also detect syn attack.
+- First try at implementing prelude timer in scandetect. 
+- More fix to scandetect.
+- Fixed a bug in the timer implementation.
+- Added libprelude/sync.c which call the necessary function
+        for libprelude to sync with prelude.
+- Worked a little on scandetect plugins, is broken, will be
+        rewriten in a few time.
+- plugins_run : call prelude_SyncLibrary instead of prelude_FreeCachedData.
+
+* Tue Feb 15 2000 Vandoorselaere Yoann
+- redone timer_t structure,
+- start to implement timer in ip_fragment.c
+- added timer in libprelude,
+	ip_frag should use them.
+	the timer are awakened at each packet cycle.
+- ipfrag.c : s/ip_frag/ipfrag/ 
+- detect_plugins_filters.c : bug fixes.
+- detect_plugins_filters.c : big clean up.
+
+* Mon Feb 14 2000 Francis Galiegue
+- src/plugins/detects/scandetect/scandetect.c: fixed the port mapping stuff
+- src/plugins/detects/scandetect/scandetect.c: oops... Fixed stupid bug
+ 
+* Mon Feb 14 2000 Vandoorselaere Yoann
+- removed configure ... nothing to do in the repository.
+- corrected a double free in ip_fragment.c in case of a defrag error.
+- corrected packet_handler.c where we were passing the total len of our
+	ip packet instead of just data len.
+
+* Mon Feb 14 2000 Francis Galiegue
+- src/plugins/detects/scandetect/scandetect.c: resync'ed
+
+* Mon Feb 14 2000 Francis Galiegue
+- src/plugins/detects/scandetect/scandetect.c: macro'ized list add as well
+
+* Mon Feb 14 2000 Vandoorselaere Yoann
+- added new ipfrag plugins ( which does actually nothing ).
+
+* Mon Feb 14 2000 Francis Galiegue
+- src/plugins/detects/scandetect/scandetect.c: macro'ized list removal - old
+  code is "#if 0"'ed for now
+
+* Sat feb 12 2000 Vandoorselaere Yoann
+- nopsearch : removed unused function ( comp_nop ).
+- nopsearch : oops, fix a typo.
+- nopsearch : integrated some optimization by Francis.
+- nopsearch : added sparc & ppc nop check.
+
+* Thu Feb 10 2000 Vandoorselaere Yoann
+- depth tweak, no need to use depth anymore in
+	the plugins called function.
+- nopsearch : fixed a few thing, now work,
+	also need to test with alpha stack overflow.
+
+* Thu Feb 10 2000 Francis Galiegue
+- Finished with the doc - for now
+
+* Thu Feb 10 2000 Vandoorselaere Yoann
+- little cleanup to packet.h
+- More cleanup in nopsearch.c
+- modified nopsearch.c : to detect stack overflow
+	on many architecture,
+	made code modulable so adding a new architecture is easy
+	and doesn't add too much overhead.
+	At the moment nopsearch search for x86 & alpha nop.
+
+* Wed Feb 09 2000 Francis Galiegue
+- Still more documentation cleanup
+
+* Wed Feb 09 2000 Francis Galiegue
+- More documentation cleanup
+
+* Wed Feb 09 2000 Francis Galiegue
+- doc rewrite and cleanup - partly done
+
+* Tue Feb 08 2000 Vandoorselaere Yoann
+- commented includes.
+- renamed config file related function.
+- prelude/config.c : use the new config functions name.
+
+* Mon Feb 07 2000 Francis Galiegue
+- small rewrite of src/prelude/report_communication.c:SendSavedReport
+
+* Mon Feb 07 2000 Vandoorselaere Yoann
+- Doc update.
+- libprelude/tcp_options.c : little optimisation,
+	handle unknow options.
+- libprelude/pkt_dump.c : rewrite the ipopt / tcpopt things 
+	in a more cleaner way, and commented it.
+- prelude/tcpip_options.c : indent fix.
+	
+* Sun Feb 06 2000 Vandoorselaere Yoann
+- Removed src_host , dst_host, src_port, dst_port of
+	the DetectReport_t structure, since they are no longer needed.
+- Added debuging printf to help catch a *fucking* hiden bug in the packet
+	handling sheme.
+- Oops forget to count one bit in tcp/ip options validity check.
+
+- prelude/config.c: Use getopt_long.
+- Fixed a bug in tcp / ip options decoding,
+	xdr alloc the opts pointer itself.
+ 
+* Sat Feb 05 2000 Vandoorselaere Yoann
+- src/prelude/packet_handler.c : added many sanity check
+	for header, now header handling should be really attack safe
+- src/prelude/tcpip_options.c : 
+	prevent a possible crash again.
+
+- src/plugins/detect/nopsearch/nopsearch.c : 
+	- optimizations,
+	- bugfix, now work.
+- src/prelude/tcpip_options.c :
+	corrected a grave tcp/ip options parsing bug
+	which could result in crash if bad opts len were received.
+- src/prelude/packet_handler.c : consistency check ( prevent crash ).
+
+* Fri feb 04 2000 Vandoorselaere Yoann
+- src/plugins/detects/nopsearch/nopsearch.c: moved nop_count
+  to the right place, use size_t in the good places 
+	
+* Fri Feb 04 2000 Francis Galiegue
+- Rewrote src/plugins/detects/nopsearch/nopsearch.c to optimize for the common
+  case.
+
+* Wed feb 02 2000 Vandoorselaere Yoann
+- Options aren't allocated dynamically,
+	use an array of 40 unsigned char ( maximum opt len ).
+
+* Sun Jan 30 2000 Vandoorselaere Yoann
+- prelude/tcp_options.c && prelude/ip_options.c :
+	code merged into prelude/tcpip_options.c
+
+* Sat Jan 29 2000 Vandoorselaere Yoann
+- Oops, fix broken include.
+
+- Ok, now prelude itself just parse tcp/ip options
+  if at a certain point options aren't valid, we
+  assume, that the option len is faked, ( else this could
+  allow an attacker to hide data behind fake option ).
+  and we recalcul our own option len.
+
+- libprelude have now several function to parse Ip/Tcp options.
+- Bugfix in plugins.c
+- Many other change, too long to list :)
+ 
+
+* Fri Jan 28 2000 Vandoorselaere Yoann
+- reverted previous change about tcp options,
+	keep in prelude, where they are parsed, and where
+	we can't avoid certain kind of attack.
+- ip_options : dito
+- More documentation work.
+	
+* Thu Jan 27 2000 Vandoorselaere Yoann
+- Moved IP option in libprelude, made API consistant.
+- pkt_dump.c : Adapt to new IP options parsing shecme.
+- packet_handler.c : dito.
+- Plugins.c : dito.
+- xdr_encode.c : dito.
+- xdr_decode.c : dito.
+- More autoconf work,
+	seem to work fine.
+
+* Wed Jan 26 2000 Vandoorselaere Yoann
+- plugins.c : fix some warning.
+- include cleanup
+- More autoconf work...
+- Updated TODO
+- Ok all seem to work fine now,
+	except that all library / module are linked
+	with all autoconf checked library...
+- include file "NEWS"
+- oops forgot to call aclocal in autogen.sh
+- Ok, i think autoconf support will be ok
+	this night...
+	Don't try to run prelude at the moment,
+	it will compile but won't run ( cause of some plugin change )
+- TODO update
+- prelude/report_communication.c: unix server listen on /dev/prelude_socket.
+- prelude-report/server.c : use tcp wrapper,
+	unix server listen on /dev/prelude_socket
+- prelude/config.c : don't use a define for the time to retry
+	contacting report server, use the config variable.
+- prelude/config.c : added -t option, to specify a retry 
+	time for contacting report server if it is unreachable.
+- tcp_options.c : added prelude_SearchTcpOption() function.
+- report_communication: added rewind_xdr_stream() function 
+	to deal with xdr_setpos error.
+- Commented the code.
+- Cleaned the code.
+
+* Tue Jan 25 2000 Vandoorselaere Yoann
+- Fix a little memory leak in config.c
+- Added "user=" config file entry,
+  permit prelude to setuid to this user when it do not need root access.
+- Corrected a bunch of warning, added tcp_fragment.c kernel
+  license header cause the fragment ip stack i use is largely based on it.
+- Ok tcp_option parsing does work...
+- xdr_encode / xdr_decode now work with new opts parsing.
+- pkt_dump use new parsing API.
+- all appear to work fine ( basically :) )
+- Falling asleep on my keyboard, gotta sleep.
+  
+* Mon Jan 24 2000 Vandoorselaere Yoann
+- Reworked the way plugins access to the tcp / ip options...
+  There is currently some *big change in the prelude source tree...
+  So it will probably don't work / crash...
+- libprelude/plugins.c : use switch instead of if.
+- Corrected a few warn.
+- Removed XDR stuff from libprelude,
+  i'm now forced to have xdr_encode / xdr_decode in two
+  different file , even if they are very similar...
+- Many update, plugins use shared library func...
+- Prelude is currently broken.
+
+* Sat Jan 22 2000 Vandoorselaere Yoann
+- added function prelude_GetDepth() to the library. 
+- xdr_type.c : use xdr_wrapstring instead of xdr_string.
+- Plugins use library extensively :)
+- Library is now shared...
+- Report plugins use prelude_GetPktdump(); ( from libprelude ).
+
+* Fri Jan 21 2000 Vandoorselaere Yoann
+- use libtool
+- pkt_dump.c : fix a bunch of warning, indentation fix.
+- detect_plugins_filter.c : added parenthesis understanding for priority
+  comprehenssion.
+- s/PreludeStartDetectPlugins/DetectPlugins_run/
+- renamed plugins.c into plugins_run.c
+- delete_plugins_filter.c : removed a bug.
+- renamed some file
+- filters : && alias AND and || alias OR.
+- Don't exit if can't resolve.
+- Cleaned up...
+
+* Thu Jan 20 2000 Vandoorselaere Yoann
+- Makefile : include filter.c & plugins_filter.c in compile.
+- detect.h : plugins structure include filter structure.
+- detect_plugins.c : call the detect filter init function.
+- plugins.c : modified to use filter at plugins start time.
+- filter.c : contains function for filter.
+- plugins_filter.c : contains filtering rule parsing/init code.
+
+* Wed Jan 19 2000 Vandoorselaere Yoann
+- ip_frag.c : all appear to work fine, need to implement timer.
+- ip_frag.c : cleaned up a little.
+- ip_frag.c : backport of the kernel hash table
+- ip_frag.c : more work...
+- packet_handler.c : adapted for new fragmentation code.
+- yesterday item 3 is fixed, for item 1 : it is more clean :) but dirty :)...
+
+* Tue Jan 18 2000 Vandoorselaere Yoann
+- ip_frag.c : fixed some bug.
+- ip_frag.c : cleaned up a little.
+- Ok, fragmentation stack seem to work *but* :
+	1 - Is dirty, need to be cleaned.
+	2 - Need to be *heavily* tested.
+	3 - Doesn't verify if it have all fragment before trying reassembly.
+	4 - Need to implement timer to free old packet fragment,
+		which were never defragmented.
+
+- ip_frag.c : starting work on the fragment stack.
+- pkt_dump.c : oops, forgot to remove one debug printf. 
+- pkt_dump.c : print tcp & ip flags,
+	reordered informations.
+- updated TODO.
+
+* Mon Jan 17 2000 Vandoorselaere Yoann
+- pkt_dump.c is now clean :-)
+- Ok probably corrected the problem... 
+- There is a bug left somewhere in pkt_dump.c
+	It will sigsegv at free time when dumping the header informations.
+- Cleaned up pkt_dump.c
+- no more tcp options parsing problem,
+	i was given the end of the option buffer to the parsing function
+	instead of the beginning...
+
+* Sun Jan 16 2000 Vandoorselaere Yoann
+- More work on the documentation.
+- Cleaned up server.c & divided it in two part 
+	( see handle_connection.c )
+- Come back to the old way of initializing plugins.
+
+* Sat Jan 15 2000 Vandoorselaere Yoann
+- strdetect: remove unused code.
+
+* Fri Jan 14 2000 Vandoorselaere Yoann
+- More work on the memory stack.
+- Started writing documentation. ( see index.htmli, prelude.fig
+  prelude-report.fig )
+
+* Thu Jan 13 2000 Vandoorselaere Yoann
+- Work on the memory stack.
+- packet_handler.c : fix a const warning.
+- report_sched.c : reworked a little. ( already broken ),
+	don't rely on the src / dst addr, cause the used protocol is unknown.
+	just rely on the emitting plugin ID and basically prevent report flooding.
+- report_communication.c : socket O_NONBLOCK.
+- packet_handler.h : typo.
+- Updated README.
+
+* Wed Jan 12 2000 Vandoorselaere Yoann
+- Added a README
+- Ok, make it compile again...
+- Don't try it , it will not compile...
+- Big change to the source tree, rewriting include in a more logic way...
+- divided prelude_config.h into 2 headers : prelude_config.h & config_devices.h
+- updated TODO.
+- I'm on the way of doing a major cleanup,
+  however, i've not got many time to work on prelude ( actually ).
+
+* Wed Dec 22 1999 Vandoorselaere Yoann
+- prelude / prelude-report: path is defined at compile time
+- added libprelude/plugins.c: for plugins related function.
+
+* Tue Dec 14 1999 Vandoorselaere Yoann
+- config_engine.c: be quiet don't report section xxx doesn't exist.
+				   dito for xxx in section xxx doesn't exist
+
+* Mon Dec 13 1999 Vandoorselaere Yoann
+- Fix the second alert report server crash bug.
+- prelude_report/config.c: Handle the quiet & daemonize options
+  in config file.
+- Updated TODO file
+- missing include
+- ip_options.c: pass an fd to p_print.
+- packet_handler.c: Verify that packet depth doesn't exceed 
+  maximum staticly allocated packet depth.
+- tcp_options.c: Verify our options data doesn't point outside our option
+  buffer space.
+
+* Fri Dec 10 1999 Vandoorselaere Yoann
+- Big source tree cleanup.
+- Renamed function name / file.
+- packet_handler.c: fix a possible crash.
+- xdr_types.[ch] now in libprelude.
+- Finished tcp options handling, just need to push & test it...
+- Finished the tcp options table pass trought XDR.
+- created prelude-fw directory, for dynamic firewalling.
+
+* Wed Dec 08 1999 Vandoorselaere Yoann
+- Updated TODO.
+- tcp_options.c : Added the 2 or 3 missing options...
+
+* Tue Dec 07 1999 Vandoorselaere Yoann
+- tcp_options.c : Tcp options handling is now OK.
+  I will add the last 2 or 3 missing options this night or tomorrow.
+  I need to write a little stack to remember easyly all the used options.
+
+* Mon Dec 06 1999 Vandoorselaere Yoann
+- Starting working on protocol options handling.
+  it is now done for tcp... Not for Ip...
+  Added extract.h from tcpdump, used to watch used options...
+  Also, it only print the informations on screen at the moment...
+  Introduced a new bug in the report server, it will sigsegv 
+  on the second report, i will check that this week.
+
+* Sat Dec 04 1999 Vandoorselaere Yoann
+- Unix server work too.
+- Fixed the way prelude report what it does.
+- Ok inet server is now clean :-)
+  working on the unix socket server.
+- sysplug report plugins : corrected a typo.
+
+* 02 Dec 1999 Vandoorselaere Yoann
+- Start implementing unix socket,
+  will finish this nigh / week end.
+- Now longer write 65535 bytes of data on the socket,
+  ( he write what the xdr data take ),
+  this fix the bug were there was two report ( in prelude-report ) :
+  one good, the second was just blank ( in fact we just needed 1 report ).
+- Little memory leak fixed in prelude,
+  now that the packet data is allocated dynamically.
+- (Big ) Memory leak fix in prelude-report,
+  destroy the XDR stream, and all var allocated by
+  xdr function. 
+- Little cleanup, put log stuff into
+  the prelude library.
+
+* 01 Dec 1999 Vandoorselaere Yoann
+- Tested a lot more, optimized, bug fix.
+- Ok, after 2 days were prelude wasn't working,
+  it is now ok, XDR problem have been fixed,
+  however it need test...
+  Will test this night. 
+
+* 29 Nov 1999 Vandoorselaere Yoann
+Ouah, after 3 night of work :
+- Prelude don't report itself anymore, it use Prelude report.
+- Coded many of the XDR encoding / decoding function,
+  it is located in src/common & is used by both prelude & prelude-report.
+- Fixed prelude-report, it now use plugins properly.
+- TODO update.
+	
+* 25 Nov 1999 Vandoorselaere Yoann
+- Cleaned up the source.
+- removed icmp_hack ( to be rewriten ).
+- several typo fix.
+- Commented plugins API source.
+- Use the new file engine.
+- Rewriten prelude.conf with the new file format.
+
+* 08 Oct 1999 Vandoorselaere Yoann
+- prelude_packet_handler.c,
+  Inlined some function.
+- libprelude/file_engine.c
+  New parse engine added...
+
+* 14 Sep 1999 Vandoorselaere Yoann
+- More Work on the syn/scan detection plugin.
+  
+* 13 Sep 1999 Vandoorselaere Yoann
+ - little change to syn/scan detection plugin.
+   It will report less wrong alert.
+
+* 02 Sep 1999 Vandoorselaere Yoann
+- init_report_plugins.c Made the report plugins are
+  treated like detect plugins... ( same loading system ).
+  by the way corrected a grave memory bug ( which was present )
+  in the report plugins init code, and which made more than
+  4 detect plugins == SIGSEGV. ( plugin->run pointing on 0x0 ).
+- plugin-prv.h report is treated like detect plugins.
+
+* 15 Aug 1999 Vandoorselaere Yoann
+- prelude_plugins.c : include time.h
+- prelude-report/*.c : Reordered source tree,
+  renamed function.
+
+* 14 Aug 1999 Vandoorselaere Yoann
+- Minor fix in syndetect plugins,
+  if tcp packet isn't a SYN packet,
+  doesn't break from the main switch loop, just return.
+  ( note that it will be handled by prelude when bpf inside
+  plugins will be supported. ).
+
+* 13 Aug 1999 Vandoorselaere Yoann
+- Corrected a critical bug in src/libprelude/config.c
+  The memory space was corrupted this one was very hard to trace, cause prelude
+  didn't sigsegv at freed time, but at random time.
+  I like memory corruption bug :-).
+
+- Improved the way packet on multiple interface are captured,
+  commented the code.
+  Added a copy of the pcap fd used by pcap to capture the packet
+  on one interface in the config interface structure...
+
+* 12 Aug 1999 Vandoorselaere Yoann
+- Started working on a separated server to make report,
+  prelude access it via connection oriented socket, and give it the necessary thing
+  to made a report, this server just launch the ReportPlugin.
+  This is the first step in making prelude a distributed applications.
+  ( Note that since this change prelude is completly broken...
+    currently hacking on a way to pass data structure over the network 
+    and yes i know corba is slow, i'won't use it, this is for a
+    ***performance critical*** section. )
+  
+* 10 Aug 1999 Vandoorselaere Yoann
+- Documentated plugin-prv.h.
+- Cleanned all #include in the source tree.
+
+* 09 Aug 1999 Vandoorselaere Yoann
+- Documentated plugin.h sources.
+- Splitted plugin.h in two parts : plugin.h / plugin-prv.h 
+  ( prelude plugin private header )
+
+* 30 Jul 1999 Vandoorselaere Yoann
+- Corrected many bug in prelude_check_opt,
+  parsing of options and of the bpf rules after a -i. 
+  It work like a charm :-) .
+  note that the format for -i is now :
+  -i eth0 'eventual BPF rule'
+
+* 28 Jul 1999 Vandoorselaere Yoann
+- Added features to the sysplug plugin.
+- Finished the scan detection plugin ( Should verify 1 or 2 things again ).
+
+* 27 Jul 1999 Vandoorselaere Yoann
+- Corrected a bug that made the wrong detect plugin infos
+  was passed to report plugins.
+- Started working on a scan detection module ( tcp / udp ).
+
+* 26 Jul 1999 Vandoorselaere Yoann
+- Multiple interface / same time now work,
+  just run prelude with prelude -i eth0 [eventual bpf] -i eth1 [eventual bpf]
+- Corrected a small bug in the packet_counter.
+- added bpf support for each device configured.
+- added bpf support for file reading.
+
+* 23 Jul 1999 Vandoorselaere Yoann
+- Starting adaptating prelude to use many interface at the same time.
+- Added daemon mode.
+- Added reading packet from file.
+- Added writing packet to file.
+- Modularized a bit prelude_packet_capture.c
+- Starting to code a scan detection plugins,
+  will need a good hash function in order to be fast.
+
+* 22 Jul 1999 Vandoorselaere Yoann
+- Rewwriten prelude from the scratch,
+  better handling of packet, more plugins possibility.
+  ( A plugins subscribe for udp packet, prelude caught an udp packet,
+  call all modules subscribed for udp, with as argument an Structure
+  representating the current packet, with in this one, an union
+  of supported protocol, and a int, which is the current Depth of the packet 
+  ( udp in our case ), the plugins can walk in the packet array if it want, to saw other protocol.
+
+- Plugins subscribtion now work.
+
+- Starting new ChangeLog.
