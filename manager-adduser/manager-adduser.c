@@ -160,7 +160,7 @@ static int handle_plaintext_account_creation(prelude_io_t *fd, prelude_msg_t *ms
         }
 
         else if ( ret == user_does_not_exist ) {
-                ret = prelude_auth_create_account_noprompt(MANAGER_AUTH_FILE, user, pass, 1, 0);
+                ret = prelude_auth_create_account_noprompt(MANAGER_AUTH_FILE, user, pass, 1, getuid());
                 if ( ret < 0 ) {
                         fprintf(stderr, "error creating new plaintext user account.\n");
                         send_plaintext_creation_result(fd, PRELUDE_MSG_AUTH_FAILED);

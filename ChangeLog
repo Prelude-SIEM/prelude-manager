@@ -1,5 +1,9 @@
 2003-12-13  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
+	* manager-adduser/manager-adduser.c (handle_plaintext_account_creation): 
+	call getuid() instead of using 0. Which made account creation fail in
+	case you are not running manager-adduser as root.
+
 	* src/server-generic.c (handle_connection): 
 	use calloc().
 
