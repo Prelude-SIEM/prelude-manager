@@ -92,6 +92,9 @@ static void process_time(textmod_plugin_t *plugin, const char *type, idmef_time_
 
 static void process_address(textmod_plugin_t *plugin, int depth, idmef_address_t *address) 
 {
+        if ( ! address )
+                return;
+        
         print(plugin, 0, "* Addr[%s]:", idmef_address_category_to_string(idmef_address_get_category(address)));
         
         if ( idmef_string(idmef_address_get_address(address)) )
@@ -141,6 +144,9 @@ static void process_node(textmod_plugin_t *plugin, int depth, idmef_node_t *node
 static void process_userid(textmod_plugin_t *plugin, int depth, idmef_userid_t *userid) 
 {
         const char *type;
+
+        if ( ! userid )
+                return;
         
         print(plugin, 0, "*");
         print(plugin, depth, "");
@@ -223,6 +229,9 @@ static void process_process(textmod_plugin_t *plugin, int depth, idmef_process_t
 
 static void process_snmp_service(textmod_plugin_t *plugin, idmef_snmpservice_t *snmp) 
 {
+        if ( ! snmp )
+                return;
+        
         if ( idmef_string(idmef_snmpservice_get_oid(snmp)) )
                 print(plugin, 0, " oid=%s", idmef_string(idmef_snmpservice_get_oid(snmp)));
 
@@ -289,6 +298,9 @@ static void process_source(textmod_plugin_t *plugin, int depth, idmef_source_t *
 {
         const char *spoofed;
 
+        if ( ! source )
+                return;
+        
         spoofed = idmef_source_spoofed_to_string(idmef_source_get_spoofed(source));
         if ( spoofed )
                 print(plugin, depth, "* Source spoofed: %s\n", spoofed);
@@ -309,6 +321,9 @@ static void process_file_access(textmod_plugin_t *plugin, int depth, idmef_file_
 	int header;
 	idmef_string_t *permission;
 
+        if ( ! file_access )
+                return;
+        
 	print(plugin, depth, "Access: ");
 
 	header = 0;
@@ -329,6 +344,9 @@ static void process_file_access(textmod_plugin_t *plugin, int depth, idmef_file_
 
 static void process_file_linkage(textmod_plugin_t *plugin, int depth, idmef_linkage_t *linkage) 
 {
+        if ( ! linkage )
+                return;
+        
 	print(plugin, depth, "Linkage: %s",
 	      idmef_linkage_category_to_string(idmef_linkage_get_category(linkage)));
 
@@ -380,8 +398,11 @@ static void process_file(textmod_plugin_t *plugin, int depth, idmef_file_t *file
 	idmef_linkage_t *file_linkage;
 	idmef_file_access_t *file_access;
 
+        if ( ! file )
+                return;
+        
         print(plugin, 0, "* ");
-
+        
         print(plugin, depth, "File %s: ",
 	      idmef_file_category_to_string(idmef_file_get_category(file)));
 
@@ -423,6 +444,9 @@ static void process_target(textmod_plugin_t *plugin, int depth, idmef_target_t *
 {
         idmef_file_t *file;
 
+        if ( ! target )
+                return;
+        
         print(plugin, 0, "* Target decoy: %s\n", 
 	      idmef_target_decoy_to_string(idmef_target_get_decoy(target)));
         
@@ -472,12 +496,17 @@ static void process_analyzer(textmod_plugin_t *plugin, idmef_analyzer_t *analyze
 
         if ( idmef_analyzer_get_process(analyzer) )
                 process_process(plugin, 0, idmef_analyzer_get_process(analyzer));
+
+        process_analyzer(plugin, idmef_analyzer_get_analyzer(analyzer));
 }
 
 
 
 static void process_classification(textmod_plugin_t *plugin, idmef_classification_t *classification) 
 {
+        if ( ! classification )
+                return;
+        
         print(plugin, 0, "* Classification type: %s\n",
 	      idmef_classification_origin_to_string(idmef_classification_get_origin(classification)));
 
@@ -498,6 +527,9 @@ static void process_data(textmod_plugin_t *plugin, idmef_additional_data_t *ad)
         idmef_data_t *data;
         unsigned char buf[128];
 
+        if ( ! ad )
+                return;
+        
         dlen = sizeof(buf);
         data = idmef_additional_data_get_data(ad);
         
@@ -556,6 +588,9 @@ static void process_confidence(textmod_plugin_t *plugin, idmef_confidence_t *con
 
 static void process_action(textmod_plugin_t *plugin, idmef_action_t *action) 
 {
+        if ( ! action )
+                return;
+        
         print(plugin, 0, "* Action category: %s\n",
 	      idmef_action_category_to_string(idmef_action_get_category(action)));
 
@@ -600,6 +635,9 @@ static void process_alert(textmod_plugin_t *plugin, idmef_alert_t *alert)
         idmef_additional_data_t *data;
 	int header;
 
+        if ( ! alert )
+                return;
+        
         print(plugin, 0, "********************************************************************************\n");
         print(plugin, 0, "* Alert: ident=%llu\n", idmef_alert_get_ident(alert));
 
@@ -663,6 +701,9 @@ static void process_heartbeat(textmod_plugin_t *plugin, idmef_heartbeat_t *heart
 {
 	idmef_additional_data_t *data;
 
+        if ( ! heartbeat )
+                return;
+        
         print(plugin, 0, "********************************************************************************\n");
         print(plugin, 0, "* Heartbeat: ident=%llu\n", idmef_heartbeat_get_ident(heartbeat));
         

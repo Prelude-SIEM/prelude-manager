@@ -143,6 +143,9 @@ static void process_address(xmlNodePtr parent, idmef_address_t *address)
 {
         xmlNodePtr new;
 
+        if ( ! address )
+                return;
+        
         new = xmlNewChild(parent, NULL, "Address", NULL);
         if ( ! new )
                 return;
@@ -186,6 +189,9 @@ static void process_userid(xmlNodePtr parent, idmef_userid_t *userid)
 {
         xmlNodePtr new;
 
+        if ( ! userid )
+                return;
+        
         new = xmlNewChild(parent, NULL, "UserId", NULL);
         if ( ! new )
                 return;
@@ -328,6 +334,9 @@ static void process_source(xmlNodePtr parent, idmef_source_t *source)
 {
         xmlNodePtr new;
 
+        if ( ! source )
+                return;
+        
         new = xmlNewChild(parent, NULL, "Source", NULL);
         if ( ! new )
                 return;
@@ -349,6 +358,9 @@ static void process_file_access(xmlNodePtr parent, idmef_file_access_t *file_acc
         xmlNodePtr new;
 	idmef_string_t *permission;
 
+        if ( ! file_access )
+                return;
+        
 	new = xmlNewChild(parent, NULL, "FileAccess", NULL);
 	if ( ! new )
 		return;
@@ -366,6 +378,9 @@ static void process_file_linkage(xmlNodePtr parent, idmef_linkage_t *linkage)
 {
         xmlNodePtr new;
 
+        if ( ! linkage )
+                return;
+        
 	new = xmlNewChild(parent, NULL, "Linkage", NULL);
 	if ( ! new )
 		return;
@@ -412,6 +427,9 @@ static void process_file(xmlNodePtr parent, idmef_file_t *file)
 	idmef_file_access_t *file_access;
 	idmef_linkage_t *file_linkage;
 
+        if ( ! file )
+                return;
+        
         new = xmlNewChild(parent, NULL, "File", NULL);
         if ( ! new )
                 return;
@@ -453,6 +471,9 @@ static void process_target(xmlNodePtr parent, idmef_target_t *target)
         xmlNodePtr new;
         idmef_file_t *file;
 
+        if ( ! target )
+                return;
+        
         new = xmlNewChild(parent, NULL, "Target", NULL);
         if ( ! new )
                 return;
@@ -479,6 +500,9 @@ static void process_analyzer(xmlNodePtr parent, idmef_analyzer_t *analyzer)
 {
         xmlNodePtr new;
 
+        if ( ! analyzer )
+                return;
+
         new = xmlNewChild(parent, NULL, "Analyzer", NULL);
         if ( ! new )
                 return;
@@ -499,6 +523,8 @@ static void process_analyzer(xmlNodePtr parent, idmef_analyzer_t *analyzer)
 
         process_node(new, idmef_analyzer_get_node(analyzer));
         process_process(new, idmef_analyzer_get_process(analyzer));
+
+        process_analyzer(new, idmef_analyzer_get_analyzer(analyzer));
 }
 
 
@@ -507,6 +533,9 @@ static void process_classification(xmlNodePtr parent, idmef_classification_t *cl
 {
         xmlNodePtr new;
 
+        if ( ! classification )
+                return;
+        
         new = xmlNewChild(parent, NULL, "Classification", NULL);
         if ( ! new )
                 return;
@@ -528,6 +557,9 @@ static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *
         const char *tmp;
         unsigned char buf[128];
 
+        if ( ! ad )
+                return;
+        
         dlen = sizeof(buf);
         
 	tmp = idmef_additionaldata_data_to_string(ad, buf, &dlen);
@@ -600,6 +632,9 @@ static void process_action(xmlNodePtr parent, idmef_action_t *action)
 {
         xmlNodePtr new;
 
+        if ( ! action )
+                return;
+        
         new = xmlNewChild(parent, NULL, "Action",
 			  idmef_string(idmef_action_get_description(action)));
         if ( ! new )
@@ -645,6 +680,9 @@ static void process_alert(xmlNodePtr root, idmef_alert_t *alert)
         idmef_classification_t *classification;
         idmef_additional_data_t *additional_data;
 
+        if ( ! alert )
+                return;
+        
         new = xmlNewChild(root, NULL, "Alert", NULL);
         if ( ! new )
                 return;
@@ -684,6 +722,9 @@ static void process_heartbeat(xmlNodePtr idmefmsg, idmef_heartbeat_t *heartbeat)
         char buf[256];
         xmlNodePtr hb;
         idmef_additional_data_t *additional_data;
+
+        if ( ! heartbeat )
+                return;
         
         hb = xmlNewChild(idmefmsg, NULL, "Heartbeat", NULL);
         if ( ! hb )
