@@ -200,12 +200,11 @@ static int tcpd_auth(int clnt_sock)
 
         ret = hosts_access(&request);
         if ( ! ret ) {
-                syslog(deny_severity,
-                       "prelude-manager: refused connect from %s", eval_client(&request));
+                log(LOG_INFO, "refused connection from %s.\n", eval_client(&request));
                 return -1;
         }
 
-        syslog(allow_severity, "prelude-manager: connect from %s", eval_client(&request));
+        log(LOG_INFO, "refused connection from %s.\n", eval_client(&request));
         
         return 0;
 }

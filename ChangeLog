@@ -1,5 +1,7 @@
 2002-01-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/server-generic.c (tcpd_auth): use the log() macro.
+
 	* src/include/report.h: fix include.
 
 2002-01-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
