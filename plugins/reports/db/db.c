@@ -96,6 +96,9 @@ static void db_destroy(prelude_plugin_instance_t *pi)
         if ( db->interface )
                 prelude_db_interface_destroy(db->interface);
 
+        if ( db->host )
+                free(db->host);
+        
         if ( db->name )
                 free(db->name);
 
