@@ -15,6 +15,7 @@ prelude_manager_SOURCES =			\
 			pconfig.c		\
 			prelude-manager.c	\
 			filter-plugins.c	\
+			pmsg-to-idmef.c         \
 			report-plugins.c	\
 			server-logic.c		\
 			server-generic.c	\

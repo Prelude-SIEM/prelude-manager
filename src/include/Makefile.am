@@ -3,6 +3,7 @@ includedir = $(prefix)/include/prelude-manager
 
 noinst_HEADERS = 			\
 	pconfig.h			\
+	pmsg-to-idmef.h			\
 	ssl.h 				\
 	server-logic.h			\
 	server-generic.h		\
