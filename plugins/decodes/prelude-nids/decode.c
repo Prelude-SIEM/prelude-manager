@@ -186,13 +186,18 @@ static int msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert)
                 
                 if ( ret == 0 ) 
                         break;
-
+                
                 packet[i].data = NULL;
                 packet[i].len = len;
                 packet[i].proto = tag;
                 packet[i].p.ip = buf;
                 
         } while ( packet[i++].proto != p_end && i < MAX_PKTDEPTH );
+
+        /*
+         * put a delimiter, for safety
+         */
+        packet[i].proto = p_end;
         
         packet_to_idmef(alert, packet);
         nids_packet_dump(alert, packet);

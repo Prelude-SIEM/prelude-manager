@@ -24,10 +24,22 @@
 *
 *****/
 
+/* 
+ * NOTE: On some systems (namely FreeBSD) including this file leads to 
+ * including <sys/queue.h>. If you include also <libprelude/list.h>
+ * in your code that will cause a conflict of LIST_HEAD macro
+ * from <libprelude/list.h> and <sys/queue.h>. Therefore you should include
+ * this file ALWAYS BEFORE <libprelude/list.h> so the macro defined in
+ * <libprelude/list.h> takes precedence. Also see comment in 
+ * <libprelude/list.h>
+ */
+
+#include <sys/time.h>
 #include "nethdr.h"
 
 
 typedef enum {
+        p_null,
 	p_raw,
         p_ether,
         p_ip,
@@ -67,6 +79,7 @@ typedef enum {
 
 
 union proto_u {
+        uint32_t *null_hdr;
         etherhdr_t *ether_hdr;
         iphdr_t *ip;
         tcphdr_t *tcp;
@@ -80,7 +93,7 @@ union proto_u {
 
 
 typedef struct {
-        char *data; /* we store pointer to string here */
+        unsigned char *data;
         uint16_t len;
         uint8_t proto;
         union proto_u p;
@@ -89,6 +102,10 @@ typedef struct {
 
 
 typedef struct {
+        const struct pcap_pkthdr *pcap_hdr;
+
+        struct timeval timestamp;
+        
 	/*
 	 * Current depth of the packet (used in order to index the headers array).
 	 */
@@ -132,30 +149,7 @@ typedef struct {
 } packet_container_t;
 
 
-
 #define packet_2_container(packet) packet - offsetof(packet_container_t, packet)
-
-
-
-#define packet_add_header(pc, type, data, dlen, protocol, member) do {     \
-        (pc)->depth++;                                                     \
-                                                                           \
-        if ( ((pc)->depth + 1) < MAX_PKTDEPTH ) {                          \
-                (pc)->packet[(pc)->depth].len = (dlen);                    \
-                (pc)->packet[(pc)->depth].proto = (protocol);              \
-                (pc)->packet[(pc)->depth].p.member = (type *) (data);      \
-                (pc)->packet[(pc)->depth + 1].proto = p_end;               \
-        }                                                                  \
-        else {                                                             \
-                (pc)->packet[(pc)->depth].proto = p_end;                   \
-                (pc)->packet[(pc)->depth].len = 0;                         \
-                nids_emmit_alert(NULL, (pc),                               \
-                          "Packet depth is too high",                      \
-                          "%s : Maximum packet depth (%d) reached.\n",     \
-                          __FUNCTION__, MAX_PKTDEPTH);                     \
-                return;                                                    \
-        }                                                                  \
-} while(0)
 
 
 #endif

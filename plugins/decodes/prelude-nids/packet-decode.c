@@ -561,7 +561,7 @@ int nids_packet_dump(idmef_alert_t *alert, packet_t *p)
 
 
         global_alert = alert;
-        for ( i = 0; p[i].proto != p_end ; i++ ) {
+        for ( i = 0; p[i].proto != p_end; i++ ) {
                 
                 for ( j = 0; tbl[j].name != NULL; j++ ) {
                         

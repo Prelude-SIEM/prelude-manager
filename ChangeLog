@@ -1,3 +1,13 @@
+2002-03-21  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* plugins/decodes/prelude-nids/decode.c (msg_to_packet): 
+	put an array delimiter for safety (an attacker that
+	successfuly authenticated could send a packet without p_end
+	set).
+
+	* plugins/decodes/prelude-nids/packet.h: 
+	updated to recent version.
+
 2002-03-20  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* db-inst.sh: cleanup, fix several bug, simplify,
