@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -20,8 +20,11 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 int admin_server_broadcast_sensor_optlist(prelude_msg_t *msg);
 
 int admin_server_new(const char *addr, uint16_t port);
 
 void admin_server_start(void);
+
+void admin_server_close(void);

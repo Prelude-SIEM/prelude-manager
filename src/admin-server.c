@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -215,6 +215,12 @@ void admin_server_start(void)
         server_generic_start(server); /* Never return */
 }
 
+
+
+void admin_server_close(void) 
+{
+        server_generic_close(server);
+}
 
 
 

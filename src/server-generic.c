@@ -726,10 +726,12 @@ void server_generic_start(server_generic_t *server)
 
 void server_generic_close(server_generic_t *server) 
 {
-        server_logic_stop(server->logic);
-
+        close(server->sock);
+        
         if ( server->unix_srvr )
-                unlink(prelude_get_socket_filename());
+                unlink(prelude_get_socket_filename());        
+
+        server_logic_stop(server->logic);
 }
 
 

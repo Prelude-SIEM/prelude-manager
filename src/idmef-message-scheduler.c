@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -90,18 +90,23 @@ static pthread_mutex_t input_mutex = PTHREAD_MUTEX_INITIALIZER;
  * Wait until a message is queued.
  */
 static void wait_for_message(void) 
-{
+{        
         pthread_mutex_lock(&input_mutex);
+              
+        /*
+         * we can be canceled safely now. There is no more data to process.
+         */
+        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
         
-        while ( ! input_available ) {
+        while ( ! input_available ) 
                 pthread_cond_wait(&input_cond, &input_mutex);
-        }
 
+        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+        
         /*
          * We are going to process all available data.
          */
         input_available = 0;
-        
         pthread_mutex_unlock(&input_mutex);
 }
 
@@ -253,6 +258,7 @@ static int process_message(prelude_msg_t *msg)
 
 
 
+
 /*
  * This is the function responssible for handling queued message.
  */
@@ -261,16 +267,12 @@ static void *message_reader(void *arg)
         int ret;
         sigset_t set;
         prelude_msg_t *msg;
-
-        ret = sigfillset(&set);
-        if ( ret < 0 ) {
-                log(LOG_ERR, "sigfillset returned an error.\n");
-                return NULL;
-        }
         
-        ret = pthread_sigmask(SIG_BLOCK, &set, NULL);
+        sigfillset(&set);
+        
+        ret = pthread_sigmask(SIG_SETMASK, &set, NULL);
         if ( ret < 0 ) {
-                log(LOG_ERR, "pthread_sigmask returned an error.\n");
+                log(LOG_ERR, "couldn't set thread signal mask.\n");
                 return NULL;
         }
         
@@ -278,10 +280,10 @@ static void *message_reader(void *arg)
                 msg = get_high_priority_message();
                 if ( ! msg )
                         msg = get_mid_priority_message();
-
+                
                 if ( ! msg )
                         msg = get_low_priority_message();
-                
+
                 if ( ! msg ) {                        
                         wait_for_message();
                         continue;
@@ -514,14 +516,14 @@ int idmef_message_scheduler_init(void)
 
 
 void idmef_message_scheduler_exit(void) 
-{
-        log(LOG_INFO, "Waiting for queued message to be processed.\n");
-        
+{                
         pthread_cancel(thread);
+        
+        log(LOG_INFO, "Waiting for queued message to be processed.\n");
+        pthread_join(thread, NULL);
         
         destroy_file_output(&mid_priority_output);
         destroy_file_output(&low_priority_output);
-
         pthread_cond_destroy(&input_cond);
         pthread_mutex_destroy(&list_mutex);
 }

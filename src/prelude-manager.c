@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998,1999,2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1998,1999,2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -48,38 +48,40 @@
 #include "plugin-report.h"
 #include "plugin-db.h"
 #include "idmef-util.h"
+#include "idmef-message-scheduler.h"
 
 
 static pthread_t admin_server_thr;
 extern struct report_config config;
 
 
+/*
+ * all function called here should be signal safe.
+ */
 static void cleanup(int sig) 
 {        
         log(LOG_INFO, "Caught signal %d.\n", sig);
-        
-        /*
-         * Now we reset the signal
-         * we caught to it's default behavior
-         */
-        signal(sig, SIG_DFL);
 
-        
-#if 0
         /*
-         *
+         * stop the sensor server.
          */
-        manager_server_close();
+        sensor_server_close();
         
         /*
-         *
+         * stop the admin server.
          */
-        report_plugins_close();
-#endif   
+        admin_server_close();
+        pthread_cancel(admin_server_thr);
+        pthread_join(admin_server_thr, NULL);
+
+        /*
+         * close the scheduler.
+         */
+        idmef_message_scheduler_exit();
 
         if ( config.pidfile )
                 unlink(config.pidfile);
-
+        
         exit(0);
 }
 
@@ -88,6 +90,10 @@ static void cleanup(int sig)
 
 static void *start_admin_server(void *arg)
 {
+        sigset_t set;
+
+        sigfillset(&set);
+        pthread_sigmask(SIG_SETMASK, &set, NULL);
         admin_server_start();
         pthread_exit(0);
 }
@@ -135,6 +141,7 @@ static void init_manager_server(void)
 int main(int argc, char **argv)
 {
         int ret;
+        struct sigaction action;
 
         /*
          * Initialize plugin first.
@@ -169,16 +176,21 @@ int main(int argc, char **argv)
         if ( ret < 0 )
                 exit(1);
         
-        signal(SIGTERM, cleanup);
-        signal(SIGINT, cleanup);
-        signal(SIGQUIT, cleanup);
-        signal(SIGABRT, cleanup);
-        
+        action.sa_flags = 0;
+        sigemptyset(&action.sa_mask);
+        action.sa_handler = cleanup;
+
         /*
          * start server
          */
         init_manager_server();
         
+        sigaction(SIGINT, &action, NULL);
+        sigaction(SIGTERM, &action, NULL);
+        sigaction(SIGABRT, &action, NULL);
+        sigaction(SIGQUIT, &action, NULL);
+        
+         
         /*
          * Start prelude as a daemon if asked.
          */
@@ -192,15 +204,3 @@ int main(int argc, char **argv)
         
 	exit(0);	
 }
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,5 +1,16 @@
 2002-01-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/prelude-manager.c (cleanup): cleanly exit all
+	the stuff.
+	(start_admin_server): admin server is not detached.
+
+	* src/idmef-message-scheduler.c: implement safe cancellation.
+	So we don't lost in memory report on exit.
+
+	* src/server-logic.c (child_reader): detach the thread
+	as soon as it is created... Do not wait it to be killed.
+	Use SIG_SETMASK, not SIG_BLOCK.
+
 	* src/server-generic.c (handle_plaintext_connection): 
 	use the extract_string macro to verify that the string are ok.
 

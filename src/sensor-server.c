@@ -360,6 +360,13 @@ void sensor_server_start(void)
 
 
 
+void sensor_server_close(void) 
+{
+        server_generic_close(server);
+}
+
+
+
 
 int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *msg) 
 {

@@ -168,7 +168,6 @@ static void remove_connection(server_fd_set_t *set, int cnx_key)
                 pthread_mutex_unlock(&server->mutex);
                 
                 dprint("Killing thread %ld\n", pthread_self());
-                pthread_detach(set->thread);
                 
                 free(set);
                 pthread_exit(NULL);
@@ -262,17 +261,15 @@ static int handle_fd_event(server_fd_set_t *set, int cnx_key)
 
 static void *child_reader(void *ptr) 
 {
-        sigset_t sigset;
+        sigset_t s;
         struct sigaction act;
         int i, ret, active_fd;
         server_fd_set_t *set = ptr;
         
-        /*
-         * the caller have to handle SIGPIPE.
-         */
-        sigemptyset(&sigset);
-        sigaddset(&sigset, SIGPIPE);
-        pthread_sigmask(SIG_BLOCK, &sigset, NULL);
+        pthread_detach(set->thread);
+
+        sigfillset(&s);
+        pthread_sigmask(SIG_SETMASK, &s, NULL);
         
         /*
          * We want to catch SIGUSR1, so that we know a new fd is in our set.
