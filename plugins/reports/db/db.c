@@ -81,22 +81,14 @@ PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, pass)
 static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 {
         db_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+	char errbuf[512];
         int ret;
 
         ret = preludedb_insert_message(plugin->db, message);
-	if ( ret < 0 ) {
-		char *error;
-		int ret2;
-
-		ret2 = preludedb_get_error(plugin->db, ret, &error);
-		if ( ret2 < 0 )
-			prelude_log(PRELUDE_LOG_WARN, "could not insert message into database: %s.\n",
-                                    preludedb_strerror(ret));
-		else {
-			prelude_log(PRELUDE_LOG_WARN, "could not insert message into database: %s.\n", error);
-			free(error);
-		}
-	}
+	if ( ret < 0 )
+		prelude_log(PRELUDE_LOG_WARN,
+			    "could not insert message into database: %s.\n",
+			    preludedb_get_error(plugin->db, ret, errbuf, sizeof (errbuf)));
 
         return ret;
 }
@@ -138,10 +130,11 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         preludedb_sql_t *sql;
 	preludedb_sql_settings_t *settings;
         int ret;
+	char errbuf[512];
 
 	ret = preludedb_sql_settings_new(&settings);
 	if ( ret < 0 )
-		return -1;
+		return ret;
 
 	if ( plugin->host )
 		preludedb_sql_settings_set_host(settings, plugin->host);
@@ -161,7 +154,6 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 	ret = preludedb_sql_new(&sql, plugin->type, settings);
 	if ( ret < 0 ) {
 		preludedb_sql_settings_destroy(settings);
-		prelude_log(PRELUDE_LOG_WARN, "could not initialize libpreludedb.\n");
 		return ret;
 	}
 
@@ -169,16 +161,18 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 		ret = preludedb_sql_enable_query_logging(sql, plugin->log);
 		if ( ret < 0 ) {
 			preludedb_sql_destroy(sql);
-			prelude_log(PRELUDE_LOG_WARN, "could not initialize libpreludedb.\n");
+			prelude_log(PRELUDE_LOG_WARN,
+				    "could not enable queries logging with log file '%s': %s\n",
+				    plugin->log, preludedb_strerror(ret));
 			return ret;
 		}
 	}
 
-        ret = preludedb_new(&db, sql, NULL);
+        ret = preludedb_new(&db, sql, NULL, errbuf, sizeof (errbuf));
 	if ( ret < 0 ) {
 		preludedb_sql_destroy(sql);
-		prelude_log(PRELUDE_LOG_WARN, "could not initialize libpreludedb.\n");
-		return -1;
+		prelude_log(PRELUDE_LOG_WARN, "could not initialize libpreludedb: %s.\n", errbuf);
+		return ret;
 	}
 
         if ( plugin->db )
