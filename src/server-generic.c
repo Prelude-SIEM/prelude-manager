@@ -654,25 +654,15 @@ static int unix_server_start(server_generic_t *server)
 /*
  *
  */
-static int inet_server_start(server_generic_t *server, const char *saddr, uint16_t port) 
+static int inet_server_start(server_generic_t *server, const char *saddr, struct sockaddr_in *addr) 
 {
         int ret, on = 1;
-        struct sockaddr_in addr;
-        
-        ret = prelude_resolve_addr(saddr, &addr.sin_addr);
-        if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't resolve %s.\n", saddr);
-                return -1;
-        }
         
         server->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if ( server->sock < 0 ) {
                 log(LOG_ERR, "couldn't create socket.\n");
                 return -1;
         }
-        
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(port);
         
         ret = setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
@@ -686,7 +676,7 @@ static int inet_server_start(server_generic_t *server, const char *saddr, uint16
                 goto err;
         }
         
-        ret = generic_server(server->sock, (struct sockaddr *) &addr, sizeof(addr));
+        ret = generic_server(server->sock, (struct sockaddr *) addr, sizeof(*addr));
         if ( ret < 0 )
                 goto err;
 
@@ -709,11 +699,12 @@ static int inet_server_start(server_generic_t *server, const char *saddr, uint16
 /*
  *
  */
-server_generic_t *server_generic_new(const char *addr, uint16_t port,
+server_generic_t *server_generic_new(const char *saddr, uint16_t port,
                                      size_t clientlen, server_generic_accept_func_t *acceptf,
                                      server_generic_read_func_t *readf, server_generic_close_func_t *closef)
 {
         int ret;
+        struct sockaddr_in addr;
         server_generic_t *server;
 
         server = malloc(sizeof(*server));
@@ -726,6 +717,12 @@ server_generic_t *server_generic_new(const char *addr, uint16_t port,
         server->accept = acceptf;
         server->close = closef;
         server->clientlen = clientlen;
+
+        ret = prelude_resolve_addr(saddr, &addr.sin_addr);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "couldn't resolve %s.\n", saddr);
+                return NULL;
+        }
         
         server->logic = server_logic_new(server, read_connection_cb, close_connection_cb);
         if ( ! server->logic ) {
@@ -734,12 +731,14 @@ server_generic_t *server_generic_new(const char *addr, uint16_t port,
                 return NULL;
         }
         
-        if ( strcmp(addr, "unix") == 0 || strcmp(addr, "127.0.0.1") == 0 ) {
+        if ( strcmp(inet_ntoa(addr.sin_addr), "127.0.0.1") == 0 ) {
                 server->unix_srvr = 1;
                 ret = unix_server_start(server);
         } else {
+                addr.sin_family = AF_INET;
+                addr.sin_port = htons(port);
                 server->unix_srvr = 0;
-                ret = inet_server_start(server, addr, port);
+                ret = inet_server_start(server, saddr, &addr);
         }
 
         if ( ret < 0 ) {

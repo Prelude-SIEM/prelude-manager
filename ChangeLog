@@ -1,3 +1,12 @@
+2002-03-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server-generic.c (server_generic_new): 
+	UNIX keyword is obsoleted. Resolve the server address
+	in the good place.
+	
+	(inet_server_start): don't resolve server addr here,
+	take a sockaddr_in structure as argument.
+
 2002-02-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/sensor-server.c (handle_request_ident): 
