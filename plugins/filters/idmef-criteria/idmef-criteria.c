@@ -30,7 +30,8 @@
 #include "prelude-manager.h"
 
 
-int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
+int idmef_criteria_LTX_prelude_plugin_version(void);
+int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *data);
 
 
 static manager_filter_plugin_t filter_plugin;
@@ -91,7 +92,7 @@ static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_st
                 return -1;
         }
         
-        ptr = prelude_plugin_search_instance_by_name(pname, (ret == 2) ? iname : NULL);
+        ptr = prelude_plugin_search_instance_by_name(NULL, pname, (ret == 2) ? iname : NULL);
         if ( ! ptr ) {
                 prelude_string_sprintf(err, "Unknown hook '%s'", optarg);
                 return -1;
@@ -193,7 +194,7 @@ static int filter_activate(prelude_option_t *opt, const char *optarg, prelude_st
 
 
 
-int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *root_opt)
+int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *root_opt)
 {
         int ret;
         prelude_option_t *opt;
@@ -206,7 +207,7 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, vo
                 return ret;
 
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
-        prelude_plugin_set_activation_option((void *) &filter_plugin, opt, NULL);
+        prelude_plugin_set_activation_option(pe, opt, NULL);
         
         ret = prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
                                  |PRELUDE_OPTION_TYPE_WIDE, 'r', "rule",
@@ -223,14 +224,17 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, vo
                 return ret;
         
         prelude_plugin_set_name(&filter_plugin, "Filter");
-        prelude_plugin_set_author(&filter_plugin, "Yoann Vandoorselaere");
-        prelude_plugin_set_contact(&filter_plugin, "yoann.v@prelude-ids.com");
-        prelude_plugin_set_desc(&filter_plugin, "Match alert against IDMEF criteria");
-
         manager_filter_plugin_set_running_func(&filter_plugin, process_message);
 
-        *plugin = (void *) &filter_plugin;
+        prelude_plugin_entry_set_plugin(pe, (void *) &filter_plugin);
 
         return 0;
+}
+
+
+
+int idmef_criteria_LTX_prelude_plugin_version(void)
+{
+        return PRELUDE_PLUGIN_API_VERSION;
 }
 

@@ -32,7 +32,8 @@
 #include "prelude-manager.h"
 
 
-int textmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt);
+int textmod_LTX_prelude_plugin_version(void);
+int textmod_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt);
 
 
 typedef struct {
@@ -795,7 +796,7 @@ static void process_heartbeat(textmod_plugin_t *plugin, idmef_heartbeat_t *heart
 
 static int textmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message) 
 {
-        textmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        textmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
         switch ( idmef_message_get_type(message) ) {
 
@@ -823,7 +824,7 @@ static int textmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 static int textmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
         FILE *fd;
-        textmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        textmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
         if ( ! plugin->logfile ) {
                 prelude_string_sprintf(out, "no logfile specified");
@@ -860,7 +861,7 @@ static int textmod_activate(prelude_option_t *opt, const char *optarg, prelude_s
         if ( ! new )
                 return prelude_error_from_errno(errno);
 
-        prelude_plugin_instance_set_data(context, new);
+        prelude_plugin_instance_set_plugin_data(context, new);
         
         return 0;
 }
@@ -870,7 +871,7 @@ static int textmod_activate(prelude_option_t *opt, const char *optarg, prelude_s
 
 static void textmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
 {
-        textmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        textmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 
         if ( plugin->fd && plugin->fd != stderr )
                 fclose(plugin->fd);
@@ -883,7 +884,7 @@ static void textmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err
 
 
 
-int textmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
+int textmod_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
 {
         int ret;
 	prelude_option_t *opt;
@@ -894,8 +895,8 @@ int textmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *roo
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, textmod_activate, NULL);
         if ( ret < 0 )
                 return ret;
-        
-        prelude_plugin_set_activation_option((void *) &textmod_init, opt, textmod_init);
+
+        prelude_plugin_set_activation_option(pe, opt, textmod_init);
         
         ret = prelude_option_add(opt, NULL, hook, 'l', "logfile", "Specify logfile to use",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED,
@@ -904,15 +905,17 @@ int textmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *roo
                 return ret;
         
         prelude_plugin_set_name(&textmod_plugin, "TextMod");
-        prelude_plugin_set_author(&textmod_plugin, "Yoann Vandoorselaere");
-        prelude_plugin_set_contact(&textmod_plugin, "yoann.v@prelude-ids.com");
-        prelude_plugin_set_desc(&textmod_plugin, "Write alert to a file, or to stderr if requested");
         prelude_plugin_set_destroy_func(&textmod_plugin, textmod_destroy);
-
         manager_report_plugin_set_running_func(&textmod_plugin, textmod_run);
 
-        *plugin = (void *) &textmod_plugin;
-
+        prelude_plugin_entry_set_plugin(pe, (void *) &textmod_plugin);
+        
         return 0;
 }
 
+
+
+int textmod_LTX_prelude_plugin_version(void)
+{
+        return PRELUDE_PLUGIN_API_VERSION;
+}

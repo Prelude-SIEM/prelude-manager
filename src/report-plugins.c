@@ -168,7 +168,7 @@ static void failover_timer_expire_cb(void *data)
         plugin_failover_t *pf;
         prelude_plugin_instance_t *pi = data;
         
-        pf = prelude_plugin_instance_get_private_data(pi);
+        pf = prelude_plugin_instance_get_data(pi);
         
         ret = try_recovering_from_failover(pi, pf);
         if ( ret < 0 )
@@ -206,7 +206,7 @@ static int setup_plugin_failover(prelude_plugin_instance_t *pi)
                 return -1;
         }
         
-        prelude_plugin_instance_set_private_data(pi, pf);
+        prelude_plugin_instance_set_data(pi, pf);
         
         try_recovering_from_failover(pi, pf);
         if ( pf->failover_enabled ) {
@@ -230,7 +230,7 @@ static int subscribe(prelude_plugin_instance_t *pi)
         prelude_log(PRELUDE_LOG_WARN, "- Subscribing %s[%s] to active reporting plugins.\n",
                     plugin->name, prelude_plugin_instance_get_name(pi));
 
-        prelude_plugin_add(pi, &report_plugins_instance, NULL);
+        prelude_plugin_instance_add(pi, &report_plugins_instance);
 
         return 0;
 }
@@ -243,7 +243,7 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
         prelude_log(PRELUDE_LOG_WARN, "- Un-subscribing %s[%s] from active reporting plugins.\n",
                     plugin->name, prelude_plugin_instance_get_name(pi));
 
-        prelude_plugin_del(pi);
+        prelude_plugin_instance_del(pi);
 }
 
 
@@ -312,7 +312,7 @@ void report_plugins_run(idmef_message_t *idmef)
 
                 pi = prelude_linked_object_get_object(tmp);
                 pg = prelude_plugin_instance_get_plugin(pi);
-                pf = prelude_plugin_instance_get_private_data(pi);
+                pf = prelude_plugin_instance_get_data(pi);
                 
                 ret = filter_plugins_run_by_plugin(idmef, pi);
                 if ( ret < 0 ) 
@@ -371,7 +371,7 @@ int report_plugins_init(const char *dirname, void *data)
 		return -1;
 	}
 
-        count = prelude_plugin_load_from_dir(dirname, MANAGER_PLUGIN_SYMBOL, data, subscribe, unsubscribe);
+        count = prelude_plugin_load_from_dir(NULL, dirname, MANAGER_PLUGIN_SYMBOL, data, subscribe, unsubscribe);
         
         /*
          * don't return an error if the report directory doesn't exist.
@@ -418,7 +418,7 @@ int report_plugin_activate_failover(const char *plugin)
         
         ret = sscanf(plugin, "%255[^[][%255[^]]", pname, iname);
 
-        pi = prelude_plugin_search_instance_by_name(pname, (ret == 2) ? iname : NULL);
+        pi = prelude_plugin_search_instance_by_name(NULL, pname, (ret == 2) ? iname : NULL);
         if ( ! pi ) {
                 prelude_log(PRELUDE_LOG_WARN, "couldn't find plugin %s.\n", plugin);
                 return -1;

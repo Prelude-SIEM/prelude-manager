@@ -94,7 +94,7 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
         prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
         
         prelude_log(PRELUDE_LOG_WARN, "- Un-subscribing %s from active reporting plugins.\n", plugin->name);
-        prelude_plugin_del(pi);
+        prelude_plugin_instance_del(pi);
 }
 
 
@@ -173,7 +173,7 @@ int filter_plugins_init(const char *dirname, void *data)
 		return -1;
 	}
         
-        ret = prelude_plugin_load_from_dir(dirname, MANAGER_PLUGIN_SYMBOL, data, NULL, unsubscribe);
+        ret = prelude_plugin_load_from_dir(NULL, dirname, MANAGER_PLUGIN_SYMBOL, data, NULL, unsubscribe);
 
         /*
          * don't return an error if the report directory doesn't exist.

@@ -44,7 +44,8 @@
 #include "prelude-manager.h"
 
 
-int db_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt);
+int db_LTX_prelude_plugin_version(void);
+int db_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt);
 
 
 #define param_value(param) (param ? param : "")
@@ -75,7 +76,7 @@ PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, pass)
 
 static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 {
-        db_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 	char errbuf[PRELUDEDB_ERRBUF_SIZE];
         int ret;
 
@@ -92,7 +93,7 @@ static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 
 static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
-        db_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 
         if ( plugin->type )
                 free(plugin->type);
@@ -120,7 +121,7 @@ static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
 static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
-        db_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         preludedb_t *db;
         preludedb_sql_t *sql;
 	preludedb_sql_settings_t *settings;
@@ -194,7 +195,7 @@ static int db_activate(prelude_option_t *opt, const char *optarg, prelude_string
 		return prelude_error_from_errno(errno);
 	}
 
-        prelude_plugin_instance_set_data(context, new);
+        prelude_plugin_instance_set_plugin_data(context, new);
         
         return 0;
 }
@@ -202,23 +203,23 @@ static int db_activate(prelude_option_t *opt, const char *optarg, prelude_string
 
 
 
-int db_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
+int db_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
 {
         int ret;
 	prelude_option_t *opt;
         static manager_report_plugin_t db_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
-
-	ret = preludedb_init();
+        
+        ret = preludedb_init();
 	if ( ret < 0 )
 		return ret;
-
+        
         ret = prelude_option_add(rootopt, &opt, hook, 0, "db", "Options for the libpreludedb plugin",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED, db_activate, NULL);
         if ( opt < 0 )
                 return ret;
-        
-        prelude_plugin_set_activation_option((void *) &db_plugin, opt, db_init);
+                
+        prelude_plugin_set_activation_option(pe, opt, db_init);
 
 	ret = prelude_option_add(opt, NULL, hook, 't', "type", "Type of database (mysql/pgsql)",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_type, db_get_type);
@@ -262,14 +263,17 @@ int db_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
                 return ret;
         
         prelude_plugin_set_name(&db_plugin, "db");
-        prelude_plugin_set_author(&db_plugin, "Nicolas Delon");
-        prelude_plugin_set_contact(&db_plugin, "nicolas@prelude-ids.org");
-        prelude_plugin_set_desc(&db_plugin, "Write IDMEF messages in a database using libpreludedb");
         prelude_plugin_set_destroy_func(&db_plugin, db_destroy);
-
         manager_report_plugin_set_running_func(&db_plugin, db_run);
 
-        *plugin = (void *) &db_plugin;
-        
-	return 0;
+        prelude_plugin_entry_set_plugin(pe, (void *) &db_plugin);
+
+        return 0;
+}
+
+
+
+int db_LTX_prelude_plugin_version(void)
+{
+        return PRELUDE_PLUGIN_API_VERSION;
 }

@@ -37,7 +37,8 @@
 #include "prelude-manager.h"
 
 
-int debug_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
+int debug_LTX_prelude_plugin_version(void);
+int debug_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *data);
 
 
 typedef struct {
@@ -98,7 +99,7 @@ static int debug_run(prelude_plugin_instance_t *pi, idmef_message_t *msg)
 	prelude_list_t *tmp;
 	debug_object_t *entry;
         struct iterator_data cbdata;
-	debug_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+	debug_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 
         if ( prelude_list_is_empty(&plugin->path_list) ) {
                 idmef_message_print(msg, plugin->fd);
@@ -133,7 +134,7 @@ static int debug_set_object(prelude_option_t *option, const char *arg, prelude_s
 {
         int ret;
 	debug_object_t *object;
-        debug_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+        debug_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
         
 	object = calloc(1, sizeof(*object));
 	if ( ! object )
@@ -156,7 +157,7 @@ static int debug_set_object(prelude_option_t *option, const char *arg, prelude_s
 static int debug_set_fd(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         FILE *fd;
-        debug_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+        debug_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
 
         fd = prelude_io_get_fdptr(plugin->fd);
         if ( fd != stderr && fd != stdout )
@@ -199,7 +200,7 @@ static int debug_new(prelude_option_t *opt, const char *arg, prelude_string_t *e
         prelude_io_set_file_io(new->fd, stderr);
         
         prelude_list_init(&new->path_list);
-        prelude_plugin_instance_set_data(context, new);
+        prelude_plugin_instance_set_plugin_data(context, new);
         
         return 0;
 }
@@ -211,7 +212,7 @@ static void debug_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
         FILE *fd;
         debug_object_t *object;
         prelude_list_t *tmp, *bkp;
-        debug_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        debug_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 
         fd = prelude_io_get_fdptr(plugin->fd);
         if ( fd != stderr && fd != stdout )
@@ -233,7 +234,7 @@ static void debug_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
 
 
 
-int debug_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
+int debug_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
 {
         int ret;
 	prelude_option_t *opt;
@@ -245,7 +246,7 @@ int debug_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rooto
         if ( ret < 0 )
                 return ret;
         
-        prelude_plugin_set_activation_option((void *) &debug_plugin, opt, NULL);
+        prelude_plugin_set_activation_option(pe, opt, NULL);
         
         ret = prelude_option_add(opt, NULL, hook, 'o', "object",
                                  "Name of IDMEF object to print (no object provided will print the entire message)",
@@ -260,13 +261,17 @@ int debug_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rooto
                 return ret;
         
         prelude_plugin_set_name(&debug_plugin, "Debug");
-        prelude_plugin_set_desc(&debug_plugin, "Debug plugin");
         prelude_plugin_set_destroy_func(&debug_plugin, debug_destroy);
         manager_report_plugin_set_running_func(&debug_plugin, debug_run);
-	     
-	*plugin = (void *) &debug_plugin;
+
+        prelude_plugin_entry_set_plugin(pe, (void *) &debug_plugin);
 
         return 0;
 }
 
 
+
+int debug_LTX_prelude_plugin_version(void)
+{
+        return PRELUDE_PLUGIN_API_VERSION;
+}

@@ -32,7 +32,8 @@
 #include "prelude-manager.h"
 
 
-int xmlmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *data);
+int xmlmod_LTX_prelude_plugin_version(void);
+int xmlmod_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *data);
 
 
 static void process_file(xmlNodePtr parent, idmef_file_t *file);
@@ -839,7 +840,7 @@ static int xmlmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 {
         xmlNodePtr root;
         xmlDoc *document;
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
         document = xmlNewDoc("1.0");
         if ( ! document ) {
@@ -883,7 +884,7 @@ static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
         int ret;
         FILE *fd;
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
         if ( ! plugin->logfile ) {
                 prelude_string_sprintf(out, "no logfile specified");
@@ -926,7 +927,7 @@ static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
 static void xmlmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 
         if ( plugin->fd )
                 xmlOutputBufferClose(plugin->fd);
@@ -948,7 +949,7 @@ static int xmlmod_activate(prelude_option_t *opt, const char *arg, prelude_strin
         if ( ! new )
                 return prelude_error_from_errno(errno);
 
-        prelude_plugin_instance_set_data(context, new);
+        prelude_plugin_instance_set_plugin_data(context, new);
         
         return 0;
 }
@@ -957,7 +958,7 @@ static int xmlmod_activate(prelude_option_t *opt, const char *arg, prelude_strin
 
 static int set_dtd_check(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
         
         if ( ! arg )
                 arg = IDMEF_DTD;
@@ -975,7 +976,7 @@ static int set_dtd_check(prelude_option_t *option, const char *arg, prelude_stri
 
 static int enable_formatting(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
         
         plugin->format = ! plugin->format;
         
@@ -986,7 +987,7 @@ static int enable_formatting(prelude_option_t *option, const char *arg, prelude_
 
 static int get_formatting(prelude_option_t *opt, prelude_string_t *out, void *context)
 {
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
         
         prelude_string_sprintf(out, "%s", plugin->format ? "true" : "false");
 
@@ -997,7 +998,7 @@ static int get_formatting(prelude_option_t *opt, prelude_string_t *out, void *co
 
 static int disable_buffering(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
         
         plugin->no_buffering = ! plugin->no_buffering;
         
@@ -1006,7 +1007,7 @@ static int disable_buffering(prelude_option_t *option, const char *arg, prelude_
 
 
 
-int xmlmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
+int xmlmod_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt) 
 {
         int ret;
 	prelude_option_t *opt;
@@ -1020,7 +1021,7 @@ int xmlmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *root
         if ( ret < 0 )
                 return ret;
         
-        prelude_plugin_set_activation_option((void *) &xmlmod_plugin, opt, xmlmod_init);
+        prelude_plugin_set_activation_option(pe, opt, xmlmod_init);
         
         ret = prelude_option_add(opt, NULL, hook, 'l', "logfile", "Specify output file to use",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED, xmlmod_set_logfile, xmlmod_get_logfile);
@@ -1044,15 +1045,17 @@ int xmlmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *root
                 return ret;
         
         prelude_plugin_set_name(&xmlmod_plugin, "XmlMod");
-        prelude_plugin_set_author(&xmlmod_plugin, "Yoann Vandoorselaere");
-        prelude_plugin_set_contact(&xmlmod_plugin, "yoann.v@prelude-ids.com");
-        prelude_plugin_set_desc(&xmlmod_plugin, "Convert from Prelude internal format to IDMEF-XML format");
         prelude_plugin_set_destroy_func(&xmlmod_plugin, xmlmod_destroy);
-
         manager_report_plugin_set_running_func(&xmlmod_plugin, xmlmod_run);
         
-	*plugin = (void *) &xmlmod_plugin;
-
+        prelude_plugin_entry_set_plugin(pe, (void *) &xmlmod_plugin);
+        
         return 0;
 }
 
+
+
+int xmlmod_LTX_prelude_plugin_version(void)
+{
+        return PRELUDE_PLUGIN_API_VERSION;
+}

@@ -48,7 +48,7 @@ static int subscribe(prelude_plugin_instance_t *pi)
 
         prelude_log(PRELUDE_LOG_INFO, "- Subscribing %s to active decoding plugins.\n", plugin->name);
 
-        return prelude_plugin_add(pi, &decode_plugins_instance, NULL);
+        return prelude_plugin_instance_add(pi, &decode_plugins_instance);
 }
 
 
@@ -58,7 +58,7 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
 
         prelude_log(PRELUDE_LOG_INFO, "- Un-subscribing %s from active decoding plugins.\n", plugin->name);
 
-        prelude_plugin_del(pi);
+        prelude_plugin_instance_del(pi);
 }
 
 
@@ -114,7 +114,7 @@ int decode_plugins_init(const char *dirname, void *data)
 		return -1;
 	}
 
-        ret = prelude_plugin_load_from_dir(dirname, MANAGER_PLUGIN_SYMBOL, data, subscribe, unsubscribe);
+        ret = prelude_plugin_load_from_dir(NULL, dirname, MANAGER_PLUGIN_SYMBOL, data, subscribe, unsubscribe);
         if ( ret < 0 )
                 prelude_log(PRELUDE_LOG_WARN, "couldn't load plugin subsystem.\n");
         
