@@ -78,6 +78,10 @@ static int set_pidfile(const char *arg)
 static int set_relay_manager(const char *arg) 
 {
         relay_managers = prelude_client_mgr_new("relay", arg);
+        if ( ! relay_managers )
+                return prelude_option_error;
+
+        return prelude_option_success;
 }
 
 
@@ -85,9 +89,9 @@ static int set_sensor_listen_address(const char *arg)
 {
         char *ptr = strdup(arg);
         
-        config.addr = arg;
+        config.addr = ptr;
         
-        ptr = strchr(arg, ':');
+        ptr = strchr(ptr, ':');
         if ( ptr ) {
                 *ptr = '\0';
                 config.port = atoi(ptr + 1);
@@ -103,9 +107,9 @@ static int set_admin_listen_address(const char *arg)
 {
         char *ptr = strdup(arg);
         
-        config.admin_server_addr = arg;
+        config.admin_server_addr = ptr;
         
-        ptr = strchr(arg, ':');
+        ptr = strchr(ptr, ':');
         if ( ptr ) {
                 *ptr = '\0';
                 config.admin_server_port = atoi(ptr + 1);
@@ -113,22 +117,6 @@ static int set_admin_listen_address(const char *arg)
         
         return prelude_option_success;
 }
-
-
-
-
-static void configure_quiet(config_t *cfg) 
-{
-        const char *ret;
-        
-        ret = config_get(cfg, "Prelude Manager", "quiet");
-        if ( ret ) {
-                if ( strcmp(ret, "true") == 0 ) 
-                        prelude_log_use_syslog();
-        }
-
-}
-
 
 
 
@@ -146,7 +134,6 @@ int pconfig_init(int argc, char **argv)
         
 	/* Default */
 	config.addr = "0.0.0.0";
-        config.admin_server_addr = "0.0.0.0";
 	config.port = 5554;
         config.admin_server_port = 5555;
 	config.daemonize = 0;

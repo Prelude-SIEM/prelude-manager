@@ -134,29 +134,31 @@ int main(int argc, char **argv)
         signal(SIGINT, cleanup);
         signal(SIGQUIT, cleanup);
         signal(SIGABRT, cleanup);
-
+        
         /*
          * start server
          */
-        ret = admin_server_new(config.admin_server_addr, config.admin_server_port);
-        if ( ret < 0 ) {
-                log(LOG_INFO, "- couldn't start administration server.\n");
-                exit(1);
-        }
-        log(LOG_INFO, "- administration server started (listening on %s:%d).\n",
-            config.admin_server_addr, config.admin_server_port);
-                
-
         ret = sensor_server_new(config.addr, config.port);
         if ( ret < 0 ) {
                 log(LOG_INFO, "- couldn't start sensor server.\n");
                 exit(1);
         }
         log(LOG_INFO, "- sensors server started (listening on %s:%d).\n",
-        config.addr, config.port);        
-
-        pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
+            config.addr, config.port);
         
+        if ( config.admin_server_addr ) {
+                
+                ret = admin_server_new(config.admin_server_addr, config.admin_server_port);
+                if ( ret < 0 ) {
+                        log(LOG_INFO, "- couldn't start administration server.\n");
+                        exit(1);
+                }
+
+                log(LOG_INFO, "- administration server started (listening on %s:%d).\n",
+                    config.admin_server_addr, config.admin_server_port);
+                
+                pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
+        }
         
         /*
          * Start prelude as a daemon if asked.
@@ -167,7 +169,7 @@ int main(int argc, char **argv)
                         return -1;
                 prelude_log_use_syslog();
         }
-        
+                
         sensor_server_start(); /* never return */
         
 	exit(0);	

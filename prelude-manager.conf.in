@@ -3,15 +3,22 @@
 #################################
 [Prelude Manager]
 
-# Address where the Prelude Manager is listening on.
+# Address where the sensors serber is listening on.
 # if value is "unix", it mean the report server is listening
 # on the same machine via a local (UNIX) socket.
 #
-listen = unix;
-
-# only if listening on other than 'unix' socket.
+# format : address:port
 #
-# port = 5554
+sensors-srvr = unix;
+
+
+# Address where the administrative server is listening on.
+# if value is "unix", it mean the report server is listening
+# on the same machine via a local (UNIX) socket.
+#
+# format : address:port
+# 
+admin-srvr = 0.0.0.0:5555;
 
 
 # If you want the message caught by this manager to be relayed.
@@ -29,7 +36,7 @@ listen = unix;
 # Here start plugins configuration #
 ####################################
 
-[MySQL]
+# [MySQL]
 
 # Host the database is listening on.
 # dbhost = localhost;
