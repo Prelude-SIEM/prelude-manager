@@ -648,6 +648,8 @@ int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *m
                 pthread_mutex_unlock(&dst->mutex);
                 return 0;
         }
+
+        pthread_mutex_unlock(&dst->mutex);
         
         ret = prelude_msg_write(msg, dst->fd);        
         if ( ret == 0 )
