@@ -59,7 +59,7 @@ static int process_message(idmef_message_t *msg, void *priv)
 
 
 
-static int set_filter_hook(prelude_plugin_instance_t *pi, prelude_option_t *opt, const char *arg) 
+static int set_filter_hook(void *context, prelude_option_t *opt, const char *arg) 
 {
         int i, ret;
         filter_plugin_t *plugin;
@@ -74,12 +74,12 @@ static int set_filter_hook(prelude_plugin_instance_t *pi, prelude_option_t *opt,
                 { NULL,                0                                },
         };
 
-        plugin = prelude_plugin_instance_get_data(pi);
+        plugin = prelude_plugin_instance_get_data(context);
         
         for ( i = 0; tbl[i].hook != NULL; i++ ) {
                 ret = strcasecmp(arg, tbl[i].hook);
                 if ( ret == 0 ) {
-                        filter_plugins_add_category(pi, tbl[i].cat, NULL, plugin);
+                        filter_plugins_add_category(context, tbl[i].cat, NULL, plugin);
                         return prelude_option_success;
                 }
         }
@@ -96,7 +96,7 @@ static int set_filter_hook(prelude_plugin_instance_t *pi, prelude_option_t *opt,
                 return prelude_option_error;
         }
 
-        filter_plugins_add_category(pi, FILTER_CATEGORY_PLUGIN, ptr, plugin);
+        filter_plugins_add_category(context, FILTER_CATEGORY_PLUGIN, ptr, plugin);
         
         return prelude_option_success;
 }
@@ -104,10 +104,10 @@ static int set_filter_hook(prelude_plugin_instance_t *pi, prelude_option_t *opt,
 
 
 
-static int set_filter_rule(prelude_plugin_instance_t *pi, prelude_option_t *opt, const char *arg) 
+static int set_filter_rule(void *context, prelude_option_t *opt, const char *arg) 
 {
         idmef_criteria_t *new;
-        filter_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);
 
         new = idmef_criteria_new_string(arg);
         if ( ! new ) 
@@ -124,9 +124,9 @@ static int set_filter_rule(prelude_plugin_instance_t *pi, prelude_option_t *opt,
 
 
 
-static int get_filter_rule(prelude_plugin_instance_t *pi, char *buf, size_t size)
+static int get_filter_rule(void *context, prelude_option_t *opt, char *buf, size_t size)
 {
-        filter_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        filter_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
         return idmef_criteria_to_string(plugin->criteria, buf, size);
 }
@@ -134,7 +134,7 @@ static int get_filter_rule(prelude_plugin_instance_t *pi, char *buf, size_t size
 
 
 
-static int filter_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt, const char *arg) 
+static int filter_activate(void *context, prelude_option_t *opt, const char *arg) 
 {
         filter_plugin_t *new;
         
@@ -145,7 +145,7 @@ static int filter_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt,
         }
         
         new->criteria = NULL;
-        prelude_plugin_instance_set_data(pi, new);
+        prelude_plugin_instance_set_data(context, new);
         
         return prelude_option_success;
 }
@@ -157,19 +157,19 @@ prelude_plugin_generic_t *prelude_plugin_init(void)
 {
         prelude_option_t *opt;
         
-        opt = prelude_plugin_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "filter",
-                                        "Option for the filter plugin", optionnal_argument,
-                                        filter_activate, NULL);
+        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "filter",
+                                 "Option for the filter plugin", optionnal_argument,
+                                 filter_activate, NULL);
 
         prelude_plugin_set_activation_option((void *) &filter_plugin, opt, NULL);
         
-        prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'r', "rule",
-                                  "Filtering rule", required_argument,
-                                  set_filter_rule, get_filter_rule);
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'r', "rule",
+                           "Filtering rule", required_argument,
+                           set_filter_rule, get_filter_rule);
         
-        prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'h', "hook",
-                                  "Where the filter should be hooked (reporting|reverse-relaying|plugin name)",
-                                  required_argument, set_filter_hook, NULL);
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'h', "hook",
+                           "Where the filter should be hooked (reporting|reverse-relaying|plugin name)",
+                           required_argument, set_filter_hook, NULL);
         
         prelude_plugin_set_name(&filter_plugin, "Filter");
         prelude_plugin_set_author(&filter_plugin, "Krzysztof Zaraska");

@@ -776,7 +776,7 @@ static int textmod_init(prelude_plugin_instance_t *pi)
 
 
 
-static int textmod_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt, const char *arg) 
+static int textmod_activate(void *context, prelude_option_t *opt, const char *arg) 
 {
         textmod_plugin_t *new;
         
@@ -786,7 +786,7 @@ static int textmod_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt
                 return prelude_option_error;
         }
 
-        prelude_plugin_instance_set_data(pi, new);
+        prelude_plugin_instance_set_data(context, new);
         
         return prelude_option_success;
 }
@@ -798,7 +798,7 @@ static void textmod_destroy(prelude_plugin_instance_t *pi)
 {
         textmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
 
-        if ( plugin->fd )
+        if ( plugin->fd && plugin->fd != stderr )
                 fclose(plugin->fd);
 
         if ( plugin->logfile )
@@ -813,15 +813,15 @@ prelude_plugin_generic_t *prelude_plugin_init(void)
 {
 	prelude_option_t *opt;
         
-        opt = prelude_plugin_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "textmod",
-                                        "Option for the textmod plugin", optionnal_argument,
-                                        textmod_activate, NULL);
+        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "textmod",
+                                 "Option for the textmod plugin", optionnal_argument,
+                                 textmod_activate, NULL);
         
         prelude_plugin_set_activation_option((void *) &textmod_init, opt, textmod_init);
         
-        prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'l', "logfile",
-                                  "Specify logfile to use", required_argument,
-                                  textmod_set_logfile, textmod_get_logfile);
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'l', "logfile",
+                           "Specify logfile to use", required_argument,
+                           textmod_set_logfile, textmod_get_logfile);
 
         prelude_plugin_set_name(&textmod_plugin, "TextMod");
         prelude_plugin_set_author(&textmod_plugin, "Yoann Vandoorselaere");

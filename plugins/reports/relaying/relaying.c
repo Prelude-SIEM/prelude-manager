@@ -80,7 +80,7 @@ static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idme
 
 
 
-static int relaying_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt, const char *optarg)
+static int relaying_activate(void *context, prelude_option_t *opt, const char *optarg)
 {
         relaying_plugin_t *new;
 
@@ -90,16 +90,16 @@ static int relaying_activate(prelude_plugin_instance_t *pi, prelude_option_t *op
                 return -1;
         }
 
-        prelude_plugin_instance_set_data(pi, new);
+        prelude_plugin_instance_set_data(context, new);
         
         return 0;
 }
 
 
 
-static int relaying_set_manager(prelude_plugin_instance_t *pi, prelude_option_t *opt, const char *optarg)
+static int relaying_set_manager(void *context, prelude_option_t *opt, const char *optarg)
 {
-        relaying_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        relaying_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         prelude_client_capability_t capability = prelude_client_get_capability(manager_client);
         
         prelude_client_set_capability(manager_client, capability|PRELUDE_CLIENT_CAPABILITY_SEND_IDMEF);
@@ -119,15 +119,15 @@ prelude_plugin_generic_t *prelude_plugin_init(void)
         prelude_option_t *opt;
         static plugin_report_t plugin;
         
-        opt = prelude_plugin_option_add(NULL, CLI_HOOK|CFG_HOOK, 0, "relaying",
-                                        "Relaying plugin option", optionnal_argument,
-                                        relaying_activate, NULL);
+        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 0, "relaying",
+                                 "Relaying plugin option", optionnal_argument,
+                                 relaying_activate, NULL);
 
         prelude_plugin_set_activation_option((void *) &plugin, opt, NULL);
 
-        prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'p', "parent-managers",
-                                  "List of managers address:port pair where messages should be sent to",
-                                  required_argument, relaying_set_manager, NULL);
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'p', "parent-managers",
+                           "List of managers address:port pair where messages should be sent to",
+                           required_argument, relaying_set_manager, NULL);
         
         prelude_plugin_set_name(&plugin, "Relaying");
         prelude_plugin_set_author(&plugin, "Yoann Vandoorselaere");

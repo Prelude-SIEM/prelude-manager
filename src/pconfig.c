@@ -51,21 +51,21 @@ struct report_config config;
 
 
 
-static int print_version(void **context, prelude_option_t *opt, const char *arg) 
+static int print_version(void *context, prelude_option_t *opt, const char *arg) 
 {
         printf("prelude-manager %s\n", VERSION);
         return prelude_option_end;
 }
 
 
-static int get_version(void **context, char *buf, size_t size) 
+static int get_version(void *context, prelude_option_t *opt, char *buf, size_t size) 
 {
         snprintf(buf, size, "prelude-manager %s", VERSION);
         return prelude_option_success;
 }
 
 
-static int set_daemon_mode(void **context, prelude_option_t *opt, const char *arg) 
+static int set_daemon_mode(void *context, prelude_option_t *opt, const char *arg) 
 {
         prelude_daemonize(config.pidfile);
         prelude_log_use_syslog();
@@ -73,7 +73,7 @@ static int set_daemon_mode(void **context, prelude_option_t *opt, const char *ar
 }
 
 
-static int set_pidfile(void **context, prelude_option_t *opt, const char *arg) 
+static int set_pidfile(void *context, prelude_option_t *opt, const char *arg) 
 {
         config.pidfile = strdup(arg);
         return prelude_option_success;
@@ -82,7 +82,7 @@ static int set_pidfile(void **context, prelude_option_t *opt, const char *arg)
 
 
 
-static int set_reverse_relay(void **context, prelude_option_t *opt, const char *arg) 
+static int set_reverse_relay(void *context, prelude_option_t *opt, const char *arg) 
 {
         return reverse_relay_create_initiator(arg);
 }
@@ -90,7 +90,7 @@ static int set_reverse_relay(void **context, prelude_option_t *opt, const char *
 
 
 
-static int set_sensor_listen_address(void **context, prelude_option_t *opt, const char *arg) 
+static int set_sensor_listen_address(void *context, prelude_option_t *opt, const char *arg) 
 {
         char *ptr = strdup(arg);
         
@@ -107,7 +107,7 @@ static int set_sensor_listen_address(void **context, prelude_option_t *opt, cons
 
 
 
-static int set_report_plugin_failover(void **context, prelude_option_t *opt, const char *arg)
+static int set_report_plugin_failover(void *context, prelude_option_t *opt, const char *arg)
 {
         int ret;
         
@@ -121,7 +121,7 @@ static int set_report_plugin_failover(void **context, prelude_option_t *opt, con
 
 
 
-static int print_help(void **context, prelude_option_t *opt, const char *arg) 
+static int print_help(void *context, prelude_option_t *opt, const char *arg) 
 {
         prelude_option_print(NULL, CLI_HOOK, 25);
         return prelude_option_end;

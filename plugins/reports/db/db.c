@@ -155,7 +155,7 @@ static int db_init(prelude_plugin_instance_t *pi)
 
 
 
-static int db_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt, const char *arg) 
+static int db_activate(void *context, prelude_option_t *opt, const char *arg) 
 {
         db_plugin_t *new;
         
@@ -165,7 +165,7 @@ static int db_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt, con
                 return -1;
         }
 
-        prelude_plugin_instance_set_data(pi, new);
+        prelude_plugin_instance_set_data(context, new);
         
         return prelude_option_success;
 }
@@ -184,39 +184,39 @@ prelude_plugin_generic_t *prelude_plugin_init(void)
                 return NULL;
         }
                 
-        opt = prelude_plugin_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "db",
-                                        "Option for the db plugin", optionnal_argument,
-                                        db_activate, NULL);
+        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "db",
+                                 "Option for the db plugin", optionnal_argument,
+                                 db_activate, NULL);
 
         prelude_plugin_set_activation_option((void *) &plugin, opt, db_init);
         
-	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'f', "format",
-                                  "Format of the database", required_argument,
-                                  db_set_format, db_get_format);
+	prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'f', "format",
+                           "Format of the database", required_argument,
+                           db_set_format, db_get_format);
 
-	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 't', "type",
-                                  "Type of database (mysql/pgsql)", required_argument,
-                                  db_set_type, db_get_type);
+	prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 't', "type",
+                           "Type of database (mysql/pgsql)", required_argument,
+                           db_set_type, db_get_type);
 
-	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'h', "host",
-                                  "The host where the database is running", required_argument,
-                                  db_set_host, db_get_host);
+	prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'h', "host",
+                           "The host where the database is running", required_argument,
+                           db_set_host, db_get_host);
         
-        prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'p', "port",
-                                  "The port where the database is running", required_argument,
-                                  db_set_port, db_get_port);
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'p', "port",
+                           "The port where the database is running", required_argument,
+                           db_set_port, db_get_port);
         
-	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'd', "name",
-                                  "The name of the database where the alerts will be stored", required_argument,
-                                  db_set_name, db_get_name);
+	prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'd', "name",
+                           "The name of the database where the alerts will be stored", required_argument,
+                           db_set_name, db_get_name);
 
-	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'u', "user",
-                                  "User of the database", required_argument,
-                                  db_set_user, db_get_user);
+	prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'u', "user",
+                           "User of the database", required_argument,
+                           db_set_user, db_get_user);
 
-	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'P', "pass",
-                                  "Password for the user", required_argument,
-                                  db_set_pass, db_get_pass);
+	prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'P', "pass",
+                           "Password for the user", required_argument,
+                           db_set_pass, db_get_pass);
         
         prelude_plugin_set_name(&plugin, "db");
         prelude_plugin_set_author(&plugin, "Krzysztof Zaraska");

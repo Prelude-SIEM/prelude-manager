@@ -165,7 +165,7 @@ static void process_node(xmlNodePtr parent, idmef_node_t *node)
 {
         xmlNodePtr new;
         idmef_address_t *address;
-
+        
         if ( ! node )
                 return;
 
@@ -881,7 +881,7 @@ static void xmlmod_destroy(prelude_plugin_instance_t *pi)
 
 
 
-static int xmlmod_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt, const char *arg) 
+static int xmlmod_activate(void *context, prelude_option_t *opt, const char *arg) 
 {
         xmlmod_plugin_t *new;
         
@@ -891,16 +891,16 @@ static int xmlmod_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt,
                 return prelude_option_error;
         }
 
-        prelude_plugin_instance_set_data(pi, new);
+        prelude_plugin_instance_set_data(context, new);
         
         return prelude_option_success;
 }
 
 
 
-static int set_dtd_check(prelude_plugin_instance_t *pi, prelude_option_t *option, const char *arg)
+static int set_dtd_check(void *context, prelude_option_t *option, const char *arg)
 {
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
         if ( ! arg )
                 arg = IDMEF_DTD;
@@ -916,9 +916,9 @@ static int set_dtd_check(prelude_plugin_instance_t *pi, prelude_option_t *option
 
 
 
-static int enable_formatting(prelude_plugin_instance_t *pi, prelude_option_t *option, const char *arg)
+static int enable_formatting(void *context, prelude_option_t *option, const char *arg)
 {
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
         plugin->format = ! plugin->format;
         
@@ -927,9 +927,9 @@ static int enable_formatting(prelude_plugin_instance_t *pi, prelude_option_t *op
 
 
 
-static int get_formatting(prelude_plugin_instance_t *pi, char *buf, size_t size)
+static int get_formatting(void *context, prelude_option_t *opt, char *buf, size_t size)
 {
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
         snprintf(buf, size, "%s", plugin->format ? "enabled" : "disabled");
 
@@ -938,9 +938,9 @@ static int get_formatting(prelude_plugin_instance_t *pi, char *buf, size_t size)
 
 
 
-static int disable_buffering(prelude_plugin_instance_t *pi, prelude_option_t *option, const char *arg)
+static int disable_buffering(void *context, prelude_option_t *option, const char *arg)
 {
-        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+        xmlmod_plugin_t *plugin = prelude_plugin_instance_get_data(context);
         
         plugin->no_buffering = ! plugin->no_buffering;
         
@@ -955,27 +955,27 @@ prelude_plugin_generic_t *prelude_plugin_init(void)
 
         xmlInitParser();
         
-        opt = prelude_plugin_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "xmlmod",
-                                        "Option for the xmlmod plugin", optionnal_argument,
-                                        xmlmod_activate, NULL);
+        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "xmlmod",
+                                 "Option for the xmlmod plugin", optionnal_argument,
+                                 xmlmod_activate, NULL);
 
         prelude_plugin_set_activation_option((void *) &xmlmod_plugin, opt, xmlmod_init);
         
-        prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'l', "logfile",
-                                  "Specify output file to use", required_argument,
-                                  xmlmod_set_logfile, xmlmod_get_logfile);
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'l', "logfile",
+                           "Specify output file to use", required_argument,
+                           xmlmod_set_logfile, xmlmod_get_logfile);
         
-        prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'v', "validate",
-                                  "Validate IDMEF XML output against DTD", optionnal_argument,
-                                  set_dtd_check, NULL);
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'v', "validate",
+                           "Validate IDMEF XML output against DTD", optionnal_argument,
+                           set_dtd_check, NULL);
 
-        prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'f', "format",
-                                  "Format XML output so that it is readable", no_argument,
-                                  enable_formatting, get_formatting);
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'f', "format",
+                           "Format XML output so that it is readable", no_argument,
+                           enable_formatting, get_formatting);
 
-        prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'd', "disable-buffering",
-                                  "Disable output file buffering to prevent truncated tags", no_argument,
-                                  disable_buffering, NULL);
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'd', "disable-buffering",
+                           "Disable output file buffering to prevent truncated tags", no_argument,
+                           disable_buffering, NULL);
        
         prelude_plugin_set_name(&xmlmod_plugin, "XmlMod");
         prelude_plugin_set_author(&xmlmod_plugin, "Yoann Vandoorselaere");
