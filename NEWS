@@ -1,3 +1,38 @@
+* 2005-03-29, prelude-manager-0.9.0-rc1:
+
+	Note: due to several years of work and the habit of working with the 
+	new version, it is hard to remind all the enhancement made in this release.
+	Please bear with us and try it for yourself :-)
+	
+	- Clients using libprelude can now request copies of alert from a 
+	  Manager. Additionally, Prelude-Manager will backup alerts received 
+	  while a 'querying' analyzer was offline and emit them when it reconnect.
+
+	- New access control system, allowing to specify the type of operation a 
+	  given client is allowed to do.
+
+	- Support failover at the Report plugin level, allowing for example to setup 
+	  a fallback if one of the report plugin fail (example: if the database used 
+	  by a report plugin goes down).
+
+	- Improved scheduler fairness across different sensors.
+
+	- Use ephemeral Diffie Hellman parameters.
+
+	- Allow loading of multiple instances of the same plugin, your Manager can now 
+	  report to an unlimited number plugin instances (example: you can now have multiple 
+	  database).
+
+	- Modular filtering system, allowing to define IDMEF criteria, and to bind action 
+	  to be issued when an event match theses rules.
+
+	- Use libpreludedb.
+
+	- Ipv6 support.
+	- Enhanced portability (Should now build successfully on architecture such as Tru64/AIX).
+	- Support plugin dl-preopening on platform without dlopen() or dlsym().
+
+
 * 2003-12-09, prelude-manager-0.8.10:
 
 	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
