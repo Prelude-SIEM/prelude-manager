@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998 - 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -35,35 +35,38 @@
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>
 
-#include "plugin-report.h"
+#include "plugin-db.h"
 
 
-static LIST_HEAD(report_plugins_list);
+static LIST_HEAD(db_plugins_list);
+
 
 
 /*
  *
  */
-static int report_plugin_register(plugin_container_t *pc) 
+static int db_plugin_register(plugin_container_t *pc) 
 {
         log(LOG_INFO, "\tInitialized %s.\n", pc->plugin->name);
 
-        return plugin_register_for_use(pc, &report_plugins_list, NULL);
+        return plugin_register_for_use(pc, &db_plugins_list, NULL);
 }
+
 
 
 
 /*
  * Start all plugins of kind 'list'.
  */
-void report_plugins_run(idmef_alert_t *alert)
+void db_plugins_insert(char *table, char *fields, char *value)
 {
+        int ret;
         struct list_head *tmp;
         plugin_container_t *pc;
 
-        list_for_each(tmp, &report_plugins_list) {
+        list_for_each(tmp, &db_plugins_list) {
                 pc = list_entry(tmp, plugin_container_t, ext_list);
-                plugin_run(pc, plugin_report_t, alert);
+                plugin_run_with_return_value(pc, &ret, plugin_db_t, table, fields, value);
         }
 }
 
@@ -71,19 +74,20 @@ void report_plugins_run(idmef_alert_t *alert)
 
 
 /*
- * Close all report plugins.
+ * Close all db plugins.
  */
-void report_plugins_close(void)
+void db_plugins_close(void)
 {
+        plugin_db_t *plugin;
         struct list_head *tmp;
         plugin_container_t *pc;
-        plugin_report_t *plugin;
+        
 
-        list_for_each(tmp, &report_plugins_list) {
+        list_for_each(tmp, &db_plugins_list) {
                 
                 pc = list_entry(tmp, plugin_container_t, ext_list);
 
-                plugin = (plugin_report_t *) pc->plugin;
+                plugin = (plugin_db_t *) pc->plugin;
                 if ( plugin_close_func(plugin) )
                         plugin_close_func(plugin)();
         }
@@ -95,15 +99,15 @@ void report_plugins_close(void)
  * Open the plugin directory (dirname),
  * and try to load all plugins located in it.
  */
-int report_plugins_init(const char *dirname) {
+int db_plugins_init(const char *dirname) {
         int ret;
         
-        ret = plugin_load_from_dir(dirname, report_plugin_register);
+        ret = plugin_load_from_dir(dirname, db_plugin_register);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't load plugin subsystem.\n");
                 return -1;
         }
-        
+
         return 0;
 }
 

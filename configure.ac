@@ -255,10 +255,10 @@ AC_CHECK_FUNCS(gettimeofday select socket strdup strerror strstr)
 configdir=$sysconfdir/prelude
 prelude_manager_conf=$configdir/prelude-manager.conf
 plugindir=$libdir/prelude
-detect_plugin_dir=$plugindir/detects/
 report_plugin_dir=$plugindir/reports/
 decode_plugin_dir=$plugindir/decodes/
-protocol_plugin_dir=$plugindir/protocols/
+db_plugin_dir=$plugindir/db/
+
 
 AC_DEFINE_UNQUOTED(PRELUDE_MANAGER_CONF, "$prelude_manager_conf")
 
@@ -268,6 +268,7 @@ AC_SUBST(localstatedir)
 AC_SUBST(prelude_manager_conf)
 AC_SUBST(report_plugin_dir)
 AC_SUBST(decode_plugin_dir)
+AC_SUBST(db_plugin_dir)
 AC_SUBST(LIBWRAP_LIBS)
 AC_SUBST(COMMON_LIBS)
 AC_SUBST(PRELUDE_LIBS)
@@ -287,6 +288,9 @@ src/Makefile
 src/include/Makefile
 
 plugins/Makefile
+
+plugins/databases/Makefile
+
 plugins/decodes/Makefile
 plugins/decodes/prelude-nids/Makefile
 
@@ -298,6 +302,7 @@ plugins/reports/mysql/Makefile
 dnl **** TODO add the following lines in above section ****
 dnl docs/Makefile
 dnl docs/api/Makefile
+
 dnl plugins/execmod/Makefile
 dnl plugins/filemod/Makefile
 dnl plugins/htmlmod/Makefile

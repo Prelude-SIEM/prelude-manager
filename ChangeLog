@@ -1,3 +1,15 @@
+2001-12-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/Makefile.am (-DDB_PLUGIN_DIR): 
+	* src/db-plugins.c :
+	New interface for database plugins.
+
+	* src/report-plugins.c: Don't be affraid if there is no reporting
+	plugins loaded. It can be normal now that there is Manager relaying
+	and database plugin (and counter measure plugin to come).
+
+	* src/prelude-manager.c (main): Initialize db plugins.
+
 2001-12-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/idmef-func.c (idmef_additional_data_free): add

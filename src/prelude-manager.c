@@ -42,6 +42,7 @@
 #include "server.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
+#include "plugin-db.h"
 
 
 extern struct report_config config;
@@ -94,6 +95,8 @@ int main(int argc, char **argv)
         do_init(report_plugins_init(REPORT_PLUGIN_DIR),
                 "Initializing report plugins");
 
+        do_init(db_plugins_init(DB_PLUGIN_DIR),
+                "Initializing database plugins");
         
         do_init_nofail(decode_plugins_init(DECODE_PLUGIN_DIR),
                        "Initializing decode plugins.");

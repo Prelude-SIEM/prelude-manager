@@ -7,6 +7,7 @@ noinst_HEADERS = 		\
 	idmef-message-read.h
 
 include_HEADERS = 			\
+		plugin-db.h		\
 		plugin-decode.h		\
 		plugin-report.h		\
 		report.h		\
