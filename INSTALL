@@ -1,3 +1,72 @@
+How to install the Prelude Manager
+==================================
+
+1. Prelude Library installation
+
+The Prelude Manager use the API provide by the Prelude Library to
+communication with the sensors. If you wish to use OpenSSL with, 
+the Prelude Manager, the library should be compiled with OpenSSL 
+support.
+
+
+
+2. OpenSSL installation
+
+The Prelude Manager can communicate with sensor using OpenSSL or plaintext 
+authentication.
+
+If you plan on using Prelude in a distributed environment (Prelude Manager
+and Prelude sensors not on the same machine), you may want to use OpenSSL 
+for communication for obvious security reason.
+
+In case OpenSSL is not installed, the Prelude Manager will be built 
+without SSL support.
+
+
+
+
+3. Prelude Manager installation
+
+If you don't want to build the Prelude Manager yourself, you can get 
+prebuild rpm and debian packages at http://www.prelude-ids.org.
+
+If you want to build the Prelude Manager, unpack the tarball and cd 
+into the newly created directory. Then type :
+
+	./configure
+	make
+	
+If everything works, su to root and type:
+
+	make install
+
+
+
+4. Allowing sensor to communicate with the Prelude Manager
+
+Run the manager-adduser program and follow the instruction. This
+program will also generate the Prelude Manager private SSL key 
+when started the first time.
+
+
+5. Starting the Prelude Manager
+
+In order to start the Prelude Manager, su to root (or whatever
+user owning the $prefix/etc/prelude-manager directory) then Type:
+
+	prelude-manager
+
+This will start the Prelude Manager with default configuration. You
+have to know that no report plugin nor database plugin will be enabled.
+
+You may enable available plugin throught the command line, or the
+configuration file (located in $prefix/etc/prelude-manager/prelude-manager.conf)
+
+
+
+
+
+
 Basic Installation
 ==================
 
