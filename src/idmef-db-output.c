@@ -725,11 +725,11 @@ static int insert_analyzer(uint64_t parent_ident, char parent_type, idmef_analyz
         free(ostype);
         free(osversion);
         
-        ret = insert_node(parent_ident, analyzer->analyzerid, 'A', analyzer->node);
+        ret = insert_node(parent_ident, analyzer->analyzerid, parent_type, analyzer->node);
         if ( ret < 0 )
                 return -1;
         
-        ret = insert_process(parent_ident, analyzer->analyzerid, 'A', analyzer->process);
+        ret = insert_process(parent_ident, analyzer->analyzerid, parent_type, analyzer->process);
         if ( ret < 0 )
                 return -1;
 
