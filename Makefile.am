@@ -1,15 +1,13 @@
 SUBDIRS = manager-adduser src plugins docs
 
-preludeconfdir = $(configdir)
-preludeconf_DATA = prelude-manager.conf
-
-EXTRA_DIST = $(preludeconf_DATA) config.h \
-             AUTHORS COPYING INSTALL NEWS README \
+EXTRA_DIST = prelude-manager.conf config.h 		\
+             AUTHORS COPYING INSTALL NEWS README 	\
              ChangeLog
 
 install-data-local:
-	$(INSTALL) -d -m 700 /var/spool/prelude-manager
-
+	$(INSTALL) -d -m 700 $(configdir);
+	$(INSTALL) -d -m 700 /var/spool/prelude-manager;
+	$(INSTALL) -m 600 $(top_srcdir)/prelude-manager.conf $(configdir)/;
 
 
 

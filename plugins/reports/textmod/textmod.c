@@ -642,12 +642,13 @@ static int set_textmod_state(const char *arg)
 {
         int ret;
         
-        if ( enabled == 1 ) {   
+        if ( enabled == 1 ) {
                 ret = plugin_unsubscribe((plugin_generic_t *) &plugin);
                 if ( ret < 0 )
                         return prelude_option_error;
                 enabled = 0;
         } else {
+                
                 /*
                  * prelude-getopt call callback for sub-option first,
                  * so we have a way to handle dependancy.

@@ -44,6 +44,7 @@
 #include "ssl-register-client.h"
 
 
+
 /*
  * Generate a configuration message containing
  * the kind of connection the Manager support.
@@ -66,11 +67,19 @@ static prelude_msg_t *generate_config_message(void)
 
 
 
-static int is_already_existing(const char *user) 
+static int is_already_existing(const char *user, const char *pass) 
 {
+        int ret;
         char *userp, *passp;
 
-        return prelude_auth_read_entry(MANAGER_AUTH_FILE, user, &userp, &passp);
+        ret = prelude_auth_read_entry(MANAGER_AUTH_FILE, user, pass, &userp, &passp);
+        if ( ret < 0 )
+                return ret;
+        
+        free(userp);
+        free(passp);
+        
+        return ret;
 }
 
 
@@ -125,23 +134,34 @@ static int handle_plaintext_account_creation(prelude_io_t *fd, prelude_msg_t *ms
                 return -1;
         }
 
-        ret = is_already_existing(user);
-        if ( ret == 0 ) {
-                fprintf(stderr, "user %s already exist: failed.\n", user);
+        ret = is_already_existing(user, pass);
+        if ( ret == -1 ) {
+                fprintf(stderr, "generic auth error.\n");
+                return -1;
+        }
+        
+        if ( ret == password_does_not_match ) {
+                fprintf(stderr, "user %s already exist with a different password: failed.\n", user);
                 send_plaintext_creation_result(fd, PRELUDE_MSG_AUTH_EXIST);
                 return -1;
         }
-        
-        ret = prelude_auth_create_account_noprompt(MANAGER_AUTH_FILE, user, pass, 1);
-        if ( ret < 0 ) {
-                fprintf(stderr, "error creating new plaintext user account.\n");
-                send_plaintext_creation_result(fd, PRELUDE_MSG_AUTH_FAILED);
-                return -1;
+
+        else if ( ret == user_does_not_exist ) {
+                ret = prelude_auth_create_account_noprompt(MANAGER_AUTH_FILE, user, pass, 1);
+                if ( ret < 0 ) {
+                        fprintf(stderr, "error creating new plaintext user account.\n");
+                        send_plaintext_creation_result(fd, PRELUDE_MSG_AUTH_FAILED);
+                        return -1;
+                }
+
+                fprintf(stderr, "successfully created user %s.\n", user);
         }
 
-        fprintf(stderr, "successfully created account.\n");
+        else
+                fprintf(stderr, "using already existing user: %s.\n", user);
         
         send_plaintext_creation_result(fd, PRELUDE_MSG_AUTH_SUCCEED);
+
         return 0;
 }
 
@@ -297,13 +317,13 @@ static int wait_connection(void)
 		return -1;
 	}
 
-        fprintf(stderr, "waiting for install request from Prelude ...\n");
+        fprintf(stderr, "waiting for install request from Prelude sensors...\n");
         
         len = sizeof(struct sockaddr_in);
         ret = accept(sock, (struct sockaddr *) &sa_client, &len);
         close(sock);
 
-        fprintf(stderr, "Connection from %s.\n", inet_ntoa(sa_client.sin_addr));
+        fprintf(stderr, "\nConnection from %s.\n", inet_ntoa(sa_client.sin_addr));
         
         return ret;
 }

@@ -1,4 +1,17 @@
+2002-02-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* manager-adduser/manager-adduser.c (handle_plaintext_account_creation): 
+	(is_already_existing): fit latest prelude-auth change.
+
+	* Makefile.am: install prelude-manager.conf with mode 600
+	cause it can contain database password.
+
+	* manager-adduser/manager-adduser.c (is_already_existing): 
+	do not fail if the same user and pass already exist.
+
+
 2002-02-07  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+
 	* plugins/decodes/prelude-nids/packet-decode.c: 
 	fixed LIST_HEAD warning on FreeBSD
 
