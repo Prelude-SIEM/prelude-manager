@@ -58,7 +58,7 @@ static int do_ssl_accept(SSL *ssl)
                          * we need more data.
                          */
                         return 0;
-                
+
                 ERR_print_errors_fp(stderr);
                 return -1;
         }

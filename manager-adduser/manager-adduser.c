@@ -263,7 +263,7 @@ static int wait_connection(void)
         int sock, ret, on = 1;
         struct sockaddr_in sa_server, sa_client;
         
-	sock = socket(AF_INET, SOCK_STREAM, 0);
+	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (sock < 0) {
 		perror("socket");
 		return EXIT_FAILURE;
@@ -272,7 +272,7 @@ static int wait_connection(void)
 	memset(&sa_server, '\0', sizeof(sa_server));
 	sa_server.sin_family = AF_INET;
 	sa_server.sin_addr.s_addr = INADDR_ANY;
-	sa_server.sin_port = htons(5554);
+	sa_server.sin_port = htons(5553);
 
         ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
@@ -283,13 +283,13 @@ static int wait_connection(void)
 	ret = bind(sock, (struct sockaddr *) &sa_server, sizeof(sa_server));
 	if ( ret < 0 ) {
 		perror("bind");
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	ret = listen(sock, 5);
 	if ( ret < 0 ) {
 		perror("listen");
-		return EXIT_FAILURE;
+		return -1;
 	}
 
         fprintf(stderr, "waiting for install request from Prelude ...\n");
@@ -313,6 +313,9 @@ int main(void)
         prelude_io_t *fd;
         prelude_msg_t *config;
 
+#ifdef HAVE_SSL
+        ssl_create_manager_key_if_needed();
+#endif
         fprintf(stderr, "\n\n");
         
         generate_one_shot_password(buf, sizeof(buf));

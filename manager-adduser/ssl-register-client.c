@@ -92,7 +92,7 @@ static int wait_install_request(prelude_io_t *pio,
         int len, certlen, ret;
 	char cert[BUFMAXSIZE];
         
-        certlen = prelude_ssl_recv_cert(pio, cert, BUFMAXSIZE, skey1, skey2);
+        certlen = prelude_ssl_recv_cert(pio, cert, sizeof(cert), skey1, skey2);
         if ( certlen < 0 ) {
                 log(LOG_ERR, "couldn't receive Manager certificate.\n");
                 goto err;
@@ -202,9 +202,6 @@ int ssl_register_client(prelude_io_t *fd, char *pass, size_t size)
         des_cblock pre1, pre2;
 	des_key_schedule skey1, skey2;
         
-        if ( create_manager_key_if_needed() < 0 )
-                return -1;
-        
         des_string_to_2keys(pass, &pre1, &pre2);
         memset(pass, 0, size);
         
@@ -220,6 +217,17 @@ int ssl_register_client(prelude_io_t *fd, char *pass, size_t size)
                 
         return wait_install_request(fd, &skey1, &skey2);
 }
+
+
+
+int ssl_create_manager_key_if_needed(void) 
+{
+        if ( create_manager_key_if_needed() < 0 )
+                return -1;
+
+        return 0;
+}
+
 
 
 #endif
