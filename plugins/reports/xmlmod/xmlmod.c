@@ -71,7 +71,7 @@ static void idmef_attr_uint64(xmlNodePtr node, const char *attr, uint64_t ident)
         if ( ! ident )
                 return;
         
-        snprintf(buf, sizeof(buf), "%llu", ident);
+        snprintf(buf, sizeof(buf), "%" PRIu64, ident);
         xmlSetProp(node, attr, buf);
 }
 
@@ -733,7 +733,7 @@ static void process_heartbeat(xmlNodePtr idmefmsg, idmef_heartbeat_t *heartbeat)
         if ( ! hb )
                 return;
         
-        snprintf(buf, sizeof(buf), "%llu", idmef_heartbeat_get_ident(heartbeat));
+        snprintf(buf, sizeof(buf), "%" PRIu64, idmef_heartbeat_get_ident(heartbeat));
         xmlSetProp(hb, "ident", buf);
         
         process_analyzer(hb, idmef_heartbeat_get_analyzer(heartbeat));

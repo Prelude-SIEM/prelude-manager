@@ -474,7 +474,7 @@ static void process_analyzer(textmod_plugin_t *plugin, idmef_analyzer_t *analyze
                 return;
         
         if ( idmef_analyzer_get_analyzerid(analyzer) )
-                print(plugin, 0, "* Analyzer ID: %llu\n", idmef_analyzer_get_analyzerid(analyzer));
+                print(plugin, 0, "* Analyzer ID: %" PRIu64 "\n", idmef_analyzer_get_analyzerid(analyzer));
         
         if ( idmef_string(idmef_analyzer_get_model(analyzer)) )
                 print(plugin, 0, "* Analyzer model: %s\n", idmef_string(idmef_analyzer_get_model(analyzer)));
@@ -642,7 +642,7 @@ static void process_alert(textmod_plugin_t *plugin, idmef_alert_t *alert)
                 return;
         
         print(plugin, 0, "********************************************************************************\n");
-        print(plugin, 0, "* Alert: ident=%llu\n", idmef_alert_get_ident(alert));
+        print(plugin, 0, "* Alert: ident=%" PRIu64 "\n", idmef_alert_get_ident(alert));
 
 	classification = NULL;
 	while ( (classification = idmef_alert_get_next_classification(alert, classification)) ) {
@@ -708,7 +708,7 @@ static void process_heartbeat(textmod_plugin_t *plugin, idmef_heartbeat_t *heart
                 return;
         
         print(plugin, 0, "********************************************************************************\n");
-        print(plugin, 0, "* Heartbeat: ident=%llu\n", idmef_heartbeat_get_ident(heartbeat));
+        print(plugin, 0, "* Heartbeat: ident=%" PRIu64 "\n", idmef_heartbeat_get_ident(heartbeat));
         
         process_analyzer(plugin, idmef_heartbeat_get_analyzer(heartbeat));
         process_time(plugin, "* Creation time", idmef_heartbeat_get_create_time(heartbeat));
