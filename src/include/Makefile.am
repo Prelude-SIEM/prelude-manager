@@ -1,14 +1,17 @@
-noinst_HEADERS = 		\
-	pconfig.h		\
-	ssl.h 			\
-	ntp.h			\
-	server-logic.h		\
-	server-generic.h	\
-	sensor-server.h		\
-	admin-server.h		\
-	idmef-message-scheduler.h \
-	idmef-message-read.h	\
-	idmef-db-output.h	\
+includedir = $(prefix)/include/prelude-manager
+
+
+noinst_HEADERS = 			\
+	pconfig.h			\
+	ssl.h 				\
+	ntp.h				\
+	server-logic.h			\
+	server-generic.h		\
+	sensor-server.h			\
+	admin-server.h			\
+	idmef-message-scheduler.h 	\
+	idmef-message-read.h		\
+	idmef-db-output.h		\
 	auth.h
 
 include_HEADERS = 			\

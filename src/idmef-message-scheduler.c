@@ -52,8 +52,8 @@
 
 #define MAX_MESSAGE_IN_MEMORY 200
 
-#define MID_PRIORITY_MESSAGE_FILENAME "/var/lib/prelude/mid-priority-fifo"
-#define LOW_PRIORITY_MESSAGE_FILENAME "/var/lib/prelude/low-priority-fifo"
+#define MID_PRIORITY_MESSAGE_FILENAME "/var/spool/prelude-manager/mid-priority-fifo"
+#define LOW_PRIORITY_MESSAGE_FILENAME "/var/spool/prelude-manager/low-priority-fifo"
 
 
 typedef struct {

@@ -187,10 +187,12 @@ static int read_ident_message(sensor_cnx_t *cnx, prelude_msg_t *msg)
                 
         case PRELUDE_MSG_ID_DECLARE:
                 ret = handle_declare_ident(cnx, buf, dlen);
-
+                break;
+                
         case PRELUDE_MSG_ID_REQUEST:
                 ret = handle_request_ident(cnx);
-
+                break;
+                
         default:
                 log(LOG_ERR, "Unknow ID tag: %d.\n", tag);
                 ret = -1;

@@ -43,6 +43,9 @@
 #include "ssl.h"
 
 
+#define RELAY_BACKUP_FILE "/var/spool/prelude-manager/relay"
+
+
 struct report_config config;
 prelude_client_mgr_t *relay_managers = NULL;
 
@@ -77,7 +80,7 @@ static int set_pidfile(const char *arg)
 
 static int set_relay_manager(const char *arg) 
 {
-        relay_managers = prelude_client_mgr_new("relay", arg);
+        relay_managers = prelude_client_mgr_new(arg, RELAY_BACKUP_DIR);
         if ( ! relay_managers )
                 return prelude_option_error;
 
@@ -178,18 +181,3 @@ void manager_relay_msg_if_needed(prelude_msg_t *msg)
         if ( relay_managers )
                 prelude_client_mgr_broadcast(relay_managers, msg);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
