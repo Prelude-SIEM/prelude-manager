@@ -43,12 +43,10 @@
 #include "manager-auth.h"
 
 
-#define DH_BITS 1024
-
-
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 
+static int dh_bits = 0;
 static gnutls_dh_params dh_params;
 static gnutls_certificate_credentials cred;
 
@@ -82,6 +80,7 @@ static int handle_gnutls_error(gnutls_session session, server_generic_client_t *
 static int verify_certificate(server_generic_client_t *client, gnutls_session session)
 {
 	int ret;
+        time_t now;
         
 	ret = gnutls_certificate_verify_peers(session);
 	if ( ret < 0 ) {
@@ -90,28 +89,45 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
         }
         
 	if ( ret == GNUTLS_E_NO_CERTIFICATE_FOUND ) {
-		server_generic_log_client(client, "TLS certificate error: client did not send any certificate.\n");
-		return -1;
+		server_generic_log_client(client, "TLS authentication error: client did not send any certificate.\n");
+                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_SSL3_NO_CERTIFICATE);
+                return -1;
 	}
 
         if ( ret & GNUTLS_CERT_SIGNER_NOT_FOUND) {
-		server_generic_log_client(client, "TLS certificate error: client certificate issuer is unknown.\n");
+		server_generic_log_client(client, "TLS authentication error: client certificate issuer is unknown.\n");
+                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_UNKNOWN_CA);
                 return -1;
         }
         
         if ( ret & GNUTLS_CERT_INVALID ) {
-                server_generic_log_client(client, "TLS certificate error: client certificate is NOT trusted.\n");
+                server_generic_log_client(client, "TLS authentication error: client certificate is NOT trusted.\n");
+                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_BAD_CERTIFICATE);
                 return -1;
         }
 
-        server_generic_log_client(client, "TLS certificate: client certificate is trusted.\n");
+        now = time(NULL);
+        
+        if ( gnutls_certificate_activation_time_peers(session) > now ) {
+                server_generic_log_client(client, "TLS authentication error: client certificate not yet activated.\n");
+                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_BAD_CERTIFICATE);
+                return -1;
+        }        
+
+        if ( gnutls_certificate_expiration_time_peers(session) < now ) {
+                server_generic_log_client(client, "TLS authentication error: client certificate expired.\n");
+                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_EXPIRED);
+                return -1;
+        }
+        
+        server_generic_log_client(client, "TLS authentication succeed: client certificate is trusted.\n");
 
         return 0;
 }
 
 
 
-int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, int crypt)
+int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
 {
         int ret;
         gnutls_session session;
@@ -129,7 +145,7 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, int 
 
                 gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, cred);
                 gnutls_certificate_server_set_request(session, GNUTLS_CERT_REQUEST);
-                gnutls_dh_set_prime_bits(session, DH_BITS);
+                gnutls_dh_set_prime_bits(session, dh_bits);
 
                 gnutls_transport_set_ptr(session, (gnutls_transport_ptr) fd);
                 prelude_io_set_tls_io(pio, session);
@@ -141,7 +157,7 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, int 
         
         if ( ret < 0 )
                 return handle_gnutls_error(session, client, ret);
-                
+        
         ret = verify_certificate(client, session);
         if ( ret < 0 )
                 return -1;
@@ -176,22 +192,43 @@ int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_
 
 int manager_auth_init(prelude_client_t *client)
 {
-        char buf[256];
+        int line = 0;
+        config_t *cfg;
+        char keyfile[256], certfile[256], *ptr;
+
+        cfg = config_open(PRELUDE_CONFIG_DIR "/tls/tls.conf");
+        if ( ! cfg ) {
+                log(LOG_ERR, "couldn't open %s.\n", PRELUDE_CONFIG_DIR "/tls/tls.conf");
+                return -1;
+        }
+
+        ptr = config_get(cfg, NULL, "generated-key-size", &line);
+        if ( ! ptr ) {
+                log(LOG_ERR, "couldn't find generated-key-size parameter in cfgfile.\n");
+                return -1;
+        }
+
+        dh_bits = atoi(ptr);
+        config_close(cfg);
         
         gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
         gnutls_global_init();
         
         gnutls_certificate_allocate_credentials(&cred);
-        prelude_client_get_tls_key_filename(client, buf, sizeof(buf));
-        
-        gnutls_certificate_set_x509_key_file(cred, buf, buf, GNUTLS_X509_FMT_PEM);
-        gnutls_certificate_set_x509_trust_file(cred, buf, GNUTLS_X509_FMT_PEM);
-        
+
+        prelude_client_get_tls_key_filename(client, keyfile, sizeof(keyfile));
+        prelude_client_get_tls_server_keycert_filename(client, certfile, sizeof(certfile));
+
+        gnutls_certificate_set_x509_key_file(cred, certfile, keyfile, GNUTLS_X509_FMT_PEM);
+
+        prelude_client_get_tls_server_ca_cert_filename(client, certfile, sizeof(certfile));
+        gnutls_certificate_set_x509_trust_file(cred, certfile, GNUTLS_X509_FMT_PEM);
+                
         gnutls_dh_params_init(&dh_params);
         
-        log(LOG_INFO, "- Generating %d bits Diffie-Hellman key for TLS...\n", DH_BITS);
-                
-        gnutls_dh_params_generate2(dh_params, DH_BITS);
+        log(LOG_INFO, "- Generating %d bits Diffie-Hellman key for TLS...\n", dh_bits);
+        
+        gnutls_dh_params_generate2(dh_params, dh_bits);
         gnutls_certificate_set_dh_params(cred, dh_params);
         
 	return 0;

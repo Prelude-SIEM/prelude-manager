@@ -52,7 +52,8 @@ libprelude_prefix=`$LIBPRELUDE_CONFIG --prefix`
 AC_SUBST(libprelude_prefix)
 
 pthread_cflags=`$LIBPRELUDE_CONFIG --pthread-cflags`
-defined="$defined $LIBPRELUDE_CFLAGS $pthread_cflags"
+prelude_config_prefix=`$LIBPRELUDE_CONFIG --prelude-config-prefix`
+defined="$defined $LIBPRELUDE_CFLAGS $pthread_cflags -DPRELUDE_CONFIG_DIR=\\\"$prelude_config_prefix\\\""
 
 
 

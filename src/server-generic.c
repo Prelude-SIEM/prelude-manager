@@ -95,7 +95,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
         int ret;
 
         if ( ! (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ) {
-                ret = manager_auth_client(client, client->fd, 0);
+                ret = manager_auth_client(client, client->fd);
                 if ( ret == 0 )
                         return ret;
                 
@@ -103,8 +103,6 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                         server_generic_log_client(client, "TLS authentication failed.\n");
                         return ret;
                 }
-
-                server_generic_log_client(client, "TLS authentication succeeded.\n");
                 
                 client->state |= SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED;
         }
@@ -297,10 +295,9 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
                 return -1;
         }
         
-        if ( server->sa->sa_family == AF_UNIX ) {
-                printf("family is UNIX\n");
+        if ( server->sa->sa_family == AF_UNIX ) 
                 cdata->addr = strdup("unix");
-        } else {         
+        else {         
                 void *in_addr;
                 char out[128];
                 const char *str;

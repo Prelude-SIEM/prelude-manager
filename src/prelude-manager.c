@@ -86,7 +86,7 @@ static void init_manager_server(void)
         
         ret = manager_auth_init(manager_client);
 	if ( ret < 0 )
-                return;
+                exit(1);
         
         sensor_server = sensor_server_new(config.addr, config.port);
         if ( ! sensor_server ) {
