@@ -269,7 +269,7 @@ int ssl_register_client(void)
         if (! pio )
                 return -1;
 
-        prelude_io_set_socket_io(pio, sock);
+        prelude_io_set_sys_io(pio, sock);
         
         return wait_install_request(pio, &skey1, &skey2);
 }

@@ -25,7 +25,7 @@ typedef struct {
 } sensor_cnx_t;
 
 
-
+static server_generic_t *server;
 static LIST_HEAD(sensor_cnx_list);
 static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -136,15 +136,24 @@ static int optlist_to_xml(prelude_msg_t *msg)
 static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata) 
 {
         int ret;
+        prelude_msg_status_t status;
         sensor_cnx_t *cnx = *clientdata;
         
-        ret = prelude_msg_read(&cnx->msg, src);
-        if ( ret < 0 ) 
-                return -1; /* an error occured */
-        
-        if ( ret == 0 )
-                return 0;  /* message not fully read yet */
-                
+        status = prelude_msg_read(&cnx->msg, src);
+
+        if ( status == prelude_msg_eof || status == prelude_msg_error ) {
+                /*
+                 * end of file on read
+                 */
+                return -1;
+        }
+
+        else if ( status == prelude_msg_unfinished )
+                /*
+                 * We don't have the whole message yet
+                 */
+                return 0;
+                        
         /*
          * If we get there, we have a whole message.
          */
@@ -159,6 +168,11 @@ static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata)
                 if ( ret < 0 )
                         return -1;
                 break;
+
+        default:
+                log(LOG_ERR, "Unknow message id %d\n", prelude_msg_get_tag(cnx->msg));
+                prelude_msg_destroy(cnx->msg);
+                return -1;
         }
         
         cnx->msg = NULL;
@@ -214,11 +228,16 @@ static int accept_connection_cb(prelude_io_t *cfd, void **cdata)
 
 
 
-
-int sensor_server_start(const char *addr, uint16_t port) 
+int sensor_server_new(const char *addr, uint16_t port) 
 {
         int ret;
-        server_generic_t *new;
+                
+        server = server_generic_new(addr, port, accept_connection_cb,
+                                 read_connection_cb, close_connection_cb);
+        if ( ! server ) {
+                log(LOG_ERR, "error creating a generic server.\n");
+                return -1;
+        }
         
         ret = idmef_message_scheduler_init();
         if ( ret < 0 ) {
@@ -226,16 +245,14 @@ int sensor_server_start(const char *addr, uint16_t port)
                 return -1;
         }
         
-        new = server_generic_new(addr, port, accept_connection_cb,
-                                 read_connection_cb, close_connection_cb);
-        if ( ! new ) {
-                log(LOG_ERR, "error creating a generic server.\n");
-                return -1;
-        }
-        
-        server_generic_start(new); /* Never return */
+        return 0;
+}
 
-        return 0; /* avoid warning */
+
+
+void sensor_server_start(void) 
+{    
+        server_generic_start(server); /* Never return */
 }
 
 

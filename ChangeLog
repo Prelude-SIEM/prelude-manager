@@ -1,4 +1,30 @@
+2001-12-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-manager.c (cleanup): does an exit() so that
+	buffered IO can be flushed.
+
+	* manager-adduser/ssl-register-client.c (ssl_register_client): 
+	fit prelude_io API change.
+
+2001-12-27  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/prelude-manager.c (main): Use sensor_server_new()
+	/ admin_server_new() to setup server. 
+
+	* src/idmef-message-scheduler.c: completly rew-worked.
+	low / mid priority now work.
+
+	* src/idmef-func.c (free_alert): handle the case where
+	passed alert is NULL. Which can happen on bad message.
+
+	(free_heartbeat): handle the case where passed heartbeat is
+	NULL. Which can happen on bad message.
+
 2001-12-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/sensor-server.c (sensor_server_new): 
+	* src/admin-server.c (admin_server_new): 
+	move server initialisation here.
 
 	* src/idmef-db-output.c (insert_snmp_service): 
 	(insert_web_service): 

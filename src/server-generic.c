@@ -234,7 +234,7 @@ static prelude_io_t *setup_inet_connection(int sock, struct sockaddr_in *addr)
         if ( ! pio )
                 return NULL;
 
-        prelude_io_set_socket_io(pio, sock);
+        prelude_io_set_sys_io(pio, sock);
         
         ret = setup_connection(pio, from);
         if ( ret < 0  ) {
@@ -264,7 +264,7 @@ static prelude_io_t *setup_unix_connection(int sock, struct sockaddr_un *addr)
         if ( ! pio )
                 return NULL;
 
-        prelude_io_set_socket_io(pio, sock);
+        prelude_io_set_sys_io(pio, sock);
         
         ret = handle_normal_connection(pio, "unix");
         if ( ret < 0 ) {
@@ -471,7 +471,7 @@ static int inet_server_start(server_generic_t *server, const char *saddr, uint16
         addr->sin_family = AF_INET;
         addr->sin_port = htons(port);
         addr->sin_addr.s_addr = inet_addr(saddr);
-        
+
         ret = setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't set SO_REUSEADDR socket option.\n");
@@ -495,7 +495,7 @@ static int inet_server_start(server_generic_t *server, const char *saddr, uint16
 #endif
 
         server->addr = (struct sockaddr *) addr;
-        
+
         return 0;
 
  err:

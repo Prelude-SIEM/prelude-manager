@@ -78,25 +78,15 @@ static void cleanup(int sig)
         if ( config.pidfile )
                 unlink(config.pidfile);
 
-        /*
-         * We resend the signal we just caught,
-         * this time, it is directly handled
-         * by the kernel.
-         */
-        raise(sig);
+        exit(0);
 }
 
 
 
 
-static void *admin_server_thread(void *arg) 
+static void *start_admin_server(void *arg)
 {
-        int ret;
-        
-        ret = admin_server_start(config.admin_server_addr, config.admin_server_port);
-        if ( ret < 0 ) 
-                log(LOG_ERR, "couldn't create admin server.\n");
-
+        admin_server_start();
         pthread_exit(0);
 }
 
@@ -135,11 +125,15 @@ int main(int argc, char **argv)
                 do_init(daemon_start(config.pidfile),
                         "Starting Prelude Report as a daemon.");
 
-        do_init(pthread_create(&admin_server_thr, NULL,
-                               admin_server_thread, NULL), "Starting Administration server");
+        do_init(admin_server_new(config.admin_server_addr, config.admin_server_port),
+                "Starting Administration server");
         
-        log(LOG_INFO, "Starting Prelude Manager server.\n");
-        sensor_server_start(config.addr, config.port); /* never return */
+        do_init(sensor_server_new(config.addr, config.port),
+                "Starting Sensors server");
+
+        pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
+        
+        sensor_server_start(); /* never return */
 
 	exit(0);	
 }

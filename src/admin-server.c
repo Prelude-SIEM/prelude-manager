@@ -168,8 +168,7 @@ static int accept_connection_cb(prelude_io_t *fd, void **cdata)
 
 
 
-
-int admin_server_start(const char *addr, uint16_t port) 
+int admin_server_new(const char *addr, uint16_t port) 
 {
         server = server_generic_new(addr, port, accept_connection_cb,
                                     read_connection_cb, close_connection_cb);
@@ -177,10 +176,16 @@ int admin_server_start(const char *addr, uint16_t port)
                 log(LOG_ERR, "error creating a generic server.\n");
                 return -1;
         }
-        
-        server_generic_start(server); /* Never return */
 
-        return 0; /* avoid warning */
+        return 0;
+}
+
+
+
+
+void admin_server_start(void) 
+{        
+        server_generic_start(server); /* Never return */
 }
 
 
