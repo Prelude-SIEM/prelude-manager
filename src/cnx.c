@@ -33,16 +33,16 @@
 #include <libprelude/list.h>
 #include <libprelude/socket-op.h>
 #include <libprelude/plugin-common.h>
-#include <libprelude/alert.h>
-#include <libprelude/alert-common.h>
+#include <libprelude/alert-read.h>
 #include <libprelude/common.h>
 #include <libprelude/config-engine.h>
 
+#include <libxml/parser.h>
+
 #include "auth.h"
 #include "cnx.h"
-#include "pconfig.h"
 #include "ssl.h"
-#include "report-infos.h"
+#include "pconfig.h"
 #include "plugin-decode.h"
 
 
@@ -52,62 +52,40 @@ extern struct report_config config;
 
 
 
-static int flush_unknow_data(int fd, int dlen, ssize_t (*my_read)(int fd, void *data, size_t size)) 
-{
-        int ret;
-        char buf[dlen];
-        
-        while ( dlen ) {
-
-                ret = my_read(fd, buf, dlen);
-                if ( ret < 0 ) {
-                        if ( errno == EINTR )
-                                continue;
-
-                        return -1;
-                }
-
-                if ( ret == 0 )
-                        return -1;
-
-                dlen -= ret;
-        }
-
-        return 0;
-}
-
-
-
-
 /*
  *
  */
 static int wait_raw_report(int socket) 
 {
-        int ret;
-        alert_t alert;
-        report_infos_t rinfos;
-        plugin_generic_t plugin;
+        uint8_t tag;
+        xmlNodePtr idmef_msg;
+        alert_container_t *ac;
 
-        alert_plugin(&alert) = &plugin;
         
-        while ( 1 ) {            
-                ret = alert_read(socket, &alert, my_read);
-                if ( ret <= 0 )
-                        return ret;
+        while ( 1 ) {
 
-                if ( alert.sensor_data_id != ID_NO_DATA ) {
-                        ret = decode_plugins_run(socket, &alert);
-                        if ( ret < 0 )
-                                flush_unknow_data(socket, alert.sensor_data_len, my_read);
-                }
+                ac = prelude_alert_read(socket, &tag);
+                if ( ! ac )
+                        return -1;
                 
+                idmef_msg = decode_plugins_run(ac, tag);
+#if 0
+                if ( ! idmef_msg ) {
+                        free(ac);
+                        return -1;
+                }
+#endif
+                /*
+                 * Commented out report infos call / report plugins
+                 * call, as with the protocol change, we now need to
+                 * modify the plugin to get IDMEF messages.
+                 */
+#if 0
                 report_infos_get(&alert, &rinfos);
                 report_plugins_run(&alert, &rinfos);
                 report_infos_free(&rinfos);
-                
-                alert_free(&alert, 1);
-
+#endif           
+                free(ac);
         }
 
         return 0;

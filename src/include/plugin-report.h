@@ -26,19 +26,26 @@
 
 typedef struct {
         PLUGIN_GENERIC;
-        void (*run)(alert_t *alert, report_infos_t *rinfos);
+        void (*run)(xmlNodePtr idmef_msg);
         void (*close)(void);
 } plugin_report_t;
 
 #define plugin_run_func(p) (p)->run
+
 #define plugin_close_func(p) (p)->close
 
 #define plugin_set_running_func(p, f) plugin_run_func(p) = (f)
+
 #define plugin_set_closing_func(p, f) plugin_close_func(p) = (f)
 
+
+
 int report_plugins_init(const char *dirname);
-void report_plugins_run(alert_t *alert, report_infos_t *rinfos);
+
+void report_plugins_run(xmlNodePtr idmef_msg);
+
 void report_plugins_close(void);
+
 int plugin_init(unsigned int id);
 
 #endif

@@ -21,5 +21,4 @@ prelude_report_SOURCES =			\
 			server.c		\
 			ssl-register-client.c	\
 			ssl.c			\
-			decode-plugins.c	\
-			report-infos.c
+			decode-plugins.c	

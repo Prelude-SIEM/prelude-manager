@@ -34,8 +34,9 @@
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>
-#include <libprelude/alert.h>
-#include "report-infos.h"
+
+#include <libxml/parser.h>
+
 #include "plugin-report.h"
 
 
@@ -57,14 +58,14 @@ static int report_plugin_register(plugin_container_t *pc)
 /*
  * Start all plugins of kind 'list'.
  */
-void report_plugins_run(alert_t *alert, report_infos_t *rinfos)
+void report_plugins_run(xmlNodePtr idmef_msg)
 {
         struct list_head *tmp;
         plugin_container_t *pc;
 
         list_for_each(tmp, &report_plugins_list) {
                 pc = list_entry(tmp, plugin_container_t, ext_list);
-                plugin_run(pc, plugin_report_t, alert, rinfos);
+                plugin_run(pc, plugin_report_t, idmef_msg);
         }
 }
 

@@ -28,7 +28,9 @@
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>
-#include <libprelude/alert.h>
+#include <libprelude/alert-read.h>
+
+#include <libxml/parser.h>
 
 #include "plugin-decode.h"
 
@@ -52,9 +54,9 @@ static int decode_plugin_register(plugin_container_t *pc)
 /*
  *
  */
-int decode_plugins_run(int sock, alert_t *alert) 
+xmlNodePtr decode_plugins_run(alert_container_t *ac, uint8_t tag) 
 {
-        int ret = -1;
+        xmlNodePtr idmef;
         plugin_decode_t *p;
         struct list_head *tmp;
         plugin_container_t *pc;
@@ -64,28 +66,23 @@ int decode_plugins_run(int sock, alert_t *alert)
                 pc = list_entry(tmp, plugin_container_t, ext_list);
                 p = (plugin_decode_t *) pc->plugin;
 
-                if ( p->decode_id != alert->sensor_data_id )
+                if ( p->decode_id != tag )
                         continue;
+
+                idmef = NULL;
                 
-                plugin_run_with_return_value(pc, &ret, plugin_decode_t, sock);
-                if ( ret < 0 ) {
+                plugin_run_with_return_value(pc, &idmef, plugin_decode_t, ac);
+                if ( ! idmef ) {
                         log(LOG_ERR, "%s couldn't decode sensor data.\n", p->name);
-                        return -1;
+                        return NULL;
                 }
 
-                if ( ret != alert->sensor_data_len ) {
-                        log(LOG_ERR, "decoded len (%d) doesn't match sensor data len (%d).\n",
-                            ret, alert->sensor_data_len);
-                        return -1;
-                }
-                
-
-                return ret;
+                return idmef;
         }
         
-        log(LOG_ERR, "No decode plugin for handling sensor id %d.\n", alert->sensor_data_id);
+        log(LOG_ERR, "No decode plugin for handling sensor id %d.\n", tag);
         
-        return -1;
+        return NULL;
 }
 
 

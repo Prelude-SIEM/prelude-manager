@@ -36,11 +36,11 @@
 #include <libprelude/daemonize.h>
 #include <libprelude/config-engine.h>
 
+#include <libxml/parser.h>
+
 #include "pconfig.h"
 #include "auth.h"
 #include "server.h"
-#include "report-infos.h"
-#include "plugin-report.h"
 #include "plugin-decode.h"
 
 
@@ -60,8 +60,9 @@ static void cleanup(int sig)
         /*
          *
          */
+#if 0
         report_plugins_close();
-
+#endif
         /*
          *
          */
@@ -88,10 +89,12 @@ int main(int argc, char **argv)
         
         if ( pconfig_init(argc, argv) < 0 )
                 exit(1);
-                
+
+#if 0
         do_init(report_plugins_init(REPORT_PLUGIN_DIR),
                 "Initializing report plugins");
-
+#endif
+        
         do_init_nofail(decode_plugins_init(DECODE_PLUGIN_DIR),
                        "Initializing decode plugins.");
         
@@ -110,9 +113,10 @@ int main(int argc, char **argv)
         ret = report_server_start();
         if ( ret == 0 )
                 report_server_close();
-         
+
+#if 0
         report_plugins_close();
-        
+#endif   
 	exit(ret);	
 }
 
