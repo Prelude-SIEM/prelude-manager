@@ -173,7 +173,7 @@ static void packet_to_idmef(idmef_alert_t *alert, packet_t *p)
 
 
 
-static void msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert) 
+static int msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert) 
 {
         void *buf;
         uint8_t tag;
@@ -186,7 +186,7 @@ static void msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert)
                 ret = prelude_msg_get(pmsg, &tag, &len, &buf);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "error decoding message.\n");
-                        return;
+                        return -1;
                 }
                 
                 if ( ret == 0 ) 
@@ -199,6 +199,8 @@ static void msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert)
         } while ( packet[i++].proto != p_end );
         
         packet_to_idmef(alert, packet);
+
+        return 0;
 }
 
 
@@ -271,7 +273,9 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert)
                         break;
 
                 case ID_PRELUDE_NIDS_PACKET:
-                        msg_to_packet(pmsg, alert);
+                        ret = msg_to_packet(pmsg, alert);
+                        if ( ret < 0 )
+                                return -1;
                         break;
 
                 default:

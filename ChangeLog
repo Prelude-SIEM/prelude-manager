@@ -1,3 +1,54 @@
+2001-11-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	Forwarding between Manager should work now.
+	
+	* src/pconfig.c (configure_relay): get the relaying entry.
+	(pconfig_init): call configure_relay().
+	(manager_relay_msg_if_needed): new public function. 
+	This have nothing to do here, and the content of this file 
+	might be moved to prelude-manager.c soon.
+
+	* src/prelude-manager.c (main): caught SIGTERM signal.
+
+	* src/alert-scheduler.c (process_message): new function.
+	(process_alert): call process_message(). Move all the processing
+	stuff into this new function.
+	
+	(process_message): call the message relaying function 
+	(manager_relay_msg_if_needed).
+
+	* plugins/reports/mysql/mysql.c (dprintf): 
+	(print_address): 
+	(print_node): 
+	(print_userid): 
+	(print_user): 
+	(print_process): 
+	(print_service): 
+	(print_source): 
+	(print_analyzer): 
+	(print_classification): Use the new dprintf macro to only
+	print field that are set. This still have to be replaced with
+	correct MySQL output.
+
+	* plugins/decodes/prelude-nids/decode.c (msg_to_packet): 
+	return -1 on error.
+	(nids_decode_run): check msg_to_packet return value.
+
+	* prelude-manager.conf.in : Add a commented exemple
+	about how to use Manager relaying using the new relay-addr
+	config entry.
+
+2001-11-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* prelude-manager.conf.in : remove SSL configuration stuff, 
+	as it is now asked in manager-adduser.
+
+2001-11-07  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/alert-scheduler.c (alert_scheduler_exit): 
+	made static.
+	(alert_scheduler_init): use atexit to call alert_scheduler_exit().
+
 2001-11-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/reports/mysql/mysql.c: use plugin configuration

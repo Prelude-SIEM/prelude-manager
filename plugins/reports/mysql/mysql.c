@@ -34,6 +34,10 @@
 #include "config.h"
 #include "report.h"
 
+/*
+ * Temporary hack.
+ */
+#define dprintf(comment, string) if ( string ) printf(comment, string)
 
 #define MAX_QUERY_LENGTH 8192
 
@@ -106,12 +110,12 @@ static int db_insert(char *table, char *fields, char *values)
 static void print_address(idmef_address_t *addr) 
 {
         printf("   Address information:\n");
-        printf("    - ident: %s\n", addr->ident);
-        printf("    - category: %d\n", addr->category);
-        printf("    - vlan-name: %s\n", addr->vlan_name);
-        printf("    - vlan-num: %d\n", addr->vlan_num);
-        printf("    - Address: %s\n", addr->address);
-        printf("    - Netmask: %s\n", addr->netmask);
+        dprintf("    - ident: %s\n", addr->ident);
+        dprintf("    - category: %d\n", addr->category);
+        dprintf("    - vlan-name: %s\n", addr->vlan_name);
+        dprintf("    - vlan-num: %d\n", addr->vlan_num);
+        dprintf("    - Address: %s\n", addr->address);
+        dprintf("    - Netmask: %s\n", addr->netmask);
 }
 
 
@@ -122,10 +126,10 @@ static void print_node(idmef_node_t *node)
         idmef_address_t *addr;
         
         printf("  Node information :\n");
-        printf("   - ident: %s\n", node->ident);
-        printf("   - category: %d\n", node->category);
-        printf("   - location: %s\n", node->location);
-        printf("   - name: %s\n", node->name);
+        dprintf("   - ident: %s\n", node->ident);
+        dprintf("   - category: %d\n", node->category);
+        dprintf("   - location: %s\n", node->location);
+        dprintf("   - name: %s\n", node->name);
 
         list_for_each(tmp, &node->address_list) {
                 addr = list_entry(tmp, idmef_address_t, list);
@@ -139,10 +143,10 @@ static void print_node(idmef_node_t *node)
 static void print_userid(idmef_userid_t *uid) 
 {
         printf(" Userid information\n");
-        printf("  - ident: %s\n", uid->ident);
-        printf("  - type: %d\n", uid->type);
-        printf("  - name: %s\n", uid->name);
-        printf("  - number: %s\n", uid->number);
+        dprintf("  - ident: %s\n", uid->ident);
+        dprintf("  - type: %d\n", uid->type);
+        dprintf("  - name: %s\n", uid->name);
+        dprintf("  - number: %s\n", uid->number);
 }
 
 
@@ -154,7 +158,7 @@ static void print_user(idmef_user_t *user)
         struct list_head *tmp;
 
         printf("  User information\n");
-        printf("   - ident: %s\n", user->ident);
+        dprintf("   - ident: %s\n", user->ident);
         printf("   - category: %d\n", user->category);
 
         list_for_each(tmp, &user->userid_list) {
@@ -168,10 +172,10 @@ static void print_user(idmef_user_t *user)
 static void print_process(idmef_process_t *process) 
 {
         printf("  Process information\n");
-        printf("   - ident: %s\n", process->ident);
-        printf("   - name: %s\n", process->name);
-        printf("   - pid: %s\n", process->pid);
-        printf("   - path: %s\n", process->path);
+        dprintf("   - ident: %s\n", process->ident);
+        dprintf("   - name: %s\n", process->name);
+        dprintf("   - pid: %s\n", process->pid);
+        dprintf("   - path: %s\n", process->path);
 
         /*
          * Print arg and env.
@@ -183,11 +187,11 @@ static void print_process(idmef_process_t *process)
 static void print_service(idmef_service_t *service) 
 {
         printf("  Service information\n");
-        printf("   - ident: %s\n", service->ident);
-        printf("   - name: %s\n", service->name);
-        printf("   - port: %d\n", service->port);
-        printf("   - portlist: %s\n", service->portlist);
-        printf("   - protocol: %s\n", service->protocol);
+        dprintf("   - ident: %s\n", service->ident);
+        dprintf("   - name: %s\n", service->name);
+        dprintf("   - port: %d\n", service->port);
+        dprintf("   - portlist: %s\n", service->portlist);
+        dprintf("   - protocol: %s\n", service->protocol);
 
         /*
          * Wev / Snmp service.
@@ -201,9 +205,9 @@ static void print_source(idmef_source_t *source, const char *str)
         idmef_address_t *addr;
 
         printf(" %s information :\n", str);
-        printf("  - ident: %s\n", source->ident);
+        dprintf("  - ident: %s\n", source->ident);
         printf("  - spoofed: %d\n", source->spoofed);
-        printf("  - interface: %s\n", source->interface);
+        dprintf("  - interface: %s\n", source->interface);
 
         print_node(&source->node);
         print_user(&source->user);
@@ -216,20 +220,20 @@ static void print_source(idmef_source_t *source, const char *str)
 static void print_analyzer(idmef_analyzer_t *analyzer) 
 {
         printf(" Analyzer Informations :\n");
-        printf("  id: %s\n", analyzer->analyzerid);
-        printf("  manufacturer: %s\n", analyzer->manufacturer);
-        printf("  model: %s\n", analyzer->model);
-        printf("  version: %s\n", analyzer->version);
-        printf("  class: %s\n", analyzer->class);
+        dprintf("  id: %s\n", analyzer->analyzerid);
+        dprintf("  manufacturer: %s\n", analyzer->manufacturer);
+        dprintf("  model: %s\n", analyzer->model);
+        dprintf("  version: %s\n", analyzer->version);
+        dprintf("  class: %s\n", analyzer->class);
 }
 
 
 static void print_classification(idmef_classification_t *class) 
 {
         printf(" Classification Informations :\n");
-        printf("  - origin: %d\n", class->origin);
-        printf("  - name: %s\n", class->name);
-        printf("  - url: %s\n", class->url);
+        dprintf("  - origin: %d\n", class->origin);
+        dprintf("  - name: %s\n", class->name);
+        dprintf("  - url: %s\n", class->url);
 }
 
 

@@ -32,14 +32,33 @@
 #include <libprelude/plugin-common-prv.h>
 #include <libprelude/daemonize.h>
 
+#include <inttypes.h>
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
+#include <libprelude/prelude-client-mgr.h>
+
 #include "libmissing.h"
 #include "config.h"
 #include "pconfig.h"
 #include "ssl.h"
 
 
-struct report_config config;
 int config_quiet;
+struct report_config config;
+prelude_client_mgr_t *relay_managers = NULL;
+
+
+
+static void configure_relay(config_t *cfg) 
+{
+        const char *ret;
+
+        ret = config_get(cfg, "Prelude Manager", "relay-manager");        
+        if ( ret )
+                relay_managers = prelude_client_mgr_new("relay", ret);
+}
+
+
 
 
 static void configure_listen_address(config_t *cfg) 
@@ -233,13 +252,22 @@ int pconfig_init(int argc, char **argv)
         
         configure_as_daemon(cfg);
         configure_quiet(cfg);
-
+        configure_relay(cfg);
+        
         config_close(cfg);
         
         return 0;
 }
 
 
+
+
+
+void manager_relay_msg_if_needed(prelude_msg_t *msg) 
+{
+        if ( relay_managers )
+                prelude_client_mgr_broadcast(relay_managers, msg);
+}
 
 
 

@@ -40,6 +40,7 @@
 #include "alert-scheduler.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
+#include "pconfig.h"
 
 #define MAX_ALERT_IN_MEMORY 200
 
@@ -159,6 +160,27 @@ static prelude_msg_t *get_low_priority_alert(void)
 
 
 
+static void process_message(prelude_msg_t *msg) 
+{
+        int ret;
+        idmef_message_t *idmef;
+
+        manager_relay_msg_if_needed(msg);
+                
+        idmef = idmef_alert_new();
+        
+        ret = decode_plugins_run(msg, idmef->message.alert);
+        if ( ret >= 0 ) 
+                report_plugins_run(idmef->message.alert);
+        
+        idmef_message_free(idmef);
+        
+        prelude_msg_destroy(msg);
+}
+
+
+
+
 /*
  * This is the function responssible for handling queued alert.
  */
@@ -185,16 +207,7 @@ static void process_alert(void *arg)
                         continue;
                 }
 
-                idmef = idmef_alert_new();
-                printf("decoding report\n");
-                ret = decode_plugins_run(msg, idmef->message.alert);
-                if ( ret >= 0 ) {
-                        printf("starting report plugins.\n");
-                        report_plugins_run(idmef->message.alert);
-                }
-
-                idmef_message_free(idmef);
-                prelude_msg_destroy(msg);
+                process_message(msg);
         }
 }
 

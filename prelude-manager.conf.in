@@ -14,17 +14,15 @@ listen = unix;
 # port = 5554
 
 
-# Length of the RSA private key.
+# If you want the message caught by this manager to be relayed.
+# You can use boolean AND and OR to make the rule.
 #
-key = 1024;
-
-
-# Number of day to make a certificate valide for
-# (only used when creating a certificate)
+# relay-manager = x.x.x.x || y.y.y.y && z.z.z.z
 #
-days = 3650;
-
-
+# This mean the emission should occur on x.x.x.x or, if it fail,
+# on y.y.y.y and z.z.z.z (if one of the two host in the AND fail, 
+# the emission will be considered as failed involving saving the 
+# message locally).
 
 
 ####################################

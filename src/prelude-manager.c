@@ -99,6 +99,7 @@ int main(int argc, char **argv)
         
         signal(SIGTERM, cleanup);
         signal(SIGINT, cleanup);
+        signal(SIGTERM, cleanup);
         signal(SIGSEGV, cleanup);
 
         /*

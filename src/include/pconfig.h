@@ -30,3 +30,9 @@ struct report_config {
         const char *pidfile;
         int use_ssl;
 }; 
+
+
+/*
+ * FIXME: this has nothing to do here.
+ */
+void manager_relay_msg_if_needed(prelude_msg_t *msg);
