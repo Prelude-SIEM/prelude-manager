@@ -233,9 +233,6 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         ident = prelude_extract_uint64(&target_route[target_hop]);
                 
         if ( ident == prelude_client_profile_get_analyzerid(cp) ) {
-                server_generic_log_client((server_generic_client_t *) client,
-                                          "option request forwarded to [local manager].\n");
-
                 prelude_msg_recycle(msg);
                 return prelude_option_process_request(manager_client, client->fd, msg);
         }
