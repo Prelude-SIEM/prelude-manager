@@ -1,6 +1,8 @@
-DEFS += @ðefined@ -DPRELUDE_CONF=\"@prelude_conf@\"
-INCLUDES = -I$(top_srcdir)/src/prelude-report/include -I$(top_srcdir)/src/libprelude/include \
--I$(top_srcdir)/src/prelude-report/include -I$(top_srcdir)/include 
+DEFS += @defined@
+
+INCLUDES = -I$(top_srcdir)/libmissing -I$(top_srcdir) \
+           -I$(top_srcdir)/src/include \
+           @LIBPRELUDE_CFLAGS@
 
 fsmod_la_SOURCES = fsmod.c
 fsmod_la_LDFLAGS = -module -avoid-version -ldb

@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(src)
-AM_INIT_AUTOMAKE(prelude, 0.4.1)
+AM_INIT_AUTOMAKE(prelude-report, 0.4.1)
 AM_CONFIG_HEADER(config.h)
 AM_DISABLE_STATIC
 
@@ -17,12 +17,48 @@ AC_PROG_MAKE_SET
 AC_C_INLINE
 AC_C_BIGENDIAN
 
-AM_PROG_LEX
-AC_PROG_YACC
-
 AC_SUBST(CFLAGS)
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
+
+if test "x$prefix" = "xNONE"; then
+	prefix="/usr/local"
+fi
+
+if test "x$localstatedir" = "x\${prefix}/var"; then
+	localstatedir="$prefix/var"
+fi
+
+if test "x$sysconfdir" = "x\${prefix}/etc"; then
+    sysconfdir="$prefix/etc"
+fi
+
+
+dnl **************************************************
+dnl * Check for libprelude                           *
+dnl **************************************************
+
+AC_PATH_GENERIC(libprelude, 0.4.1, [
+  AC_SUBST(LIBPRELUDE_LIBS)
+  AC_SUBST(LIBPRELUDE_CFLAGS) ],
+  AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
+LIBPRELUDE_LIBS=`libprelude-config --libs`
+LIBPRELUDE_CFLAGS=`libprelude-config --cflags`
+AC_SUBST(LIBPRELUDE_LIBS)
+AC_SUBST(LIBPRELUDE_CFLAGS)
+
+dnl **************************************************
+dnl * Check for libprelude-sensors                   *
+dnl **************************************************
+
+AC_PATH_GENERIC(libprelude_sensors, 0.4.1, [
+  AC_SUBST(LIBPRELUDE_SENSORS_LIBS)
+  AC_SUBST(LIBPRELUDE_SENSORS_CFLAGS) ],
+  AC_MSG_ERROR(Cannot find libprelude-sensors: Is libprelude_sensors-config in the path?) )
+LIBPRELUDE_SENSORS_LIBS=`libprelude_sensors-config --libs`
+LIBPRELUDE_SENSORS_CFLAGS=`libprelude_sensors-config --cflags`
+AC_SUBST(LIBPRELUDE_SENSORS_LIBS)
+AC_SUBST(LIBPRELUDE_SENSORS_CFLAGS)
 
 
 dnl **************************************************
@@ -53,7 +89,7 @@ AC_CHECK_HEADER(getopt.h, getopt_long_hdr=yes)
 AC_CHECK_LIB(c, getopt_long, getopt_long_func=yes)
 
 if test x$getopt_long_hdr = xyes && test x$getopt_long_func = xyes; then
-	defined="-DHAVE_GETOPT_LONG";
+	AC_DEFINE(HAVE_GETOPT_LONG)
 fi
 
 
@@ -83,7 +119,7 @@ AC_ARG_ENABLE(openssl, [  --enable-openssl  Use OpenSSL to communicate with Repo
 if test x$enable_openssl = xauto ; then
 	if test x$openssl_header = xyes; then
 		COMMON_LIBS="$COMMON_LIBS -lssl -lcrypto"
-		defined="$defined -DHAVE_SSL"
+		AC_DEFINE(HAVE_SSL)
     		enable_openssl=yes
   	else
     		enable_openssl=no
@@ -209,12 +245,13 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS(gettimeofday select socket strdup strerror strstr)
 
 configdir=$sysconfdir/prelude
-prelude_conf=$configdir/prelude.conf
 prelude_report_conf=$configdir/prelude-report.conf
 plugindir=$libdir/prelude
 detect_plugin_dir=$plugindir/detects/
 report_plugin_dir=$plugindir/reports/
 protocol_plugin_dir=$plugindir/protocols/
+
+AC_DEFINE_UNQUOTED(PRELUDE_REPORT_CONF, "$prelude_report_conf")
 
 AC_SUBST(defined)
 AC_SUBST(configdir)
@@ -225,34 +262,27 @@ AC_SUBST(LIBWRAP_LIBS)
 AC_SUBST(COMMON_LIBS)
 AC_SUBST(PRELUDE_LIBS)
 
-if test "x$prefix" = "xNONE"; then
-	prefix="/usr/local"
-fi
-
-if test "x$localstatedir" = "x\${prefix}/var"; then
-	localstatedir="$prefix/var"
-fi
-	
-
 CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
 -Wbad-function-cast -Wcast-qual -Wcast-align -Wnested-externs"
 
-AC_OUTPUT([Makefile 
+AC_OUTPUT([
 
+Makefile 
 prelude-report.conf
-
-docs/Makefile
-docs/api/Makefile
-
+libmissing/Makefile
 src/Makefile 
-include/Makefile
+src/include/Makefile
 plugins/Makefile
-plugins/Makefile
-plugins/execmod/Makefile
-plugins/filemod/Makefile
-plugins/htmlmod/Makefile
-plugins/xmlmod/Makefile
+
 ])
+
+dnl **** TODO add the following lines in above section ****
+dnl docs/Makefile
+dnl docs/api/Makefile
+dnl plugins/execmod/Makefile
+dnl plugins/filemod/Makefile
+dnl plugins/htmlmod/Makefile
+dnl plugins/xmlmod/Makefile
 
 
 echo

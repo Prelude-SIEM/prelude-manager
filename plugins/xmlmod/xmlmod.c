@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
+#include "config.h"
 #include "report.h"
 
 

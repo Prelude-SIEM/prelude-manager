@@ -18,7 +18,7 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * @(#) $Header: /var/lib/cvsd/cvsroot/prelude/prelude-manager/include/Attic/ethertype.h,v 1.1 2001/08/22 23:02:07 yoann Exp $ (LBL)
+ * @(#) $Header: /var/lib/cvsd/cvsroot/prelude/prelude-manager/src/include/Attic/ethertype.h,v 1.1 2001/08/23 22:45:27 sylvain Exp $ (LBL)
  */
 
 /* Types missing from some systems */

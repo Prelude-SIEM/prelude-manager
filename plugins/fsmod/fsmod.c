@@ -30,6 +30,7 @@
 
 #include <arpa/inet.h>
 
+#include "config.h"
 #include "report.h"
 
 

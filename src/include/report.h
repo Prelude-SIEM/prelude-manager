@@ -21,15 +21,15 @@
 *
 *****/
 
-#include "list.h"
-
+#include <libprelude/list.h>
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/alert.h>
 #include <libprelude/config-engine.h>
-#include <libprelude/compat.h>
 
+#if 0
 #include "packet.h"
+#endif
 #include "report-infos.h"
 #include "plugin-report.h"
 

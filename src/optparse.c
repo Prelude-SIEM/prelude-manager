@@ -30,9 +30,8 @@
  */
 #include <libprelude/common.h>
 
+#define MAX_OPTS_LEN 40
 
-#include "extract.h"
-#include "packet.h"
 #include "optparse.h"
 
 
@@ -91,6 +90,7 @@ static void printopt(const char *comment, ...)
  */
 static int tcp_optval(unsigned char *optbuf, int opt, int datalen) 
 {
+#if 0
         int i;
         
         switch (opt) {
@@ -153,6 +153,8 @@ static int tcp_optval(unsigned char *optbuf, int opt, int datalen)
 
         }
 
+#endif
+
         return -1;
 }
 
@@ -163,6 +165,7 @@ static int tcp_optval(unsigned char *optbuf, int opt, int datalen)
  */
 static int ip_optval(unsigned char *optbuf, int opt, int datalen)
 {
+#if 0
         int optlen = datalen + 2;
 
 #warning "support for dumping the following options should be added : ts, rr, srr, lsrr"
@@ -200,6 +203,7 @@ static int ip_optval(unsigned char *optbuf, int opt, int datalen)
                 printopt("ipopt-%d{%d}", opt, optlen);
                 break;
         }
+#endif
         
         return -1;
 }
@@ -212,6 +216,7 @@ static int ip_optval(unsigned char *optbuf, int opt, int datalen)
  */
 static int is_1byte_option(int opt) 
 {
+#if 0
         if ( opt == TCPOPT_NOP ) {
                 printopt("nop");
                 return 0;
@@ -222,6 +227,7 @@ static int is_1byte_option(int opt)
                 return 0;
         }
 
+#endif
         return -1;
 }
 

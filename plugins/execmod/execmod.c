@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "config.h"
 #include "report.h"
 
 #define plural(number) (number > 1) ? "s" : ""

@@ -1,19 +1,24 @@
-INCLUDES = -I$(top_srcdir)/include
-DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\" -DPRELUDE_REPORT_CONF=\"@prelude_report_conf@\" -DREPORT_PLUGIN_DIR=\"@report_plugin_dir@\" -DLOCALSTATEDIR=\"@localstatedir@\"
+SUBDIRS = include
 
-bin_PROGRAMS = prelude_report
-prelude_report_LDADD = @COMMON_LIBS@ @LIBWRAP_LIBS@ -lprelude
+INCLUDES = @LIBPRELUDE_CFLAGS@ @LIBPRELUDE_SENSORS_CFLAGS@ \
+           -I$(top_srcdir) -I$(top_srcdir)/libmissing -I$(srcdir)/include
+
+DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\" -DREPORT_PLUGIN_DIR=\"@report_plugin_dir@\" -DLOCALSTATEDIR=\"@localstatedir@\"
+
+bin_PROGRAMS = prelude-report
+prelude_report_LDADD = @COMMON_LIBS@ @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@
 prelude_report_LDFLAGS = -export-dynamic 
 
-prelude_report_SOURCES =		\
-	pconfig.c			\
-	cnx.c				\
-	prelude-report.c		\
-	report-plugins.c		\
-	server.c			\
-	report-infos.c			\
-	optparse.c auth.c		\
-	tcpdump-func.c			\
-	ssl.c				\
-	ssl-register-client.c
+prelude_report_SOURCES = \
+                        auth.c \
+                        cnx.c \
+                        optparse.c \
+                        pconfig.c \
+                        prelude-report.c \
+                        report-plugins.c \
+                        server.c \
+                        ssl-register-client.c \
+                        ssl.c \
+                        tcpdump-func.c
 
+                        #report-infos.c \

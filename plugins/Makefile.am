@@ -1,2 +1,5 @@
-SUBDIRS = execmod filemod htmlmod xmlmod
-INCLUDE = -I $(top_srcdir)/include -I $(top_srcdir)/src/prelude-report/include
+#SUBDIRS = execmod filemod htmlmod xmlmod
+
+INCLUDES = -I$(top_srcdir)/libmissing -I$(top_srcdir) \
+           -I$(top_srcdir)/src/include \
+           @LIBPRELUDE_CFLAGS@

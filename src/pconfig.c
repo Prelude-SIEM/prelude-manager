@@ -32,10 +32,10 @@
 #include <libprelude/plugin-common-prv.h>
 #include <libprelude/auth-common.h>
 #include <libprelude/daemonize.h>
-#include <libprelude/compat.h>
 
-#include "pconfig.h"
+#include "libmissing.h"
 #include "config.h"
+#include "pconfig.h"
 #include "ssl.h"
 
 

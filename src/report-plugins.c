@@ -30,8 +30,7 @@
 #include <sys/time.h>
 #include <inttypes.h>
 
-#include "list.h"
-
+#include <libprelude/list.h>
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>

@@ -27,18 +27,18 @@
 #include <unistd.h>
 #include <syslog.h>
 #include <signal.h>
+#include <inttypes.h>
 
-#include "list.h"
-
+#include <libprelude/list.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/alert.h>
 #include <libprelude/common.h>
 #include <libprelude/daemonize.h>
+#include <libprelude/config-engine.h>
 
 #include "pconfig.h"
 #include "auth.h"
 #include "server.h"
-#include "packet.h"
 #include "report-infos.h"
 #include "plugin-report.h"
 

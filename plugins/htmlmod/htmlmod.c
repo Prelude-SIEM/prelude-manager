@@ -35,6 +35,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 
+#include "config.h"
 #include "report.h"
 #include "html.h"
 

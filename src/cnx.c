@@ -30,18 +30,16 @@
 #include <arpa/inet.h>
 #include <inttypes.h>
 
-#include "list.h"
-
+#include <libprelude/list.h>
 #include <libprelude/socket-op.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/alert.h>
 #include <libprelude/alert-common.h>
 #include <libprelude/common.h>
+#include <libprelude/config-engine.h>
 
 #include "auth.h"
 #include "cnx.h"
-#include "report-infos.h"
-#include "plugin-report.h"
 #include "pconfig.h"
 #include "ssl.h"
 
@@ -64,6 +62,7 @@ static int is_endian_convertion_needed(void)
  */
 static int wait_raw_report(int socket) 
 {
+#if 0
         int ret;
         alert_t alert;
         report_infos_t rinfos;
@@ -83,6 +82,7 @@ static int wait_raw_report(int socket)
                 alert_free(&alert, 1);
 
         }
+#endif
 
         return 0;
 }

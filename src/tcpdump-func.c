@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "nethdr.h"
 #include "tcpdump-func.h"
 
 

@@ -40,6 +40,7 @@
 
 
 #include <libprelude/common.h>
+#include <libprelude/config-engine.h>
 
 #include "pconfig.h"
 #include "config.h"

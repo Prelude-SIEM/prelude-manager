@@ -27,18 +27,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <inttypes.h>
 
 #include "list.h"
 
 #include <libprelude/plugin-common.h>
 #include <libprelude/alert.h>
 
-#include "packet.h"
 #include "optparse.h"
-#include "extract.h"
 #include "ethertype.h"
 #include "tcpdump-func.h"
-#include "report-infos.h"
 
 
 #define PRINT_CHAR 16
