@@ -33,6 +33,7 @@
 
 #include "packet.h"
 #include "decode.h"
+#include "packet-decode.h"
 #include "nids-alert-id.h"
 
 

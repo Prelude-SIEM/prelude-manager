@@ -91,7 +91,7 @@ static char *db_escape(const char *string)
 /*
  * insert the given values into the given db table.
  */
-static int db_insert(char *table, char *fields, char *values)
+static int db_insert(const char *table, const char *fields, const char *values)
 {
         int ret = 0;
         char query[MAX_QUERY_LENGTH];

@@ -37,6 +37,7 @@
 #include "plugin-util.h"
 #include "optparse.h"
 #include "ethertype.h"
+#include "packet-decode.h"
 
 
 /* ARP protocol opcodes. */
@@ -450,7 +451,6 @@ static int udp_dump(idmef_additional_data_t *data, packet_t *packet)
 static int data_dump(idmef_additional_data_t *data, packet_t *pkt) 
 {
         int ret;
-        char *ptr;
 
         if ( pkt->len ) {
                 idmef_additional_data_t *pdata;
