@@ -19,7 +19,7 @@ include = @libprelude_prefix@/etc/prelude/default/global.conf
 #
 # format : address:port
 #
-sensors-srvr = 127.0.0.1;
+sensors-srvr = 127.0.0.1
 
 
 # If you want this Manager to retrieve message from another
@@ -61,25 +61,25 @@ sensors-srvr = 127.0.0.1;
 # [db]
 
 # The format of database used by libpreludedb.
-# format = classic;
+# format = classic
 
 # The type of database (mysql/pgsql).
-# type = mysql;
+# type = mysql
 
 # Host the database is listening on.
-# host = localhost;
+# host = localhost
 
 # Port the database is listening on.
-# port = 3306;
+# port = 3306
 
 # Name of the database.
-# name = prelude;
+# name = prelude
 
 # Username to be used to connect the database.
-# user = prelude;
+# user = prelude
 
 # Password used to connect the database.
-# pass = xxxxxx;
+# pass = xxxxxx
 
 
 
@@ -92,11 +92,8 @@ sensors-srvr = 127.0.0.1;
 
 # [TextMod]
 #
-# Tell Textmod to output to stderr
-# stderr;
-#
-#
-# logfile = @prefix@/var/log/prelude.log;
+# logfile = stderr
+# logfile = @prefix@/var/log/prelude.log
 
 
 
@@ -109,40 +106,37 @@ sensors-srvr = 127.0.0.1;
 
 
 # [XmlMod]
-#
-# Tell Xmlmod to output to stderr
-# stderr;
-#
-#
+##
 # Tell Xmlmod to disable output file buffering.
 # This will prevent XML alerts to be truncated and thus make real-time
 # parsing easier.
 #
-# disable-buffering;
+# disable-buffering
 #
 #
 # Tell Xmlmod to check generated XML against IDMEF DTD
-# check-dtd;
+# check-dtd
 #
 # 
 # Tell Xmlmod to produce a pretty, human readable xml output
-# format;
+# format
 #
-# logfile = @prefix@/var/log/prelude-xml.log;
+# logfile = stderr
+# logfile = @prefix@/var/log/prelude-xml.log
 
 
 
 # [Debug]
 #
 # Print the value of each element.
-# verbose; 
+# verbose 
 #
 # Be aggressive, print strings even if consistency checks fail 
 # (may lead to crash).
-# aggressive;
+# aggressive
 #
 # Use wide format for lists.
-# wide-format;
+# wide-format
 
 
 
