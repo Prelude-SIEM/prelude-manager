@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2005 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2004-2005 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.

@@ -1,7 +1,6 @@
 /*****
 *
-* Copyright (C) 2002-2004 Yoann Vandoorselaere <yoann@mandrakesoft.com>
-* Copyright (C) 2003 Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+* Copyright (C) 2002-2005 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -21,8 +20,6 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
-
-/* Adapted Yoann's reference filtering plugin code (skeleton.c) */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -179,8 +176,8 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, vo
                 return ret;
         
         prelude_plugin_set_name(&filter_plugin, "Filter");
-        prelude_plugin_set_author(&filter_plugin, "Krzysztof Zaraska");
-        prelude_plugin_set_contact(&filter_plugin, "kzaraska@student.uci.agh.edu.pl");
+        prelude_plugin_set_author(&filter_plugin, "Yoann Vandoorselaere");
+        prelude_plugin_set_contact(&filter_plugin, "yoann@prelude-ids.org");
         prelude_plugin_set_desc(&filter_plugin, "Match alert against IDMEF criteria");
 
         filter_plugin_set_running_func(&filter_plugin, process_message);
