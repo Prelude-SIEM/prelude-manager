@@ -136,7 +136,7 @@ prelude_connection_t *reverse_relay_search_receiver(uint64_t analyzerid)
 {
         prelude_connection_t *cnx;
         prelude_list_t *head, *tmp;
-
+                
         if ( ! receiver.mgr )
                 return NULL;
         
@@ -146,7 +146,7 @@ prelude_connection_t *reverse_relay_search_receiver(uint64_t analyzerid)
         
         prelude_list_for_each(head, tmp) {
                 cnx = prelude_linked_object_get_object(tmp);
-                
+                                 
                 if ( analyzerid == prelude_connection_get_peer_analyzerid(cnx) ) {
                         pthread_mutex_unlock(&receiver.mutex);
                         return cnx;
@@ -205,7 +205,7 @@ int reverse_relay_create_initiator(const char *arg)
         ret = prelude_connection_mgr_new(&initiator.mgr, cp, PRELUDE_CONNECTION_CAPABILITY_RECV_IDMEF);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error creating reverse relay");
-                return -1;
+                return ret;
         }
         
         prelude_connection_mgr_set_flags(initiator.mgr, PRELUDE_CONNECTION_MGR_FLAGS_RECONNECT);
@@ -217,14 +217,14 @@ int reverse_relay_create_initiator(const char *arg)
         if ( ret < 0 ) {
                 prelude_perror(ret, "error setting reverse relay connection string");
                 prelude_connection_mgr_destroy(initiator.mgr);
-                return -1;
+                return ret;
         }
 
         ret = prelude_connection_mgr_init(initiator.mgr);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error initializing reverse relay");
                 prelude_connection_mgr_destroy(initiator.mgr);
-                return -1;
+                return ret;
         }
         
         return 0;
