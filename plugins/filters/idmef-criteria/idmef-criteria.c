@@ -49,8 +49,12 @@ static int process_message(idmef_message_t *msg, void *priv)
         
         if ( ! plugin->criteria )
                 return 0;
+
+        ret = idmef_criteria_match(plugin->criteria, msg);
+        if ( ret < 0 )
+                prelude_perror(ret, "error matching criteria");
         
-	return idmef_criteria_match(plugin->criteria, msg);
+	return (ret > 0) ? 0 : -1;
 }
 
 
