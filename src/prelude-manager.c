@@ -28,6 +28,7 @@
 #include <syslog.h>
 #include <signal.h>
 #include <inttypes.h>
+#include <parser.h>
 
 #include <libprelude/list.h>
 #include <libprelude/plugin-common.h>
@@ -36,7 +37,6 @@
 #include <libprelude/config-engine.h>
 #include <libprelude/alert-read.h>
 
-#include <libxml/parser.h>
 
 #include "pconfig.h"
 #include "auth.h"

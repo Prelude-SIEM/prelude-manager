@@ -20,6 +20,7 @@ AC_C_BIGENDIAN
 AC_SUBST(CFLAGS)
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
+COMMON_LIBS=""
 
 if test "x$prefix" = "xNONE"; then
 	prefix="/usr/local"
@@ -38,27 +39,37 @@ dnl **************************************************
 dnl * Check for libprelude                           *
 dnl **************************************************
 
-AC_PATH_GENERIC(libprelude, 0.4.1, [
-  AC_SUBST(LIBPRELUDE_LIBS)
-  AC_SUBST(LIBPRELUDE_CFLAGS) ],
+AC_PATH_GENERIC(libprelude, 0.4.1, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
-LIBPRELUDE_LIBS=`libprelude-config --libs`
-LIBPRELUDE_CFLAGS=`libprelude-config --cflags`
-AC_SUBST(LIBPRELUDE_LIBS)
-AC_SUBST(LIBPRELUDE_CFLAGS)
+
 
 dnl **************************************************
 dnl * Check for libprelude-sensors                   *
 dnl **************************************************
 
-AC_PATH_GENERIC(libprelude_sensors, 0.4.1, [
-  AC_SUBST(LIBPRELUDE_SENSORS_LIBS)
-  AC_SUBST(LIBPRELUDE_SENSORS_CFLAGS) ],
+AC_PATH_GENERIC(libprelude_sensors, 0.4.1, ,  
   AC_MSG_ERROR(Cannot find libprelude-sensors: Is libprelude_sensors-config in the path?) )
-LIBPRELUDE_SENSORS_LIBS=`libprelude_sensors-config --libs`
-LIBPRELUDE_SENSORS_CFLAGS=`libprelude_sensors-config --cflags`
-AC_SUBST(LIBPRELUDE_SENSORS_LIBS)
-AC_SUBST(LIBPRELUDE_SENSORS_CFLAGS)
+
+
+dnl **************************************************
+dnl * Check for XML library.                         *
+dnl **************************************************
+
+AC_PATH_GENERIC(xml2, , ,
+  AC_MSG_ERROR(Cannot find libxml2: Is xml-config in the path?) )
+
+
+dnl **************************************************
+dnl * Check for the Posix Thread library             *
+dnl **************************************************
+
+AC_CHECK_LIB(pthread, pthread_create, pthrlib="yes")
+if test x$pthrlib == xyes; then
+	COMMON_LIBS="$COMMON_LIBS -lpthread"
+else
+	AC_CHECK_LIB(c_r, pthread_create, COMMON_LIBS="$COMMON_LIBS -lc_r")
+fi
+
 
 
 dnl **************************************************
@@ -125,9 +136,6 @@ if test x$enable_openssl = xauto ; then
     		enable_openssl=no
   	fi
 fi
-
-
-
 
 
 
@@ -264,7 +272,7 @@ AC_SUBST(LIBWRAP_LIBS)
 AC_SUBST(COMMON_LIBS)
 AC_SUBST(PRELUDE_LIBS)
 
-CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
+CFAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
 -Wbad-function-cast -Wcast-qual -Wcast-align -Wnested-externs"
 
 AC_OUTPUT([

@@ -1,3 +1,31 @@
+2001-10-03  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/ssl.c: 
+	(ssl_auth_client): return the SSL object. As of now, we should be
+	able to get several SSL connection at one time. And we shouldn't
+	be leaking SSL objects anymore.
+
+	* src/server.c: Lot of cleanup. Adapt to server-logic API change.
+	Keep connection information in a per fd structure. 
+
+	* src/server-logic.c: Lot of API change in order to be able
+	more than one server. 
+
+	* src/prelude-manager.c: correct include path.
+
+	* src/Makefile.am (INCLUDES): add libxml2 cflags,
+	(prelude_manager_LDADD): link with libxml2. Stop linking
+	statically to the pthread library.
+
+	* plugins/decodes/prelude-nids/decode.c: correct
+	libxml2 include path.
+
+	* plugins/decodes/prelude-nids/Makefile.am (INCLUDES): 
+	add libxml2 cflags.
+
+	* configure.ac: correct AC_PATH_GENERIC usage.
+	check for libxml2 and pthread library.
+
 2001-09-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/server-logic.c (child_reader): do not try to handle

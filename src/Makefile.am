@@ -1,6 +1,6 @@
 SUBDIRS = include
 
-INCLUDES = @LIBPRELUDE_CFLAGS@ @LIBPRELUDE_SENSORS_CFLAGS@ \
+INCLUDES = @LIBPRELUDE_CFLAGS@ @LIBPRELUDE_SENSORS_CFLAGS@ @XML2_CFLAGS@ \
            -I$(top_srcdir)/ -I$(top_srcdir)/libmissing -I$(srcdir)/include/
 
 DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\"       \
@@ -9,7 +9,7 @@ DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\"       \
 	-DLOCALSTATEDIR=\"@localstatedir@\"
 
 bin_PROGRAMS = prelude-manager
-prelude_manager_LDADD = @COMMON_LIBS@ @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@ -lpthread
+prelude_manager_LDADD = @COMMON_LIBS@ @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@ @XML2_LIBS@
 prelude_manager_LDFLAGS = -export-dynamic 
 
 prelude_manager_SOURCES =			\

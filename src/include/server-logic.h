@@ -20,6 +20,47 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
-void server_logic_init(int (*data_cb)(int fd, void *clientdata));
 
-int server_process_requests(int client, void *clientdata);
+typedef struct server_struct server_t;
+
+
+/*
+ * Callback function type for closing a connection.
+ */
+typedef int (server_close_func_t)(int fd, void *cdata);
+
+
+/*
+ * Callback function type for handling data on a connection.
+ */
+typedef int (server_read_func_t)(int fd, void *cdata);
+
+
+
+/*
+ *
+ */
+int server_logic_stop(server_t *server);
+
+
+/*
+ *
+ */
+int server_logic_process_requests(server_t *server, int cfd, void *cdata);
+
+
+/*
+ *
+ */
+server_t *server_logic_new(server_read_func_t *s_read, server_close_func_t *s_close);
+
+
+
+
+
+
+
+
+
+
+

@@ -34,7 +34,8 @@
 #include <arpa/inet.h>
 #include <syslog.h>
 #include <sys/poll.h>
-#include <libxml/parser.h>
+#include <parser.h>
+#include <assert.h>
 
 #include <libprelude/common.h>
 #include <libprelude/socket-op.h>
@@ -48,24 +49,75 @@
 #include "server.h"
 #include "server-logic.h"
 #include "auth.h"
-#include "ssl.h"
 #include "plugin-decode.h"
+#include "ssl.h"
 
 
+typedef struct {
 
+        void *fd;
+        char *from;
+
+        int (*closefunc)(void *fd);
+        ssize_t (*readfunc)(void *fd, void *buf, size_t count);
+        
+} client_connection_t;
+
+        
+static server_t *manager_srvr;
 extern struct report_config config;
 
 
-/*
- *
- */
-static int data_available_cb(int fd, void *clientdata) 
+
+static ssize_t read_cb(void *fd, void *buf, size_t count) 
+{
+        return read( *(int *) fd, buf, count);
+}
+
+
+static int close_cb(void *fd) 
+{
+        int ret;
+        
+        ret = close(*(int *) fd);
+        free(fd);
+}
+
+
+#ifdef HAVE_SSL
+
+static ssize_t ssl_read_cb(void *fd, void *buf, size_t count) 
+{
+        return SSL_read(fd, buf, count);
+}
+
+
+static int ssl_close_cb(void *fd) 
+{
+        int ret, rfd;
+
+        rfd = SSL_get_fd(fd);
+        assert(rfd != -1);
+        
+        ret = ssl_close_session(fd);
+        close(rfd);
+
+        return ret;
+}
+
+#endif
+
+
+static int server_read_connection_cb(int fd, void *clientdata) 
 {
         uint8_t tag;
         xmlNodePtr idmef_msg;
         alert_container_t *ac;
-        
-        ac = prelude_alert_read(fd, &tag, clientdata);
+        client_connection_t *cnx;
+
+        cnx = clientdata;
+
+        ac = prelude_alert_read(cnx->fd, &tag, cnx->readfunc);
         if ( ! ac )
                 return -1;
 
@@ -87,47 +139,88 @@ static int data_available_cb(int fd, void *clientdata)
 
 
 
-/*
- *
- */
-static int set_options(const char *optbuf) 
+
+static int server_close_connection_cb(int fd, void *clientdata) 
 {
-        if ( strstr(optbuf, "use_ssl=yes;") ) {
+        int ret;
+        client_connection_t *cnx = clientdata;
+        
+        cnx = clientdata;
+        
+        log(LOG_INFO, "closing connection with %s.\n", cnx->from);
 
-#ifndef HAVE_SSL
-                goto unavailable;
-#else
-                log(LOG_INFO, "\t- Client requested SSL communication.\n");
-                config.use_ssl = 1;
-#endif          
+        ret = cnx->closefunc(cnx->fd);
+                
+        free(cnx->from);
+        free(cnx);
+        
+        return ret;
+}
 
-        } else {
 
-#ifdef HAVE_SSL
-                log(LOG_INFO, "\t- Client requested non encrypted communication.\n");
-#endif
-                config.use_ssl = 0;
+
+
+static int handle_normal_connection(int fd, client_connection_t *cnx) 
+{
+        int ret;
+
+        ret = auth_check(fd);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "Plaintext authentication failed with %s.\n", cnx->from);
+                return -1;
         }
 
+        log(LOG_INFO, "Plaintext authentication succeed with %s.\n", cnx->from);
+        
+        cnx->readfunc = read_cb;
+        cnx->closefunc = close_cb;
+
+        cnx->fd = malloc(sizeof(int));
+        if ( ! cnx->fd ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return -1;
+        }
+
+        memcpy(cnx->fd, &fd, sizeof(int));
+        
         return 0;
+}
+
+
+
+
+static int handle_ssl_connection(int sock, client_connection_t *cnx) 
+{
+#ifdef HAVE_SSL
+
+        cnx->fd = ssl_auth_client(sock);
+        if ( ! cnx->fd ) {
+                log(LOG_INFO, "SSL authentication failed with %s.", cnx->from);
+                return -1;
+        }
+
+        log(LOG_INFO, "SSL authentication succeed with %s.\n", cnx->from);
         
-#if ! defined(HAVE_SSL)
-        
- unavailable:
-        log(LOG_INFO, "\t- Client requested unavailable option.\n");
+        cnx->readfunc = ssl_read_cb;
+        cnx->closefunc = ssl_close_cb;
+
+        return 0;
+#else
+        log(LOG_INFO, "Client requested unavailable option : SSL.");
         return -1;
-        
 #endif
 }
 
 
 
 
-static int setup_connection(int sock) 
+
+
+static int setup_connection(int sock, client_connection_t *cnx) 
 {
-        char *ptr, buf[1024];
         int ret, len;
         const char *ssl;
+        char *ptr, buf[1024];
         
 #ifdef HAVE_SSL
         ssl = "supported";
@@ -150,8 +243,11 @@ static int setup_connection(int sock)
                 return -1;
         }
 
-        ret = set_options(ptr);
-
+        if ( strstr(ptr, "use_ssl=yes;") ) 
+                ret = handle_ssl_connection(sock, cnx);
+        else 
+                ret = handle_normal_connection(sock, cnx);
+        
         free(ptr);
 
         return ret;
@@ -197,44 +293,42 @@ static int tcpd_auth(int clnt_sock)
 /*
  *
  */
-static readfunc_t *setup_inet_connection(int sock, struct sockaddr *addr, unsigned int *addrlen) 
+static client_connection_t *setup_inet_connection(int sock, struct sockaddr_in *addr) 
 {
-        int ret;
+        int ret, use_ssl;
         const char *from;
-        readfunc_t *readfunc = &read;
+        client_connection_t *cnx;
+
+        cnx = malloc(sizeof(*cnx));
+        if ( ! cnx ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return NULL;
+        }
+
+        cnx->from = NULL;
         
         from = inet_ntoa(((struct sockaddr_in *)addr)->sin_addr);
+        cnx->from = strdup(from);        
         
 #ifdef HAVE_TCPD_H
         ret = tcpd_auth(sock);
         if ( ret < 0 )
-                return NULL;
+                goto err;
 #endif
+        
+        log(LOG_INFO, "new connection from %s.\n", cnx->from);
 
-        log(LOG_INFO, "new connection from %s.\n", from);
-
-        ret = setup_connection(sock);
+        ret = setup_connection(sock, cnx);
         if ( ret < 0 )
-                return NULL;
+                goto err;  
         
-#ifdef HAVE_SSL
-        if ( config.use_ssl == 1 ) {
-                readfunc = &ssl_read;
-                
-                ret = ssl_auth_client(sock);
-                if ( ret < 0 ) {
-                        log(LOG_INFO, "SSL authentication failed with %s.\n", from);
-                        return NULL;
-                }
-                
-                log(LOG_INFO, "SSL authentication suceeded with %s.\n", from);
-        } else
-                
-#endif
-                if ( auth_check(sock) < 0 ) 
-                        return NULL;
+        return cnx;
 
-        return readfunc;
+ err:
+        free(cnx->from);
+        free(cnx);
+
+        return NULL;
 }
 
 
@@ -243,22 +337,45 @@ static readfunc_t *setup_inet_connection(int sock, struct sockaddr *addr, unsign
 /*
  *
  */
-static readfunc_t *setup_unix_connection(int sock, struct sockaddr *addr, unsigned int *addrlen) 
-{        
-        log(LOG_INFO, "new local connection.\n");
-        
-        return &read;
-}
-
-
-
-/*
- *
- */
-static int wait_connection(int sock, struct sockaddr *addr, unsigned int addrlen, int unix_sock) 
+static client_connection_t *setup_unix_connection(int sock, struct sockaddr_un *addr)
 {
+        int ret;
+        client_connection_t *cnx;
+
+        cnx = malloc(sizeof(*cnx));
+        if ( ! cnx ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return NULL;
+        }
+
+        cnx->from = strdup(addr->sun_path);
+        if ( ! cnx->from ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                free(cnx);
+                return NULL;
+        }
+        
+        log(LOG_INFO, "new connection from %s.\n", cnx->from);
+
+        ret = handle_normal_connection(sock, cnx);
+        if ( ret < 0 ) {
+                free(cnx);
+                return NULL;
+        }
+        
+        return cnx;
+}
+
+
+
+/*
+ *
+ */
+static int wait_connection(int sock, struct sockaddr *addr, socklen_t addrlen, int unix_sock) 
+{
+        int ret;
         int client;
-        readfunc_t *ret;
+        client_connection_t *cnx;
         
         while ( 1 ) {
                 
@@ -270,16 +387,22 @@ static int wait_connection(int sock, struct sockaddr *addr, unsigned int addrlen
                 }
                 
                 if ( unix_sock )
-                        ret = setup_unix_connection(client, addr, &addrlen);
+                        cnx = setup_unix_connection(client, (struct sockaddr_un *)addr);
                 else
-                        ret = setup_inet_connection(client, addr, &addrlen);
+                        cnx = setup_inet_connection(client, (struct sockaddr_in *)addr);
                 
-                if ( ! ret ) {
+                if ( ! cnx ) {
                         close(client);
                         continue;
                 }
                 
-                server_process_requests(client, ret);
+                ret = server_logic_process_requests(manager_srvr, client, cnx);
+                if ( ret < 0 ) {
+                        log(LOG_ERR, "queueing client FD for server logic processing failed.\n");
+                        close(sock);
+                        continue;
+                }
+                
         }
         
         return 0;
@@ -363,14 +486,14 @@ static int unix_server_start(void)
 
         sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if ( sock < 0 ) {
-		fprintf(stderr, "socket: %s.\n", strerror(errno));
+                log(LOG_ERR, "couldn't create socket.\n");
 		return -1;
 	}
         
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path, UNIX_SOCK, sizeof(addr.sun_path));
         
-        ret = is_unix_socket_already_used(sock, (struct sockaddr *)&addr, sizeof(addr));
+        ret = is_unix_socket_already_used(sock, (struct sockaddr *) &addr, sizeof(addr));
         if ( ret == 1 || ret == -1 ) {
                 close(sock);
                 return -1;
@@ -382,7 +505,7 @@ static int unix_server_start(void)
                 return -1;
         }
 
-        return wait_connection(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_un), 1);
+        return wait_connection(sock, (struct sockaddr *) &addr, sizeof(addr), 1);
 }
 
 
@@ -410,36 +533,34 @@ static int inet_server_start(void)
         ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't set SO_REUSEADDR socket option.\n");
-                return -1;
+                goto err;
         }
 
         ret = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(int));
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't set SO_KEEPALIVE socket option.\n");
-                return -1;
+                goto err;
         }
         
         ret = generic_server(sock, (struct sockaddr *) &addr, sizeof(addr));
-        if ( ret < 0 ) {
-                close(sock);
-                return -1;
-        }
+        if ( ret < 0 )
+                goto err;
 
 #ifdef HAVE_SSL
         ret = ssl_init_server();
-	if ( ret < 0 ) {
-                close(sock);
-                return -1;
-        }
+	if ( ret < 0 )
+                goto err;
 #endif
 
         ret = auth_init();
-        if ( ret < 0 ) {
-                close(sock);
-                return -1;
-        }
+        if ( ret < 0 )
+                goto err;
         
-        return wait_connection(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_in), 0);
+        return wait_connection(sock, (struct sockaddr *) &addr, sizeof(addr), 0);
+
+ err:
+        close(sock);
+        return -1;
 }
 
 
@@ -452,7 +573,12 @@ int manager_server_start(void)
 {
 	int ret;
 
-        server_logic_init(&data_available_cb);
+        manager_srvr = server_logic_new(server_read_connection_cb, server_close_connection_cb);
+        if ( ! manager_srvr ) {
+                log(LOG_ERR, "couldn't setup Manager server.\n");
+                return -1;
+        }
+        
         
         ret = strcmp(config.addr, "unix");
 

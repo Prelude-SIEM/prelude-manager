@@ -22,19 +22,18 @@
 *****/
 
 
+#include <openssl/ssl.h>
+
+
 #define MANAGER_KEY CONFIG_DIR"/prelude-manager.key"
 #define SENSORS_CERTIFICATES CONFIG_DIR"/sensors.certs"
 
 
-int ssl_auth_client(int socket);
+SSL *ssl_auth_client(int socket);
 
 int ssl_init_server(void);
 
-void ssl_close_session(void);
-
-ssize_t ssl_read(int fd, void *buf, size_t count);
-
-ssize_t ssl_write(int fd, const void *buf, size_t count);
+int ssl_close_session(SSL *ssl);
 
 int ssl_create_certificate(config_t *cfg, int crypt_key);
 

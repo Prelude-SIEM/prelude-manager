@@ -31,8 +31,8 @@
 #include <libprelude/alert-read.h>
 #include <libprelude/alert-id.h>
 
-#include <libxml/parser.h>
-#include <libxml/tree.h>
+#include <parser.h>
+#include <tree.h>
 
 #include <libidmef/idmefxml.h>
 

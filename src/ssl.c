@@ -41,7 +41,6 @@
 
 
 static SSL_CTX *ctx;
-static SSL *ssl;
 
 
 /**
@@ -52,20 +51,21 @@ static SSL *ssl;
  *
  * Returns: 0 on sucess, -1 on error.
  */
-int ssl_auth_client(int socket)
+SSL *ssl_auth_client(int socket)
 {
 	int err;
-
+        SSL *ssl;
+        
 	ssl = SSL_new(ctx);
 	if (!ssl) {
 		ERR_print_errors_fp(stderr);
-		return -1;
+		return NULL;
 	}
 
 	err = SSL_set_fd(ssl, socket);
 	if (err <= 0) {
 		ERR_print_errors_fp(stderr);
-		return -1;
+		return NULL;
 	}
         
 	/*
@@ -74,46 +74,22 @@ int ssl_auth_client(int socket)
 	err = SSL_accept(ssl);
 	if (err <= 0) {
 		ERR_print_errors_fp(stderr);
-		return -1;
+		return NULL;
 	}
 
-        return err == 1 ? 0 : err;
+        return ssl;
 }
 
 
 
-
-ssize_t ssl_read(int fd, void *buf, size_t len)
+int ssl_close_session(SSL *ssl)
 {
-	int n;
-
-	n = SSL_read(ssl , buf, len);        
-	if (n == -1)
-		ERR_print_errors_fp(stderr);
-
-	return n;
-}
-
-
-
-
-ssize_t ssl_write(int fd, const void *buf, size_t len)
-{
-	int n;
-
-	n = SSL_write(ssl, buf, len);
-	if (n == -1)
-		ERR_print_errors_fp(stderr);
-
-	return n;
-}
-
-
-
-void ssl_close_session(void)
-{
-	SSL_shutdown(ssl);
+        int ret;
+        
+	ret = SSL_shutdown(ssl);
 	SSL_free(ssl);
+
+        return ret;
 }
 
 

@@ -41,12 +41,12 @@
 #define MAX_FD_BY_THREAD 100
 
 
-
 #ifdef DEBUG
  #define dprint(args...) printf(args)
 #else
  #define dprint(args...)
 #endif
+
 
 
 typedef struct {
@@ -70,30 +70,42 @@ typedef struct {
         uint8_t free_index;
         uint8_t free_tbl[MAX_FD_BY_THREAD];
         
-} manager_fd_set_t;
+} server_fd_set_t;
+
+
+
+struct server_struct {
+
+        void *sdata;
+        
+        server_read_func_t *read;
+        server_close_func_t *close;
+
+        /*
+         * List of connection set associated with this server.
+         */
+        struct list_head free_set_list;
+        pthread_mutex_t free_set_list_mutex;
+
+        /*
+         * Only to be used uppon new thread creation.
+         */
+        server_fd_set_t *new_set;
+};
 
         
 
-/*
- * This list contain pointer to set that have available space.
- */
-static LIST_HEAD(free_fd_list);
-static pthread_mutex_t list_mutex;
-static int (*data_available_cb)(int fd, void *clientdata);
 
-
-
-static void remove_connection(manager_fd_set_t *set, int cnx_key) 
+static void remove_connection(server_t *server, server_fd_set_t *set, int cnx_key) 
 {
-        int ret;
-
+        struct pollfd *pfd = &set->pfd[cnx_key];
+        
         /*
          * Close the file descriptor associated with this set.
          * Handle the case where close could be interrupted.
          */
-        do {
-                ret = close(set->pfd[cnx_key].fd);
-        } while ( ret < 0 && errno == EINTR );
+        server->close(pfd->fd, set->clientdata[cnx_key]);
+        
 
         /*
          * From The Single UNIX Specification, Version 2 :
@@ -101,7 +113,7 @@ static void remove_connection(manager_fd_set_t *set, int cnx_key)
          * If the value of fd is less than 0,
          * events is ignored and revents is set to 0 in that entry on return from poll().
          */
-        set->pfd[cnx_key].fd = -1;
+        pfd->fd = -1;
         set->clientdata[cnx_key] = NULL;
 
         
@@ -112,7 +124,7 @@ static void remove_connection(manager_fd_set_t *set, int cnx_key)
          * then add_connection() waiting on this set mutex while we are killing
          * the set because there is no more FD used.
          */
-        pthread_mutex_lock(&list_mutex);
+        pthread_mutex_lock(&server->free_set_list_mutex);
         pthread_mutex_lock(&set->set_mutex);
         
         /*
@@ -128,7 +140,7 @@ static void remove_connection(manager_fd_set_t *set, int cnx_key)
          */
         if ( set->free_index == 1 ) {
                 dprint("thread=%ld, Adding to list.\n", pthread_self());
-                list_add_tail(&set->list, &free_fd_list);
+                list_add_tail(&set->list, &server->free_set_list);
         }
 
         /*
@@ -139,7 +151,7 @@ static void remove_connection(manager_fd_set_t *set, int cnx_key)
                 list_del(&set->list);
                 
                 pthread_mutex_unlock(&set->set_mutex);
-                pthread_mutex_unlock(&list_mutex);
+                pthread_mutex_unlock(&server->free_set_list_mutex);
                 
                 pthread_mutex_destroy(&set->set_mutex);
 
@@ -150,12 +162,13 @@ static void remove_connection(manager_fd_set_t *set, int cnx_key)
         }
         
         pthread_mutex_unlock(&set->set_mutex);
-        pthread_mutex_unlock(&list_mutex);
+        pthread_mutex_unlock(&server->free_set_list_mutex);
 }
 
 
 
-static void add_connection(manager_fd_set_t *set, int fd, void *clientdata) 
+
+static void add_connection(server_fd_set_t *set, int fd, void *cdata)
 {
         int key;
 
@@ -198,13 +211,13 @@ static void add_connection(manager_fd_set_t *set, int fd, void *clientdata)
          */
         set->pfd[key].fd = fd;
         set->pfd[key].events = POLLIN;
-        set->clientdata[key] = clientdata;
+        set->clientdata[key] = cdata;
 }
 
 
 
 
-static int handle_fd_event(manager_fd_set_t *set, int cnx_key) 
+static int handle_fd_event(server_t *server, server_fd_set_t *set, int cnx_key) 
 {        
         /*
          * Data is available on this fd,
@@ -213,11 +226,11 @@ static int handle_fd_event(manager_fd_set_t *set, int cnx_key)
         if ( set->pfd[cnx_key].revents & POLLIN ) {
                 int ret;
                 
-                ret = data_available_cb(set->pfd[cnx_key].fd, set->clientdata[cnx_key]);
+                ret = server->read(set->pfd[cnx_key].fd, set->clientdata[cnx_key]);
                 dprint("thread=%ld - Data availlable (ret=%d)\n", pthread_self(), ret);
                 
                 if ( ret < 0 )
-                        remove_connection(set, cnx_key);
+                        remove_connection(server, set, cnx_key);
 
                 return 0;
         }
@@ -225,9 +238,9 @@ static int handle_fd_event(manager_fd_set_t *set, int cnx_key)
         /*
          * Error or hangup occured. 
          */
-        else {
+        else {                
                 dprint("thread=%ld - Hanging up.\n", pthread_self());
-                remove_connection(set, cnx_key);
+                remove_connection(server, set, cnx_key);
                 return 0;
         }
 
@@ -241,8 +254,9 @@ static int handle_fd_event(manager_fd_set_t *set, int cnx_key)
 static void *child_reader(void *ptr) 
 {
         int i, ret, active_fd;
-        manager_fd_set_t *set = ptr;
+        server_t *server = ptr;
         struct pollfd pfd[MAX_FD_BY_THREAD];
+        server_fd_set_t *set = server->new_set;
         
         while ( 1 ) {
                 /*
@@ -251,7 +265,7 @@ static void *child_reader(void *ptr)
                 pthread_mutex_lock(&set->set_mutex);
                 memcpy(pfd, set->pfd, sizeof(pfd));
                 pthread_mutex_unlock(&set->set_mutex);
-                
+
                 /*
                  * Use a one second timeout,
                  * in order to take new FD for this set into account.
@@ -261,25 +275,28 @@ static void *child_reader(void *ptr)
                         if ( errno == EINTR ) 
                                 continue;
                         
-                        log(LOG_ERR, "Error polling FDs set.\n");
+                        log(LOG_ERR, "error polling FDs set.\n");
                 }
 
                 else if ( active_fd == 0 ) 
                         continue; /* timeout */
                 
-                for ( i = 0; i < MAX_FD_BY_THREAD && active_fd > 0; i++ ) {
+                for ( i = 0; i < MAX_FD_BY_THREAD; i++ ) {
                         
                         /*
                          * This fd is ignored (-1) or nothing occured.
                          */
                         if ( pfd[i].fd < 0 || pfd[i].revents == 0)
                                 continue;
-
+                        
                         set->pfd[i].revents = pfd[i].revents;
                         
-                        ret = handle_fd_event(set, i);
+                        ret = handle_fd_event(server, set, i);
                         if ( ret == 0 )
                                 active_fd--;
+
+                        pfd[i].revents = 0;
+                        set->pfd[i].revents = 0;
                 }
         }
 }
@@ -287,10 +304,10 @@ static void *child_reader(void *ptr)
 
 
 
-static manager_fd_set_t *create_fd_set(void) 
+static server_fd_set_t *create_fd_set(server_t *server) 
 {
         int ret, i;
-        manager_fd_set_t *new;
+        server_fd_set_t *new;
         
         new = malloc(sizeof(*new));
         if ( ! new ) {
@@ -308,10 +325,12 @@ static manager_fd_set_t *create_fd_set(void)
         }
 
         pthread_mutex_init(&new->set_mutex, NULL);
-        
-        list_add_tail(&new->list, &free_fd_list);
 
-        ret = pthread_create(&new->thread, NULL, &child_reader, new);
+        list_add_tail(&new->list, &server->free_set_list);
+
+        server->new_set = new;
+        
+        ret = pthread_create(&new->thread, NULL, &child_reader, server);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't create thread.\n");
                 return NULL;
@@ -324,13 +343,20 @@ static manager_fd_set_t *create_fd_set(void)
 
 
 
+
 /*
+ * server_process_requests:
+ * @server; The server identifier.
+ * @cfd: The client file descriptor to be handled.
+ * @cdata: This file descriptor related private data.
  *
+ * Add the 'cfd' file descriptor for handling.
+ *
+ * Returns: 0 on success, -1 otherwise.
  */
-int server_process_requests(int client, void *clientdata) 
+int server_logic_process_requests(server_t *server, int cfd, void *cdata) 
 {
-        manager_fd_set_t *set;
-        
+        server_fd_set_t *set;
         
         /*
          * Hold the list lock until we add the connection.
@@ -338,27 +364,25 @@ int server_process_requests(int client, void *clientdata)
          * the content of the list. (while a connection could be removed. Same
          * side effect).
          */
-        pthread_mutex_lock(&list_mutex);
+        pthread_mutex_lock(&server->free_set_list_mutex);
         
-        if ( list_empty(&free_fd_list) ) {
+        if ( list_empty(&server->free_set_list) ) {
                 
-                pthread_mutex_unlock(&list_mutex);
+                pthread_mutex_unlock(&server->free_set_list_mutex);
                 
-                set = create_fd_set();
-                if ( ! set ) {
-                        close(client);
+                set = create_fd_set(server);
+                if ( ! set ) 
                         return -1;
-                }
 
                 /*
                  * add_connection should never call
                  * list_del() at this time, so we don't need locking.
                  */
-                add_connection(set, client, clientdata);
+                add_connection(set, cfd, cdata);
         } else {
-                set = list_entry(free_fd_list.next, manager_fd_set_t, list);
-                add_connection(set, client, clientdata);
-                pthread_mutex_unlock(&list_mutex);
+                set = list_entry(server->free_set_list.next, server_fd_set_t, list);
+                add_connection(set, cfd, cdata);
+                pthread_mutex_unlock(&server->free_set_list_mutex);
         }
         
         return 0;
@@ -367,7 +391,48 @@ int server_process_requests(int client, void *clientdata)
 
 
 
-void server_logic_init(int (*data_cb)(int fd, void *clientdata)) 
+
+/*
+ * server_logic_stop:
+ * @server: The server to stop.
+ */
+int server_logic_stop(server_t *server) 
 {
-        data_available_cb = data_cb;
+        /*
+         * Not implemented. Yet.
+         */
+
+        return 0;
 }
+
+
+
+
+
+/*
+ * server_logic_new:
+ * @s_read: The read function be called back on input.
+ * @s_close: The close function to be called on hang up.
+ *
+ * Returns: A pointer to a new server_t, NULL on error.
+ */
+server_t *server_logic_new(server_read_func_t *s_read, server_close_func_t *s_close) 
+{
+        server_t *new;
+
+        new = malloc(sizeof(server_t));
+        if ( ! new )
+                return NULL;
+
+        INIT_LIST_HEAD(&new->free_set_list);
+        pthread_mutex_init(&new->free_set_list_mutex, NULL);
+
+        new->read = s_read;
+        new->close = s_close;
+
+        return new;
+}
+
+
+
+
