@@ -608,10 +608,13 @@ static int flush_orphan_fifo(const char *filename)
         }
 
         if ( st.st_size > 0 ) {
-                init_file_output(filename, &tmp);
-                tmp.input_available = 1;
+                ret = init_file_output(filename, &tmp);
+                if ( ret < 0 )
+                        return -1;
                 
+                tmp.input_available = 1;
                 flush_existing_fifo(filename, &tmp, st.st_size);
+
                 destroy_file_output(&tmp);
         }
 
@@ -668,8 +671,6 @@ idmef_queue_t *idmef_message_scheduler_queue_new(void)
         INIT_LIST_HEAD(&queue->mid.message_list);
         INIT_LIST_HEAD(&queue->low.message_list);
 
-        pthread_mutex_init(&queue->mutex, NULL);
-
         snprintf(buf, sizeof(buf), "%s.%u", HIGH_PRIORITY_MESSAGE_FILENAME, global_id);        
         ret = init_file_output(buf, &queue->high.disk_message_list);
         if ( ret < 0 ) {
@@ -680,21 +681,21 @@ idmef_queue_t *idmef_message_scheduler_queue_new(void)
         snprintf(buf, sizeof(buf), "%s.%u", MID_PRIORITY_MESSAGE_FILENAME, global_id);        
         ret = init_file_output(buf, &queue->mid.disk_message_list);
         if ( ret < 0 ) {
-                free(queue);
                 destroy_file_output(&queue->high.disk_message_list);
+                free(queue);
                 return NULL;
         }
         
         snprintf(buf, sizeof(buf), "%s.%u", LOW_PRIORITY_MESSAGE_FILENAME, global_id);        
         ret = init_file_output(buf, &queue->low.disk_message_list);
         if ( ret < 0 ) {
-                free(queue);
                 destroy_file_output(&queue->high.disk_message_list);
                 destroy_file_output(&queue->mid.disk_message_list);
+                free(queue);
                 return NULL;
         }
-
         
+        pthread_mutex_init(&queue->mutex, NULL);
         pthread_mutex_lock(&queue_list_mutex);
         
         global_id++;
