@@ -35,7 +35,6 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/plugin-common.h>
-#include <libprelude/alert-id.h>
 #include <libprelude/idmef-tree.h>
 
 #include "alert-scheduler.h"

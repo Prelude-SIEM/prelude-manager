@@ -487,7 +487,11 @@ static void print_createtime(unsigned long parent_ident, char parent_type, idmef
 {
         char query[MAX_QUERY_LENGTH], *ntpstamp;
 
+        printf("%s\n", time->ntpstamp);
+        
         ntpstamp = db_escape(time->ntpstamp);
+
+        printf("%s\n", ntpstamp);
         
         snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\"", parent_ident, parent_type, ntpstamp);
         db_insert("Prelude_CreateTime", "parent_ident, parent_type, ntpstamp", query);

@@ -45,6 +45,6 @@ int plugin_init(unsigned int id);
 
 void decode_plugins_init(const char *dirname);
 
-int decode_plugins_run(prelude_msg_t *pmsg, idmef_alert_t *alert);
+int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *pmsg, idmef_alert_t *alert);
 
 #endif

@@ -55,22 +55,19 @@ static int decode_plugin_register(plugin_container_t *pc)
 /*
  *
  */
-int decode_plugins_run(prelude_msg_t *msg, idmef_alert_t *alert) 
+int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_alert_t *alert) 
 {
         int ret;
-        uint8_t id;
         plugin_decode_t *p;
         struct list_head *tmp;
         plugin_container_t *pc;
-
-        id = prelude_msg_get_tag(msg);
         
         list_for_each(tmp, &decode_plugins_list) {
             
                 pc = list_entry(tmp, plugin_container_t, ext_list);
 
                 p = (plugin_decode_t *) pc->plugin;
-                if ( p->decode_id != id )
+                if ( p->decode_id != plugin_id )
                         continue;
 
                 plugin_run_with_return_value(pc, &ret, plugin_decode_t, msg, alert);
@@ -82,7 +79,7 @@ int decode_plugins_run(prelude_msg_t *msg, idmef_alert_t *alert)
                 return 0;
         }
         
-        log(LOG_ERR, "No decode plugin for handling sensor id %d.\n", id);
+        log(LOG_ERR, "No decode plugin for handling sensor id %d.\n", plugin_id);
         
         return -1;
 }

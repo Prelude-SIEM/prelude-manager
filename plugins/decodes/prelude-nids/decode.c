@@ -31,7 +31,6 @@
 #include <libprelude/list.h>
 #include <libprelude/common.h>
 #include <libprelude/plugin-common.h>
-#include <libprelude/alert-id.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/idmef-message-id.h>
@@ -274,7 +273,7 @@ int plugin_init(unsigned int id)
         plugin_set_desc(&plugin, "Decode Prelude NIDS message, and translate them to IDMEF.");
         plugin_set_running_func(&plugin, nids_decode_run);
 
-        plugin.decode_id = ID_PRELUDE_NIDS_ALERT;
+        plugin.decode_id = MSG_FORMAT_PRELUDE_NIDS;
         
 	return plugin_register((plugin_generic_t *)&plugin);
 }

@@ -688,11 +688,9 @@ int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg)
 
                 
         case MSG_OWN_FORMAT:
-                ret = decode_plugins_run(msg, idmef->message.alert);
-                if ( ret < 0 ) {
-                        printf("ret = %d\n", ret);
+                ret = decode_plugins_run(tag, msg, idmef->message.alert);
+                if ( ret < 0 ) 
                         return ret;
-                }
                 break;
                 
         case MSG_END_OF_TAG:

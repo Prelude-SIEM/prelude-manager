@@ -38,7 +38,6 @@
 #include <assert.h>
 
 #include <libprelude/common.h>
-#include <libprelude/alert-id.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/plugin-common.h>
 
