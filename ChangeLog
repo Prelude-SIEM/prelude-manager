@@ -1,5 +1,11 @@
 2001-11-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* plugins/reports/mysql/mysql.c (print_target): 
+	output in Prelude_Target table. Attribute is decoy, not spoofed.
+
+	* src/idmef-func.c (idmef_target_new): 
+	(idmef_source_new): set spoofed and decoy attribute to default to unknow.
+
 	* src/Makefile.am (INCLUDES): Include local headers *before* installed
 	headers.
 

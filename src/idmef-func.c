@@ -211,6 +211,8 @@ idmef_source_t *idmef_source_new(idmef_alert_t *alert)
                 log(LOG_ERR, "memory exhausted.\n");
                 return NULL;
         }
+
+        ptr->spoofed = unknow;
         
         INIT_LIST_HEAD(&ptr->user.userid_list);
         INIT_LIST_HEAD(&ptr->node.address_list);
@@ -232,6 +234,8 @@ idmef_target_t *idmef_target_new(idmef_alert_t *alert)
                 log(LOG_ERR, "memory exhausted.\n");
                 return NULL;
         }
+
+        ptr->decoy = unknow;
         
         INIT_LIST_HEAD(&ptr->user.userid_list);
         INIT_LIST_HEAD(&ptr->node.address_list);

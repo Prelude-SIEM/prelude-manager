@@ -366,7 +366,7 @@ static void print_target(unsigned long alert_ident, const idmef_target_t *target
         snprintf(query, sizeof(query), "\"%ld\", \"%s\", \"%s\", \"%s\"",
                  alert_ident, ident, decoy, interface);
         
-        db_insert("Prelude_Source", "alert_ident, ident, spoofed, interface", query);
+        db_insert("Prelude_Target", "alert_ident, ident, decoy, interface", query);
 
         /* free memory allocated by db_escape() */
         free(decoy);
