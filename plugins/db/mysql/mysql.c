@@ -42,6 +42,7 @@
 static int is_enabled = 0;
 static plugin_db_t plugin;
 static char *dbhost = NULL;
+static chat *dbport = "3306";
 static char *dbname = NULL;
 static char *dbuser = NULL;
 static char *dbpass = NULL;
@@ -76,7 +77,7 @@ static char *db_escape(const char *string)
                 return NULL;
         }
 
-#ifdef HAVE_MYSQL_REAL_ESCAPE_STRING
+#if MYSQL_VERSION_ID >= 32200
         mysql_real_escape_string(&mysql, escaped, string, len);
 #else
         mysql_escape_string(escaped, string, len);
@@ -94,8 +95,12 @@ static char *db_escape(const char *string)
 static int db_insert(const char *query)
 {
         int ret = 0;
-                
+
+#if MYSQL_VERSION_ID >= 32200
+ 	ret = mysql_real_query(&mysql, query, strlen(query));
+#else
         ret = mysql_query(&mysql, query);
+#endif
         if ( ret ) {
                 log(LOG_ERR, "Query \"%s\" returned %d: %s\n", 
                 	query, ret, mysql_error(&mysql));
@@ -133,7 +138,14 @@ static int db_connect(void)
         /*
          * connect to the mySQL database
          */
-        connection = mysql_connect(&mysql, dbhost, dbuser, dbpass);        
+
+	mysql_init(&mysql);
+#if MYSQL_VERSION_ID >= 32200
+	connection = mysql_real_connect(&mysql, dbhost, dbuser, dbpass, dbname, atoi(dbport), NULL, CLIENT_COMPRESS + CLIENT_SSL);
+#else
+	connection = mysql_connect(&mysql, dbhost, dbuser, dbpass);
+#endif
+
         if ( ! connection ) {
                 log(LOG_INFO, "%s\n", mysql_error(&mysql));
                 return -1;
@@ -162,6 +174,12 @@ static int set_dbhost(prelude_option_t *opt, const char *optarg)
         return prelude_option_success;
 }
 
+
+static int set_dbport(prelude_option_t *opt, const char *optarg) 
+{
+	dbport = strdup(optarg);
+	return prelude_option_success;
+}
 
 
 static int set_dbname(prelude_option_t *opt, const char *optarg) 
@@ -234,7 +252,11 @@ plugin_generic_t *plugin_init(int argc, char **argv)
         prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'd', "dbhost",
                            "Tell the host where the MySQL DB is located", required_argument,
                            set_dbhost, NULL);
-        
+
+	prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'P', "dbport",
+				"Tell what port the MySQL DB is listening to", required_argument,
+				set_dbport, NULL);
+
         prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'n', "dbname",
                            "Tell the name of the database to use", required_argument,
                            set_dbname, NULL);

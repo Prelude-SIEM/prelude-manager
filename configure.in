@@ -115,11 +115,6 @@ if test x$mysql_use = xtrue; then
 	CFLAGS_bak=$CFLAGS
 	CFLAGS="$CFLAGS $temp_mysql_flags"
 
-	AC_CHECK_LIB(mysqlclient, mysql_real_escape_string, have_real_escape_string=yes)
-	if test x$have_real_escape_string = xyes; then
-		AC_DEFINE(HAVE_MYSQL_REAL_ESCAPE_STRING)
-	fi
-
 	# restore the normal setting
 	CFLAGS=$CFLAGS_bak
 fi

@@ -41,7 +41,7 @@
 static int is_enabled = 0;
 static plugin_db_t plugin;
 static char *dbhost = NULL;
-static char *dbport = NULL;
+static char *dbport = "5432";
 static char *dbname = NULL;
 static char *dbuser = NULL;
 static char *dbpass = NULL;
@@ -140,6 +140,12 @@ static int set_dbhost(prelude_option_t *opt, const char *optarg)
 }
 
 
+static int set_dbport(prelude_option_t *opt, const char *optarg) 
+{
+	dbport = strdup(optarg);
+	return prelude_option_success;
+}
+
 
 static int set_dbname(prelude_option_t *opt, const char *optarg) 
 {
@@ -212,7 +218,11 @@ plugin_generic_t *plugin_init(int argc, char **argv)
         prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'd', "dbhost",
                            "Tell the host where the PgSQL DB is located", required_argument,
                            set_dbhost, NULL);
-        
+
+	prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'P', "dbport",
+				"Tell what port the PgSQL DB is listening to", required_argument,
+				set_dbport, NULL);
+
         prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'n', "dbname",
                            "Tell the name of the database to use", required_argument,
                            set_dbname, NULL);

@@ -1,3 +1,10 @@
+2003-04-22  Michael Boman
+
+	* both mysql and pgsql now have a new command line option to
+	assign port number : dbport
+	* now works with MySQL v4.0+ (does not use mysql_connect
+	which have be deprecated, use mysql_real_connect instead)
+
 2003-03-18  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
 
 	* plugins/decodes/prelude-nids/passive-os-fingerprint.h:
