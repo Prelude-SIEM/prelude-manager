@@ -350,7 +350,7 @@ static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnut
         gnutls_x509_crt cert;
         size_t size = sizeof(buf);
         int cert_list_size = 0, ret;
-        const gnutls_datum_t *cert_list;
+        const gnutls_datum *cert_list;
         
         cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
         if ( ! cert_list || cert_list_size != 1 ) {
