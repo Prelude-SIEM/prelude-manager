@@ -46,7 +46,6 @@
 
 #include "server-generic.h"
 #include "sensor-server.h"
-#include "admin-server.h"
 #include "pconfig.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
@@ -59,11 +58,7 @@
 
 
 static size_t nserver = 0;
-static server_generic_t *server[2];
-
 server_generic_t *sensor_server;
-#define admin_server server[1]
-
 extern struct report_config config;
 
 
@@ -78,9 +73,6 @@ static void cleanup(int sig)
          * stop the sensor server.
          */
         sensor_server_close(sensor_server);
-
-        if ( config.admin_server_addr )
-                admin_server_close(admin_server);
         
         /*
          * close the scheduler.
@@ -101,8 +93,8 @@ static void init_manager_server(void)
          * Initialize the sensors server.
          */
         nserver++;
-        
-        server[0] = sensor_server = sensor_server_new(config.addr, config.port);
+
+        sensor_server = sensor_server_new(config.addr, config.port);
         if ( ! sensor_server ) {
                 log(LOG_INFO, "- couldn't start sensor server.\n");
                 exit(1);
@@ -110,23 +102,6 @@ static void init_manager_server(void)
 
         log(LOG_INFO, "- sensors server started (listening on %s:%d).\n",
             config.addr, config.port);
-
-        /*
-         * Initialize the admin server if specified.
-         */
-        if ( config.admin_server_addr ) {
-                
-                admin_server = admin_server_new(config.admin_server_addr, config.admin_server_port);
-                if ( ! admin_server ) {
-                        log(LOG_INFO, "- couldn't start administration server.\n");
-                        exit(1);
-                }
-
-                log(LOG_INFO, "- administration server started (listening on %s:%d).\n",
-                    config.admin_server_addr, config.admin_server_port);
-
-                nserver++;
-        }
 }
 
 
@@ -193,7 +168,7 @@ int main(int argc, char **argv)
         sigaction(SIGQUIT, &action, NULL);
 
         manager_relay_init();
-        server_generic_start(server, nserver);
+        server_generic_start(&sensor_server, nserver);
         
 	exit(0);	
 }

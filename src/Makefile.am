@@ -21,15 +21,14 @@ prelude_manager_SOURCES =			\
 			server-logic.c		\
 			server-generic.c	\
 			sensor-server.c		\
-			admin-server.c		\
 			ssl.c			\
 			decode-plugins.c	\
 			idmef-message-scheduler.c \
-			idmef-message-read.c	\
-			idmef-db-output.c	\
-			idmef-util.c		\
-			ntp.c			\
-			plugins-util.c		\
+			idmef-message-read.c	  \
+			idmef-db-output.c	  \
+			idmef-util.c		  \
+			ntp.c			  \
+			plugins-util.c		  \
 			relaying.c
 
 

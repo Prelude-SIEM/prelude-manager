@@ -29,9 +29,6 @@ int pconfig_init(int argc, char **argv);
 struct report_config {
 	char *addr;
         unsigned int port;
-        
-        char *admin_server_addr;
-	unsigned int admin_server_port;
 
 	char *cm_comm_server_addr;
 	unsigned int cm_comm_server_port;

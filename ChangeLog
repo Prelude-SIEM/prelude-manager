@@ -1,3 +1,17 @@
+2002-11-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/Makefile.am: 
+	* src/admin-server.c: 
+	remove from the build.
+
+	* src/pconfig.c (pconfig_init): 
+	remove admin server configuration option.
+
+	* src/include/pconfig.h: remove admin_server_* stuff
+	from the config structure.
+
+	admin-server will soon be part of the sensor-server core.
+	
 2002-11-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* COPYING.OpenSSL: 

@@ -126,24 +126,6 @@ static int set_sensor_listen_address(prelude_option_t *opt, const char *arg)
 
 
 
-
-static int set_admin_listen_address(prelude_option_t *opt, const char *arg) 
-{
-        char *ptr = strdup(arg);
-        
-        config.admin_server_addr = ptr;
-        
-        ptr = strchr(ptr, ':');
-        if ( ptr ) {
-                *ptr = '\0';
-                config.admin_server_port = atoi(ptr + 1);
-        }
-        
-        return prelude_option_success;
-}
-
-
-
 static int print_help(prelude_option_t *opt, const char *arg) 
 {
         prelude_option_print(CLI_HOOK, 25);
@@ -160,7 +142,6 @@ int pconfig_init(int argc, char **argv)
 	/* Default */
 	config.addr = "127.0.0.1";
 	config.port = 5554;
-        config.admin_server_port = 5555;
         config.pidfile = NULL;
 
         prelude_option_add(NULL, CLI_HOOK, 'h', "help",
@@ -190,10 +171,6 @@ int pconfig_init(int argc, char **argv)
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 's', "sensors-srvr", 
                            "Address the sensors server should listen on (addr:port)", required_argument,
                            set_sensor_listen_address, NULL);
-
-        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'a', "admin-srvr",
-                           "Address the admin server should listen on (addr:port)", required_argument,
-                           set_admin_listen_address, NULL);
 
         prelude_set_program_name("prelude-manager");
         
