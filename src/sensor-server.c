@@ -373,12 +373,6 @@ static int handle_declare_admin(sensor_fd_t *cnx)
 {
         int state;
         
-        cnx->cnx = prelude_connection_new(manager_client, "127.0.0.1", 0);
-        prelude_connection_set_fd(cnx->cnx, cnx->fd);
-
-        state = prelude_connection_get_state(cnx->cnx) | PRELUDE_CONNECTION_ESTABLISHED;
-        prelude_connection_set_state(cnx->cnx, state);
-
         cnx->client_type = "admin";
         
         server_generic_log_client((server_generic_client_t *) cnx,
@@ -538,7 +532,7 @@ static void close_connection_cb(server_generic_client_t *ptr)
 {
         sensor_fd_t *cnx = (sensor_fd_t *) ptr;
         
-        if ( cnx->cnx && cnx->capability & PRELUDE_CLIENT_CAPABILITY_RECV_IDMEF )
+        if ( cnx->cnx )
                 reverse_relay_tell_dead(cnx->cnx);
 
         if ( cnx->list_mutex ) {
