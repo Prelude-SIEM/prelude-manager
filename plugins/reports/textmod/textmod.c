@@ -456,6 +456,9 @@ static void process_assessment(const idmef_assessment_t *assessment)
 {
         struct list_head *tmp;
         idmef_action_t *action;
+
+        if ( ! assessment )
+                return;
         
         process_impact(assessment->impact);
         print(0, "*\n");

@@ -2,6 +2,7 @@
 
 	* plugins/reports/textmod/textmod.c: 
 	new plugin, handling logfile output and stderr output.
+	(process_assessment): avoid NULL pointer dereference.
 
 	* prelude-manager.conf.in:
 	added default configuration entry for TextMod.
