@@ -7,7 +7,7 @@ EXTRA_DIST = prelude-manager.conf config.h 		\
 install-data-local:
 	$(INSTALL) -d -m 700 $(configdir);
 	$(INSTALL) -d -m 700 /var/spool/prelude-manager;
-	@if test -f $(top_srcdir)/prelude-manager.conf; then                                                 \
+	@if test -f $(configdir)/prelude-manager.conf; then                                                  \
 		$(INSTALL) -m 600 $(top_srcdir)/prelude-manager.conf $(configdir)/prelude-manager.conf-dist; \
 		echo "********************************************************************************";     \
 		echo;											     \
