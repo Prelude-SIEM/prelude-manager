@@ -77,9 +77,6 @@ sensors-srvr = 127.0.0.1
 
 # [db]
 
-# The format of database used by libpreludedb.
-# format = classic
-
 # The type of database (mysql/pgsql).
 # type = mysql
 

@@ -52,17 +52,17 @@ dnl
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libpreludedb/db.h>
+#include <libpreludedb/preludedb-version.h>
 
 int
 main ()
 {
     system ("touch conf.libpreludedbtest");
 
-    if( strcmp( prelude_db_check_version(NULL), "$libpreludedb_config_version" ) )
+    if( strcmp( preludedb_check_version(NULL), "$libpreludedb_config_version" ) )
     {
       printf("\n*** 'libpreludedb-config --version' returned %s, but LIBPRELUDEDB (%s)\n",
-             "$libpreludedb_config_version", prelude_db_check_version(NULL) );
+             "$libpreludedb_config_version", preludedb_check_version(NULL) );
       printf("*** was found! If libpreludedb-config was correct, then it is best\n");
       printf("*** to remove the old version of LIBPRELUDEDB. You may also be able to fix the error\n");
       printf("*** by modifying your LD_LIBRARY_PATH enviroment variable, or by editing\n");
@@ -72,21 +72,21 @@ main ()
       printf("*** to point to the correct copy of libpreludedb-config, and remove the file config.cache\n");
       printf("*** before re-running configure\n");
     }
-    else if ( strcmp(prelude_db_check_version(NULL), LIBPRELUDEDB_VERSION ) )
+    else if ( strcmp(preludedb_check_version(NULL), LIBPRELUDEDB_VERSION ) )
     {
       printf("\n*** LIBPRELUDEDB header file (version %s) does not match\n", LIBPRELUDEDB_VERSION);
-      printf("*** library (version %s)\n", prelude_db_check_version(NULL) );
+      printf("*** library (version %s)\n", preludedb_check_version(NULL) );
     }
     else
     {
-      if ( prelude_db_check_version( "$min_libpreludedb_version" ) )
+      if ( preludedb_check_version( "$min_libpreludedb_version" ) )
       {
         return 0;
       }
      else
       {
         printf("no\n*** An old version of LIBPRELUDEDB (%s) was found.\n",
-                prelude_db_check_version(NULL) );
+                preludedb_check_version(NULL) );
         printf("*** You need a version of LIBPRELUDEDB newer than %s. The latest version of\n",
                "$min_libpreludedb_version" );
         printf("*** LIBPRELUDEDB is always available from http://www.prelude-ids.org/download/releases.\n");
@@ -133,8 +133,8 @@ main ()
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libpreludedb/db.h>
-],      [ return !!prelude_db_check_version(NULL); ],
+#include <libpreludedb/preludedb-version.h>
+],      [ return !!preludedb_check_version(NULL); ],
         [ echo "*** The test program compiled, but did not run. This usually means"
           echo "*** that the run-time linker is not finding LIBPRELUDEDB or finding the wrong"
           echo "*** version of LIBPRELUDEDB. If it is not finding LIBPRELUDEDB, you'll need to set your"
