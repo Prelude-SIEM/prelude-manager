@@ -94,13 +94,13 @@ static int wait_install_request(prelude_io_t *pio,
         
         certlen = prelude_ssl_recv_cert(pio, cert, sizeof(cert), skey1, skey2);
         if ( certlen < 0 ) {
-                log(LOG_ERR, "couldn't receive Manager certificate.\n");
+                log(LOG_ERR, "couldn't receive Sensor certificate.\n");
                 goto err;
         }
 
         ret = prelude_ssl_send_cert(pio, MANAGER_KEY, skey1, skey2);
         if ( ret < 0 ) {
-                log(LOG_ERR, "couldn't send Sensor certificate.\n");
+                log(LOG_ERR, "couldn't send Manager certificate.\n");
                 goto err;
         }
 
@@ -125,7 +125,8 @@ static int wait_install_request(prelude_io_t *pio,
         return 0;
         
  err:
-        fprintf(stderr, "Registration failed.\n");
+        fprintf(stderr, "Registration failed.\n"
+                "Perhaps client provided the wrong one shot password ?\n");
         prelude_io_close(pio);
 
         return -1;
