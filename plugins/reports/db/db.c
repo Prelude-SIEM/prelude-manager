@@ -80,7 +80,7 @@ static void write_idmef_message(const idmef_message_t *message)
 
 
 
-static void process_message(const idmef_message_t *message)
+static void process_message(idmef_message_t *message)
 {
         write_idmef_message(message);
 }

@@ -291,7 +291,7 @@ static void process_source(int depth, idmef_source_t *source)
 {
         const char *spoofed;
 
-        spoofed = idmef_spoofed_to_string(idmef_source_get_spoofed(source));
+        spoofed = idmef_source_spoofed_to_string(idmef_source_get_spoofed(source));
         if ( spoofed )
                 print(depth, "* Source spoofed: %s\n", spoofed);
 
@@ -428,7 +428,7 @@ static void process_target(int depth, idmef_target_t *target)
         idmef_file_t *file;
 
         print(0, "* Target decoy: %s\n", 
-	      idmef_spoofed_to_string(idmef_target_get_decoy(target)));
+	      idmef_target_decoy_to_string(idmef_target_get_decoy(target)));
         
         if ( idmef_string(idmef_target_get_interface(target)) )
                 print(0, "* Target Interface: %s\n", idmef_string(idmef_target_get_interface(target)));

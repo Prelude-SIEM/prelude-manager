@@ -326,8 +326,7 @@ static void process_source(xmlNodePtr parent, idmef_source_t *source)
                 return;
         
         idmef_attr_uint64(new, "ident", idmef_source_get_ident(source));
-        idmef_attr_string(new, "spoofed",
-			  idmef_spoofed_to_string(idmef_source_get_spoofed(source)));
+        idmef_attr_string(new, "spoofed", idmef_source_spoofed_to_string(idmef_source_get_spoofed(source)));
         idmef_attr_string(new, "interface", idmef_string(idmef_source_get_interface(source)));
         
         process_node(new, idmef_source_get_node(source));
@@ -453,7 +452,7 @@ static void process_target(xmlNodePtr parent, idmef_target_t *target)
 
         idmef_attr_uint64(new, "ident", idmef_target_get_ident(target));
         idmef_attr_string(new, "decoy",
-			  idmef_spoofed_to_string(idmef_target_get_decoy(target)));
+			  idmef_target_decoy_to_string(idmef_target_get_decoy(target)));
         idmef_attr_string(new, "interface",
 			  idmef_string(idmef_target_get_interface(target)));
 
