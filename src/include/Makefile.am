@@ -6,7 +6,7 @@ noinst_HEADERS = 		\
 	server-generic.h	\
 	sensor-server.h		\
 	admin-server.h		\
-	alert-scheduler.h	\
+	idmef-message-scheduler.h \
 	idmef-message-read.h	\
 	idmef-db-output.h
 

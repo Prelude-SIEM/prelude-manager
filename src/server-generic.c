@@ -50,7 +50,6 @@
 #include "pconfig.h"
 #include "server-logic.h"
 #include "server-generic.h"
-#include "alert-scheduler.h"
 
 
 #define UNIX_SOCK "/var/lib/prelude/socket"

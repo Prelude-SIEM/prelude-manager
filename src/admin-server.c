@@ -13,7 +13,6 @@
 #include "server-logic.h"
 #include "server-generic.h"
 #include "admin-server.h"
-#include "alert-scheduler.h"
 #include "sensor-server.h"
 
 

@@ -22,7 +22,7 @@ prelude_manager_SOURCES =			\
 			admin-server.c		\
 			ssl.c			\
 			decode-plugins.c	\
-			alert-scheduler.c	\
+			idmef-message-scheduler.c \
 			idmef-func.c		\
 			idmef-message-read.c	\
 			idmef-db-output.c	\
