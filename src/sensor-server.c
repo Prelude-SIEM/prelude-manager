@@ -72,7 +72,7 @@ static sensor_fd_t *search_cnx(prelude_list_t *head, uint64_t analyzerid)
         sensor_fd_t *cnx;
         prelude_list_t *tmp;
 
-        prelude_list_for_each(tmp, head) {
+        prelude_list_for_each(head, tmp) {
                 cnx = prelude_list_entry(tmp, sensor_fd_t, list);
 
                 if ( cnx->ident == analyzerid )

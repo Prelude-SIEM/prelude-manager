@@ -144,7 +144,7 @@ prelude_connection_t *reverse_relay_search_receiver(uint64_t analyzerid)
         
         pthread_mutex_lock(&receiver.mutex);
         
-        prelude_list_for_each(tmp, head) {
+        prelude_list_for_each(head, tmp) {
                 cnx = prelude_linked_object_get_object(tmp);
                 
                 if ( analyzerid == prelude_connection_get_peer_analyzerid(cnx) ) {
