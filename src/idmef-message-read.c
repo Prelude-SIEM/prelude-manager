@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/time.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 
 #include <libprelude/list.h>
@@ -48,6 +49,7 @@
         ret = extract_string_safe(&dst.string, buf, blen);                \
         if ( ret < 0 )                                                    \
                return -1;                                                 \
+        dst.len = blen;							  \
 } while(0)
 
 
