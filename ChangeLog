@@ -16,6 +16,10 @@
 	* src/server.c: 
 	This file now only contain the basic server setup. 
 
+
+	This update bring an optimised architecture for the Prelude Manager,
+	as defined in http://www.geocrawler.com/lists/3/SourceForge/1578/0/6666462/
+	
 2001-09-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/server.c (wait_connection): 

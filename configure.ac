@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(src)
-AM_INIT_AUTOMAKE(prelude-report, 0.4.1)
+AM_INIT_AUTOMAKE(prelude-manager, 0.4.1)
 AM_CONFIG_HEADER(config.h)
 AM_DISABLE_STATIC
 
@@ -245,19 +245,19 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS(gettimeofday select socket strdup strerror strstr)
 
 configdir=$sysconfdir/prelude
-prelude_report_conf=$configdir/prelude-report.conf
+prelude_manager_conf=$configdir/prelude-manager.conf
 plugindir=$libdir/prelude
 detect_plugin_dir=$plugindir/detects/
 report_plugin_dir=$plugindir/reports/
 decode_plugin_dir=$plugindir/decodes/
 protocol_plugin_dir=$plugindir/protocols/
 
-AC_DEFINE_UNQUOTED(PRELUDE_REPORT_CONF, "$prelude_report_conf")
+AC_DEFINE_UNQUOTED(PRELUDE_REPORT_CONF, "$prelude_manager_conf")
 
 AC_SUBST(defined)
 AC_SUBST(configdir)
 AC_SUBST(localstatedir)
-AC_SUBST(prelude_report_conf)
+AC_SUBST(prelude_manager_conf)
 AC_SUBST(report_plugin_dir)
 AC_SUBST(decode_plugin_dir)
 AC_SUBST(LIBWRAP_LIBS)
@@ -270,7 +270,7 @@ CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declara
 AC_OUTPUT([
 
 Makefile 
-prelude-report.conf
+prelude-manager.conf
 libmissing/Makefile
 src/Makefile 
 src/include/Makefile
