@@ -198,8 +198,13 @@ static int handle_authentication_method(prelude_io_t *fd, char *pass)
         switch (tag) {
 
         case PRELUDE_MSG_AUTH_SSL:
+#ifdef HAVE_SSL    
                 fprintf(stderr, "sensor choose to use SSL communication method.\n");
                 ret = ssl_register_client(fd, pass, strlen(pass));
+#else
+                fprintf(stderr, "sensor requested to use SSL, but it is unsupported.\n");
+                return -1;
+#endif
                 break;
                 
         case PRELUDE_MSG_AUTH_PLAINTEXT:
@@ -314,7 +319,9 @@ int main(void)
         prelude_msg_t *config;
 
 #ifdef HAVE_SSL
-        ssl_create_manager_key_if_needed();
+        ret = ssl_create_manager_key_if_needed();
+        if ( ret < 0 )
+                return -1;
 #endif
         fprintf(stderr, "\n\n");
         

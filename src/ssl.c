@@ -32,6 +32,9 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <inttypes.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <libprelude/prelude-log.h>
 #include <libprelude/config-engine.h>
@@ -68,6 +71,40 @@ static int do_ssl_accept(SSL *ssl)
 
 
 
+
+static int load_certificate_if_needed(void) 
+{
+        int ret;
+        struct stat st;
+        static time_t old_mtime = 0;
+                        
+        ret = stat(SENSORS_CERT, &st);
+        if ( ret < 0 && errno != ENOENT ) {
+                log(LOG_ERR, "error stating %s.\n", SENSORS_CERT);
+                return -1;
+        }
+
+        if ( ret == 0 && st.st_mtime != old_mtime ) {
+                /*
+                 * certificate file has changed, we have to reload it
+                 * to take new entry into account.
+                 */
+                ret = SSL_CTX_load_verify_locations(ctx, SENSORS_CERT, NULL);
+                if ( ret != 1 ) {
+                        ERR_print_errors_fp(stderr);
+                        return -1;
+                }
+
+                old_mtime = st.st_mtime;
+        }
+
+        return 0;
+}
+
+
+
+
+
 /**
  * ssl_auth_client:
  * @session: Client associated data.
@@ -78,8 +115,12 @@ static int do_ssl_accept(SSL *ssl)
  */
 int ssl_auth_client(prelude_io_t *pio)
 {
-        int err;
+        int ret;
         SSL *ssl;
+
+        ret = load_certificate_if_needed();
+        if ( ret < 0 )
+                return -1;
         
         /*
          * check if we already have an SSL descriptor
@@ -88,13 +129,13 @@ int ssl_auth_client(prelude_io_t *pio)
         ssl = prelude_io_get_fdptr(pio);        
         if ( ! ssl ) {
                 ssl = SSL_new(ctx);
-                if (!ssl) {
+                if ( ! ssl ) {
                         ERR_print_errors_fp(stderr);
                         return -1;
                 }
                 
-                err = SSL_set_fd(ssl, prelude_io_get_fd(pio));
-                if (err <= 0) {
+                ret = SSL_set_fd(ssl, prelude_io_get_fd(pio));
+                if ( ret <= 0 ) {
                         ERR_print_errors_fp(stderr);
                         return -1;
                 }
@@ -128,7 +169,7 @@ int ssl_close_session(SSL *ssl)
  */
 int ssl_init_server(void)
 {
-        int n;
+        int ret;
         SSL_METHOD *method;
         
 	/*
@@ -137,45 +178,50 @@ int ssl_init_server(void)
 	SSL_load_error_strings();
 	SSL_library_init();
 
-	method = SSLv3_server_method();
-
+	method = TLSv1_server_method();
+        if ( ! method ) {
+                ERR_print_errors_fp(stderr);
+                return -1;
+        }
+        
 	ctx = SSL_CTX_new(method);
-	if (!ctx) {
+	if ( ! ctx ) {
 		ERR_print_errors_fp(stderr);
 		return -1;
 	}
 
-	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TLSv1);
 	SSL_CTX_set_verify_depth(ctx, 1);
 
         /*
          * No callback, mutual authentication.
          */
-	SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-                
-	n = SSL_CTX_load_verify_locations(ctx, SENSORS_CERT, NULL);
-	if (n <= 0) {
-		ERR_print_errors_fp(stderr);
-                log(LOG_INFO, "\nNo Sensors certificate available. Please run the "
-                    "\"manager-adduser\" program.\n\n");
-		return -1;
-	}
-        
-	n = SSL_CTX_use_certificate_file(ctx, MANAGER_KEY, SSL_FILETYPE_PEM);
-	if (n <= 0) {
+        SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+
+        ret = SSL_CTX_load_verify_locations(ctx, MANAGER_KEY, NULL);
+        if ( ret != 1 ) {
+                log(LOG_INFO, "\n\nNo Manager key available. Please run manager-adduser.\n\n");
+                return -1;
+        }
+
+	ret = SSL_CTX_use_certificate_file(ctx, MANAGER_KEY, SSL_FILETYPE_PEM);
+	if ( ret != 1 ) {
 		ERR_print_errors_fp(stderr);
 		return -1;
 	}
 
-	n = SSL_CTX_use_PrivateKey_file(ctx, MANAGER_KEY, SSL_FILETYPE_PEM);
-	if (n <= 0) {
+	ret = SSL_CTX_use_PrivateKey_file(ctx, MANAGER_KEY, SSL_FILETYPE_PEM);
+	if ( ret != 1 ) {
 		ERR_print_errors_fp(stderr);
 		return -1;
 	}
 
-	if (!SSL_CTX_check_private_key(ctx)) {
-		fprintf(stderr,
-			"Private key does not match the certificate public key\n");
+        /*
+         * check that our private key is consistant with the certificate
+         * loaded into ctx.
+         */
+        ret = SSL_CTX_check_private_key(ctx);
+	if ( ret != 1 ) {
+                log(LOG_ERR, "Private key does not match certificata.\n");
 		return -1;
 	}
 

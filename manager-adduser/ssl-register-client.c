@@ -171,9 +171,7 @@ static void ask_ssl_settings(int *keysize, int *expire)
 
 static int create_manager_key_if_needed(void) 
 {
-        int ret;
-        X509 *x509ss;
-        int keysize, expire;
+        int ret, keysize, expire;
         
         ret = access(MANAGER_KEY, F_OK);
         if ( ret == 0 )
@@ -184,9 +182,16 @@ static int create_manager_key_if_needed(void)
         ask_ssl_settings(&keysize, &expire);
         
         fprintf(stderr, "\n\n");
+
+        if ( expire == 0 ) 
+                /*
+                 * Does SSL allow for key that never expire ?
+                 */
+                expire = 30000;
         
-        x509ss = prelude_ssl_gen_crypto(keysize, expire, MANAGER_KEY, 0);
-        if ( ! x509ss ) {
+
+        ret = prelude_ssl_gen_crypto(keysize, expire, MANAGER_KEY, 0);
+        if ( ret < 0 ) {
                 log(LOG_ERR, "error creating SSL key.\n");
                 return -1;
         }

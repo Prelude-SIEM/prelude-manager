@@ -1,3 +1,16 @@
+2002-02-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/ssl.c (load_certificate_if_needed): 
+	new function, stat the certificate file and reload it if it changed.
+	(ssl_auth_client): call load_certificate_if_needed()
+
+	(ssl_init_server): use TLSv1 server method as suggested by
+	Michael Samuel <michael@miknet.net>.
+
+	* manager-adduser/manager-adduser.c (handle_authentication_method): 
+	only activate SSL when compiled in.
+	(main): check ssl_create_manager_key return value.
+
 2002-02-05  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/idmef-db-output.c: stop passing pointer to ident.
