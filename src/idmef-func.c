@@ -33,9 +33,12 @@
 
 #include <libprelude/common.h>
 #include <libprelude/idmef-tree.h>
+#include <libprelude/prelude-ident.h>
 
+#include "config.h"
 #include "ntp.h"
 #include "idmef-func.h"
+
 
 #define MAX_UTC_DATETIME_SIZE  23   /* YYYY-MM-DDThh:mm:ss.ssZ */
 #define MAX_NTP_TIMESTAMP_SIZE 21   /* 0xNNNNNNNN.0xNNNNNNNN   */
@@ -56,6 +59,30 @@
 
 
 static idmef_message_t msg;
+static prelude_ident_t *alert_ident;
+
+
+
+
+int idmef_ident_init(void) 
+{
+        alert_ident = prelude_ident_new(PRELUDE_MANAGER_CONFDIR"/alert.ident");
+        if ( ! alert_ident ) {
+                log(LOG_ERR, "couldn't initialize unique alert ident.\n");
+                return -1;
+        }
+
+        return 0;
+}
+
+
+
+
+void idmef_ident_exit(void) 
+{
+        prelude_ident_destroy(alert_ident);
+}
+
 
 
 
@@ -120,9 +147,9 @@ static void fill_alert_infos(idmef_alert_t *alert)
         struct timeval tv;
         static char ctime[MAX_UTC_DATETIME_SIZE], ctime_ntp[MAX_NTP_TIMESTAMP_SIZE];
         
-        alert->ident = "0";
         alert->create_time.time = ctime;
         alert->create_time.ntpstamp = ctime_ntp;
+        alert->ident = prelude_ident_inc(alert_ident);
         
         gettimeofday(&tv, NULL);
         idmef_get_timestamp(&tv, ctime, sizeof(ctime));
@@ -141,7 +168,7 @@ idmef_message_t *idmef_alert_new(void)
         msg.version = IDMEF_VERSION;
         msg.type = idmef_alert_message;
         msg.message.alert = &alert;
-
+                
         fill_alert_infos(&alert);
         
         INIT_LIST_HEAD(&alert.source_list);
@@ -471,4 +498,3 @@ const char *idmef_target_decoy_to_string(idmef_spoofed_t decoy)
 
         return tbl[decoy];
 }
-

@@ -78,29 +78,6 @@ static char *db_escape(const char *string)
 
 
 
-static int db_insert_id(char *table, char *field, unsigned long *id) 
-{
-        int ret;
-        char query[MAX_QUERY_LENGTH];
-        
-        if ( *id == DB_INSERT_AUTOINC_ID ) {
-                *id = mysql_insert_id(&mysql);
-                return (*id == 0) ? -1 : 0;
-        }
-        
-        snprintf(query, sizeof(query), "INSERT INTO %s (%s) VALUES(%ld)", table, field, *id);
-        
-        ret = mysql_query(&mysql, query);
-        if ( ret < 0 ) {
-                log(LOG_ERR, "db_query \"%s\" returned %d\n", query, ret);
-                return -1;
-        }
-
-        return 0;
-}
-
-
-
 
 /*
  * insert the given values into the given db table.
@@ -222,7 +199,6 @@ int plugin_init(unsigned int id)
         plugin_set_desc(&plugin, "Will log all alert to a MySQL database.");
         plugin_set_escape_func(&plugin, db_escape);
         plugin_set_insert_func(&plugin, db_insert);
-        plugin_set_insert_id_func(&plugin, db_insert_id);
         plugin_set_closing_func(&plugin, db_close);
         
         plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_MANAGER_CONF);

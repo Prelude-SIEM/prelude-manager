@@ -116,30 +116,6 @@ void db_plugins_insert(char *table, char *fields, ...)
 
 
 
-/**
- * db_plugins_insert_id:
- * @table: Pointer to string defining the database table.
- * @field: Pointer to string defining the database fields.
- * @id: Pointer to an unsigned long.
- *
- * This function insert @id, in all active databases, in the specified table and field.
- * If id is set to %DB_INSERT_AUTOINC_ID, the database backend will automatically
- * generate a new id, which will be set in the unsigned long pointed by @id.
- */
-void db_plugins_insert_id(char *table, char *field, unsigned long *id)
-{
-        int ret;
-        struct list_head *tmp;
-        plugin_container_t *pc;
-
-        list_for_each(tmp, &db_plugins_list) {
-                pc = list_entry(tmp, plugin_container_t, ext_list);
-                plugin_run_with_return_value(pc, plugin_db_t,
-                                             db_insert_id, ret, table, field, id);
-        }
-}
-
-
 
 /**
  * db_plugins_run:

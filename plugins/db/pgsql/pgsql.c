@@ -78,48 +78,6 @@ static char *db_escape(const char *str)
 
 
 
-
-static int do_query(const char *query) 
-{
-        PGresult *ret;
-
-        ret = PQexec(pgsql, query);
-        if ( ! ret || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
-                log(LOG_ERR, "Query \"%s\" returned an error.\n", query);
-                return -1;
-        }
-
-        return 0;
-}
-
-
-
-
-
-static int db_insert_id(char *table, char *field, unsigned long *id) 
-{
-        PGresult *ret;
-        char query[MAX_QUERY_LENGTH];
-        
-        if ( *id != DB_INSERT_AUTOINC_ID ) /* related to a previous increment */
-                return 0; /* we use link between sequence. We have nothing to do */
-
-        snprintf(query, sizeof(query), "SELECT nextval('%s') FROM %s", field, table);
-        
-        ret = PQexec(pgsql, query);
-        if ( ret < 0 || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
-                log(LOG_ERR, "Query %s failed : %s.\n", query, PQerrorMessage(pgsql));
-                return -1;
-        }
-        
-        *id = 1; 
-        
-        return 0;
-}
-
-
-
-
 /*
  * insert the given values into the given db table.
  */
@@ -229,7 +187,6 @@ int plugin_init(unsigned int id)
         plugin_set_desc(&plugin, "Will log all alert to a PostgreSQL database.");
         plugin_set_escape_func(&plugin, db_escape);
         plugin_set_insert_func(&plugin, db_insert);
-        plugin_set_insert_id_func(&plugin, db_insert_id);
         plugin_set_closing_func(&plugin, db_close);
         
         plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_MANAGER_CONF);

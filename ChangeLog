@@ -1,3 +1,55 @@
+2001-12-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* plugins/db/pgsql/pgsql.c (db_insert_id): (plugin_init): 
+	(do_query): remove unused.
+
+	* plugins/db/mysql/mysql.c (db_insert_id): (plugin_init): 
+	* src/db-plugins.c (db_plugins_insert_id): 
+	* src/include/plugin-db.h: 
+
+	remove insert_id() related stuff since it is deprecated.
+
+	* src/server.c: complete reentrancy.
+
+	* src/server-logic.c: modified so that
+	it pass a global server pointer (specified by the caller) when
+	the callback are called.
+
+	* src/prelude-manager.c (main): 
+	initialize the IDENT generation subsystem.
+	Handle server.c API change.
+	
+	* src/idmef-func.c (idmef_ident_init): 
+	(idmef_ident_exit): new function. Init alert ident.
+	(fill_alert_infos): use prelude_ident.
+
+	* src/idmef-db-output.c (idmef_db_output): convert ident to
+	char here.
+	(insert_analyzertime): 
+	(insert_detecttime): 
+	(insert_createtime): 
+	(insert_data): 
+	(insert_classification): 
+	(insert_analyzer): 
+	(insert_target): 
+	(insert_source): 
+	(insert_service): 
+	(insert_process): 
+	(insert_user): 
+	(insert_userid): 
+	(insert_node): 
+	(insert_address): 
+	Passed ident is now a char *. Remove deprecated use of 
+	db_plugins_insert_id, as we now handle IDENT ourselve.
+
+2001-12-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server-logic.c (remove_connection): 
+	(handle_fd_event): pass global server data to the callbacks functions.
+	(server_logic_new): Take a global server data argument.
+
+	* src/server.c (inet_server_start): take addr and port as argument.
+
 2001-12-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/server.c: Update to fit server-logic change.

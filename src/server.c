@@ -56,11 +56,15 @@
 #define UNIX_SOCK "/var/lib/prelude/socket"
 
 
-static int unix_srvr = 0;
-extern struct report_config config;
+
+struct manager_server {
+        struct server_logic *logic;
+        int unix_srvr;
+};
 
 
-static int server_read_connection_cb(prelude_io_t *src, void **clientdata) 
+
+static int server_read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata) 
 {
         int ret;
         
@@ -70,7 +74,19 @@ static int server_read_connection_cb(prelude_io_t *src, void **clientdata)
 
         if ( ret == 0 )
                 return 0;  /* message not fully read yet */
+        
+#if 0
+        switch (prelude_msg_get_tag(*clientdata)) {
+                
+            case PRELUDE_MSG_IDMEF:
+                alert_schedule(*clientdata, src);
+                break;
 
+        case PRELUDE_OPTION_LIST:
+                break;        
+        }
+#endif   
+        
         /*
          * If we get there, we have a whole message.
          */
@@ -83,11 +99,12 @@ static int server_read_connection_cb(prelude_io_t *src, void **clientdata)
 
 
 
-static int server_close_connection_cb(prelude_io_t *pio, void *clientdata) 
+static int server_close_connection_cb(void *sdata, prelude_io_t *pio, void *clientdata) 
 {
         int ret;
+        manager_server_t *server = sdata;
 
-        if ( unix_srvr )
+        if ( server->unix_srvr )
                 log(LOG_INFO, "closing connection on UNIX socket.\n");
         else {
                 struct sockaddr_in addr;
@@ -298,7 +315,7 @@ static prelude_io_t *setup_unix_connection(int sock, struct sockaddr_un *addr)
 /*
  *
  */
-static int wait_connection(server_logic_t *logic, int sock, struct sockaddr *addr, socklen_t addrlen) 
+static int wait_connection(server_logic_t *logic, int sock, struct sockaddr *addr, socklen_t addrlen, int unix_srvr) 
 {
         int ret;
         int client;
@@ -309,7 +326,6 @@ static int wait_connection(server_logic_t *logic, int sock, struct sockaddr *add
                 client = accept(sock, addr, &addrlen);
                 if ( client < 0 ) {
                         log(LOG_ERR, "couldn't accept connection.\n");
-                        manager_server_close();
                         continue;
                 }
                 
@@ -440,18 +456,17 @@ static int unix_server_start(server_logic_t *logic)
                 close(sock);
                 return -1;
         }
-
-        unix_srvr = 1;
         
-        return wait_connection(logic, sock, (struct sockaddr *) &addr, sizeof(addr));
+        return wait_connection(logic, sock, (struct sockaddr *) &addr, sizeof(addr), 1);
 }
+
 
 
 
 /*
  *
  */
-static int inet_server_start(server_logic_t *logic) 
+static int inet_server_start(server_logic_t *logic, const char *server, uint16_t port) 
 {
         int ret, on = 1, sock;
         struct sockaddr_in addr;
@@ -465,8 +480,8 @@ static int inet_server_start(server_logic_t *logic)
         }
         
         addr.sin_family = AF_INET;
-        addr.sin_port = htons(config.port);
-        addr.sin_addr.s_addr = inet_addr(config.addr);
+        addr.sin_port = htons(port);
+        addr.sin_addr.s_addr = inet_addr(server);
         
         ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
@@ -490,7 +505,7 @@ static int inet_server_start(server_logic_t *logic)
                 goto err;
 #endif
         
-        return wait_connection(logic, sock, (struct sockaddr *) &addr, sizeof(addr));
+        return wait_connection(logic, sock, (struct sockaddr *) &addr, sizeof(addr), 0);
 
  err:
         close(sock);
@@ -503,42 +518,52 @@ static int inet_server_start(server_logic_t *logic)
 /*
  *
  */
-int manager_server_start(void)
+manager_server_t *manager_server_start(const char *addr, uint16_t port)
 {
-	int ret;
+        int ret;
         server_logic_t *logic;
+        manager_server_t *srvr;
+
+        srvr = malloc(sizeof(*srvr));
+        if ( ! srvr ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return NULL;
+        }
         
-        logic = server_logic_new(server_read_connection_cb, server_close_connection_cb);
+        logic = server_logic_new(srvr, server_read_connection_cb, server_close_connection_cb);
         if ( ! logic ) {
                 log(LOG_ERR, "couldn't initialize server pool.\n");
-                return -1;
+                free(srvr);
+                return NULL;
         }
         
         ret = alert_scheduler_init();
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't initialize alert scheduler.\n");
-                return -1;
+                return NULL;
         }
         
-        ret = strcmp(config.addr, "unix");
-        if ( ret == 0 )
+        ret = strcmp(addr, "unix");
+        if ( ret == 0 ) {
+                srvr->unix_srvr = 1;
                 ret = unix_server_start(logic);
-        else 
-                ret = inet_server_start(logic);
-
-        return ret;
+        } else {
+                srvr->unix_srvr = 0;
+                ret = inet_server_start(logic, addr, port);
+        }
+        
+        return (ret < 0) ? NULL : srvr;
 }
 
 
 
-void manager_server_close(void) 
+void manager_server_close(manager_server_t *server) 
 {
-        int ret;
-        
-        ret = strcmp(config.addr, "unix");
-        if (ret == 0 )
-                unlink(UNIX_SOCK);
+        server_logic_stop(server->logic);
 
+        if ( server->unix_srvr )
+                unlink(UNIX_SOCK);
+        
         alert_scheduler_exit();
 }
 

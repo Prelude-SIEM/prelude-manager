@@ -28,6 +28,7 @@
 #include <syslog.h>
 #include <signal.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #include <libprelude/list.h>
 #include <libprelude/plugin-common.h>
@@ -48,7 +49,6 @@
 extern struct report_config config;
 
 
-
 static void cleanup(int sig) 
 {
         log(LOG_INFO, "Caught signal %d.\n", sig);
@@ -58,7 +58,7 @@ static void cleanup(int sig)
          */
         signal(sig, SIG_DFL);
 
-        
+#if 0
         /*
          *
          */
@@ -68,7 +68,7 @@ static void cleanup(int sig)
          *
          */
         report_plugins_close();
-        
+#endif   
 
         if ( config.pidfile )
                 unlink(config.pidfile);
@@ -82,11 +82,27 @@ static void cleanup(int sig)
 }
 
 
+#if 0
+static void *admin_server_start(void) 
+{
+        manager_server_t *admsrv;
+
+        admsrv = manager_server_new(config.admin_server_addr, config.admin_server_port);
+        if ( ! admsrv )
+                return NULL;
+
+        manager_server_start(admsrv);
+
+        
+}
+#endif
+
 
 
 int main(int argc, char **argv)
 {
         int ret;
+        manager_server_t *sensors_server;
         
         if ( pconfig_init(argc, argv) < 0 )
                 exit(1);
@@ -100,6 +116,10 @@ int main(int argc, char **argv)
         
         do_init_nofail(decode_plugins_init(DECODE_PLUGIN_DIR),
                        "Initializing decode plugins.");
+
+        ret = idmef_ident_init();
+        if ( ret < 0 )
+                exit(1);
         
         signal(SIGTERM, cleanup);
         signal(SIGINT, cleanup);
@@ -114,14 +134,14 @@ int main(int argc, char **argv)
                         "Starting Prelude Report as a daemon.");
 
         do_init(1, "Starting Manager server");
-        ret = manager_server_start();
-        if ( ret == 0 )
-                manager_server_close();
-
+        sensors_server = manager_server_start(config.addr, config.port);
+        assert(sensors_server);
+        manager_server_close(sensors_server);
 
         report_plugins_close();
-
-	exit(ret);	
+        idmef_ident_exit();
+        
+	exit(0);	
 }
 
 

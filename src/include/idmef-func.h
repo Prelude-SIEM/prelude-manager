@@ -68,6 +68,10 @@ void idmef_get_ntp_timestamp(struct timeval *tv, char *outptr, size_t size);
 
 void idmef_get_timestamp(struct timeval *tv, char *outptr, size_t size);
 
+int idmef_ident_init(void);
+
+void idmef_ident_exit(void);
+
 #endif
 
 

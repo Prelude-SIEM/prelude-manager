@@ -21,6 +21,10 @@
 *
 *****/
 
-int manager_server_start(void);
+#include <inttypes.h>
 
-void manager_server_close(void);
+typedef struct manager_server manager_server_t;
+
+manager_server_t *manager_server_start(const char *addr, uint16_t port);
+
+void manager_server_close(manager_server_t *server);

@@ -304,6 +304,7 @@ decode_plugin_dir=$plugindir/decodes/
 db_plugin_dir=$plugindir/db/
 
 
+AC_DEFINE_UNQUOTED(PRELUDE_MANAGER_CONFDIR, "$configdir")
 AC_DEFINE_UNQUOTED(PRELUDE_MANAGER_CONF, "$prelude_manager_conf")
 
 AC_SUBST(defined)

@@ -36,7 +36,7 @@
 
 
 /*
- * If modifying this value, beside 128, carefull
+ * If modifying this value, beside 256, carefull
  * to not use an uint8_t for the free_tbl and free_index members
  * to avoid wrap arround.
  */
@@ -78,7 +78,6 @@ typedef struct {
 
 
 struct server_logic {
-
         void *sdata;
         
         server_read_func_t *read;
@@ -105,7 +104,7 @@ static void remove_connection(server_logic_t *server, server_fd_set_t *set, int 
          * Close the file descriptor associated with this set.
          * Handle the case where close could be interrupted.
          */
-        server->close(set->pio[cnx_key], set->clientdata[cnx_key]);
+        server->close(server->sdata, set->pio[cnx_key], set->clientdata[cnx_key]);
         
 
         /*
@@ -230,7 +229,7 @@ static int handle_fd_event(server_logic_t *server, server_fd_set_t *set, int cnx
         if ( set->pfd[cnx_key].revents & POLLIN ) {
                 int ret;
                 
-                ret = server->read(set->pio[cnx_key], &set->clientdata[cnx_key]);
+                ret = server->read(server->sdata, set->pio[cnx_key], &set->clientdata[cnx_key]);
                 dprint("thread=%ld - Data availlable (ret=%d)\n", pthread_self(), ret);
                 
                 if ( ret < 0 )
@@ -299,6 +298,9 @@ static void *child_reader(void *ptr)
                         if ( ret == 0 )
                                 active_fd--;
 
+                        /*
+                         * reset the revents fields.
+                         */
                         pfd[i].revents = 0;
                         set->pfd[i].revents = 0;
                 }
@@ -358,7 +360,7 @@ static server_fd_set_t *create_fd_set(server_logic_t *server)
  *
  * Returns: 0 on success, -1 otherwise.
  */
-int server_logic_process_requests(server_logic_t *server, prelude_io_t *pio, void *cdata) 
+int server_logic_process_requests(server_logic_t *server, prelude_io_t *cfd, void *cdata) 
 {
         server_fd_set_t *set;
         
@@ -382,10 +384,10 @@ int server_logic_process_requests(server_logic_t *server, prelude_io_t *pio, voi
                  * add_connection should never call
                  * list_del() at this time, so we don't need locking.
                  */
-                add_connection(set, pio, cdata);
+                add_connection(set, cfd, cdata);
         } else {
                 set = list_entry(server->free_set_list.next, server_fd_set_t, list);
-                add_connection(set, pio, cdata);
+                add_connection(set, cfd, cdata);
                 pthread_mutex_unlock(&server->free_set_list_mutex);
         }
         
@@ -420,7 +422,7 @@ int server_logic_stop(server_logic_t *server)
  *
  * Returns: A pointer to a new server_logic_t, NULL on error.
  */
-server_logic_t *server_logic_new(server_read_func_t *s_read, server_close_func_t *s_close) 
+server_logic_t *server_logic_new(void *sdata, server_read_func_t *s_read, server_close_func_t *s_close) 
 {
         server_logic_t *new;
 
@@ -431,9 +433,11 @@ server_logic_t *server_logic_new(server_read_func_t *s_read, server_close_func_t
         INIT_LIST_HEAD(&new->free_set_list);
         pthread_mutex_init(&new->free_set_list_mutex, NULL);
 
+        new->sdata = sdata;
         new->read = s_read;
         new->close = s_close;
 
         return new;
 }
+
 
