@@ -25,8 +25,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
-#include <netinet/in.h>
 #include <sys/types.h>
+#include <netinet/in.h>
 #include <pthread.h>
 
 #include <libprelude/list.h>
