@@ -243,6 +243,7 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         uint16_t op, hrd;
         idmef_data_t *data;
         prelude_strbuf_t *buf;
+        struct in_addr tmp_addr;
         etherarphdr_t *arp = packet->p.arp_hdr;
         struct {
                 int type;
@@ -302,11 +303,13 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         
         prelude_strbuf_sprintf(buf, "f=%d(%s) ", hrd, (ptr) ? ptr : "unknown");
 
+        tmp_addr.s_addr = align_uint32(arp->arp_tpa);
         prelude_strbuf_sprintf(buf, "tpa=%s,tha=%s,",
-                               get_address((struct in_addr *)arp->arp_tpa), etheraddr_string(arp->arp_tha));
+                               get_address(&tmp_addr), etheraddr_string(arp->arp_tha));
 
+        tmp_addr.s_addr = align_uint32(arp->arp_spa);
         prelude_strbuf_sprintf(buf, "spa=%s,sha=%s",
-                               get_address((struct in_addr *)arp->arp_spa), etheraddr_string(arp->arp_sha));
+                               get_address(&tmp_addr), etheraddr_string(arp->arp_sha));
 
         data = idmef_data_new_nodup(prelude_strbuf_get_string(buf), prelude_strbuf_get_len(buf) + 1);
         if ( ! data ) {
