@@ -21,38 +21,42 @@
 *
 *****/
 
+#define SERVER_LOGIC_CLIENT_OBJECT \
+        prelude_io_t *fd
+
+
 typedef struct server_logic server_logic_t;
+typedef struct server_logic_client server_logic_client_t;
 
 
 /*
  * Callback function type for closing a connection.
  */
-typedef int (server_close_func_t)(void *sdata, prelude_io_t *pio, void *cdata);
+typedef int (server_logic_close_t)(void *sdata, server_logic_client_t *client);
 
 
 /*
  * Callback function type for handling data on a connection.
  */
-typedef int (server_read_func_t)(void *sdata, prelude_io_t *pio, void **cdata);
-
-
-
-/*
- *
- */
-int server_logic_stop(server_logic_t *server);
+typedef int (server_logic_read_t)(void *sdata, server_logic_client_t *client);
 
 
 /*
  *
  */
-int server_logic_process_requests(server_logic_t *server, prelude_io_t *pio, void *cdata);
+void server_logic_stop(server_logic_t *server);
 
 
 /*
  *
  */
-server_logic_t *server_logic_new(void *sdata, server_read_func_t *s_read, server_close_func_t *s_close);
+int server_logic_process_requests(server_logic_t *server, server_logic_client_t *client);
+
+
+/*
+ *
+ */
+server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read, server_logic_close_t *s_close);
 
 
 

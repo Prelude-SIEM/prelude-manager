@@ -23,24 +23,42 @@
 
 #include <inttypes.h>
 
+
+#define SERVER_GENERIC_OBJECT        \
+        SERVER_LOGIC_CLIENT_OBJECT;  \
+        prelude_msg_t *msg;          \
+        int is_authenticated;        \
+        char *addr
+
+
 typedef struct server_generic server_generic_t;
+typedef struct server_generic_client server_generic_client_t;
+
 
 /*
  * Callback function type for accepting a connection.
  */
-typedef int (server_generic_accept_func_t)(prelude_io_t *cfd, void **cdata);
+typedef int (server_generic_accept_func_t)(server_generic_client_t *client);
 
 
 /*
  * Callback function type for closing a connection.
  */
-typedef void (server_generic_close_func_t)(void *cdata);
+typedef void (server_generic_close_func_t)(server_generic_client_t *client);
+
+
+/*
+ * Callback function type for reading a connection.
+ */
+typedef int (server_generic_read_func_t)(server_generic_client_t *client);
 
 
 
 server_generic_t *server_generic_new(const char *addr, uint16_t port,
+                                     size_t serverlen,
                                      server_generic_accept_func_t *accept,
-                                     server_read_func_t *read, server_generic_close_func_t *close);
+                                     server_generic_read_func_t *read,
+                                     server_generic_close_func_t *close);
 
 void server_generic_start(server_generic_t *server);
 

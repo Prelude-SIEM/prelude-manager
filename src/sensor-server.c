@@ -45,12 +45,11 @@
 
 
 
-typedef struct {        
+typedef struct {
+        SERVER_GENERIC_OBJECT;
         struct list_head list;
         uint64_t analyzerid;
-        prelude_msg_t *msg;
-        prelude_io_t *fd;
-} sensor_cnx_t;
+} sensor_fd_t;
 
 
 static server_generic_t *server;
@@ -123,7 +122,7 @@ static int option_list_to_xml(prelude_msg_t *msg)
 
 
 
-static int handle_request_ident(sensor_cnx_t *cnx)
+static int handle_request_ident(sensor_fd_t *cnx)
 {
         uint64_t nident;
         prelude_msg_t *msg;
@@ -155,7 +154,7 @@ static int handle_request_ident(sensor_cnx_t *cnx)
 
 
 
-static int handle_declare_ident(sensor_cnx_t *cnx, void *buf, uint32_t blen) 
+static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen) 
 {
         int ret;
         
@@ -168,7 +167,7 @@ static int handle_declare_ident(sensor_cnx_t *cnx, void *buf, uint32_t blen)
 
 
 
-static int read_ident_message(sensor_cnx_t *cnx, prelude_msg_t *msg) 
+static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg) 
 {
         int ret;        
         void *buf;
@@ -198,10 +197,8 @@ static int read_ident_message(sensor_cnx_t *cnx, prelude_msg_t *msg)
                 log(LOG_ERR, "Unknow ID tag: %d.\n", tag);
                 ret = -1;
         }
-
-        prelude_msg_destroy(msg);
         
-        return ret;
+        return 0;
 }
 
 
@@ -209,14 +206,14 @@ static int read_ident_message(sensor_cnx_t *cnx, prelude_msg_t *msg)
 
 
 
-static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata) 
+static int read_connection_cb(server_generic_client_t *client)
 {
         int ret;
         prelude_msg_t *msg;
         prelude_msg_status_t status;
-        sensor_cnx_t *cnx = *clientdata;
+        sensor_fd_t *cnx = (sensor_fd_t *) client;
         
-        status = prelude_msg_read(&cnx->msg, src);        
+        status = prelude_msg_read(&cnx->msg, cnx->fd);
         if ( status == prelude_msg_eof || status == prelude_msg_error ) {
                 /*
                  * end of file on read
@@ -240,33 +237,33 @@ static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata)
                 
         case PRELUDE_MSG_IDMEF:
                 idmef_message_schedule(msg);
-                break;
+                return 0;
 
         case PRELUDE_MSG_ID:
-                return read_ident_message(cnx, msg);
+                ret = read_ident_message(cnx, msg);
+                prelude_msg_destroy(msg);
+                break;
                 
         case PRELUDE_MSG_OPTION_LIST:
                 ret = option_list_to_xml(msg);
                 prelude_msg_destroy(msg);
-                if ( ret < 0 )
-                        return -1;
                 break;
 
         default:
                 log(LOG_ERR, "Unknow message id %d\n", prelude_msg_get_tag(cnx->msg));
                 prelude_msg_destroy(msg);
-                return -1;
+                return 0;
         }
                 
-        return 0;
+        return ret;
 }
 
 
 
 
-static void close_connection_cb(void *clientdata) 
+static void close_connection_cb(server_generic_client_t *ptr) 
 {
-        sensor_cnx_t *cnx = clientdata;
+        sensor_fd_t *cnx = (sensor_fd_t *) ptr;
 
         pthread_mutex_lock(&list_mutex);
         list_del(&cnx->list);
@@ -279,29 +276,17 @@ static void close_connection_cb(void *clientdata)
          */
         if ( cnx->msg )
                 prelude_msg_destroy(cnx->msg);
-
-        free(cnx);
 }
 
 
 
 
-static int accept_connection_cb(prelude_io_t *cfd, void **cdata) 
+static int accept_connection_cb(server_generic_client_t *ptr) 
 {
-        sensor_cnx_t *new;
+        sensor_fd_t *client = (sensor_fd_t *) ptr;
         
-        new = malloc(sizeof(*new));
-        if ( ! new ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return -1;
-        }
-        
-        *cdata = new;
-        new->fd = cfd;
-        new->msg = NULL;
-
         pthread_mutex_lock(&list_mutex);
-        list_add(&new->list, &sensor_cnx_list);
+        list_add(&client->list, &sensor_cnx_list);
         pthread_mutex_unlock(&list_mutex);
         
         return 0;
@@ -317,8 +302,8 @@ int sensor_server_new(const char *addr, uint16_t port)
         if ( ! analyzer_ident )
                 return -1;
         
-        server = server_generic_new(addr, port, accept_connection_cb,
-                                 read_connection_cb, close_connection_cb);
+        server = server_generic_new(addr, port, sizeof(sensor_fd_t), accept_connection_cb,
+                                    read_connection_cb, close_connection_cb);
         if ( ! server ) {
                 log(LOG_ERR, "error creating a generic server.\n");
                 return -1;
@@ -346,7 +331,7 @@ void sensor_server_start(void)
 int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *msg) 
 {
         int ret;
-        sensor_cnx_t *cnx;
+        sensor_fd_t *cnx;
         struct list_head *tmp;
         
         if ( ! analyzerid )
@@ -355,7 +340,7 @@ int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *m
         pthread_mutex_lock(&list_mutex);
         
         list_for_each(tmp, &sensor_cnx_list) {
-                cnx = list_entry(tmp, sensor_cnx_t, list);
+                cnx = list_entry(tmp, sensor_fd_t, list);
 
                 if ( cnx->analyzerid == *analyzerid ) {
                         ret = prelude_msg_write(msg, cnx->fd);

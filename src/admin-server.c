@@ -20,10 +20,13 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <netinet/in.h>
 #include <sys/types.h>
+#include <pthread.h>
 
 #include <libprelude/list.h>
 #include <libprelude/common.h>
@@ -40,16 +43,14 @@
 
 
 typedef struct {
-        prelude_io_t *fd;
-        prelude_msg_t *msg;
+        SERVER_GENERIC_OBJECT;
         struct list_head list;
-} admin_cnx_t;
-
+} admin_client_t;
 
 
 static server_generic_t *server;
-static LIST_HEAD(admin_cnx_list);
-
+static LIST_HEAD(admin_client_list);
+static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 static int get_option(prelude_msg_t *msg) 
@@ -134,11 +135,11 @@ static int optlist_to_xml(prelude_msg_t *msg)
 
 
 
-static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata) 
+static int read_connection_cb(server_generic_client_t *ptr)
 {
         int ret;
         prelude_msg_t *msg;
-        admin_cnx_t *client = *clientdata;
+        admin_client_t *client = (admin_client_t *) ptr;
                  
         /*
          * Handle XML stream here. And convert it to prelude message.
@@ -159,32 +160,32 @@ static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata)
 
 
 
-static void close_connection_cb(void *clientdata) 
+static void close_connection_cb(server_generic_client_t *ptr) 
 {
-        admin_cnx_t *cnx = clientdata;
+        admin_client_t *client = (admin_client_t *) ptr;
 
-        if ( cnx->msg )
-                prelude_msg_destroy(cnx->msg);
+        /*
+         * Kill an eventual unfinished message remaining
+         * at close() time.
+         */
+        if ( client->msg )
+                prelude_msg_destroy(client->msg);
         
-        free(cnx);
+        pthread_mutex_lock(&list_mutex);
+        list_del(&client->list);
+        pthread_mutex_unlock(&list_mutex);
 }
 
 
 
 
-static int accept_connection_cb(prelude_io_t *fd, void **cdata) 
+static int accept_connection_cb(server_generic_client_t *ptr) 
 {
-        admin_cnx_t *new;
+        admin_client_t *client = (admin_client_t *) ptr;
         
-        new = calloc(1, sizeof(*new));
-        if ( ! new ) {
-                log(LOG_ERR, "memory exhausted.\n");
-                return -1;
-        }
-        
-        new->fd = fd;
-        *cdata = new;
-        list_add(&new->list, &admin_cnx_list);
+        pthread_mutex_lock(&list_mutex);
+        list_add(&client->list, &admin_client_list);
+        pthread_mutex_unlock(&list_mutex);
         
         return 0;
 }
@@ -193,8 +194,8 @@ static int accept_connection_cb(prelude_io_t *fd, void **cdata)
 
 int admin_server_new(const char *addr, uint16_t port) 
 {
-        server = server_generic_new(addr, port, accept_connection_cb,
-                                    read_connection_cb, close_connection_cb);
+        server = server_generic_new(addr, port, sizeof(admin_client_t),
+                                    accept_connection_cb, read_connection_cb, close_connection_cb);
         if ( ! server ) {
                 log(LOG_ERR, "error creating a generic server.\n");
                 return -1;
@@ -218,9 +219,9 @@ int admin_server_broadcast_sensor_optlist(prelude_msg_t *msg)
 {
         int len;
         char *xml;
-        admin_cnx_t *cnx;
         struct list_head *tmp;
-        
+        admin_client_t *client;
+
         /*
          * 
          * Call optlist_to_xml() here,
@@ -233,19 +234,17 @@ int admin_server_broadcast_sensor_optlist(prelude_msg_t *msg)
         }
 
         len = strlen(xml) + 1;
-        
-        list_for_each(tmp, &admin_cnx_list) {
-                cnx = list_entry(tmp, admin_cnx_t, list);
-                prelude_io_write(cnx->fd, xml, len);
+     
+        msg = prelude_msg_new(1, len, 0, 0);
+        if ( ! msg )
+                return -1;
+
+        prelude_msg_set(msg, 0, len, xml);
+     
+        list_for_each(tmp, &admin_client_list) {
+                client = list_entry(tmp, admin_client_t, list);
+                prelude_msg_write(msg, client->fd);
         }
-                
+        
         return 0;
 }
-
-
-
-
-
-
-
-

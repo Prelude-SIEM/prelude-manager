@@ -46,7 +46,7 @@ int main(void)
         
         ret = strcmp(buf, "plaintext");
         if ( ret == 0 )
-                ret = prelude_auth_create_account(MANAGER_AUTH_FILE);
+                ret = prelude_auth_create_account(MANAGER_AUTH_FILE, 1);
         else {
 #ifdef HAVE_SSL
                 ret = ssl_register_client();

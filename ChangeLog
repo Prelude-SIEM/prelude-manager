@@ -1,5 +1,44 @@
 2002-01-10  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/server-logic.c: 
+	reduce the number of duplicated pointer between the different
+	server interface.
+	(server_logic_process_requests): create the thread after creating
+	the set.
+	
+	(server_logic_process_requests): send the SIGUSR1 signal to the
+	existing set after the connection is added.
+
+	(create_fd_set): don't create the new thread before adding the
+	connection. This could result in a race.
+
+	(child_reader): catch the SIGUSR1 signal. Use an infinite timeout.
+	add_connection will send us the SIGUSR1 signal when a new connection
+	is available, so that poll() is interupted, and we take the new fd
+	into account.
+
+	(child_reader): avoid the pollfd copy. Use the number of currently
+	used fds as the pollfd delimiter for poll. Do not use the maximum
+	value.
+
+	(handle_fd_event): test for POLLERR|POLLHUP|POLLNVAL *before*
+	testing for POLLIN. Because the first is often associated with
+	the second.
+
+	* src/server-generic.c: Fit server-logic API change.
+	Now we use prelude-message verywhere and are fully async.
+
+	* src/sensor-server.c: 
+	* src/admin-server.c: fit server generic API change.
+	thread locking.
+
+	* src/server-logic.c (restart_poll): 
+	handler for SIGUSR1.
+	(child_reader): handle SIGUSR1. 
+	(child_reader): no need to lock / copy the set of FDs.
+	(child_reader): poll only needed descriptor.
+	(server_logic_process_requests): 
+
 	* src/server-generic.c (tcpd_auth): use the log() macro.
 
 	* src/include/report.h: fix include.
