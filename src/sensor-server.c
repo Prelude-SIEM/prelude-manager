@@ -36,7 +36,7 @@
 #include <libprelude/prelude-ident.h>
 #include <libprelude/prelude-extract.h>
 #include <libprelude/prelude-connection.h>
-#include <libprelude/prelude-connection-mgr.h>
+#include <libprelude/prelude-connection-pool.h>
 #include <libprelude/prelude-option-wide.h>
 
 #include "server-logic.h"
