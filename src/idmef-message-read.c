@@ -88,7 +88,13 @@ static int additional_data_get(prelude_msg_t *msg, idmef_additional_data_t *data
                 break;
 
         case MSG_ADDITIONALDATA_DATA:
-                extract_idmef_string(buf, len, data->data);
+                /*
+                 * Don't use extract_idmef_string() here,
+                 * cause the data might be binary, and that we might
+                 * not have an ending \0.
+                 */
+                idmef_string(&data->data) = string;
+                idmef_string_len(&data->data) = len;
                 break;
 
         case MSG_END_OF_TAG:

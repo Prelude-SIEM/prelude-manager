@@ -30,6 +30,7 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-ident.h>
+#include <libprelude/idmef-tree-func.h>
 
 #include "config.h"
 #include "ntp.h"
@@ -108,6 +109,95 @@ void idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size)
 
 
 
+/**
+ * idmef_additional_data_to_string:
+ * @ad: An additional data object.
+ * @out: A buffer where the output should be stored.
+ * @size: Pointer to the size of the destination buffer.
+ *
+ * This function take care of converting the IDMEF AdditionalData data
+ * member to a string suitable to be outputed in the IDMEF database.
+ *
+ * The provided buffer might not be used.
+ * Uppon return, size will reflect the amount of size used in the buffer.
+ *
+ * Returns: NULL on error, a pointer to @buf if conversion succeed,
+ * or a pointer to the actual data if no conversion is needed.
+ */
+const char *idmef_additional_data_to_string(idmef_additional_data_t *ad, char *buf, size_t *size) 
+{
+        int ret = *size;
+        
+        switch (ad->type) {
+                
+        case byte:
+                /*
+                 * FIXME:
+                 *
+                 * from section 4.3.2.2 of the IDMEF specs:
+                 *
+                 * Any character defined by the ISO/IEC 10646 and Unicode standards may
+                 * be included in an XML document by the use of a character reference.
+                 *
+                 * A character reference is started with the characters '&' and '#', and
+                 * ended with the character ';'.  Between these characters, the
+                 * character code for the character inserted.
+                 *
+                 * If the character code is preceded by an 'x' it is interpreted in
+                 * hexadecimal (base 16), otherwise, it is interpreted in decimal (base
+                 * 10).  For instance, the ampersand (&) is encoded as &#38; or &#x0026;
+                 * and the less-than sign (<) is encoded as &#60; or &#x003C;.
+                 *
+                 * Any one-, two-, or four-byte character specified in the ISO/IEC 10646
+                 * and Unicode standards can be included in a document using this
+                 * technique.
+                 */
+                break;
+
+        case character:
+                ret = snprintf(buf, *size, "%c", *(const char *) ad->data.string);
+                break;
+
+        case integer:
+                ret = snprintf(buf, *size, "%d", *(const int *) ad->data.string);
+                break;
+                
+        case ntpstamp:
+                ret = snprintf(buf, *size, "0x%08ux.0x%08ux",
+                         ((const uint32_t *) ad->data.string)[0],((const uint32_t *) ad->data.string)[1]);
+                break;
+
+        case real:
+                ret = snprintf(buf, *size, "%f", *(const float *) ad->data.string);
+                break;
+
+        case boolean:
+        case date_time:
+        case portlist:
+        case string:
+        case xml:
+                *size = idmef_string_len(&ad->data);
+                return idmef_string(&ad->data);
+
+        default:
+                log(LOG_ERR, "Unknown data type: %d.\n", ad->type);
+                return NULL;
+        }
+
+        /*
+         * Since glibc 2.1 snprintf follow the C99 standard and return
+         * the number of characters (excluding the trailibng '\0') which
+         * would have been written to the final string if enought space
+         * had been available.
+         */
+        if ( ret < sizeof(buf) )
+                *size = ret;
+
+        return buf;
+}
+
+
+
 /*
  * IDMEF enum -> string converter
  */
@@ -133,6 +223,7 @@ const char *idmef_additional_data_type_to_string(idmef_additional_data_type_t ty
 
         return tbl[type];        
 }
+
 
 
 

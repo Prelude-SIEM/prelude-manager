@@ -432,10 +432,19 @@ static void process_classification(const idmef_classification_t *class)
 
 static void process_data(const idmef_additional_data_t *ad) 
 {
-        if ( idmef_string_len(&ad->data) <= 80 )
-                print(0, "* %s: %s\n", idmef_string(&ad->meaning), idmef_string(&ad->data));
+        int size;
+        char buf[1024], *ptr;
+
+        size = sizeof(buf);
+        
+        ptr = idmef_additional_data_to_string(ad, buf, &size);
+        if ( ! ptr )
+                return;
+        
+        if ( size <= 80 )
+                print(0, "* %s: %s\n", idmef_string(&ad->meaning), ptr);
         else
-                print(0, "* %s:\n%s\n", idmef_string(&ad->meaning), idmef_string(&ad->data));
+                print(0, "* %s:\n%s\n", idmef_string(&ad->meaning), ptr);
 }
 
 

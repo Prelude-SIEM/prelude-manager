@@ -24,6 +24,8 @@
 #ifndef _MANAGER_IDMEF_UTIL_H
 #define _MANAGER_IDMEF_UTIL_H
 
+const char *idmef_additional_data_to_string(idmef_additional_data_t *ad, char *out, size_t *size);
+
 const char *idmef_additional_data_type_to_string(idmef_additional_data_type_t type);
 
 const char *idmef_classification_origin_to_string(idmef_classification_origin_t origin);

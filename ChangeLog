@@ -1,5 +1,23 @@
 2002-05-29  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/idmef-message-read.c (additional_data_get): 
+	Don't use extract_idmef_string() for IDMEF additionalData
+	data member. The content might be binary, and then not
+	end with \0.
+
+	* src/idmef-util.c (idmef_additional_data_to_string): 
+	new function, take care of converting the IDMEF AdditionalData data
+	member to a string suitable to be outputed in the IDMEF database.
+
+	* src/idmef-db-output.c (insert_data): 
+	use idmef_additional_data_to_string() to get the
+	data.
+
+	* plugins/reports/textmod/textmod.c (process_data): 
+	use idmef_additional_data_to_string.
+
+	We should now be able to deal with any kind of data type.
+	
 	* docs/api/Makefile.am: workaround a possible
 	build breakage if gtkdoc isn't present.
 

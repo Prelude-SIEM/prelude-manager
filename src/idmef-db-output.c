@@ -713,25 +713,32 @@ static int insert_classification(uint64_t alert_ident, idmef_classification_t *c
 
 static int insert_data(uint64_t parent_ident, char parent_type, idmef_additional_data_t *ad) 
 {
-        const char *type;
-        char *meaning, *data;
+        int size;
+        const char *type, *ptr;
+        char buf[ad->data.len], *meaning, *data;
 
         type = idmef_additional_data_type_to_string(ad->type);
         if ( ! type )
                 return -1;
+
+        size = sizeof(buf);
         
-        data = db_plugin_escape(idmef_string(&ad->data));
-        if ( ! data )
+        ptr = idmef_additional_data_to_string(ad, buf, &size);
+        if ( ! ptr )
+                return -1;
+
+        meaning = db_plugin_escape(idmef_string(&ad->meaning));
+        if ( ! meaning ) 
                 return -1;
         
-        meaning = db_plugin_escape(idmef_string(&ad->meaning));
-        if ( ! meaning ) {
-                free(data);
+        data = db_plugin_escape(ptr);
+        if ( ! data ) {
+                free(meaning);
                 return -1;
         }
         
         db_plugin_insert("Prelude_AdditionalData", "parent_ident, parent_type, type, meaning, data",
-                          "%llu, '%c', '%s', '%s', '%s'", parent_ident, parent_type, type, meaning, data);
+                         "%llu, '%c', '%s', '%s', '%s'", parent_ident, parent_type, type, meaning, data);
 
         free(data);
         free(meaning);

@@ -788,7 +788,11 @@ static void dump_idmef_additional_data_func(const char *name, const idmef_additi
         
         dump_member(name, data, idmef_enum, type);
         dump_member(name, data, idmef_string, meaning);
-        dump_member(name, data, idmef_string, data);
+
+        /*
+         * FIXME: use idmef_additional_data_to_string.
+         * dump_member(name, data, idmef_string, data);
+         */
 }
 
 
