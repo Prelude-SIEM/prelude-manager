@@ -35,16 +35,17 @@
 
 typedef struct 
 {
-	uint16_t win;
-	int16_t mss;
+        int mss;
+        int len;
+        int wscale;
+        
+        uint16_t win;
         uint8_t	ttl;
-	int8_t	wscale;
 	uint8_t	sackok;
 	uint8_t	nop;
         uint8_t	df;
 	uint32_t timestamp;
 	uint8_t flags;
-	uint16_t len;
 } pof_host_data_t;
 
 

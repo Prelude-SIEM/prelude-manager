@@ -34,6 +34,8 @@
 #include <arpa/inet.h>
 
 #include <libprelude/list.h>
+#include <libprelude/idmef-tree.h>
+#include <libprelude/idmef-tree-func.h>
 
 #include "config.h"
 #include "report.h"

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -31,12 +31,14 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <errno.h>
 
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
 #include <libprelude/prelude-auth.h>
 #include <libprelude/prelude-path.h>
 
@@ -44,6 +46,10 @@
 #include "config.h"
 #include "ssl-register-client.h"
 
+#define PASSLEN 9
+
+
+static int keepalive = 0, prompt = 0;
 
 
 /*
@@ -117,14 +123,14 @@ static int handle_plaintext_account_creation(prelude_io_t *fd, prelude_msg_t *ms
                 switch (tag) {
                         
                 case PRELUDE_MSG_AUTH_USERNAME:
-                        ret = extract_string_safe(&user, buf, len);
+                        ret = extract_characters_safe(&user, buf, len);
                         if ( ret < 0 )
                                 return -1;
                         
                         break;
                         
                 case PRELUDE_MSG_AUTH_PASSWORD:
-                        ret = extract_string_safe(&pass, buf, len);
+                        ret = extract_characters_safe(&pass, buf, len);
                         if ( ret < 0 )
                                 return -1;
                         
@@ -252,37 +258,72 @@ static int handle_authentication_method(prelude_io_t *fd, char *pass)
 }
 
 
+static int ask_one_shot_password(char **buf)
+{
+	char *pass1, *pass2;
+	int ret;
+	
+	fprintf(stderr, "\n\nPlease enter registration one-shot password.\n"
+                "This password will be requested by \"sensor-adduser\" in order to connect.\n\n");
+	
+	pass1 = getpass("Enter registration one-shot password: ");
+	if ( ! pass1 )
+		return -1;
+	
+	pass1 = strdup(pass1);
+	if ( ! pass1 )
+		return -1;
+	
+	pass2 = getpass("Confirm registration one-shot password: ");
+	if ( ! pass2 )
+		return -1;
+
+	ret = strcmp(pass1, pass2);
+	memset(pass2, 0, strlen(pass2));
+	
+	if ( ret == 0 ) {
+		*buf = pass1;
+		
+		return 0;
+	}
+
+	memset(pass1, 0, strlen(pass1));
+	free(pass1);
+	
+	return ask_one_shot_password(buf);
+
+}
 
 
-static int generate_one_shot_password(char *buf, size_t size) 
+
+
+static int generate_one_shot_password(char **buf) 
 {
         int i;
-        char c;
+        char c, *mybuf;
         struct timeval tv;
+	const char letters[] = "01234567890abcdefghijklmnopqrstuvwxyz";
 
         gettimeofday(&tv, NULL);
         
         srand((unsigned int) getpid() * tv.tv_usec);
         
-        for ( i = 0; i < (size - 1); i++ ) {
-
-                /*
-                 * we want the generated character to be between
-                 * the 33 - 126 decimal ascii range (printable characters).
-                 */
-                c = rand() % 127;
-                
-                if ( c < 33 )
-                        c += 33;
-                
-                buf[i] = c;
+	mybuf = malloc(PASSLEN);
+	if ( ! mybuf )
+		return -1;
+	
+        for ( i = 0; i < PASSLEN; i++ ) {
+		c = letters[rand() % (sizeof(letters) - 1)];
+                mybuf[i] = c;
         }
 
-        buf[size - 1] = '\0';
+        mybuf[PASSLEN - 1] = '\0';
+
+	*buf = mybuf;
 
         fprintf(stderr, "Generated one-shot password is \"%s\".\n\n"
                 "This password will be requested by \"sensor-adduser\" in order to connect.\n"
-                "Please remove the first and last quote from this password before using it.\n\n", buf);
+                "Please remove the first and last quote from this password before using it.\n\n", mybuf);
         
         return 0;
 }
@@ -290,12 +331,73 @@ static int generate_one_shot_password(char *buf, size_t size)
 
 
 
-
-static int wait_connection(void) 
+static int handle_client_connection(int sock, char *buf, prelude_msg_t *config) 
 {
-        unsigned int len;
+        int ret;
+        prelude_io_t *fd;
+        
+        fd = prelude_io_new();
+        if ( ! fd )
+                return -1;
+        
+        prelude_io_set_socket_io(fd, sock);
+                
+        ret = prelude_msg_write(config, fd);
+        if ( ret < 0 )
+                return -1;
+        
+        /* ignore error and continue looping */
+        ret = handle_authentication_method(fd, buf);
+        if ( ret >= 0 )
+                fprintf(stderr, "\nSensor registered correctly.\n");
+        
+        ret = prelude_io_close(fd);
+        if ( ret < 0 )
+                return -1;
+        
+        prelude_io_destroy(fd);
+
+        return 0;
+}
+
+
+
+
+static int wait_connection(int sock, char *buf, prelude_msg_t *config) 
+{
+        int client, len, ret;
+        struct sockaddr_in addr;
+        
+        fprintf(stderr, "\n\n- Waiting for install request from Prelude sensors...\n");
+
+        do {
+
+                len = sizeof(addr);
+
+                client = accept(sock, (struct sockaddr *) &addr, &len);
+                if ( client < 0 ) {
+                        fprintf(stderr, "accept returned an error: %s.\n", strerror(errno));
+                        return -1;
+                }
+                
+                fprintf(stderr, "- Connection from %s.\n", inet_ntoa(addr.sin_addr));
+
+                ret = handle_client_connection(client, buf, config);
+                if ( ret < 0 )
+                        return -1;
+                
+        } while ( keepalive );
+
+        return 0;
+}
+
+
+
+
+static int setup_server(void) 
+{
         int sock, ret, on = 1;
-        struct sockaddr_in sa_server, sa_client;
+        struct sockaddr_in sa_server;
         
 	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (sock < 0) {
@@ -326,26 +428,64 @@ static int wait_connection(void)
 		return -1;
 	}
 
-        fprintf(stderr, "waiting for install request from Prelude sensors...\n");
-        
-        len = sizeof(struct sockaddr_in);
-        ret = accept(sock, (struct sockaddr *) &sa_client, &len);
-        close(sock);
-
-        fprintf(stderr, "\nConnection from %s.\n", inet_ntoa(sa_client.sin_addr));
-        
-        return ret;
+        return sock;
 }
 
 
 
-
-int main(void) 
+static int print_help(prelude_option_t *opt, const char *optarg)
 {
-        char buf[9];
+	prelude_option_print(NULL, CLI_HOOK, 20);
+	return prelude_option_end;
+}
+
+
+
+static int set_keepalive(prelude_option_t *opt, const char *optarg)
+{
+	keepalive = keepalive ? 0 : 1;
+	return prelude_option_success;
+}
+
+
+
+static int set_prompt(prelude_option_t *opt, const char *optarg)
+{
+	prompt = prompt ? 0 : 1;
+	return prelude_option_success;
+}
+
+
+
+static void handle_options(int argc, char **argv)
+{
+	int ret;
+
+	prelude_option_add(NULL, CLI_HOOK, 'h', "help",
+		"Print this help", 
+		no_argument, print_help, NULL);
+
+	prelude_option_add(NULL, CLI_HOOK, 'k', "keepalive", 
+		"Register sensors in an infinite loop (don't quit after registering)", 
+		no_argument, set_keepalive, NULL);
+		
+	prelude_option_add(NULL, CLI_HOOK, 'p', "prompt",
+		"Prompt for one-shot password (rather than generate it)",
+		no_argument, set_prompt, NULL);
+
+	ret = prelude_option_parse_arguments(NULL, NULL, argc, argv);
+	if ( ( ret == prelude_option_end ) || ( ret == prelude_option_error ) )
+		exit(ret);		
+}
+
+
+int main(int argc, char **argv) 
+{
+        char *buf;
         int sock, ret;
-        prelude_io_t *fd;
         prelude_msg_t *config;
+
+	handle_options(argc, argv);
 
         /*
          * This will be used for SSL subject
@@ -353,6 +493,10 @@ int main(void)
          */
         prelude_set_program_name("prelude-manager");
         
+        sock = setup_server();
+        if ( sock < 0 )
+                return -1;
+
 #ifdef HAVE_SSL
         ret = ssl_create_manager_key_if_needed();
         if ( ret < 0 )
@@ -360,29 +504,19 @@ int main(void)
 #endif
         fprintf(stderr, "\n\n");
         
-        generate_one_shot_password(buf, sizeof(buf));
-        
-        sock = wait_connection();
-        if ( sock < 0 )
-                return -1;
+	if ( prompt )
+		ret = ask_one_shot_password(&buf);
+	else
+    		ret = generate_one_shot_password(&buf);
 
-        fd = prelude_io_new();
-        if ( ! fd )
-                return -1;
-
-        prelude_io_set_sys_io(fd, sock);
+	if ( ret < 0 )
+		return -1;
         
         config = generate_config_message();
         if ( ! config )
                 return -1;
-
-        ret = prelude_msg_write(config, fd);
-        if ( ret < 0 )
-                return -1;
         
-        ret = handle_authentication_method(fd, buf);
-        
-        exit(ret);
+        return wait_connection(sock, buf, config);
 }
 
 

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2000, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -21,5 +21,6 @@
 *
 *****/
 
-const char *tcp_optdump(unsigned char *optbuf, size_t optlen);
-const char *ip_optdump(unsigned char *optbuf, size_t optlen);
+int ip_optdump(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen);
+int tcp_optdump(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen);
+

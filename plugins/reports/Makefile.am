@@ -1,1 +1,1 @@
-SUBDIRS = debug textmod xmlmod #filemod execmod htmlmod xmlmod
+SUBDIRS = textmod db xmlmod # debug debug2 filemod execmod htmlmod xmlmod

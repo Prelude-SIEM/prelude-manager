@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998,1999,2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1998,1999,2000, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -33,6 +33,7 @@
 #include <sys/time.h>
 
 #include <libprelude/list.h>
+#include <libprelude/idmef-tree.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/daemonize.h>
@@ -40,9 +41,7 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/threads.h>
-#include <libprelude/prelude-client.h>
-#include <libprelude/prelude-client-mgr.h>
-#include <libprelude/prelude-list.h>
+#include <libprelude/idmef.h>
 
 #include "server-generic.h"
 #include "sensor-server.h"
@@ -50,7 +49,6 @@
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-filter.h"
-#include "plugin-db.h"
 #include "idmef-util.h"
 #include "idmef-message-scheduler.h"
 #include "relaying.h"
@@ -122,13 +120,6 @@ int main(int argc, char **argv)
         }
         log(LOG_INFO, "- Initialized %d reporting plugins.\n", ret);
 
-        ret = db_plugins_init(DB_PLUGIN_DIR, argc, argv);
-        if ( ret < 0 ) {
-                log(LOG_INFO, "error initializing database plugins.\n");
-                return -1;
-        }
-        log(LOG_INFO, "- Initialized %d database plugins.\n", ret);
-
         ret = decode_plugins_init(DECODE_PLUGIN_DIR, argc, argv);
         if ( ret < 0 ) {
                 log(LOG_INFO, "error initializing decoding plugins.\n");
@@ -149,7 +140,7 @@ int main(int argc, char **argv)
         if ( ret < 0 )
                 exit(1);
         
-        ret = idmef_ident_init();
+        ret = manager_idmef_ident_init();
         if ( ret < 0 )
                 exit(1);
         

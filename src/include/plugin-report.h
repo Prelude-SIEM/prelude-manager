@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998 - 2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1998 - 2000, 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -24,9 +24,6 @@
 #ifndef _MANAGER_PLUGIN_REPORT_H
 #define _MANAGER_PLUGIN_REPORT_H
 
-
-#include <libprelude/idmef-tree.h>
-#include <libprelude/idmef-tree-func.h>
 
 typedef struct {
         PLUGIN_GENERIC;

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -30,6 +30,8 @@
 #include <netdb.h>
 #include <netinet/in.h>
 
+#include <libprelude/idmef.h>
+#include <libprelude/idmef-tree-wrap.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 
@@ -41,11 +43,6 @@
 
 
 pof_host_data_t pof_host_data;
-static char *sport_data = NULL;
-static char *dport_data = NULL;
-static char *shost_data = NULL;
-static char *dhost_data = NULL;
-static packet_t packet[MAX_PKTDEPTH + 1];
 
 
 
@@ -56,38 +53,107 @@ static const char *get_address(struct in_addr *addr)
 
 
 
+static idmef_node_t *create_node(const char *addr_string)
+{
+        idmef_node_t *node;
+        idmef_string_t *tmp;
+        idmef_address_t *addr;
+
+        tmp = idmef_string_new_dup(addr_string);
+        if ( ! tmp )
+                return NULL;
+        
+        addr = idmef_address_new();
+        if ( ! addr ) {
+                idmef_string_destroy(tmp);
+                return NULL;
+        }
+
+        idmef_address_set_address(addr, tmp);
+        idmef_address_set_category(addr, ipv4_addr);
+        
+        node = idmef_node_new();
+        if ( ! node ) {
+                idmef_address_destroy(addr);
+                return NULL;
+        }
+                        
+        idmef_node_set_address(node, addr);
+        
+        return node;
+}
+
+
 
 static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip) 
 {
         idmef_source_t *source;
         idmef_target_t *target;
-        idmef_address_t *saddr, *daddr;
-        
-        source = idmef_alert_source_new(alert);
-        if ( ! source )
-                return -1;
-        
-        target = idmef_alert_target_new(alert);
-        if ( ! target )
-                return -1;
-        
-        idmef_source_node_new(source);
-        saddr = idmef_node_address_new(source->node);
-        if ( ! saddr )
-                return -1;
+        idmef_node_t *snode, *dnode;
 
-        idmef_target_node_new(target);
-        daddr = idmef_node_address_new(target->node);
-        if ( ! daddr )
+        /*
+         * set source ip
+         */
+        snode = create_node(get_address(&ip->ip_src));
+        if ( ! snode )
                 return -1;
         
-        saddr->category = ipv4_addr;
-        shost_data = strdup(get_address(&ip->ip_src));
-        idmef_string_set(&saddr->address, shost_data);
+        source = idmef_source_new();
+        if ( ! source ) {
+                idmef_node_destroy(snode);
+                return -2;
+        }
+
+        idmef_source_set_node(source, snode);
+
+        /* set target ip */
+        dnode = create_node(get_address(&ip->ip_dst));
+        if ( ! dnode ) {
+                idmef_source_destroy(source);
+                return -3;
+        }
+
+        target = idmef_target_new();
+        if ( ! target ) {
+                idmef_node_destroy(dnode);
+                idmef_source_destroy(source);
+                return -1;
+        }
+
+        idmef_target_set_node(target, dnode);
+        idmef_alert_set_source(alert, source);
+        idmef_alert_set_target(alert, target);
         
-        daddr->category = ipv4_addr;
-        dhost_data = strdup(get_address(&ip->ip_dst));
-        idmef_string_set(&daddr->address, dhost_data);
+        return 0;
+}
+
+
+
+static int set_idmef_service(idmef_service_t *service, uint16_t port, const char *proto)
+{
+        struct servent *ptr;
+        idmef_string_t *port_str, *proto_str;
+                
+        proto_str = idmef_string_new_ref(proto);
+        if ( ! proto_str ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return -1;
+        }
+        
+        idmef_service_set_port(service, port);
+        idmef_service_set_protocol(service, proto_str);
+
+        ptr = getservbyport(htons(port), proto);
+        if ( ! ptr )
+                return 0;
+        
+        port_str = idmef_string_new_dup(ptr->s_name);
+        if ( ! port_str ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return -1;
+        }
+        
+        idmef_service_set_name(service, port_str);
 
         return 0;
 }
@@ -97,46 +163,36 @@ static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip)
 
 static int gather_protocol_infos(idmef_alert_t *alert, uint16_t sport, uint16_t dport, const char *proto) 
 {
-        struct servent *ptr;
         idmef_source_t *source;
         idmef_target_t *target;
+        idmef_service_t *service;
 
-        if ( ! list_empty(&alert->source_list) ) {
-                               
-                source = list_entry(alert->source_list.prev, idmef_source_t, list);
+        if ( (source = idmef_alert_get_next_source(alert, NULL)) ) {
 
-                idmef_source_service_new(source);
-
-                ptr = getservbyport(htons(sport), proto);
-                sport_data = (ptr) ? strdup(ptr->s_name) : NULL;
-
-                if ( sport_data ) 
-                        idmef_string_set(&source->service->name, sport_data);
+                service = idmef_service_new();
+                if ( ! service ) {
+                        log(LOG_ERR, "memory exhausted.\n");
+                        return -1;
+                }
                 
-                idmef_string_set(&source->service->protocol, proto);
-                source->service->port = sport;
+                set_idmef_service(service, sport, proto);
+                idmef_source_set_service(source, service);
         }
+        
+        if ( (target = idmef_alert_get_next_target(alert, NULL)) ) {
+                
+                service = idmef_service_new();
+                if ( ! service ) {
+                        log(LOG_ERR, "memory exhausted.\n");
+                        return -1;
+                }
 
-        if ( ! list_empty(&alert->target_list) ) {
-                
-                target = list_entry(alert->target_list.prev, idmef_target_t, list);
-
-                idmef_target_service_new(target);
-                
-                ptr = getservbyport(htons(dport), proto);                
-                dport_data = (ptr) ? strdup(ptr->s_name) : NULL;
-
-                if ( dport_data )
-                        idmef_string_set(&target->service->name, dport_data);
-                
-                idmef_string_set(&target->service->protocol, proto);
-                target->service->port = dport;
-                
+                set_idmef_service(service, dport, proto);
+                idmef_target_set_service(target, service);
         }
-
+        
         return 0;
 }
-
 
 
 
@@ -197,6 +253,7 @@ static int msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert)
         uint8_t tag;
         uint32_t len;
         int i = 0, ret;
+        packet_t packet[MAX_PKTDEPTH + 1];
 
         do {    
                 ret = prelude_msg_get(pmsg, &tag, &len, &buf);
@@ -272,40 +329,19 @@ static int decode_message(prelude_msg_t *pmsg, idmef_alert_t *alert)
 
 
 
-static int nids_decode_run(prelude_msg_t *pmsg, idmef_message_t *idmef) 
+static int nids_decode_run(prelude_msg_t *pmsg, idmef_message_t *message) 
 {        
-        idmef_alert_new(idmef);
+        idmef_alert_t *alert;
 
-        return decode_message(pmsg, idmef->message.alert);
+        alert = idmef_message_new_alert(message);
+        if ( ! alert )
+                return -1;
+
+        if ( decode_message(pmsg, alert) < 0 )
+                return -2;
+
+        return decode_message(pmsg, alert);
 }
-
-
-
-static void nids_decode_free(void) 
-{
-        nids_packet_free(packet);
-
-        if ( shost_data ) {
-                free(shost_data);
-                shost_data = NULL;
-        }
-
-        if ( dhost_data ) {
-                free(dhost_data);
-                dhost_data = NULL;
-        }
-
-        if ( sport_data ) {
-                free(sport_data);
-                sport_data = NULL;
-        }
-
-        if ( dport_data ) {
-                free(dport_data);
-                dport_data = NULL;
-        }
-}
-
 
 
 
@@ -315,11 +351,10 @@ plugin_generic_t *plugin_init(int argc, char **argv)
 
         plugin_set_name(&plugin, "Prelude NIDS data decoder");
         plugin_set_author(&plugin, "Yoann Vandoorselaere");
-        plugin_set_contact(&plugin, "yoann@mandrakesoft.com");
+        plugin_set_contact(&plugin, "yoann@prelude-ids.org");
         plugin_set_desc(&plugin, "Decode Prelude NIDS message, and translate them to IDMEF.");
         
         plugin_set_running_func(&plugin, nids_decode_run);
-        plugin_set_freeing_func(&plugin, nids_decode_free);
         plugin.decode_id = MSG_FORMAT_PRELUDE_NIDS;
 
         plugin_subscribe((plugin_generic_t *) &plugin);

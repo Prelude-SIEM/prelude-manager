@@ -59,9 +59,10 @@ static int recv_ack(prelude_io_t *pio,
                     des_key_schedule *skey1, des_key_schedule *skey2) 
 {
         int len;
-        char *buf, *ack;
+        char *ack;
+        unsigned char *buf;
         
-        len = prelude_io_read_delimited(pio, (void **) &buf);
+        len = prelude_io_read_delimited(pio, &buf);
         if ( len <= 0 ) {
                 log(LOG_ERR, "couldn't read certificate.\n");
                 return -1;
@@ -109,11 +110,9 @@ static int wait_install_request(prelude_io_t *pio,
                 goto err;
         }
         
-        prelude_io_close(pio);        
-        
         fprintf(stderr, "Writing Prelude certificate to %s\n", SENSORS_CERT);
 
-        ret = prelude_ssl_save_cert(SENSORS_CERT, cert, certlen, 0);
+        ret = prelude_ssl_save_cert(SENSORS_CERT, cert, certlen, getuid());
         if ( ret < 0 ) {
                 fprintf(stderr, "Error writing Prelude certificate\n");
                 return -1;
@@ -126,7 +125,6 @@ static int wait_install_request(prelude_io_t *pio,
  err:
         fprintf(stderr, "Registration failed.\n"
                 "Perhaps client provided the wrong one shot password ?\n");
-        prelude_io_close(pio);
 
         return -1;
 }
@@ -183,7 +181,7 @@ static int create_manager_key_if_needed(void)
         
         fprintf(stderr, "\n\n");
 
-        ret = prelude_ssl_gen_crypto(keysize, expire, MANAGER_KEY, 0, 0);
+        ret = prelude_ssl_gen_crypto(keysize, expire, MANAGER_KEY, 0, getuid());
         if ( ret < 0 ) {
                 log(LOG_ERR, "error creating SSL key.\n");
                 return -1;
@@ -201,7 +199,6 @@ int ssl_register_client(prelude_io_t *fd, char *pass, size_t size)
 	des_key_schedule skey1, skey2;
         
         des_string_to_2keys(pass, &pre1, &pre2);
-        memset(pass, 0, size);
         
         ret = des_set_key(&pre1, skey1);
         memset(&pre1, 0, sizeof(des_cblock));

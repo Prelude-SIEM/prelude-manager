@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1999, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1999, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -38,11 +38,9 @@
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-client-mgr.h>
 #include <libprelude/prelude-getopt.h>
-#include <libprelude/prelude-list.h>
 
 #include "config.h"
 #include "pconfig.h"
-#include "relaying.h"
 #include "ssl.h"
 
 
@@ -115,7 +113,7 @@ static int set_sensor_listen_address(prelude_option_t *opt, const char *arg)
         
         config.addr = ptr;
         
-        ptr = strchr(ptr, ':');
+        ptr = strrchr(ptr, ':');
         if ( ptr ) {
                 *ptr = '\0';
                 config.port = atoi(ptr + 1);
@@ -140,7 +138,7 @@ int pconfig_init(int argc, char **argv)
         prelude_option_t *opt;
         
 	/* Default */
-	config.addr = "127.0.0.1";
+	config.addr = NULL;
 	config.port = 5554;
         config.pidfile = NULL;
 

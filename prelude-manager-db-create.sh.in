@@ -1,7 +1,7 @@
 #!/bin/sh
 #####
 #
-# Copyright (C) 2002 Laurent Oudot <oudot.laurent@wanadoo.fr>
+# Copyright (C) 2002, 2003 Laurent Oudot <oudot.laurent@wanadoo.fr>
 # All Rights Reserved
 #
 # This file is part of the Prelude program.
@@ -30,6 +30,7 @@
 db_user="root"
 db_password=""
 db_name="prelude"
+db_host="localhost"
 
 db_type="" # Type can be either mysql or pgsql
 
@@ -43,7 +44,7 @@ warning () {
 	echo "Prelude Database Support Installation"
 	echo "====================================="
 	echo
-	echo "*** Phase 0/5 ***"
+	echo "*** Phase 0/7 ***"
 	echo
 	echo "Warning: if you want to use database support with prelude"
 	echo " You should dedicate the database for this job only."
@@ -78,15 +79,63 @@ warning () {
 ask_db_type () {
 	answer=""
 	echo
-	echo "*** Phase 1/5 ***"
+	echo "*** Phase 1/7 ***"
 	echo
 	echo -n "Enter the type of the database [mysql|pgsql]: "
 	read answer
 	
-	if [[ "${answer}" == "mysql" || "${answer}" == "pgsql" ]]; then
+	if [ "${answer}" = "mysql" ] || [ "${answer}" = "pgsql" ]; then
 		db_type=${answer}
 	else
 		ask_db_type
+	fi
+}
+
+ask_db_host () {
+	answer=""
+	echo
+	echo
+	echo "*** Phase 2/7 ***"
+	echo
+	if [ "${db_type}" = "pgsql" ]; then
+		echo "Enter the name of the host where the database is running"
+		echo "If you wish to use the local unix socket, just give the name of the directory"
+		echo "in which the socket file is stored. (By default /tmp)"
+		echo -n "[${db_host}]: "
+	else	
+		echo -n "Enter the name of the host where the database is running [${db_host}]: "
+	fi
+	read answer
+	
+	if [ "${answer}" != "" ] && [ "${answer}" != "${db_host}" ]; then
+		db_host=${answer}
+	fi
+}
+
+ask_db_port () {
+	if [ "${db_type}" = "mysql" ]; then
+		db_port=3306
+	fi
+
+	if [ "${db_type}" = "pgsql" ]; then
+		db_port=5432
+	fi
+
+	answer=""
+	echo
+	echo
+	echo "*** Phase 3/7 ***"
+	echo
+	echo ${db_host} | grep "^/" >/dev/null
+	if [ "$?" = "0" ] && [ "${db_type}" = "pgsql" ]; then
+		echo -n "Enter the unix socket number the database is using [${db_port}]: "
+	else
+		echo -n "Enter the port where the database is running [${db_port}]: "
+	fi
+	read answer
+	
+	if [ "${answer}" != "" ] && [ "${answer}" != "${db_port}" ]; then
+		db_port=${answer}
 	fi
 }
 
@@ -94,16 +143,15 @@ ask_db_name () {
 	answer=""
 	echo
 	echo
-	echo "*** Phase 2/5 ***"
+	echo "*** Phase 4/7 ***"
 	echo
 	echo -n "Enter the name of the database that should be created to stock alerts [${db_name}]: "
 	read answer
 	
-	if [[ "${answer}" != "" && "${answer}" != "${db_name}" ]]; then
+	if [ "${answer}" != "" ] && [ "${answer}" != "${db_name}" ]; then
 		db_name=${answer}
 	fi
 }
-
 
 ask_db_user () {
 	answer=""
@@ -117,36 +165,17 @@ ask_db_user () {
 	esac
 
 	echo
-	echo "*** Phase 3/5 ***"
+	echo "*** Phase 5/7 ***"
 	echo
 	echo "This installation script has to connect to your ${db_type} database in order to create a user dedicated to stock prelude's alerts"
 	echo -n "What is the database administrative user ? [${db_user}]: "
 	read answer
 
-	if [[ "${answer}" != "" && "${answer}" != "${db_user}" ]]; then
+	if [ "${answer}" != "" ] && [ "${answer}" != "${db_user}" ]; then
 		db_user=${answer}
 	fi
 
 }
-
-
-
-ask_manager_user() {
-	answer=""
-	echo "*** Phase 4/5 ***"
-	echo
-	echo "We need to create a database user account that will be used by the Prelude Manager in order to access the \"${db_name}\" database."
- 	echo
-
-	echo -n "Username to create [prelude] : "
-	read answer
-
-	if [[ "${answer}" != "" && "${answer}" != "${manager_user}" ]]; then
-		manager_user=${answer}
-	fi
-}
-
-
 
 ask_password () {
 	answer=""
@@ -162,7 +191,7 @@ ask_password () {
 	stty sane
 	echo
 
-	if [[ "${answer}" != "${answerbis}" ]]; then
+	if [ "${answer}" != "${answerbis}" ]; then
 	        echo
 		echo "Password mismatch. Please try again"
 		ask_password
@@ -172,12 +201,40 @@ ask_password () {
 }
 
 
+ask_db_pass () {
+	echo "We need the password of the admin user \"${db_user}\" to log on the database."
+	if [ "${db_type}" = "mysql" ] && [ "${db_user}" = "root" ]; then
+		echo "By default under ${db_type}, root has an empty password."
+	fi
+
+	if [ "${db_type}" = "pgsql" ] && [ "${db_user}" = "postgres" ]; then
+		echo "By default under ${db_type} on many systems, connections are trusted and passwordless."
+	fi
+
+	ask_password
+	db_password=${password}
+}
+
+ask_manager_user() {
+	answer=""
+	echo "*** Phase 6/7 ***"
+	echo
+	echo "We need to create a database user account that will be used by the Prelude Manager in order to access the \"${db_name}\" database."
+ 	echo
+
+	echo -n "Username to create [prelude] : "
+	read answer
+
+	if [ "${answer}" != "" ] && [ "${answer}" != "${manager_user}" ]; then
+		manager_user=${answer}
+	fi
+}
 
 db_confirm ()
 {
 	answer=""
 	echo
-	echo "*** Phase 5/5 ***"
+	echo "*** Phase 7/7 ***"
 	echo
 	echo "Please confirm those information before processing" :
 	echo
@@ -217,11 +274,27 @@ db_create ()
 	echo "Creating the database ${db_name}..."
 	case $db_type in
 		mysql)
-		    mysqladmin -u "${db_user}" --password="${db_password}" create "${db_name}"
+		    mysqladmin -h ${db_host} -u "${db_user}" --password="${db_password}" -P ${db_port} create "${db_name}"
 		    ;;
 		pgsql)
-		    /etc/init.d/postgresql reload
-		    su - "${db_user}" -c createdb "${db_name}"
+#
+# New method:
+			echo "CREATE DATABASE ${db_name};" | \
+				PGPASSWORD=${db_password} psql -h ${db_host} -p ${db_port} -U ${db_user} -d template1
+
+			if [ ! "$?" = "0" ]; then
+				echo "prelude-manager-db-create was unable to create database."
+				echo "Please check out your postgresql configuration (pg_hba.conf)"
+				echo "You should have something like that:"
+				echo ${db_host} | grep "^/" >/dev/null
+				if [ "$?" = "0" ]; then
+					echo "local all all                           password" 
+				else
+					echo "host  all all 127.0.0.1 255.255.255.255 password"
+					echo "You'll also probably need to add 'tcpip_socket = true' in postgresql.conf ."
+				fi
+				exit
+			fi
 		    ;;
 		*)
 		    echo "Weird error with the database type ${db_type}"
@@ -230,41 +303,40 @@ db_create ()
 	esac
 }
 
-
-
 db_create_users ()
 {
 	echo
-       	echo "Creating user \"${manager_user}\" for database \"${db_name}\", using \"${db_user}\" to connect to the database.";
+       	echo "Creating user \"${manager_user}\" for database \"${db_name}\"," 
+		echo "using \"${db_user}\" to connect to the database.";
 
 	case $db_type in
 
 		mysql)
-			mysql -u ${db_user} --password=${db_password} -e "GRANT ALL PRIVILEGES ON ${db_name}.* TO ${manager_user}@localhost IDENTIFIED BY '${manager_password}';" ${db_name}
+			mysql -u ${db_user} --password=${db_password} -P ${db_port} -e "GRANT ALL PRIVILEGES ON ${db_name}.* TO ${manager_user}@${db_host} IDENTIFIED BY '${manager_password}';" ${db_name}
 
 			echo
 			echo "Creating tables with @manager_data_dir@/mysql/mysql.sql"
-			mysql -u ${manager_user} --password=${manager_password} --database ${db_name} < @manager_data_dir@/mysql/mysql.sql
+			mysql -h ${db_host} -u ${manager_user} --password=${manager_password} -P ${db_port} --database ${db_name} < @manager_data_dir@/mysql/mysql.sql
 
 			;;
 		pgsql)
-			(grep prelude-ids_frontend /etc/postgresql/pg_hba.conf ; echo local all ident postgres ) > /etc/postgresql/pg_hba.conf_temp_prelude
-			mv -f /etc/postgresql/pg_hba.conf_temp_prelude /etc/postgresql/pg_hba.conf
-			(echo postgres root postgres; echo postgres root prelude) > /etc/postgresql/pg_ident.conf
-			rm -rf /var/lib/postgres/data/prelude-ids_manager
-			touch /var/lib/postgres/data/prelude-ids_manager
-			(echo "${manager_user}"; echo "${manager_password}"; echo "${manager_password}") | /usr/lib/postgresql/bin/pg_passwd /var/lib/postgres/data/prelude-ids_manager 1>/dev/null
-			/etc/init.d/postgresql reload
 
-			psql -U ${db_user} -d template1 -c "CREATE USER ${manager_user} WITH ENCRYPTED PASSWORD '${manager_password}' NOCREATEDB NOCREATEUSER;"
-			echo
+# New scheme
+# Allow "trust" and "passwords"
+# Database creation:
+
+			echo "CREATE USER ${manager_user} WITH ENCRYPTED PASSWORD '${manager_password}' NOCREATEDB NOCREATEUSER;" | \
+				PGPASSWORD=${db_password} psql -h ${db_host} -p ${db_port} -U ${db_user} -d template1
+			if [ ! "$?" = "0" ]; then
+				echo "prelude-manager-db-create was unable to create database user."
+				exit
+			fi
+
+# Tables creation:
+
 			echo "Creating tables with @manager_data_dir@/pgsql/postgres.sql"
-			psql -d "${db_name}" -U "${manager_user}" < @manager_data_dir@/pgsql/postgres.sql
-
-			(grep prelude-ids_frontend /etc/postgresql/pg_hba.conf ; echo local ${db_name} password prelude-ids_manager ; echo host ${db_name} 127.0.0.1 255.0.0.0 password prelude-ids_manager ; echo local template1 ident postgres ) > /etc/postgresql/pg_hba.conf_temp_prelude
-			mv -f /etc/postgresql/pg_hba.conf_temp_prelude /etc/postgresql/pg_hba.conf
-			rm -rf /etc/postgresql/pg_ident.conf
-			/etc/init.d/postgresql reload
+			cat @manager_data_dir@/pgsql/postgres.sql | \
+				PGPASSWORD=${manager_password} psql -h ${db_host} -p ${db_port} -d "${db_name}" -U "${manager_user}"
 			;;
 		*)
 			echo "Weird error with the database type ${db_type}"
@@ -290,7 +362,9 @@ db_create_users ()
 		    ;;
 	esac
 	echo "# Host the database is listening on."
-        echo "dbhost = localhost;"
+        echo "dbhost = ${db_host};"
+	echo "# Port the database is listening on."
+	echo "dbport = ${db_port};"
 	echo "# Name of the database."
 	echo "dbname = ${db_name};"
 	echo "# Username to be used to connect the database."
@@ -308,19 +382,14 @@ db_create_users ()
 idmef () {
 	warning
 	ask_db_type
+	ask_db_host
+	ask_db_port
 	ask_db_name
 	ask_db_user
 	
 	echo
 
-	if [ "${db_type}" == "mysql" ]; then
-	    echo "We need the password of the admin user \"${db_user}\" to log on the database."
-	    if [ "${db_user}" == "root" ]; then
-	    	echo "By default under ${db_type}, root has an empty password.."
-	    fi
-	    ask_password
-	    db_password=${password}
-	fi
+	ask_db_pass
 
 	echo
 	ask_manager_user
@@ -330,7 +399,7 @@ idmef () {
 	ask_password
 	manager_password=${password}
 	
-        db_confirm
+	db_confirm
 	db_create
 	db_create_users
 }

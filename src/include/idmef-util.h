@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -24,57 +24,15 @@
 #ifndef _MANAGER_IDMEF_UTIL_H
 #define _MANAGER_IDMEF_UTIL_H
 
-const char *idmef_additional_data_to_string(const idmef_additional_data_t *ad, char *out, size_t *size);
 
-const char *idmef_additional_data_type_to_string(idmef_additional_data_type_t type);
+int manager_idmef_ident_init(void);
 
-const char *idmef_classification_origin_to_string(idmef_classification_origin_t origin);
+void manager_idmef_ident_exit(void);
 
-const char *idmef_address_category_to_string(idmef_address_category_t category);
+void manager_idmef_alert_get_ident(idmef_alert_t *alert);
 
-const char *idmef_node_category_to_string(idmef_node_category_t category);
+void manager_idmef_heartbeat_get_ident(idmef_heartbeat_t *heartbeat);
 
-const char *idmef_user_category_to_string(idmef_user_category_t category);
-
-const char *idmef_userid_type_to_string(idmef_userid_type_t type);
-
-const char *idmef_source_spoofed_to_string(idmef_spoofed_t spoofed);
-
-const char *idmef_target_decoy_to_string(idmef_spoofed_t decoy);
-
-const char *idmef_impact_severity_to_string(idmef_impact_severity_t severity);
-
-const char *idmef_impact_completion_to_string(idmef_impact_completion_t completion);
-
-const char *idmef_impact_type_to_string(idmef_impact_type_t type);
-
-const char *idmef_linkage_category_to_string(idmef_linkage_category_t category);
-
-const char *idmef_file_category_to_string(idmef_file_category_t category);
-
-const char *idmef_confidence_rating_to_string(idmef_confidence_rating_t rating);
-
-const char *idmef_action_category_to_string(idmef_action_category_t category);
-
-
-int idmef_ident_init(void);
-
-void idmef_ident_exit(void);
-
-void idmef_alert_get_ident(idmef_alert_t *alert);
-
-void idmef_heartbeat_get_ident(idmef_heartbeat_t *heartbeat);
-
-
-#define MAX_UTC_DATETIME_SIZE  64   /* YYYY-MM-DDThh:mm:ss.ssZ */
-#define MAX_NTP_TIMESTAMP_SIZE 21   /* 0xNNNNNNNN.0xNNNNNNNN   */
-
-void idmef_get_ntp_timestamp(const idmef_time_t *time, char *outptr, size_t size);
-
-int idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size);
-
-int idmef_get_db_timestamp(const idmef_time_t *time, char *outptr, size_t size);
-
-int idmef_get_idmef_timestamp(const idmef_time_t *time, char *outptr, size_t size);
 
 #endif /* _MANAGER_IDMEF_UTIL_H */
+

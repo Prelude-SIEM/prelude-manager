@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -24,23 +24,16 @@
 #ifndef _MANAGER_PLUGIN_DECODE_H
 #define _MANAGER_PLUGIN_DECODE_H
 
-#include <libprelude/idmef-tree.h>
-
 typedef struct {
         PLUGIN_GENERIC;
         uint8_t decode_id;
-        void (*free)(void);
         int (*run)(prelude_msg_t *ac, idmef_message_t *idmef);
 } plugin_decode_t;
 
 
 #define plugin_run_func(p) (p)->run
 
-#define plugin_free_func(p) (p)->free
-
 #define plugin_set_running_func(p, f) plugin_run_func(p) = (f)
-
-#define plugin_set_freeing_func(p, f) plugin_free_func(p) = (f)
 
 
 plugin_generic_t *plugin_init(int argc, char **argv);

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1999,2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1999,2000, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -47,7 +47,7 @@
 #include <libprelude/prelude-auth.h>
 #include <libprelude/prelude-path.h>
 #include <libprelude/extract.h>
-#include <libprelude/prelude-client.h>
+#include <libprelude/prelude-inet.h>
 
 #include "config.h"
 #include "ssl.h"
@@ -59,8 +59,13 @@
 
 
 struct server_generic {
+
         int sock;
-        int unix_srvr;
+
+        size_t sa_len;
+        struct sockaddr *sa;
+        
+        
         size_t clientlen;
         struct server_logic *logic;
         server_generic_read_func_t *read;
@@ -169,13 +174,13 @@ static int handle_plaintext_authentication(prelude_msg_t *msg, server_generic_cl
                 switch (tag) {
                         
                 case PRELUDE_MSG_AUTH_USERNAME:
-                        ret = extract_string_safe(&user, buf, len);
+                        ret = extract_characters_safe(&user, buf, len);
                         if ( ret < 0 )
                                 return -1;
                         break;
                         
                 case PRELUDE_MSG_AUTH_PASSWORD:
-                        ret = extract_string_safe(&pass, buf, len);
+                        ret = extract_characters_safe(&pass, buf, len);
                         if ( ret < 0 )
                                 return -1;
                         break;
@@ -326,16 +331,19 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
  */
 static int read_connection_cb(void *sdata, server_logic_client_t *ptr) 
 {
+        int ret = 0;
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
-        
-        if ( client->is_authenticated )
-                return server->read(client);
-        /*
-         * -1 will result in close_connection_cb to be called.
-         */
-        else
-                return authenticate_client(server, client);
+
+        do {    
+                if ( client->is_authenticated )
+                        ret = server->read(client);
+                else
+                        ret = authenticate_client(server, client);
+
+        } while ( ret == 0 && prelude_io_pending(client->fd) > 0 );
+
+        return ret;
 }
 
 
@@ -421,7 +429,7 @@ static int setup_client_socket(server_generic_t *server,
         int ret;
         
 #ifdef HAVE_TCP_WRAPPERS
-        if ( ! server->unix_srvr ) {
+        if ( server->sa->sa_family != AF_UNIX ) {
                 ret = tcpd_auth(cdata, client);
                 if ( ret < 0 )
                         return -1;
@@ -443,7 +451,7 @@ static int setup_client_socket(server_generic_t *server,
         if ( ! cdata->fd ) 
                 return -1;
 
-        prelude_io_set_sys_io(cdata->fd, client);
+        prelude_io_set_socket_io(cdata->fd, client);
                
         cdata->msg = NULL;
         cdata->is_ssl = 0;
@@ -455,34 +463,67 @@ static int setup_client_socket(server_generic_t *server,
 
 
 
-static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg) 
+static int accept_connection(server_generic_t *server, server_generic_client_t *cdata) 
 {
-        int ret, client;        
+        int sock;
         socklen_t addrlen;
+
+#ifndef HAVE_IPV6
         struct sockaddr_in addr;
-        server_generic_client_t *cdata;
+#else
+        struct sockaddr_in6 addr;
+#endif
         
         addrlen = sizeof(addr);
         
-        cdata = calloc(1, server->clientlen);
+        sock = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
+        if ( sock < 0 ) {
+                log(LOG_ERR, "accept returned an error.\n");
+                return -1;
+        }
+        
+        if ( server->sa->sa_family == AF_UNIX )
+                cdata->addr = strdup("unix");
+        else {         
+                void *in_addr;
+                char out[128];
+                const char *str;
+                struct sockaddr *sa = (struct sockaddr *) &addr;
+                
+                in_addr = prelude_inet_sockaddr_get_inaddr(sa);
+                
+                str = inet_ntop(sa->sa_family, in_addr, out, sizeof(out));
+                if ( str )                
+                        cdata->addr = strdup(str);
+        }
+
+        if ( ! cdata->addr ) {
+                close(sock);
+                return -1;
+        }
+
+        return sock;
+}
+
+
+
+
+
+
+static int handle_connection(server_generic_t *server, prelude_msg_t *cfgmsg) 
+{
+        int ret, client;
+        server_generic_client_t *cdata;
+        
+        cdata = malloc(server->clientlen);
         if ( ! cdata ) {
                 log(LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
 
         cdata->client_type = "unknown";
-        
-        if ( server->unix_srvr ) {
-                client = accept(server->sock, NULL, NULL);
-                cdata->addr = strdup("127.0.0.1");
-        } else {
-                client = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
-                if ( client > 0 ) {
-                        cdata->addr = strdup(inet_ntoa(addr.sin_addr));
-                        cdata->port = ntohs(addr.sin_port);
-                }
-        }
-        
+
+        client = accept_connection(server, cdata);                
         if ( client < 0 ) {
                 log(LOG_ERR, "couldn't accept connection.\n");
                 free(cdata);
@@ -594,18 +635,15 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
  * return 0 if the socket is unused.
  * retuir -1 on error.
  */
-static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addrlen, uint16_t port) 
+static int is_unix_socket_already_used(int sock, struct sockaddr_un *sa, int addrlen) 
 {
         int ret;
-        char sockname[256];
-
-        prelude_get_socket_filename(sockname, sizeof(sockname), port);
-
-        ret = access(sockname, F_OK);
+        
+        ret = access(sa->sun_path, F_OK);
         if ( ret < 0 )
                 return 0;
         
-        ret = connect(sock, addr, addrlen);
+        ret = connect(sock, (struct sockaddr *) sa, addrlen);
         if ( ret == 0 ) {
                 log(LOG_INFO, "Prelude Manager UNIX socket is already used. Exiting.\n");
                 return 1;
@@ -615,7 +653,7 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
          * The unix socket exist on the file system,
          * but no one use it... Delete it.
          */
-        ret = unlink(sockname);
+        ret = unlink(sa->sun_path);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't delete UNIX socket.\n");
                 return -1;
@@ -632,24 +670,21 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
 static int unix_server_start(server_generic_t *server) 
 {
         int ret;
-        struct sockaddr_un addr;
-
+        struct sockaddr_un *sa = (struct sockaddr_un *) server->sa;
+        
         server->sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if ( server->sock < 0 ) {
                 log(LOG_ERR, "couldn't create socket.\n");
 		return -1;
 	}
         
-        addr.sun_family = AF_UNIX;
-        prelude_get_socket_filename(addr.sun_path, sizeof(addr.sun_path), server->unix_srvr);
-        
-        ret = is_unix_socket_already_used(server->sock, (struct sockaddr *) &addr, sizeof(addr), server->unix_srvr);
+        ret = is_unix_socket_already_used(server->sock, sa, server->sa_len);
         if ( ret == 1 || ret < 0  ) {
                 close(server->sock);
                 return -1;
         }
 
-        ret = generic_server(server->sock, (struct sockaddr *) &addr, sizeof(addr));
+        ret = generic_server(server->sock, server->sa, server->sa_len);
         if ( ret < 0 ) {
                 close(server->sock);
                 return -1;
@@ -659,7 +694,7 @@ static int unix_server_start(server_generic_t *server)
          * Everyone should be able to access the filesystem object
          * representing our socket.
          */
-        ret = chmod(addr.sun_path, S_IRWXU|S_IRWXG|S_IRWXO);
+        ret = chmod(sa->sun_path, S_IRWXU|S_IRWXG|S_IRWXO);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't set permission for UNIX socket.\n");
                 return -1;
@@ -674,11 +709,12 @@ static int unix_server_start(server_generic_t *server)
 /*
  *
  */
-static int inet_server_start(server_generic_t *server, const char *saddr, struct sockaddr_in *addr) 
+static int inet_server_start(server_generic_t *server,
+                             const char *saddr, struct sockaddr *addr, socklen_t addrlen) 
 {
         int ret, on = 1;
         
-        server->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        server->sock = socket(server->sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
         if ( server->sock < 0 ) {
                 log(LOG_ERR, "couldn't create socket.\n");
                 return -1;
@@ -696,7 +732,7 @@ static int inet_server_start(server_generic_t *server, const char *saddr, struct
                 goto err;
         }
         
-        ret = generic_server(server->sock, (struct sockaddr *) addr, sizeof(*addr));
+        ret = generic_server(server->sock, addr, addrlen);
         if ( ret < 0 )
                 goto err;
 
@@ -716,6 +752,57 @@ static int inet_server_start(server_generic_t *server, const char *saddr, struct
 
 
 
+static int resolve_addr(server_generic_t *server, const char *addr, uint16_t port) 
+{
+        int ret;
+        prelude_addrinfo_t *ai, hints;
+        char service[sizeof("00000")];
+
+        memset(&hints, 0, sizeof(hints));
+        
+        hints.ai_family = PF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+
+        snprintf(service, sizeof(service), "%u", port);
+        
+        ret = prelude_inet_getaddrinfo(addr, service, &hints, &ai);        
+        if ( ret < 0 ) {
+                log(LOG_ERR, "couldn't resolve %s.\n", addr);
+                return -1;
+        }
+
+        ret = prelude_inet_addr_is_loopback(ai->ai_family, prelude_inet_sockaddr_get_inaddr(ai->ai_addr));
+        if ( ret == 0 ) {
+                ai->ai_family = AF_UNIX;
+                ai->ai_addrlen = sizeof(struct sockaddr_un);
+        }
+        
+        server->sa = malloc(ai->ai_addrlen);
+        if ( ! server->sa ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                prelude_inet_freeaddrinfo(ai);
+                return -1;
+        }
+
+        server->sa_len = ai->ai_addrlen;
+        server->sa->sa_family = ai->ai_family;
+        
+        if ( ai->ai_family != AF_UNIX )
+                memcpy(server->sa, ai->ai_addr, ai->ai_addrlen);
+        else {
+                struct sockaddr_un *un = (struct sockaddr_un *) server->sa;
+                prelude_get_socket_filename(un->sun_path, sizeof(un->sun_path), port);
+        }
+        
+        prelude_inet_freeaddrinfo(ai);
+
+        return 0;
+}
+
+
+
+
 /*
  *
  */
@@ -724,7 +811,8 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
                                      server_generic_read_func_t *readf, server_generic_close_func_t *closef)
 {
         int ret;
-        struct sockaddr_in addr;
+        char out[128];
+        void *in_addr;
         server_generic_t *server;
 
         server = malloc(sizeof(*server));
@@ -738,36 +826,39 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
         server->close = closef;
         server->clientlen = clientlen;
 
-        ret = prelude_resolve_addr(saddr, &addr.sin_addr);
+        ret = resolve_addr(server, saddr, port);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't resolve %s.\n", saddr);
                 return NULL;
         }
         
-        server->logic = server_logic_new(server, read_connection_cb, close_connection_cb);
+        server->logic = server_logic_new(server, read_connection_cb, NULL, close_connection_cb);
         if ( ! server->logic ) {
                 log(LOG_ERR, "couldn't initialize server pool.\n");
                 free(server);
                 return NULL;
         }
         
-        if ( strcmp(inet_ntoa(addr.sin_addr), "127.0.0.1") == 0 ) {
-                server->unix_srvr = port;
+        if ( server->sa->sa_family == AF_UNIX )
                 ret = unix_server_start(server);
-        } else {
-                server->unix_srvr = 0;
-                addr.sin_family = AF_INET;
-                addr.sin_port = htons(port);
-                memset(addr.sin_zero, 0, sizeof(addr.sin_zero));
-                ret = inet_server_start(server, saddr, &addr);
-        }
-
+        else 
+                ret = inet_server_start(server, saddr, server->sa, server->sa_len);
+        
         if ( ret < 0 ) {
                 server_logic_stop(server->logic);
                 free(server);
                 return NULL;
         }
+
+        if ( server->sa->sa_family == AF_UNIX )
+                snprintf(out, sizeof(out), "unix socket");
+        else {
+                assert(in_addr = prelude_inet_sockaddr_get_inaddr(server->sa));
+                prelude_inet_ntop(server->sa->sa_family, in_addr, out, sizeof(out));
+        }
         
+        log(LOG_INFO, "- sensors server started (listening on %s port %d).\n", out, port);
+
         return server;
 }
 
@@ -806,14 +897,10 @@ void server_generic_start(server_generic_t **server, size_t nserver)
 
 void server_generic_close(server_generic_t *server) 
 {
-        char sockname[256];
-        
         close(server->sock);
         
-        if ( server->unix_srvr ) {
-                prelude_get_socket_filename(sockname, sizeof(sockname), server->unix_srvr);        
-                unlink(sockname);
-        }
+        if ( server->sa->sa_family == AF_UNIX )                 
+                unlink(((struct sockaddr_un *)server->sa)->sun_path);
         
         server_logic_stop(server->logic);
 }

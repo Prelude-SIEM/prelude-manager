@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -27,6 +27,8 @@
 #include <sys/time.h>
 #include <inttypes.h>
 
+#include <libprelude/list.h>
+#include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/plugin-common-prv.h>
@@ -97,31 +99,6 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *i
         return -1;
 }
 
-
-
-
-void decode_plugins_free_data(void) 
-{
-        plugin_decode_t *p;
-        struct list_head *tmp;
-        plugin_container_t *pc;
-
-        for ( tmp = used_decode_plugins.next; tmp != &used_decode_plugins; ) {
-            
-                pc = list_entry(tmp, plugin_container_t, ext_list);
-                p = (plugin_decode_t *) pc->plugin;
-
-                plugin_run(pc, plugin_decode_t, free);
-
-                tmp = tmp->next;
-
-                /*
-                 * put back the plugin in the main plugins list.
-                 */
-                list_del(&pc->ext_list);
-                list_add(&pc->ext_list, &decode_plugins_list);
-        }
-}
 
 
 

@@ -36,9 +36,9 @@
 
 void passive_os_fingerprint_zero(pof_host_data_t *p)
 {	
-	p->mss= -1;
-	p->timestamp = 0;
+	p->mss = -1;
 	p->wscale = -1;
+	p->timestamp = 0;
 	p->sackok = 0;
 	p->nop = 0;
 	p->win = 0;
@@ -54,8 +54,7 @@ void passive_os_fingerprint_zero(pof_host_data_t *p)
 void passive_os_fingerprint_dump(idmef_alert_t *alert, pof_host_data_t *pof)
 {
         int ret;
-        char MSS[5];
-	char WSS[3];
+        char mss[5], wss[3];
 	idmef_additional_data_t *data;
         static char fingerprint[FINGERPRINT_SIZE + 1];
         
@@ -66,18 +65,18 @@ void passive_os_fingerprint_dump(idmef_alert_t *alert, pof_host_data_t *pof)
 	if ( ! data )
 		return;
         
-	if ( pof->wscale >= 0 )
-		snprintf(WSS, sizeof(WSS), "%02d", pof->wscale);
-	else
-		sprintf(WSS, "WS");
+	if ( pof->wscale < 0 )
+		sprintf(wss, "WS");
+        else
+		snprintf(wss, sizeof(wss), "%X", (uint8_t) pof->wscale);
 
-	if ( pof->mss >= 0 )
-		snprintf(MSS, sizeof(MSS), "%04X", pof->mss);
-	else
-		sprintf(MSS, "_MSS");
-
+	if ( pof->mss < 0 )
+		sprintf(mss, "_MSS");
+        else
+                snprintf(mss, sizeof(mss), "%04X", (uint16_t) pof->mss);
+        
 	ret = snprintf(fingerprint, sizeof(fingerprint), "%04X:%s:%02X:%s:%d:%d:%d:%d:%c:%02X",
-                       pof->win, MSS, pof->ttl, WSS, pof->sackok, pof->nop,
+                       pof->win, mss, pof->ttl, wss, pof->sackok, pof->nop,
                        pof->df, pof->timestamp, pof->flags, pof->len);
 
         /*

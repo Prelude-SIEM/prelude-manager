@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -40,21 +40,21 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/plugin-common.h>
-#include <libprelude/idmef-tree.h>
-#include <libprelude/idmef-tree-func.h>
+#include <libprelude/idmef.h>
+#include <libprelude/idmef-message.h>
+#include <libprelude/idmef-message-recv.h>
+#include <libprelude/idmef-message-id.h>
+#include <libprelude/extract.h>
 #include <libprelude/threads.h>
 #include <libprelude/common.h>
-#include <libprelude/prelude-client.h>
 
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-filter.h"
-#include "plugin-db.h"
 #include "pconfig.h"
 #include "idmef-message-read.h"
+#include "idmef-util.h"
 #include "idmef-message-scheduler.h"
-#include "relaying.h"
-
 
 #define MAX_MESSAGE_IN_MEMORY 200
 
@@ -84,6 +84,7 @@ static file_output_t low_priority_output;
  * Thread controling stuff.
  */
 static pthread_t thread;
+static int stop_processing = 0;
 static pthread_cond_t input_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t input_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -96,17 +97,15 @@ static pthread_mutex_t input_mutex = PTHREAD_MUTEX_INITIALIZER;
  */
 static void wait_for_message(void) 
 {        
-        pthread_mutex_lock(&input_mutex);
-              
-        /*
-         * we can be canceled safely now. There is no more data to process.
-         */
-        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-        
-        while ( ! input_available ) 
+        pthread_mutex_lock(&input_mutex);            
+          
+        while ( ! input_available && ! stop_processing ) 
                 pthread_cond_wait(&input_cond, &input_mutex);
-
-        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+        
+        if ( ! input_available && stop_processing ) {
+                pthread_mutex_unlock(&input_mutex);
+                pthread_exit(NULL);
+        }
         
         /*
          * We are going to process all available data.
@@ -230,40 +229,79 @@ static prelude_msg_t *get_high_priority_message(void)
 
 static idmef_message_t *read_idmef_message(prelude_msg_t *msg) 
 {
-        int ret;
-        idmef_message_t *idmef;
+	int ret;
+	void *buf;
+	uint8_t tag;
+	uint32_t len;
+        idmef_message_t *message;
         
-        /*
-         * never return NULL.
-         */
-        idmef = idmef_message_new();
-        
-        ret = idmef_message_read(idmef, msg);
-        if ( ret < 0 ) {                
-                log(LOG_ERR, "error reading IDMEF message.\n");
-                
-                idmef_message_free(idmef);
-                decode_plugins_free_data();
-                
-                return NULL;
-        }
+	message = idmef_message_new();
+	if ( ! message ) {
+		log(LOG_ERR, "memory exhausted.\n");
+		return NULL;
+	}
 
-        return idmef;
+        while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) > 0 ) {
+
+                if ( tag == MSG_ALERT_TAG ) {
+			idmef_alert_t *alert;
+                        
+			alert = idmef_message_new_alert(message);
+			if ( ! alert )
+                                break;
+
+			if ( ! idmef_recv_alert(msg, alert) )
+				break;
+
+			manager_idmef_alert_get_ident(alert);
+		}
+
+                else if ( tag == MSG_HEARTBEAT_TAG ) {
+			idmef_heartbeat_t *heartbeat;
+
+			heartbeat = idmef_message_new_heartbeat(message);
+			if ( ! heartbeat )
+                                break;
+
+			if ( ! idmef_recv_heartbeat(msg, heartbeat) )
+				break;
+
+			manager_idmef_heartbeat_get_ident(heartbeat);
+		}
+
+                else if ( tag == MSG_OWN_FORMAT ) {
+			ret = extract_uint8_safe(&tag, buf, len);
+			if ( ret < 0 )
+                                break;
+                        
+			ret = decode_plugins_run(tag, msg, message);
+			if ( ret < 0 )
+                                break;
+                }
+	}
+
+        if ( ret == 0 )
+                return message;
+        
+        log(LOG_ERR, "error reading IDMEF message.\n");
+        idmef_message_destroy(message);
+        
+        return NULL;
 }
-
 
 
 
 static int process_message(prelude_msg_t *msg) 
 {
-        idmef_message_t *idmef = NULL;
+        int ret;
         int relay_filter_available = 0;
+        idmef_message_t *idmef = NULL;
         
         relay_filter_available = filter_plugins_available(FILTER_CATEGORY_RELAYING);
         if ( relay_filter_available < 0 )
                 manager_relay_msg_if_needed(msg);
         
-        if ( db_plugins_available() < 0 && report_plugins_available() < 0 && relay_filter_available < 0 ) {
+        if ( report_plugins_available() < 0 && relay_filter_available < 0 ) {
                 /*
                  * we are probably a simple relaying manager.
                  */
@@ -277,13 +315,14 @@ static int process_message(prelude_msg_t *msg)
                 return -1;
         }
 
+	ret = idmef_message_enable_cache(idmef);
+	if ( ret < 0 )
+		log(LOG_ERR, "cannot enable IDMEF cache\n");
+		
+
         if ( relay_filter_available == 0 && filter_plugins_run_by_category(idmef, FILTER_CATEGORY_RELAYING) == 0 )
                 manager_relay_msg_if_needed(msg);
 
-        /*
-         * run db reporting plugin.
-         */
-        db_plugins_run(idmef);
 
         /*
          * run simple reporting plugin.
@@ -293,10 +332,9 @@ static int process_message(prelude_msg_t *msg)
         /*
          * free data.
          */
-        decode_plugins_free_data();
-        idmef_message_free(idmef);
-        prelude_msg_destroy(msg);
-        
+	idmef_message_destroy(idmef);
+	prelude_msg_destroy(msg);
+
         return 0;
 }
 
@@ -455,9 +493,10 @@ static int init_file_output(const char *filename, file_output_t *out)
                 return -1;
         }
         
-        out->fdp = fopen(filename, "a+");
-        if ( ! fd ) {
+        out->fdp = fdopen(fd, "a+");
+        if ( ! out->fdp ) {
                 log(LOG_ERR, "couldn't open %s in read / write mode.\n", filename);
+                close(fd);
                 return -1;
         }
 
@@ -570,8 +609,13 @@ int idmef_message_scheduler_init(void)
 
 
 void idmef_message_scheduler_exit(void) 
-{                
-        pthread_cancel(thread);
+{
+        pthread_mutex_lock(&input_mutex);
+
+        stop_processing = 1;
+        pthread_cond_signal(&input_cond);
+
+        pthread_mutex_unlock(&input_mutex);
         
         log(LOG_INFO, "Waiting for queued message to be processed.\n");
         pthread_join(thread, NULL);

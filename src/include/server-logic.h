@@ -24,10 +24,13 @@
 #ifndef _MANAGER_SERVER_LOGIC_H
 #define _MANAGER_SERVER_LOGIC_H
 
+#include <pthread.h>
+
 #define SERVER_LOGIC_CLIENT_OBJECT \
         prelude_io_t *fd;          \
         int key;                   \
-        void *set
+        void *set;                 \
+        pthread_mutex_t mutex
 
 
 typedef struct server_logic server_logic_t;
@@ -45,6 +48,27 @@ typedef int (server_logic_close_t)(void *sdata, server_logic_client_t *client);
  */
 typedef int (server_logic_read_t)(void *sdata, server_logic_client_t *client);
 
+
+typedef int (server_logic_write_t)(void *sdata, server_logic_client_t *client);
+
+
+
+/*
+ *
+ */
+void server_logic_set_max_connection(server_logic_t *server, unsigned int max);
+
+/*
+ *
+ */
+void server_logic_set_max_fd_by_thread(server_logic_t *server, unsigned int max);
+
+/*
+ *
+ */
+void server_logic_set_min_running_thread(server_logic_t *server, unsigned int min);
+
+
 /*
  *
  */
@@ -60,7 +84,8 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
 /*
  *
  */
-server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read, server_logic_close_t *s_close);
+server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read,
+                                 server_logic_write_t *s_write, server_logic_close_t *s_close);
 
 
 /*
@@ -69,22 +94,9 @@ server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read, serve
 void server_logic_remove_client(server_logic_client_t *client);
 
 
-/*
- *
- */
-void server_logic_set_max_connection(server_logic_t *server, unsigned int max);
+void server_logic_notify_write_enable(server_logic_client_t *fd);
 
-
-/*
- *
- */
-void server_logic_set_max_fd_by_thread(server_logic_t *server, unsigned int max);
-
-
-/*
- *
- */
-void server_logic_set_min_running_thread(server_logic_t *server, unsigned int min);
+void server_logic_notify_write_disable(server_logic_client_t *fd);
 
 #endif /* _MANAGER_SERVER_LOGIC_H */
 

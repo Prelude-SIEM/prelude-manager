@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1999,2000, 2002, 2003 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1999,2000, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -29,13 +29,12 @@
 #include <inttypes.h>
 #include <netinet/in.h>
 
-#include <libprelude/list.h>
-#include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-log.h>
+#include <libprelude/prelude-strbuf.h>
 #include <libprelude/extract.h>
+
 #include "nethdr.h"
 #include "optparse.h"
-#include "passive-os-fingerprint.h"
 
 #define MAX_OPTS_LEN 40
 
@@ -71,96 +70,68 @@
  */
 
 
-static char *buf;
-static size_t bsize;
-extern pof_host_data_t pof_host_data;
-
-
-
-static void printopt(const char *comment, ...) 
-{
-        int ret;
-        va_list va;
-
-        va_start(va, comment);
-        ret = vsnprintf(buf, bsize, comment, va);
-        va_end(va);
-
-        assert(ret > 0 && ret < bsize);
-        
-        buf += ret;
-        bsize -= ret;
-}
-
-
-
 /*
  * Dump tcp options and their value.
  */
-static int tcp_optval(unsigned char *optbuf, int opt, int datalen) 
+static int tcp_optval(prelude_strbuf_t *obuf, unsigned char *optbuf, int opt, size_t datalen) 
 {
         int i;
         
         switch (opt) {
                 
         case TCPOPT_MAXSEG:
-                printopt("mss %u", extract_uint16(optbuf));
-                pof_host_data.mss = extract_uint16(optbuf);
+                prelude_strbuf_sprintf(obuf, "mss %u", extract_uint16(optbuf));
                 break;
                 
         case TCPOPT_WSCALE:
-                printopt("wscale %u", *optbuf);
-                pof_host_data.wscale = *optbuf;
+                prelude_strbuf_sprintf(obuf, "wscale %u", *optbuf);
                 break;
 
         case TCPOPT_SACK_PERMITTED:
-                printopt("sackOK");
-                pof_host_data.sackok = 1;
+                prelude_strbuf_sprintf(obuf, "sackOK");
                 break;
                 
         case TCPOPT_SACK:
                 if ( datalen % 8 != 0 )
-                        printopt("malformed sack");
+                        prelude_strbuf_sprintf(obuf, "malformed sack");
                 else {
                         uint32_t s, e;
 
-                        printopt("sack %d", datalen / 8 );
+                        prelude_strbuf_sprintf(obuf, "sack %d", datalen / 8);
                         for ( i = 0; i < datalen; i += 8 ) {
                                 s = extract_uint32(optbuf + i);
                                 e = extract_uint32(optbuf + i + 4);
                         }
-                        
                 }
                 break;
                                 
         case TCPOPT_ECHO:
-                printopt("echo %u", extract_uint32(optbuf));
+                prelude_strbuf_sprintf(obuf, "echo %u", extract_uint32(optbuf));
                 break;
                               
         case TCPOPT_ECHOREPLY:
-                printopt("echoreply %u", extract_uint32(optbuf));
+                prelude_strbuf_sprintf(obuf, "echoreply %u", extract_uint32(optbuf));
                 break;
 
         case TCPOPT_TIMESTAMP:
-                pof_host_data.timestamp = 1;
-                printopt("timestamp %u %u",
-                         extract_uint32(optbuf), extract_uint32(optbuf + 4));
+                prelude_strbuf_sprintf(obuf, "timestamp %u %u",
+                                       extract_uint32(optbuf), extract_uint32(optbuf + 4));
                 break;
                 
         case TCPOPT_CC:
-                printopt("cc %u", extract_uint32(optbuf));
+                prelude_strbuf_sprintf(obuf, "cc %u", extract_uint32(optbuf));
                 break;
 
         case TCPOPT_CCNEW:
-                printopt("ccnew %u", extract_uint32(optbuf));
+                prelude_strbuf_sprintf(obuf, "ccnew %u", extract_uint32(optbuf));
                 break;
                 
         case TCPOPT_CCECHO:
-                printopt("ccecho %u", extract_uint32(optbuf));
+                prelude_strbuf_sprintf(obuf, "ccecho %u", extract_uint32(optbuf));
                 break;
 
         default:
-                printopt("opt-%d:", opt);
+                prelude_strbuf_sprintf(obuf, "opt-%d:", opt);
                 break;
 
         }
@@ -173,41 +144,57 @@ static int tcp_optval(unsigned char *optbuf, int opt, int datalen)
 /*
  * Dump Ip options and their value.
  */
-static int ip_optval(unsigned char *optbuf, int opt, int datalen)
+static int ip_optval(prelude_strbuf_t *obuf, unsigned char *optbuf, int opt, size_t datalen)
 {
         int optlen = datalen + 2;
 
         switch (opt) {
-                                
+                
+        case IPOPT_RR:
+                prelude_strbuf_sprintf(obuf, "rr");
+                break;
+
+        case IPOPT_EOL:
+                prelude_strbuf_sprintf(obuf, "eol");
+                break;
+
+        case IPOPT_NOP:
+                prelude_strbuf_sprintf(obuf, "nop");
+                break;
+                
         case IPOPT_TIMESTAMP:
-                printopt("ts");
+                prelude_strbuf_sprintf(obuf, "ts");
                 break;
                 
         case IPOPT_SECURITY:
-                printopt("security{%d}", optlen);
-                break;
-                
-        case IPOPT_RR:
-                printopt("rr");
-                break;
-                
-        case IPOPT_SSRR:
-                printopt("ssrr");
+                prelude_strbuf_sprintf(obuf, "security{%d}", optlen);
                 break;
                 
         case IPOPT_LSRR:
-                printopt("lsrr");
+                prelude_strbuf_sprintf(obuf, "lsrr");
+                break;
+
+        case IPOPT_LSRRE:
+                prelude_strbuf_sprintf(obuf, "lsrre");
+                break;
+                
+        case IPOPT_SSRR:
+                prelude_strbuf_sprintf(obuf, "ssrr");
+                break;
+
+        case IPOPT_SATID:
+                prelude_strbuf_sprintf(obuf, "satid");
                 break;
 
         case IPOPT_RA:
                 if (datalen != 2)
-                        printopt("ra{%d}", optlen);
+                        prelude_strbuf_sprintf(obuf, "ra{%d}", optlen);
                 else if (optbuf[0] || optbuf[1])
-                        printopt("ra{%d.%d}", optbuf[0], optbuf[1]);
+                        prelude_strbuf_sprintf(obuf, "ra{%d.%d}", optbuf[0], optbuf[1]);
                 break;
                 
         default:
-                printopt("ipopt-%d{%d}", opt, optlen);
+                prelude_strbuf_sprintf(obuf, "ipopt-%d{%d}", opt, optlen);
                 break;
         }
         
@@ -220,16 +207,15 @@ static int ip_optval(unsigned char *optbuf, int opt, int datalen)
  * Verify if the option 'opt' is one of
  * the 1 byte only option (nop || eol).
  */
-static int is_1byte_option(int opt) 
+static int is_1byte_option(prelude_strbuf_t *obuf, int opt) 
 {
         if ( opt == TCPOPT_NOP ) {
-                printopt("nop");
-                pof_host_data.nop = 1;
+                prelude_strbuf_sprintf(obuf, "nop");
                 return 0;
         }
 
         else if (opt == TCPOPT_EOL) {
-                printopt("eol");
+                prelude_strbuf_sprintf(obuf, "eol");
                 return 0;
         }
 
@@ -244,29 +230,25 @@ static int is_1byte_option(int opt)
  * - verify that this option len is < than our total option len.
  * - do some bound check on our option buffer, to avoid going out of bound.
  */
-static int is_option_valid(unsigned char *optbuf, int optlen, int totlen) 
+static int is_option_valid(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen, size_t totlen) 
 {        
         if ( optlen < 2 ) {
-                printopt("options is not \"nop\" or \"eol\" so option len (%d) "
-                         "should be >= 2.", optlen);
+                prelude_strbuf_sprintf(obuf, "options is not \"nop\" or \"eol\" so option len (%d) "
+                                       "should be >= 2.", optlen);
                 return -1;
         }
                 
         if ( optlen > totlen ) {
-                printopt("option len (%d) is > remaining total options len (%d).",
-                         optlen, totlen);
+                prelude_strbuf_sprintf(obuf, "option len (%d) is > remaining total options len (%d).",
+                                       optlen, totlen);
                 return -1;
         }
 
         /*
          * This check should never be reached because
-         * of the optlen > totlen test.
+         * of the optlen > totlen test... use an assert.
          */
-        if ( (optbuf + (optlen - 2)) > (optbuf + (totlen - 2) ) ) {
-                printopt("options buffer seem to be truncated (%p > %p).",
-                         (optbuf + (optlen - 2)),  (optbuf + (totlen - 2)));
-                return -1;
-        }
+        assert( (optbuf + (optlen - 2)) <= (optbuf + (totlen - 2)) );
 
         return 0;
 }
@@ -278,12 +260,12 @@ static int is_option_valid(unsigned char *optbuf, int optlen, int totlen)
  * to contain a len byte, which mean totlen must be
  * >= 2 (1 byte for optkind, and 1 for optlen).
  */
-static int is_len_byte_ok(int totlen) 
+static int is_len_byte_ok(prelude_strbuf_t *obuf, size_t totlen) 
 {
         if ( totlen < 2 ) {
-                printopt("not \"nop\" or \"eol\", "
-                         "but no space remaining for option len byte"
-                         "in option buffer.");
+                prelude_strbuf_sprintf(obuf, "not \"nop\" or \"eol\", "
+                                       "but no space remaining for option len byte"
+                                       "in option buffer.");
                 return -1;
         }
         
@@ -298,27 +280,29 @@ static int is_len_byte_ok(int totlen)
  * printing tcp or ip options, depending on the kind of header
  * theses options are from.
  */
-static int walk_options(unsigned char *optbuf, int totlen,
-                        int (*optval)(unsigned char *optbuf, int opt, int optlen)) 
+static int walk_options(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t totlen,
+                        int (*optval)(prelude_strbuf_t *obuf, unsigned char *optbuf, int opt, size_t optlen)) 
 {
-        int opt, optlen, ret;
+        int opt, ret;
+        size_t optlen, origlen = totlen;
         
         do {
                 opt = *optbuf++;
 
-                if ( is_1byte_option(opt) == 0 )
+                if ( is_1byte_option(obuf, opt) == 0 )
                         totlen -= 1;
                 else {
-                        if ( is_len_byte_ok(totlen) < 0 )
-                                return -1;
+                        if ( is_len_byte_ok(obuf, totlen) < 0 )
+                                return origlen - totlen;
 
                         optlen = *optbuf++;
                         
-                        ret = is_option_valid(optbuf, optlen, totlen);
+                        ret = is_option_valid(obuf, optbuf, optlen, totlen);
                         if ( ret < 0 )
-                                return -1;
+                                return origlen - (totlen - 2);
                         
-                        optval(optbuf, opt, optlen - 2);
+                        optval(obuf, optbuf, opt, optlen - 2);
+
                         totlen -= optlen;
                         optbuf += optlen - 2;
 
@@ -327,11 +311,11 @@ static int walk_options(unsigned char *optbuf, int totlen,
                 assert(totlen >= 0);
                 
                 if ( totlen > 0 )
-                        printopt(",");
+                        prelude_strbuf_sprintf(obuf, ",");
                 
         } while ( totlen != 0 );
 
-        return 0;
+        return origlen - totlen;
 }
 
 
@@ -339,22 +323,15 @@ static int walk_options(unsigned char *optbuf, int totlen,
 /*
  *
  */
-const char *tcp_optdump(unsigned char *optbuf, size_t optlen)
+int tcp_optdump(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen)
 {
-        static char buffer[1024];
-        
-        buf = buffer;
-        bsize = sizeof(buffer);
-        
         if ( optlen > MAX_OPTS_LEN ) {
-                printopt("total option len (%d) > maximum option len (%d).",
-                         optlen, MAX_OPTS_LEN);
-                return buffer;
+                prelude_strbuf_sprintf(obuf, "total option len (%d) > maximum option len (%d).",
+                                       optlen, MAX_OPTS_LEN);
+                return -1;
         }
         
-        walk_options(optbuf, optlen, tcp_optval);
-
-        return buffer;
+        return walk_options(obuf, optbuf, optlen, tcp_optval);
 }
 
 
@@ -362,20 +339,27 @@ const char *tcp_optdump(unsigned char *optbuf, size_t optlen)
 /*
  *
  */
-const char *ip_optdump(unsigned char *optbuf, size_t optlen)
+int ip_optdump(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen)
 {
-        static char buffer[1024];
-        
-        buf = buffer;
-        bsize = sizeof(buffer);
-
         if ( optlen > MAX_OPTS_LEN ) {
-                printopt("total option len (%d) > maximum option len (%d).",
-                         optlen, MAX_OPTS_LEN);
-                return buffer;
+                prelude_strbuf_sprintf(obuf, "total option len (%d) > maximum option len (%d).",
+                                       optlen, MAX_OPTS_LEN);
+                return -1;
         }
 
-        walk_options(optbuf, optlen, ip_optval);
-        
-        return buffer;
+        return walk_options(obuf, optbuf, optlen, ip_optval);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,3 +1,136 @@
+* 2003-12-09, prelude-manager-0.8.10:
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
+	  Fix logfile creation permission.
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
+	- Nicolas Delon <delon.nicolas@wanadoo.fr>    :
+	  Workaround a bug in SSL mode that could introduce
+	  an alert processing delay because OpenSSL use it's own
+	  data buffering.
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
+	  Add missing COPYING.OpenSSL file.
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
+	- Nicolas Delon <delon.nicolas@wanadoo.fr>    :
+	  Fixed a bug preventing the manager from being ran as a 
+	  normal user without manual permission customisation.
+
+* 2003-10-22, prelude-manager-0.8.9
+
+	- James Horvath <james.horvath@steelcase.com>:
+	  Fix an occasional SIGSEGV due to a NULL pointer dereference 
+	  when using the pgsql database plugin. 
+
+* 2003-09-21, prelude-manager-0.8.8
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
+	- Laurent Pautet <landmir@landmir.net>:
+          Avoid inserting quoted NULL entry in database, which the 
+          query client would interpret as being valid.
+
+	- Fabrice Alphonso <fabrice@alphonso.dyndns.org>:
+	  Fix Pgsql database creation script (the user was created, 
+	  but the table were not).
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
+	  Use LOG_ERR in MySQL plugin to tell the user that connection information
+          are missing. Some user were confused by thinking the output
+          looked okay, and didn't thought it was an error.
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
+	  Fix insertion of correlated alert.
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
+	  Fix a crash in the Xml plugin, on system using libxml 2.5.8.
+
+	- Laurent Pautet <landmir@landmir.net>:
+	  Try to speed up DB access by setting up some INDEX.
+
+	- Laurent Pautet <landmir@landmir.net>:
+	  A space was missing in inserted timestamp. only worked for
+          MySQL 3.2x to 4.0.x, not for MySQL 4.1.x nor PostgreSQL 
+	  (fix bug #84).
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
+	- Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>:
+	  Bring the "keepalive" and "prompt" option to the 
+	  manager-adduser program.
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
+	  We are now able to accept both Ipv6 and Ipv4 connection.
+
+	- Sylvain Gil <prelude-code@tootella.org>:
+	  MacosX port.
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
+	  Added support for dumping ECNECHO and CWR flags when
+	  they are set in the prelude-nids decoding plugin.
+	
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
+	  Fix a bug were ip_len would always be dumped as being 0
+	  in the prelude-nids decoding plugin.
+	
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
+	  Fix a possible assertion failure in the Passive OS Fingerprinting
+	  code.	
+	
+* 2003-04-28, prelude-manager-0.8.7
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
+	  Update server-logic code. This newer version fix every known
+	  bug and race (was tested on an heavily loaded IRC server).
+
+	- Nicolas Delon <delon.nicolas@wanadoo.fr>:
+	  UTC time was used to build the string instead of localtime.
+	  GMT offset was badly calculated (using tm_hour field of struct tm).
+	  
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
+	  You can now provide a prefix for pgsql, mysql, and xml2.
+	  Fix bug #0000070 ("Problems with the --enable-pgsql configuration 
+	  options").
+
+        - Patrick Marie <mycroft@virgaria.org>:
+          Fixed bug #0000072 and part of #0000073: Full rewrite of the 
+	  PostgreSQL database/user/tables creation.
+			
+	- Patrick Marie <mycroft@virgaria.org>:
+	  Fixed bug #0000074 : "prelude-manager-db-create.sh doesn't 
+	  work with FreeBSD. /bin/sh. Multi conditionnal "if" in test(1) 
+	  are not supported, neither [[ ]] syntax."
+	  
+	- Michael Boman <michael.boman@securecirt.com>:
+	  Fixed bug #0000073 : "prelude-manager-db-create.sh can only 
+	  use local databases".
+	  
+	- Michael Boman <michael.boman@securecirt.com>:
+	  Both mysql and pgsql now have a new command line option to assign 
+	  port number : dbport. Now works with MySQL v4.0+.
+	  
+	- Yoann Vandoorselaere  <yoann@prelude-ids.org>:
+	- Laurent Oudot <oudot.laurent@wanadoo.fr>:
+	  Implement passive os fingerprint, adding a fingerprint to the 
+	  alert additional data.
+
+	- Yoann Vandoorselaere  <yoann@prelude-ids.org>:
+	  Fix a bug pointed out by Laurent Oudot <oudot.laurent@wanadoo.fr>,
+          where packet dumped wouldn't show the DF (Don't Fragment) flag.
+
+	- Yoann Vandoorselaere  <yoann@prelude-ids.org>:
+	  Fix some bug in ARP packet dump.
+
+	- Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>:
+	  Allow the use of an arbitrary length certificate buffer.
+
+	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
+	  Permit linking with OpenSSL so that Debian package might 
+	  be distributed.
+
+	- Sylvain Gil <prelude-code@tootella.org>:
+	  Added a -d option to the XML plugin that will disable file 
+	  buffering for xml output file.
+
 * 2002-09-23, prelude-manager-0.8.6:
 	
 	- Fix a communication problem on linux kernel 2.2.x

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2000, 2002 Yoann Vandoorselaere.
+ *  Copyright (C) 2000, 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>.
  *
  *  This program is free software; you can redistribute it and/or modify 
  *  it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *  Authors: Yoann Vandoorselaere <yoann@mandrakesoft.com>
+ *  Authors: Yoann Vandoorselaere <yoann@prelude-ids.org>
  *
  */
 
@@ -178,7 +178,7 @@ typedef struct {
 typedef struct {
         uint8_t ip_vhl;         /* header length, version */
 
-#define IP_V(ip)  ((ip)->ip_vhl & 0xf0) >> 4
+#define IP_V(ip)  (((ip)->ip_vhl & 0xf0) >> 4)
 #define IP_HL(ip) ((ip)->ip_vhl & 0x0f)
 
         uint8_t ip_tos;
@@ -198,14 +198,15 @@ typedef struct {
 /*
  * TCP header
  */
-#define TH_FIN  0x01
-#define TH_SYN  0x02
-#define TH_RST  0x04
-#define TH_PSH  0x08
-#define TH_ACK  0x10
-#define TH_URG  0x20
-#define TH_RES1 0x40
-#define TH_RES2 0x80
+#define TH_FIN     0x01
+#define TH_SYN     0x02
+#define TH_RST     0x04
+#define TH_PSH     0x08
+#define TH_ACK     0x10
+#define TH_URG     0x20
+#define TH_ECNECHO 0x40    /* ECN Echo */
+#define TH_CWR     0x80    /* ECN Cwnd Reduced */
+
 
 
 typedef struct {
@@ -216,9 +217,9 @@ typedef struct {
 
         uint8_t th_offx2; /* th_off and th_x2 */
 
-#define TH_OFF(tcp) ((tcp)->th_offx2 & 0xf0) >> 4
 #define TH_X2(tcp)  ((tcp)->th_offx2 & 0x0f)
-        
+#define TH_OFF(tcp) (((tcp)->th_offx2 & 0xf0) >> 4)
+    
         uint8_t th_flags;
         uint16_t th_win;
         uint16_t th_sum;
@@ -407,6 +408,7 @@ typedef struct {
 #define IPOPT_TIMESTAMP         68
 #define IPOPT_SECURITY          130
 #define IPOPT_LSRR              131
+#define IPOPT_LSRRE             132
 #define IPOPT_SATID             136
 #define IPOPT_SSRR              137
 #define IPOPT_RA                148

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -30,8 +30,9 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/idmef-message-id.h>
-#include <libprelude/idmef-tree.h>
-#include <libprelude/idmef-tree-func.h>
+#include <libprelude/idmef-message-id-format.h>
+#include <libprelude/idmef.h>
+#include <libprelude/idmef-tree-wrap.h>
 
 #include "plugin-decode.h"
 #include "plugin-util.h"

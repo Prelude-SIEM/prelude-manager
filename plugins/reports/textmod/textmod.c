@@ -25,12 +25,13 @@
 #include <string.h>
 #include <stdarg.h>
 #include <libprelude/list.h>
-#include <libprelude/idmef-tree.h>
+#include <libprelude/idmef.h>
+#include <libprelude/idmef-util.h>
 
 #include "report.h"
 #include "idmef-util.h"
 
-static void process_file(int depth, const idmef_file_t *file);
+static void process_file(int depth, idmef_file_t *file);
 
 
 static FILE *out_fd = NULL;
@@ -75,53 +76,36 @@ static void print(int depth, const char *fmt, ...)
 
 
 
-static void process_string_list(const char *type, int depth, const struct list_head *list) 
-{
-        struct list_head *tmp;
-        idmef_string_item_t *item;
-
-        if ( list_empty(list) )
-                return;
-        
-        print(depth, "%s: ", type);
-        
-        list_for_each(tmp, list) {
-                item = list_entry(tmp, idmef_string_item_t, list);
-                print(depth, "%s ", idmef_string(&item->string));
-        }
-}
-
-
-static void process_time(const char *type, const idmef_time_t *time) 
+static void process_time(const char *type, idmef_time_t *time) 
 {
         char utc_time[MAX_UTC_DATETIME_SIZE], ntpstamp[MAX_NTP_TIMESTAMP_SIZE];
 
         if ( ! time )
                 return;
         
-        idmef_get_timestamp(time, utc_time, sizeof(utc_time));
-        idmef_get_ntp_timestamp(time, ntpstamp, sizeof(ntpstamp));
+        idmef_time_get_timestamp(time, utc_time, sizeof(utc_time));
+        idmef_time_get_ntp_timestamp(time, ntpstamp, sizeof(ntpstamp));
 
         print(0, "%s: %s (%s)\n", type, ntpstamp, utc_time);
 }
 
 
 
-static void process_address(int depth, const idmef_address_t *addr) 
+static void process_address(int depth, idmef_address_t *address) 
 {
-        print(0, "* Addr[%s]:", idmef_address_category_to_string(addr->category));
+        print(0, "* Addr[%s]:", idmef_address_category_to_string(idmef_address_get_category(address)));
         
-        if ( idmef_string(&addr->address) )
-                print(0, " %s", idmef_string(&addr->address));
+        if ( idmef_string(idmef_address_get_address(address)) )
+                print(0, " %s", idmef_string(idmef_address_get_address(address)));
 
-        if ( idmef_string(&addr->netmask) )
-                print(0, "/%s", idmef_string(&addr->netmask));
+        if ( idmef_string(idmef_address_get_netmask(address)) )
+                print(0, "/%s", idmef_string(idmef_address_get_netmask(address)));
 
-        if ( idmef_string(&addr->vlan_name) )
-                print(0, " vlan=%s", idmef_string(&addr->vlan_name));
+        if ( idmef_string(idmef_address_get_vlan_name(address)) )
+                print(0, " vlan=%s", idmef_string(idmef_address_get_vlan_name(address)));
 
-        if ( addr->vlan_num )
-                print(0, " vnum=%d", addr->vlan_num);
+        if ( idmef_address_get_vlan_num(address) )
+                print(0, " vnum=%u", idmef_address_get_vlan_num(address));
 
         print(0, "\n");
 }
@@ -129,153 +113,172 @@ static void process_address(int depth, const idmef_address_t *addr)
 
 
 
-static void process_node(int depth, const idmef_node_t *node) 
+static void process_node(int depth, idmef_node_t *node) 
 {
-        idmef_address_t *addr;
-        struct list_head *tmp;
-        
+        idmef_address_t *address;
+
         if ( ! node )
                 return;
 
-        print(0, "* Node[%s]:", idmef_node_category_to_string(node->category));
-        
-        if ( idmef_string(&node->name) )
-                print(depth, " name:%s", idmef_string(&node->name));
+        print(0, "* Node[%s]:", idmef_node_category_to_string(idmef_node_get_category(node)));
 
-        if ( idmef_string(&node->location) )
-                print(depth, " location:%s", idmef_string(&node->location));
-        
+        if ( idmef_string(idmef_node_get_name(node)) )
+                print(depth, " name:%s", idmef_string(idmef_node_get_name(node)));
+
+        if ( idmef_string(idmef_node_get_location(node)) )
+                print(depth, " location:%s", idmef_string(idmef_node_get_location(node)));
+
         print(0, "\n");
-        
-        list_for_each(tmp, &node->address_list) {
-                addr = list_entry(tmp, idmef_address_t, list);
-                process_address(depth + 1, addr);
-        }
+
+	address = NULL;
+	while ( (address = idmef_node_get_next_address(node, address)) ) {
+		process_address(depth + 1, address);
+	}
 }
 
 
 
 
-static void process_userid(int depth, const idmef_userid_t *uid) 
+static void process_userid(int depth, idmef_userid_t *userid) 
 {
         const char *type;
         
         print(0, "*");
         print(depth, "");
         
-        if ( idmef_string(&uid->name) )
-                print(0, " name=%s", idmef_string(&uid->name));
-        
-        print(0, " number=%d", uid->number);
+        if ( idmef_string(idmef_userid_get_name(userid)) )
+                print(0, " name=%s", idmef_string(idmef_userid_get_name(userid)));
 
+        print(0, " number=%u", idmef_userid_get_number(userid));
 
-        type = idmef_userid_type_to_string(uid->type);
+        type = idmef_userid_type_to_string(idmef_userid_get_type(userid));
         if ( type )
                 print(0, " type=%s\n", type);
 }
 
 
 
-static void process_user(int depth, const idmef_user_t *user) 
+static void process_user(int depth, idmef_user_t *user) 
 {
-        idmef_userid_t *uid;
+        idmef_userid_t *userid;
         const char *category;
-        struct list_head *tmp;
-        
+
         if ( ! user )
                 return;
 
-        category = idmef_user_category_to_string(user->category);
+        category = idmef_user_category_to_string(idmef_user_get_category(user));
         if ( category )
                 print(0, "* %s user: \n", category);
-        
-        list_for_each(tmp, &user->userid_list) {
-                uid = list_entry(tmp, idmef_userid_t, list);
-                process_userid(depth + 1, uid);
-        }
+
+	userid = NULL;
+	while ( (userid = idmef_user_get_next_userid(user, userid)) ) {
+		process_userid(depth + 1, userid);
+	}
 }
 
 
 
 
-static void process_process(int depth, const idmef_process_t *process)
+static void process_process(int depth, idmef_process_t *process)
 {
+	idmef_string_t *string;
+	int header;
+
         if ( ! process )
                 return;
 
-        print(depth, "* Process: pid=%u", process->pid);
+        print(depth, "* Process: pid=%u", idmef_process_get_pid(process));
         
-        if ( idmef_string(&process->name) )
-                print(0, " name=%s", idmef_string(&process->name));
+        if ( idmef_string(idmef_process_get_name(process)) )
+                print(0, " name=%s", idmef_string(idmef_process_get_name(process)));
         
-        if ( idmef_string(&process->path) )
-                print(0, " path=%s", idmef_string(&process->path));
+        if ( idmef_string(idmef_process_get_path(process)) )
+                print(0, " path=%s", idmef_string(idmef_process_get_path(process)));
 
-        process_string_list(" arg", depth, &process->arg_list);
-        process_string_list(" env", depth, &process->env_list);
-        
+	header = 0;
+	string = NULL;
+	while ( (string = idmef_process_get_next_arg(process, string)) ) {
+		if ( ! header ) {
+			print(depth, " arg: ");
+			header = 1;
+		}
+
+		print(depth, "%s ", idmef_string(string));
+	}
+
+	header = 0;
+	string = NULL;
+	while ( (string = idmef_process_get_next_env(process, string)) ) {
+		if ( ! header ) {
+			print(depth, " env: ");
+			header = 1;
+		}
+
+		print(depth, "%s ", idmef_string(string));
+	}
+
         print(0, "\n");
 }
 
 
 
 
-static void process_snmp_service(const idmef_snmpservice_t *snmp) 
+static void process_snmp_service(idmef_snmpservice_t *snmp) 
 {
-        if ( idmef_string(&snmp->oid) )
-                print(0, " oid=%s", idmef_string(&snmp->oid));
+        if ( idmef_string(idmef_snmpservice_get_oid(snmp)) )
+                print(0, " oid=%s", idmef_string(idmef_snmpservice_get_oid(snmp)));
 
-        if ( idmef_string(&snmp->command) )
-                print(0, " command=%s", idmef_string(&snmp->command));
+        if ( idmef_string(idmef_snmpservice_get_command(snmp)) )
+                print(0, " command=%s", idmef_string(idmef_snmpservice_get_command(snmp)));
 
-        if ( idmef_string(&snmp->community) )
-                print(0, " community=%s", idmef_string(&snmp->community));
+        if ( idmef_string(idmef_snmpservice_get_community(snmp)) )
+                print(0, " community=%s", idmef_string(idmef_snmpservice_get_community(snmp)));
 }
 
 
 
 
-static void process_web_service(const idmef_webservice_t *web) 
+static void process_web_service(idmef_webservice_t *web) 
 {        
         if ( ! web )
                 return;
 
-        if ( idmef_string(&web->url) )
-                print(0, " url=%s", idmef_string(&web->url));
+        if ( idmef_string(idmef_webservice_get_url(web)) )
+                print(0, " url=%s", idmef_string(idmef_webservice_get_url(web)));
 
-        if ( idmef_string(&web->cgi) )
-                print(0, " cgi=%s", idmef_string(&web->cgi));
+        if ( idmef_string(idmef_webservice_get_cgi(web)) )
+                print(0, " cgi=%s", idmef_string(idmef_webservice_get_cgi(web)));
 
-        if ( idmef_string(&web->http_method) )
-                print(0, " http method=%s", idmef_string(&web->http_method));
+        if ( idmef_string(idmef_webservice_get_http_method(web)) )
+                print(0, " http method=%s", idmef_string(idmef_webservice_get_http_method(web)));
 }
 
 
 
-static void process_service(int depth, const idmef_service_t *service) 
+static void process_service(int depth, idmef_service_t *service) 
 {
         if ( ! service )
                 return;
 
-        print(depth, "* Service: port=%d", service->port);
+        print(depth, "* Service: port=%hu", idmef_service_get_port(service));
         
-        if ( idmef_string(&service->name) )
-                print(0, " (%s)", idmef_string(&service->name));
+        if ( idmef_string(idmef_service_get_name(service)) )
+                print(0, " (%s)", idmef_string(idmef_service_get_name(service)));
         
-        if ( idmef_string(&service->protocol) )
-                print(0, " protocol=%s", idmef_string(&service->protocol));
+        if ( idmef_string(idmef_service_get_protocol(service)) )
+                print(0, " protocol=%s", idmef_string(idmef_service_get_protocol(service)));
         
-        switch (service->type) {
+        switch ( idmef_service_get_type(service) ) {
         case web_service:
-                process_web_service(service->specific.web);
+                process_web_service(idmef_service_get_web(service));
                 break;
 
         case snmp_service:
-                process_snmp_service(service->specific.snmp);
+                process_snmp_service(idmef_service_get_snmp(service));
                 break;
 
         default:
-                break;
+                /* nop */;
         }
 
         print(0, "\n");
@@ -283,271 +286,298 @@ static void process_service(int depth, const idmef_service_t *service)
 
 
 
-static void process_source(int depth, const idmef_source_t *source)
+static void process_source(int depth, idmef_source_t *source)
 {
         const char *spoofed;
 
-        spoofed = idmef_source_spoofed_to_string(source->spoofed);
+        spoofed = idmef_spoofed_to_string(idmef_source_get_spoofed(source));
         if ( spoofed )
                 print(depth, "* Source spoofed: %s\n", spoofed);
 
-        if ( idmef_string(&source->interface) )
-                print(depth, "* Source interface=%s", idmef_string(&source->interface));
+        if ( idmef_string(idmef_source_get_interface(source)) )
+                print(depth, "* Source interface=%s\n", idmef_string(idmef_source_get_interface(source)));
         
-        process_node(depth, source->node);
-        process_service(depth, source->service);
-        process_process(depth, source->process);
-        process_user(depth, source->user);
+        process_node(depth, idmef_source_get_node(source));
+        process_service(depth, idmef_source_get_service(source));
+        process_process(depth, idmef_source_get_process(source));
+        process_user(depth, idmef_source_get_user(source));
 }
 
 
 
-static void process_file_access(int depth, const struct list_head *head) 
+static void process_file_access(int depth, idmef_file_access_t *file_access) 
 {
-        struct list_head *tmp;
-        idmef_file_access_t *access;
-        
-        list_for_each(tmp, head) {
-                access = list_entry(tmp, idmef_file_access_t, list);
-                
-                print(depth, "Access: ");
-                process_string_list("permission", depth, &access->permission_list);
-                process_userid(0, &access->userid);
-        }
+	idmef_string_t *permission;
+	int header;
+
+	print(depth, "Access: ");
+
+	header = 0;
+	permission = NULL;
+	while ( (permission = idmef_file_access_get_next_permission(file_access, permission)) ) {
+		if ( ! header ) {
+			print(depth, " permission: ");
+			header = 1;
+		}
+
+		print(depth, "%s ", idmef_string(permission));
+	}
+
+	process_userid(0, idmef_file_access_get_userid(file_access));
 }
 
 
 
-static void process_file_linkage(int depth, const struct list_head *head) 
+static void process_file_linkage(int depth, idmef_linkage_t *linkage) 
 {
-        struct list_head *tmp;
-        idmef_linkage_t *linkage;
+	print(depth, "Linkage: %s",
+	      idmef_linkage_category_to_string(idmef_linkage_get_category(linkage)));
 
-        list_for_each(tmp, head) {
-                linkage = list_entry(tmp, idmef_linkage_t, list);
+	if ( idmef_string(idmef_linkage_get_name(linkage)) )
+		print(0, " name=%s", idmef_string(idmef_linkage_get_name(linkage)));
 
-                print(depth, "Linkage: %s", idmef_linkage_category_to_string(linkage->category));
+	if ( idmef_string(idmef_linkage_get_path(linkage)) )
+		print(0, " path=%s", idmef_string(idmef_linkage_get_path(linkage)));
 
-                if ( idmef_string(&linkage->name) )
-                        print(0, " name=%s", idmef_string(&linkage->name));
-
-                if ( idmef_string(&linkage->path) )
-                        print(0, " path=%s", idmef_string(&linkage->path));
-
-                if ( linkage->file )
-                        process_file(depth, linkage->file);
-                
-                print(0, "\n");
-        }
+	if ( idmef_linkage_get_file(linkage) )
+		process_file(depth, idmef_linkage_get_file(linkage));
 }
 
 
 
 
-static void process_inode(int depth, const idmef_inode_t *inode) 
+static void process_inode(int depth, idmef_inode_t *inode) 
 {
         if ( ! inode )
                 return;
         
         print(depth, "* Inode:");
 
-        if ( inode->number )
-                print(0, " number=%d", inode->number);
+        if ( idmef_inode_get_number(inode) )
+                print(0, " number=%u", idmef_inode_get_number(inode));
 
-        if ( inode->major_device )
-                print(0, " major=%d", inode->major_device);
+        if ( idmef_inode_get_major_device(inode) )
+                print(0, " major=%u", idmef_inode_get_major_device(inode));
 
-        if ( inode->minor_device )
-                print(0, " minor=%d", inode->minor_device);
+        if ( idmef_inode_get_minor_device(inode) )
+                print(0, " minor=%u", idmef_inode_get_minor_device(inode));
 
-        if ( inode->c_major_device )
-                print(0, " c_major=%d", inode->c_major_device);
+        if ( idmef_inode_get_c_major_device(inode) )
+                print(0, " c_major=%u", idmef_inode_get_c_major_device(inode));
 
-        if ( inode->c_minor_device )
-                print(0, " c_minor=%d", inode->c_minor_device);
+        if ( idmef_inode_get_c_minor_device(inode) )
+                print(0, " c_minor=%u", idmef_inode_get_c_minor_device(inode));
 
         print(0, "\n");
         
-        process_time(" ctime=", inode->change_time);
+        process_time(" ctime=", idmef_inode_get_change_time(inode));
 }
 
 
 
 
-static void process_file(int depth, const idmef_file_t *file) 
+static void process_file(int depth, idmef_file_t *file) 
 {
+	idmef_file_access_t *file_access;
+	idmef_linkage_t *file_linkage;
+
         print(0, "* ");
-        print(depth, "File %s: ", idmef_file_category_to_string(file->category));
 
-        if ( idmef_string(&file->fstype) )
-                print(0, " fstype=%s", idmef_string(&file->fstype));
+        print(depth, "File %s: ",
+	      idmef_file_category_to_string(idmef_file_get_category(file)));
 
-        if ( idmef_string(&file->name) )
-                print(0, " name=%s", idmef_string(&file->name));
+        if ( idmef_string(idmef_file_get_fstype(file)) )
+                print(0, " fstype=%s", idmef_string(idmef_file_get_fstype(file)));
 
-        if ( idmef_string(&file->path) )
-                print(0, " path=%s", idmef_string(&file->path));
+        if ( idmef_string(idmef_file_get_name(file)) )
+                print(0, " name=%s", idmef_string(idmef_file_get_name(file)));
+
+        if ( idmef_string(idmef_file_get_path(file)) )
+                print(0, " path=%s", idmef_string(idmef_file_get_path(file)));
         
-        if ( file->data_size )
-                print(0, " dsize=%u", file->data_size);
+        if ( idmef_file_get_data_size(file) )
+                print(0, " dsize=%u", idmef_file_get_data_size(file));
 
-        if ( file->disk_size )
-                print(0, " disk-size=%u", file->disk_size);
+        if ( idmef_file_get_disk_size(file) )
+                print(0, " disk-size=%u", idmef_file_get_disk_size(file));
 
         print(0, "\n");
         
-        process_time("* ctime=", file->create_time);
-        process_time("* mtime=", file->modify_time);
-        process_time("* atime=", file->access_time);
+        process_time("* ctime=", idmef_file_get_create_time(file));
+        process_time("* mtime=", idmef_file_get_modify_time(file));
+        process_time("* atime=", idmef_file_get_access_time(file));
 
-        process_file_access(depth, &file->file_access_list);
-        process_file_linkage(depth, &file->file_linkage_list);
-        process_inode(depth, file->inode);
+	file_access = NULL;
+	while ( (file_access = idmef_file_get_next_file_access(file, file_access)) ) {
+		process_file_access(depth, file_access);
+	}
+
+	file_linkage = NULL;
+	while ( (file_linkage = idmef_file_get_next_file_linkage(file, file_linkage)) ) {
+		process_file_linkage(depth, file_linkage);
+	}
+
+        process_inode(depth, idmef_file_get_inode(file));
 }
 
 
 
 
-static void process_target(int depth, const idmef_target_t *target)
+static void process_target(int depth, idmef_target_t *target)
 {
         idmef_file_t *file;
-        struct list_head *tmp;
-        
-        print(0, "* Target decoy: %s\n", idmef_target_decoy_to_string(target->decoy));
-        
-        if ( idmef_string(&target->interface) )
-                print(0, "* Target Interface: %s\n", idmef_string(&target->interface));
-        
-        process_node(0, target->node);
-        process_service(0, target->service);
-        process_process(0, target->process);
-        process_user(0, target->user);
 
-        list_for_each(tmp, &target->file_list) {
-                file = list_entry(tmp, idmef_file_t, list);
-                process_file(0, file);
+        print(0, "* Target decoy: %s\n", 
+	      idmef_spoofed_to_string(idmef_target_get_decoy(target)));
+        
+        if ( idmef_string(idmef_target_get_interface(target)) )
+                print(0, "* Target Interface: %s\n", idmef_string(idmef_target_get_interface(target)));
+        
+        process_node(0, idmef_target_get_node(target));
+        process_service(0, idmef_target_get_service(target));
+        process_process(0, idmef_target_get_process(target));
+        process_user(0, idmef_target_get_user(target));
+
+	file = NULL;
+	while ( (file = idmef_target_get_next_file(target, file)) ) {
+		process_file(0, file);
         }
 }
 
 
 
-static void process_analyzer(const idmef_analyzer_t *analyzer) 
+static void process_analyzer(idmef_analyzer_t *analyzer) 
 {
-        if ( analyzer->analyzerid )
-                print(0, "* Analyzer ID: %llu\n", analyzer->analyzerid);
+        if ( idmef_analyzer_get_analyzerid(analyzer) )
+                print(0, "* Analyzer ID: %llu\n", idmef_analyzer_get_analyzerid(analyzer));
         
-        if ( idmef_string(&analyzer->model) )
-                print(0, "* Analyzer model: %s\n", idmef_string(&analyzer->model));
+        if ( idmef_string(idmef_analyzer_get_model(analyzer)) )
+                print(0, "* Analyzer model: %s\n", idmef_string(idmef_analyzer_get_model(analyzer)));
 
-        if ( idmef_string(&analyzer->version) )
-                print(0, "* Analyzer version: %s\n", idmef_string(&analyzer->version));
+        if ( idmef_string(idmef_analyzer_get_version(analyzer)) )
+                print(0, "* Analyzer version: %s\n", idmef_string(idmef_analyzer_get_version(analyzer)));
 
-        if ( idmef_string(&analyzer->class) )
-                print(0, "* Analyzer class: %s\n", idmef_string(&analyzer->class));
+        if ( idmef_string(idmef_analyzer_get_class(analyzer)) )
+                print(0, "* Analyzer class: %s\n", idmef_string(idmef_analyzer_get_class(analyzer)));
         
-        if ( idmef_string(&analyzer->manufacturer) )
-                print(0, "* Analyzer manufacturer: %s\n", idmef_string(&analyzer->manufacturer));
+        if ( idmef_string(idmef_analyzer_get_manufacturer(analyzer)) )
+                print(0, "* Analyzer manufacturer: %s\n", idmef_string(idmef_analyzer_get_manufacturer(analyzer)));
 
-        if ( idmef_string(&analyzer->ostype) )
-                print(0, "* Analyzer OS type: %s\n", idmef_string(&analyzer->ostype));
+        if ( idmef_string(idmef_analyzer_get_ostype(analyzer)) )
+                print(0, "* Analyzer OS type: %s\n", idmef_string(idmef_analyzer_get_ostype(analyzer)));
         
-        if ( idmef_string(&analyzer->osversion) )
-                print(0, "* Analyzer OS version: %s\n", idmef_string(&analyzer->osversion));
+        if ( idmef_string(idmef_analyzer_get_osversion(analyzer)) )
+                print(0, "* Analyzer OS version: %s\n", idmef_string(idmef_analyzer_get_osversion(analyzer)));
 
-        if ( analyzer->node )
-                process_node(0, analyzer->node);
+        if ( idmef_analyzer_get_node(analyzer) )
+                process_node(0, idmef_analyzer_get_node(analyzer));
 
-        if ( analyzer->process )
-                process_process(0, analyzer->process);
+        if ( idmef_analyzer_get_process(analyzer) )
+                process_process(0, idmef_analyzer_get_process(analyzer));
 }
 
 
 
-static void process_classification(const idmef_classification_t *class) 
+static void process_classification(idmef_classification_t *classification) 
 {
-        print(0, "* Classification type: %s\n", idmef_classification_origin_to_string(class->origin));
-        print(0, "* Classification: %s\n", idmef_string(&class->name));
+        print(0, "* Classification type: %s\n",
+	      idmef_classification_origin_to_string(idmef_classification_get_origin(classification)));
+
+        print(0, "* Classification: %s\n",
+	      idmef_string(idmef_classification_get_name(classification)));
         
-        if ( idmef_string(&class->url) )
-                print(0, "* Classification URL: %s\n", idmef_string(&class->url));
+        if ( idmef_string(idmef_classification_get_url(classification)) )
+                print(0, "* Classification URL: %s\n", 
+		      idmef_string(idmef_classification_get_url(classification)));
 }
 
 
 
-static void process_data(const idmef_additional_data_t *ad) 
+static void process_data(idmef_additional_data_t *data) 
 {
-        size_t size;
         char buf[1024];
-        const char *ptr;
+	int retval;
         
-        size = sizeof(buf);
-        
-        ptr = idmef_additional_data_to_string(ad, buf, &size);
-        if ( ! ptr )
+        retval = idmef_additionaldata_data_to_string(data, buf, sizeof (buf));
+	if ( retval < 0 )
                 return;
-        
-        if ( size <= 80 )
-                print(0, "* %s: %s\n", idmef_string(&ad->meaning), ptr);
+
+        if ( retval <= 80 )
+                print(0, "* %s: %s\n", 
+		      idmef_string(idmef_additional_data_get_meaning(data)), buf);
         else
-                print(0, "* %s:\n%s\n", idmef_string(&ad->meaning), ptr);
+                print(0, "* %s:\n%s\n", 
+		      idmef_string(idmef_additional_data_get_meaning(data)), buf);
 }
 
 
 
 
-static void process_impact(const idmef_impact_t *impact) 
+static void process_impact(idmef_impact_t *impact) 
 {
         if ( ! impact )
                 return;
         
-        print(0, "* Impact severity: %s\n", idmef_impact_severity_to_string(impact->severity));
-        print(0, "* Impact completion: %s\n", idmef_impact_completion_to_string(impact->completion));
-        print(0, "* Impact type: %s\n", idmef_impact_type_to_string(impact->type));
-        print(0, "* Impact description: %s\n", idmef_string(&impact->description));
+        print(0, "* Impact severity: %s\n",
+	      idmef_impact_severity_to_string(idmef_impact_get_severity(impact)));
+
+        print(0, "* Impact completion: %s\n",
+	      idmef_impact_completion_to_string(idmef_impact_get_completion(impact)));
+
+        print(0, "* Impact type: %s\n", 
+	      idmef_impact_type_to_string(idmef_impact_get_type(impact)));
+
+        print(0, "* Impact description: %s\n", 
+	      idmef_string(idmef_impact_get_description(impact)));
 }
 
 
 
-static void process_confidence(const idmef_confidence_t *confidence) 
+static void process_confidence(idmef_confidence_t *confidence) 
 {
         if ( ! confidence )
                 return;
         
-        print(0, "* Confidence rating: %s\n", idmef_confidence_rating_to_string(confidence->rating));
+        print(0, "* Confidence rating: %s\n",
+	      idmef_confidence_rating_to_string(idmef_confidence_get_rating(confidence)));
 
-        if ( confidence->rating == numeric )
-                print(0, "* Confidence value: %f\n", confidence->confidence);
+        if ( idmef_confidence_get_rating(confidence) == numeric )
+                print(0, "* Confidence value: %f\n", idmef_confidence_get_confidence(confidence));
 }
 
 
 
 
-static void process_action(const idmef_action_t *action) 
+static void process_action(idmef_action_t *action) 
 {
-        print(0, "* Action category: %s\n", idmef_action_category_to_string(action->category));
-        print(0, "* Action description: %s\n", idmef_string(&action->description));
+        print(0, "* Action category: %s\n",
+	      idmef_action_category_to_string(idmef_action_get_category(action)));
+
+        print(0, "* Action description: %s\n",
+	      idmef_string(idmef_action_get_description(action)));
 }
 
 
 
 
-static void process_assessment(const idmef_assessment_t *assessment) 
+static void process_assessment(idmef_assessment_t *assessment) 
 {
-        struct list_head *tmp;
         idmef_action_t *action;
 
         if ( ! assessment )
                 return;
         
-        process_impact(assessment->impact);
+        process_impact(idmef_assessment_get_impact(assessment));
+
         print(0, "*\n");
-        process_confidence(assessment->confidence);
-        
-        list_for_each(tmp, &assessment->action_list) {
-                print(0, "*\n");
-                action = list_entry(tmp, idmef_action_t, list);
-                process_action(action);
-        }
+
+        process_confidence(idmef_assessment_get_confidence(assessment));
+
+	action = NULL;
+	while ( (action = idmef_assessment_get_next_action(assessment, action)) ) {
+		print(0, "*\n");
+		process_action(action);
+	}
 
         print(0, "*\n");
 }
@@ -558,52 +588,64 @@ static void process_assessment(const idmef_assessment_t *assessment)
 
 static void process_alert(idmef_alert_t *alert) 
 {
-        struct list_head *tmp;
-        const idmef_source_t *source;
-        const idmef_target_t *target;
-        const idmef_classification_t *class;
-        const idmef_additional_data_t *data;
+        idmef_source_t *source;
+        idmef_target_t *target;
+        idmef_classification_t *classification;
+        idmef_additional_data_t *data;
+	int header;
 
         print(0, "********************************************************************************\n");
-        print(0, "* Alert: ident=%llu\n", alert->ident);
+        print(0, "* Alert: ident=%llu\n", idmef_alert_get_ident(alert));
+
+	classification = NULL;
+	while ( (classification = idmef_alert_get_next_classification(alert, classification)) ) {
+		process_classification(classification);
+		print(0, "*\n");
+	}
         
-        list_for_each(tmp, &alert->classification_list) {
-                class = list_entry(tmp, idmef_classification_t, list);
-                process_classification(class);
-                print(0, "*\n");
-        }
-        
-        process_time("* Creation time", &alert->create_time);
-        process_time("* Detection time", alert->detect_time);
-        process_time("* Analyzer time", alert->analyzer_time);
-        process_analyzer(&alert->analyzer);
+        process_time("* Creation time", idmef_alert_get_create_time(alert));
+        process_time("* Detection time", idmef_alert_get_detect_time(alert));
+        process_time("* Analyzer time", idmef_alert_get_analyzer_time(alert));
+
+        process_analyzer(idmef_alert_get_analyzer(alert));
 
         print(0, "*\n");
-        process_assessment(alert->assessment);
-        
-        if ( ! list_empty(&alert->source_list) )
-                print(0, "*** Source information ********************************************************\n");
-        
-        list_for_each(tmp, &alert->source_list) {
-                source = list_entry(tmp, idmef_source_t, list);
-                process_source(0, source);
-        }
 
-        if ( ! list_empty(&alert->target_list) ) 
-                print(0, "*\n*** Target information ********************************************************\n");
+        process_assessment(idmef_alert_get_assessment(alert));
 
-        list_for_each(tmp, &alert->target_list) {
-                target = list_entry(tmp, idmef_target_t, list);
-                process_target(0, target);
-        }        
+	header = 0;
+	source = NULL;
+	while ( (source = idmef_alert_get_next_source(alert, source)) ) {
+		if ( ! header ) {
+			print(0, "*** Source information ********************************************************\n");
+			header = 1;
+		}
 
-        if ( ! list_empty(&alert->additional_data_list) )
-                print(0, "*\n*** Additional data within the alert  ******************************************\n");
-        
-        list_for_each(tmp, &alert->additional_data_list) {
-                data = list_entry(tmp, idmef_additional_data_t, list);
-                process_data(data);
-        }
+		process_source(0, source);
+	}
+
+	header = 0;
+	target = NULL;
+	while ( (target = idmef_alert_get_next_target(alert, target)) ) {
+		if ( ! header ) {
+			print(0, "*\n*** Target information ********************************************************\n");
+			header = 1;
+		}
+
+		process_target(0, target);
+	}
+
+	header = 0;
+	data = NULL;
+	while ( (data = idmef_alert_get_next_additional_data(alert, data)) ) {
+		if ( ! header ) {
+			print(0, "*\n*** Additional data within the alert  ******************************************\n");
+			header = 1;
+		}
+
+		process_data(data);
+	}
+
         print(0, "*\n********************************************************************************\n\n");
 }
 
@@ -611,42 +653,43 @@ static void process_alert(idmef_alert_t *alert)
 
 
 
-static void process_heartbeat(const idmef_heartbeat_t *heartbeat) 
+static void process_heartbeat(idmef_heartbeat_t *heartbeat) 
 {
-        struct list_head *tmp;
-        const idmef_additional_data_t *data;
+	idmef_additional_data_t *data;
 
         print(0, "********************************************************************************\n");
-        print(0, "* Heartbeat: ident=%llu\n", heartbeat->ident);
+        print(0, "* Heartbeat: ident=%llu\n", idmef_heartbeat_get_ident(heartbeat));
         
-        process_analyzer(&heartbeat->analyzer);
-        process_time("* Creation time", &heartbeat->create_time);
-        process_time("* Analyzer time", heartbeat->analyzer_time);
+        process_analyzer(idmef_heartbeat_get_analyzer(heartbeat));
+        process_time("* Creation time", idmef_heartbeat_get_create_time(heartbeat));
+        process_time("* Analyzer time", idmef_heartbeat_get_analyzer_time(heartbeat));
 
-        list_for_each(tmp, &heartbeat->additional_data_list) {
-                data = list_entry(tmp, idmef_additional_data_t, list);
-                process_data(data);
-        }
+	data = NULL;
+	while ( (data = idmef_heartbeat_get_next_additional_data(heartbeat, data)) ) {
+		process_data(data);
+
+	}
+
         print(0, "*\n********************************************************************************\n\n");
 }
 
 
 
 
-static void process_message(const idmef_message_t *msg) 
+static void process_message(const idmef_message_t *message) 
 {
-        switch (msg->type) {
+        switch ( idmef_message_get_type(message) ) {
 
         case idmef_alert_message:
-                process_alert(msg->message.alert);
+                process_alert(idmef_message_get_alert(message));
                 break;
 
         case idmef_heartbeat_message:
-                process_heartbeat(msg->message.heartbeat);
+                process_heartbeat(idmef_message_get_heartbeat(message));
                 break;
 
         default:
-                log(LOG_ERR, "unknow message type: %d.\n", msg->type);
+                log(LOG_ERR, "unknow message type: %d.\n", idmef_message_get_type(message));
                 break;
         }
 

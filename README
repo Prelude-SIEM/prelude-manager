@@ -1,5 +1,5 @@
 Prelude - http://www.prelude-ids.org
-by Yoann Vandoorselaere <yoann@mandrakesoft.com>
+by Yoann Vandoorselaere <yoann@prelude-ids.org>
 
 This is the Prelude Report server,
 responssible for generating an user readable report using plugins when
@@ -25,7 +25,7 @@ You need to install libprelude on your system before compiling the Report server
 
 - COPYRIGHT 
 
-Copyright (C) 1998-2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+Copyright (C) 1998-2001 Yoann Vandoorselaere <yoann@prelude-ids.org>
 All Rights Reserved
 
 This file is part of the Prelude program.

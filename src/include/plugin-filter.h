@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -24,11 +24,6 @@
 #ifndef _MANAGER_PLUGIN_FILTER_H
 #define _MANAGER_PLUGIN_FILTER_H
 
-/*
- * IDMEF dependencie.
- */
-#include <libprelude/idmef-tree.h>
-#include <libprelude/idmef-tree-func.h>
 
 
 typedef enum {
