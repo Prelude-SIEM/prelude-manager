@@ -1,5 +1,12 @@
 2002-08-01  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* configure.in: bump version number to 0.8.2.
+
+	* plugins/db/mysql/mysql.c: 
+	include <mysql.h> not <mysql/mysql.h>, thanks
+	to Yann Droneaud <mauh@tuxfamily.org> for pointing
+	this out.
+	
 	* configure.in: bump version number to 0.8.1.
 
 	* plugins/decodes/prelude-nids/optparse.c: 
