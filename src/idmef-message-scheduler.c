@@ -52,8 +52,7 @@
 #include "plugin-report.h"
 #include "plugin-filter.h"
 #include "pconfig.h"
-#include "idmef-message-read.h"
-#include "idmef-util.h"
+#include "relaying.h"
 #include "idmef-message-scheduler.h"
 
 #define MAX_MESSAGE_IN_MEMORY 200

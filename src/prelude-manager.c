@@ -42,6 +42,7 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/threads.h>
 #include <libprelude/idmef.h>
+#include <libprelude/prelude-client.h>
 
 #include "server-generic.h"
 #include "sensor-server.h"
@@ -49,7 +50,6 @@
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "plugin-filter.h"
-#include "idmef-util.h"
 #include "idmef-message-scheduler.h"
 #include "relaying.h"
 

@@ -47,6 +47,7 @@
 #include <libprelude/prelude-auth.h>
 #include <libprelude/prelude-path.h>
 #include <libprelude/extract.h>
+#include <libprelude/prelude-client.h>
 #include <libprelude/prelude-inet.h>
 
 #include "config.h"

@@ -21,7 +21,6 @@ prelude_manager_SOURCES =			\
 			sensor-server.c		\
 			ssl.c			\
 			decode-plugins.c	\
-			idmef-util.c		\
 			idmef-message-scheduler.c \
 			plugins-util.c	
 
