@@ -1,7 +1,5 @@
-DEFS=@defined@ @MYSQL_CFLAGS@ @LIBPRELUDE_CFLAGS@
-
-INCLUDES = -I$(top_srcdir)/libmissing -I$(top_srcdir) \
-           -I$(top_srcdir)/src/include 
+DEFS=@defined@ @MYSQL_CFLAGS@
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src/include 
 
 mysql_la_LDFLAGS = -module -avoid-version
 

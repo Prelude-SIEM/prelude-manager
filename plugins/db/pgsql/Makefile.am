@@ -1,7 +1,5 @@
 DEFS=@defined@
-
-INCLUDES = -I$(top_srcdir)/libmissing -I$(top_srcdir) \
-           -I$(top_srcdir)/src/include -I@PGSQL_INCLUDEDIR@
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src/include -I@PGSQL_INCLUDEDIR@
 
 pgsql_la_LDFLAGS = -module -avoid-version
 

@@ -1,6 +1,6 @@
 SUBDIRS = include
 
-INCLUDES = -I$(top_srcdir)/ -I$(top_srcdir)/libmissing -I$(srcdir)/include/ @LIBPRELUDE_CFLAGS@
+INCLUDES = -I$(top_srcdir)/ -I$(srcdir)/include/
 DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\"       \
         -DREPORT_PLUGIN_DIR=\"@report_plugin_dir@\" \
 	-DDECODE_PLUGIN_DIR=\"@decode_plugin_dir@\" \

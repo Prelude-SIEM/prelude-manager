@@ -1,8 +1,5 @@
 DEFS=@defined@
-
-INCLUDES = -I$(top_srcdir)/libmissing -I$(top_srcdir) \
-           -I$(top_srcdir)/src/include \
-           @LIBPRELUDE_CFLAGS@
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/src/include
 
 debug_la_SOURCES = debug.c
 debug_la_LIBADD   = 

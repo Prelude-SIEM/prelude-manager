@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2000 Yoann Vandoorselaere.
+ *  Copyright (C) 2000, 2002 Yoann Vandoorselaere.
  *
  *  This program is free software; you can redistribute it and/or modify 
  *  it under the terms of the GNU General Public License as published by
@@ -33,8 +33,7 @@
 #include <netinet/in_systm.h>
 #include <net/if.h>
 
-
-#include "../config.h"
+#include "config.h"
 
 #define ETH_ALEN 6
 
