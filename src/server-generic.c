@@ -45,7 +45,6 @@
 #include <libprelude/prelude-msg.h>
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-client.h>
-#include <libprelude/prelude-inet.h>
 #include <libprelude/prelude-error.h>
 
 #include "config.h"
