@@ -525,9 +525,14 @@ static int igmp_dump(idmef_additional_data_t *data, packet_t *packet)
 static int icmp_dump(idmef_additional_data_t *data, packet_t *packet) 
 {
         int ret;
-        icmphdr_t *icmp = packet->p.icmp_hdr;
+        icmphdr_t *icmp;
 
-                
+        if ( packet->len < ICMP_MINLEN ) {
+                log(LOG_ERR, "ICMP message should be at least %d bytes.\n", ICMP_MINLEN);
+                return -1;
+        }
+
+        icmp = packet->p.icmp_hdr;
         ret = snprintf(buf, sizeof(buf), "type=%d code=%d", icmp->icmp_type, icmp->icmp_code);
 
         idmef_string(&data->data) = packet->data = strdup(buf);
@@ -557,7 +562,7 @@ int nids_packet_dump(idmef_alert_t *alert, packet_t *p)
                 { "Rarp header", p_rarp, (dump_func_t *) arp_dump, sizeof(etherarphdr_t) },
                 { "Ip header", p_ip, (dump_func_t *) ip_dump, sizeof(iphdr_t) },
                 { "Ip encapsulated header", p_ipencap, (dump_func_t *) ip_dump, sizeof(iphdr_t) },
-                { "Icmp header", p_icmp, (dump_func_t *) icmp_dump, ICMP_MINLEN },
+                { "Icmp header", p_icmp, (dump_func_t *) icmp_dump, -1 },
                 { "Igmp header", p_igmp, (dump_func_t *) igmp_dump, sizeof(igmphdr_t) },
                 { "Tcp header", p_tcp, (dump_func_t *) tcp_dump, sizeof(tcphdr_t) },
                 { "Udp header", p_udp, (dump_func_t *) udp_dump, sizeof(udphdr_t) },

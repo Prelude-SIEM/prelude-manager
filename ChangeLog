@@ -1,5 +1,9 @@
 2002-04-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* plugins/decodes/prelude-nids/packet-decode.c (icmp_dump): 
+	(nids_packet_dump): ICMP message can be > ICMP_MINLEN. Move
+	the check in the icmp_dump() function.
+
 	* prelude-manager.conf.in (logfile): 
 	add missing ';' (Thanks to Yann Droneaud <meuh@tuxfamily.org> 
 	for pointing this out).
