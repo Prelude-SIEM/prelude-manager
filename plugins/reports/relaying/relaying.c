@@ -164,7 +164,7 @@ int relaying_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *ro
         prelude_plugin_set_contact(&relaying_plugin, "yoann@prelude-ids.org");
         prelude_plugin_set_desc(&relaying_plugin, "Plugin that relay event to a parent manager");
 
-        report_plugin_set_running_func(&relaying_plugin, relaying_process);
+        manager_report_plugin_set_running_func(&relaying_plugin, relaying_process);
 
         *plugin = (void *) &relaying_plugin;
         

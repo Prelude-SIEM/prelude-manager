@@ -904,7 +904,7 @@ int textmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *roo
         prelude_plugin_set_desc(&textmod_plugin, "Write alert to a file, or to stderr if requested");
         prelude_plugin_set_destroy_func(&textmod_plugin, textmod_destroy);
 
-        report_plugin_set_running_func(&textmod_plugin, textmod_run);
+        manager_report_plugin_set_running_func(&textmod_plugin, textmod_run);
 
         *plugin = (void *) &textmod_plugin;
 

@@ -34,8 +34,8 @@ typedef struct {
         void (*close)(prelude_plugin_instance_t *pi);
 } manager_report_plugin_t;
 
-#define report_plugin_set_running_func(p, f) (p)->run = (f)
-#define report_plugin_set_closing_func(p, f) (p)->close = (f)
+#define manager_report_plugin_set_running_func(p, f) (p)->run = (f)
+#define manager_report_plugin_set_closing_func(p, f) (p)->close = (f)
 
 
 /*
@@ -48,7 +48,7 @@ typedef struct {
 } manager_decode_plugin_t;
 
 
-#define decode_plugin_set_running_func(p, f) (p)->run = (f)
+#define manager_decode_plugin_set_running_func(p, f) (p)->run = (f)
 
 
 
@@ -85,7 +85,7 @@ typedef struct {
 } manager_filter_plugin_t;
 
 
-#define filter_plugin_set_running_func(p, f) (p)->run = (f)
+#define manager_filter_plugin_set_running_func(p, f) (p)->run = (f)
 
 
 int manager_filter_plugins_add_filter(prelude_plugin_instance_t *pi,

@@ -1059,7 +1059,7 @@ int xmlmod_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *root
         prelude_plugin_set_desc(&xmlmod_plugin, "Convert from Prelude internal format to IDMEF-XML format");
         prelude_plugin_set_destroy_func(&xmlmod_plugin, xmlmod_destroy);
 
-        report_plugin_set_running_func(&xmlmod_plugin, xmlmod_run);
+        manager_report_plugin_set_running_func(&xmlmod_plugin, xmlmod_run);
         
 	*plugin = (void *) &xmlmod_plugin;
 

@@ -263,7 +263,7 @@ int db_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *rootopt)
         prelude_plugin_set_desc(&db_plugin, "Write IDMEF messages in a database using libpreludedb");
         prelude_plugin_set_destroy_func(&db_plugin, db_destroy);
 
-        report_plugin_set_running_func(&db_plugin, db_run);
+        manager_report_plugin_set_running_func(&db_plugin, db_run);
 
         *plugin = (void *) &db_plugin;
         

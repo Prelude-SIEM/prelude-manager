@@ -180,7 +180,7 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, vo
         prelude_plugin_set_contact(&filter_plugin, "yoann@prelude-ids.org");
         prelude_plugin_set_desc(&filter_plugin, "Match alert against IDMEF criteria");
 
-        filter_plugin_set_running_func(&filter_plugin, process_message);
+        manager_filter_plugin_set_running_func(&filter_plugin, process_message);
 
         *plugin = (void *) &filter_plugin;
 
