@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2001-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -24,19 +24,22 @@
 #ifndef _MANAGER_PLUGIN_DECODE_H
 #define _MANAGER_PLUGIN_DECODE_H
 
+
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
+#include <libprelude/prelude-plugin.h>
+
+
 typedef struct {
-        PLUGIN_GENERIC;
+        PRELUDE_PLUGIN_GENERIC;
         uint8_t decode_id;
         int (*run)(prelude_msg_t *ac, idmef_message_t *idmef);
 } plugin_decode_t;
 
 
-#define plugin_run_func(p) (p)->run
+#define decode_plugin_set_running_func(p, f) (p)->run = (f)
 
-#define plugin_set_running_func(p, f) plugin_run_func(p) = (f)
-
-
-plugin_generic_t *plugin_init(int argc, char **argv);
 
 int decode_plugins_init(const char *dirname, int argc, char **argv);
 

@@ -474,7 +474,7 @@ static void handle_options(int argc, char **argv)
 		no_argument, set_prompt, NULL);
 
 	ret = prelude_option_parse_arguments(NULL, NULL, NULL, argc, argv);
-	if ( ( ret == prelude_option_end ) || ( ret == prelude_option_error ) )
+	if ( ret == prelude_option_end || ret == prelude_option_error )
 		exit(ret);		
 }
 

@@ -323,21 +323,22 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_message_t *message)
 
 
 
-plugin_generic_t *plugin_init(int argc, char **argv)
+prelude_plugin_generic_t *prelude_plugin_init(void)
 {
         static plugin_decode_t plugin;
+        prelude_plugin_instance_t *pi;
 
-        plugin_set_name(&plugin, "Prelude NIDS data decoder");
-        plugin_set_author(&plugin, "Yoann Vandoorselaere");
-        plugin_set_contact(&plugin, "yoann@prelude-ids.org");
-        plugin_set_desc(&plugin, "Decode Prelude NIDS message, and translate them to IDMEF.");
+        prelude_plugin_set_name(&plugin, "Prelude NIDS data decoder");
+        prelude_plugin_set_author(&plugin, "Yoann Vandoorselaere");
+        prelude_plugin_set_contact(&plugin, "yoann@prelude-ids.org");
+        prelude_plugin_set_desc(&plugin, "Decode Prelude NIDS message, and translate them to IDMEF.");
         
-        plugin_set_running_func(&plugin, nids_decode_run);
+        decode_plugin_set_running_func(&plugin, nids_decode_run);
         plugin.decode_id = MSG_FORMAT_PRELUDE_NIDS;
-
-        plugin_subscribe((plugin_generic_t *) &plugin);
         
-	return (plugin_generic_t *) &plugin;
+        prelude_plugin_subscribe((void *) &plugin, NULL, NULL);
+        
+	return (void *) &plugin;
 }
 
 

@@ -38,9 +38,6 @@
 
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-list.h>
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-message.h>
-#include <libprelude/plugin-common.h>
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-message.h>
 #include <libprelude/idmef-message-id.h>

@@ -31,33 +31,42 @@
 #include <sys/time.h>
 #include <inttypes.h>
 
-#include <libprelude/list.h>
 #include <libprelude/idmef-tree.h>
+#include <libprelude/prelude-list.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/plugin-common.h>
-#include <libprelude/plugin-common-prv.h>
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
 
 #include "plugin-report.h"
 #include "plugin-filter.h"
 
 
-static LIST_HEAD(report_plugins_list);
+static LIST_HEAD(report_plugins_instance);
 
 
 /*
  *
  */
-static int subscribe(plugin_container_t *pc) 
+static int subscribe(prelude_plugin_instance_t *pi) 
 {
-        log(LOG_INFO, "- Subscribing %s to active reporting plugins.\n", pc->plugin->name);
-        return plugin_add(pc, &report_plugins_list, NULL);
+        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
+        
+        log(LOG_INFO, "- Subscribing %s[%s] to active reporting plugins.\n",
+            plugin->name, prelude_plugin_instance_get_name(pi));
+
+        return prelude_plugin_add(pi, &report_plugins_instance, NULL);
 }
 
 
-static void unsubscribe(plugin_container_t *pc) 
+static void unsubscribe(prelude_plugin_instance_t *pi) 
 {
-        log(LOG_INFO, "- Un-subscribing %s from active reporting plugins.\n", pc->plugin->name);
-        plugin_del(pc);
+        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
+        
+        log(LOG_INFO, "- Un-subscribing %s[%s] from active reporting plugins.\n",
+            plugin->name, prelude_plugin_instance_get_name(pi));
+
+        prelude_plugin_del(pi);
 }
 
 
@@ -70,7 +79,8 @@ void report_plugins_run(idmef_message_t *msg)
 {
         int ret;
         struct list_head *tmp;
-        plugin_container_t *pc;
+        prelude_plugin_generic_t *pg;
+        prelude_plugin_instance_t *pi;
 
         ret = filter_plugins_run_by_category(msg, FILTER_CATEGORY_REPORTING);
         if ( ret < 0 ) {
@@ -78,16 +88,17 @@ void report_plugins_run(idmef_message_t *msg)
                 return;
         }
         
-        list_for_each(tmp, &report_plugins_list) {
-                pc = list_entry(tmp, plugin_container_t, ext_list);
-
-                ret = filter_plugins_run_by_plugin(msg, pc->plugin);
+        list_for_each(tmp, &report_plugins_instance) {
+                pi = prelude_list_get_object(tmp, prelude_plugin_instance_t);
+                pg = prelude_plugin_instance_get_plugin(pi);
+                
+                ret = filter_plugins_run_by_plugin(msg, pi);
                 if ( ret < 0 ) {
-                        log(LOG_INFO, "reporting filtered for %s.\n", pc->plugin->name);
+                        log(LOG_INFO, "reporting filtered for %s.\n", pg->name);
                         continue;
                 }
                 
-                plugin_run(pc, plugin_report_t, run, msg);
+                prelude_plugin_run(pi, plugin_report_t, run, pi, msg);
         }
 }
 
@@ -100,16 +111,17 @@ void report_plugins_run(idmef_message_t *msg)
 void report_plugins_close(void)
 {
         struct list_head *tmp;
-        plugin_container_t *pc;
         plugin_report_t *plugin;
+        prelude_plugin_instance_t *pi;
 
-        list_for_each(tmp, &report_plugins_list) {
+        
+        list_for_each(tmp, &report_plugins_instance) {
+                pi = prelude_list_get_object(tmp, prelude_plugin_instance_t);
                 
-                pc = list_entry(tmp, plugin_container_t, ext_list);
-
-                plugin = (plugin_report_t *) pc->plugin;
-                if ( plugin_close_func(plugin) )
-                        plugin_close_func(plugin)();
+                plugin = (plugin_report_t *) prelude_plugin_instance_get_plugin(pi);
+                
+                if ( plugin->close )
+                        plugin->close(pi);
         }
 }
 
@@ -131,7 +143,7 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
 		return -1;
 	}
 
-        ret = plugin_load_from_dir(dirname, argc, argv, subscribe, unsubscribe);
+        ret = prelude_plugin_load_from_dir(dirname, subscribe, unsubscribe);
 
         /*
          * don't return an error if the report directory doesn't exist.
@@ -156,7 +168,7 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
  */
 int report_plugins_available(void) 
 {
-        return list_empty(&report_plugins_list) ? -1 : 0;
+        return list_empty(&report_plugins_instance) ? -1 : 0;
 }
 
 

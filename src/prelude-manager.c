@@ -34,12 +34,13 @@
 
 #include <libprelude/list.h>
 #include <libprelude/idmef-tree.h>
-#include <libprelude/plugin-common.h>
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
+#include <libprelude/prelude-plugin.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/daemonize.h>
 #include <libprelude/config-engine.h>
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-message.h>
 #include <libprelude/threads.h>
 #include <libprelude/idmef.h>
 #include <libprelude/prelude-client.h>
@@ -114,7 +115,6 @@ int main(int argc, char **argv)
         }
         log(LOG_INFO, "- Initialized %d decoding plugins.\n", ret);
 
-
         ret = filter_plugins_init(FILTER_PLUGIN_DIR, argc, argv);
         if ( ret < 0 ) {
                 log(LOG_INFO, "error initializing filtering plugins.\n");
@@ -122,7 +122,6 @@ int main(int argc, char **argv)
         }
         log(LOG_INFO, "- Initialized %d filtering plugins.\n", ret);
         
-
         ret = pconfig_init(argc, argv);
         if ( ret < 0 )
                 exit(1);

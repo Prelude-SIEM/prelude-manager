@@ -25,24 +25,26 @@
 #define _MANAGER_PLUGIN_REPORT_H
 
 
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
+#include <libprelude/prelude-plugin.h>
+
+
 typedef struct {
-        PLUGIN_GENERIC;
+        PRELUDE_PLUGIN_GENERIC;
 
         int state;
         const char *bkpfile;
         
-        void (*run)(idmef_message_t *message);
-        void (*close)(void);
+        int (*run)(prelude_plugin_instance_t *pi, idmef_message_t *message);
+        void (*close)(prelude_plugin_instance_t *pi);
 } plugin_report_t;
 
 
-#define plugin_run_func(p) (p)->run
+#define report_plugin_set_running_func(p, f) (p)->run = (f)
 
-#define plugin_close_func(p) (p)->close
-
-#define plugin_set_running_func(p, f) plugin_run_func(p) = (f)
-
-#define plugin_set_closing_func(p, f) plugin_close_func(p) = (f)
+#define report_plugin_set_closing_func(p, f) (p)->close = (f)
 
 
 int report_plugins_available(void);
@@ -52,7 +54,5 @@ int report_plugins_init(const char *dirname, int argc, char **argv);
 void report_plugins_run(idmef_message_t *message);
 
 void report_plugins_close(void);
-
-plugin_generic_t *plugin_init(int argc, char **argv);
 
 #endif /* _MANAGER_PLUGIN_REPORT_H */

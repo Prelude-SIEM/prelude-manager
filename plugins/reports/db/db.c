@@ -46,170 +46,187 @@
 #include "report.h"
 #include "idmef-util.h"
 
-static char *dbformat = NULL;
-static char *dbtype = NULL;
-static char *dbhost = NULL;
-static char *dbport = NULL;
-static char *dbname = NULL;
-static char *dbuser = NULL;
-static char *dbpass = NULL;
-
-static plugin_report_t plugin;
-static int enabled = 0;
-
-static prelude_db_interface_t *db_interface = NULL;
-
 
 #define param_value(param) (param ? param : "")
 
 
+typedef struct {
+        char *format;
+        char *type;
+        char *host;
+        char *port;
+        char *name;
+        char *user;
+        char *pass;
+        prelude_db_interface_t *interface;
+} db_plugin_t;
 
-static void write_idmef_message(const idmef_message_t *message)
+
+
+static plugin_report_t plugin;
+
+
+
+PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, type)
+PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, host)
+PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, port)
+PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, name)
+PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, user)
+PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, pass)
+PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, format)
+
+
+
+static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 {
-	if ( prelude_db_interface_insert_idmef_message(db_interface, message) < 0 ) {
+        int ret;
+        db_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
+
+        ret = prelude_db_interface_insert_idmef_message(plugin->interface, message);
+	if ( ret < 0 ) 
 		log(LOG_ERR, "could not write message using libpreludedb.\n");
-		return;
-	}
 
-#ifdef DEBUG
-	log(LOG_INFO, "wrote message %llu:%llu using libpreludedb.\n",
-	    idmef_alert_get_ident(idmef_message_get_alert(message)),
-	    idmef_analyzer_get_ident(idmef_alert_get_analyzer(idmef_message_get_alert(message))));
-#endif /* DEBUG */
+        return ret;
 }
 
 
 
-static void process_message(idmef_message_t *message)
+static void db_destroy(prelude_plugin_instance_t *pi)
 {
-        write_idmef_message(message);
+        db_plugin_t *db = prelude_plugin_instance_get_data(pi);
+
+        if ( db->interface )
+                prelude_db_interface_destroy(db->interface);
+
+        if ( db->name )
+                free(db->name);
+
+        if ( db->type )
+                free(db->type);
+        
+        if ( db->user )
+                free(db->user);
+
+        if ( db->pass )
+                free(db->pass);
+
+        if ( db->port )
+                free(db->port);
+        
+        if ( db->format )
+                free(db->format);
+        
+        free(db);
 }
 
 
 
-static int set_db_state(prelude_option_t *opt, const char *arg) 
+static int db_init(prelude_plugin_instance_t *pi)
 {
-        if ( enabled ) {
-		prelude_db_interface_destroy(db_interface);
+        int ret;
+        char conn_string[256];
+        prelude_db_interface_t *interface;
+        db_plugin_t *db = prelude_plugin_instance_get_data(pi);
+        
+        snprintf(conn_string, sizeof(conn_string),
+                 "interface=iface1 class=sql type=%s format=%s host=%s port=%s name=%s user=%s pass=%s",
+                 param_value(db->type), param_value(db->format),
+                 param_value(db->host), param_value(db->port),
+                 param_value(db->name), param_value(db->user), param_value(db->pass));
 
-                if ( plugin_unsubscribe((plugin_generic_t *) &plugin) < 0 )
-                        return prelude_option_error;
+        interface = prelude_db_interface_new_string(conn_string);
+        if ( ! interface ) {
+                log(LOG_ERR, "could not create libpreludedb interface.\n");
+                return -1;
+        }
+        
+        ret = prelude_db_interface_connect(interface);
+        if ( ret < 0 ) {                
+                log(LOG_ERR, "could not connect libpreludedb.\n");
+                prelude_db_interface_destroy(interface);
+                return -1;
+        }
+        
+        if ( db->interface )
+                prelude_db_interface_destroy(db->interface);
 
-                enabled = 0;
+        db->interface = interface;
 
-        } else {
-		char conn_string[256];
+        return 0;
+}
 
-		if ( prelude_db_init() < 0 ) {
-			log(LOG_ERR, "db_init() failed, DB plugin not registered!\n");
-			return prelude_option_error;
-		}
 
-		snprintf(conn_string, sizeof (conn_string),
-			 "interface=iface1 class=sql type=%s format=%s host=%s port=%s name=%s user=%s pass=%s",
-			 param_value(dbtype), param_value(dbformat), param_value(dbhost),
-                         param_value(dbport), param_value(dbname), param_value(dbuser), param_value(dbpass));
 
-		db_interface = prelude_db_interface_new_string(conn_string);
-		if ( ! db_interface ) {
-			log(LOG_ERR, "could not create libpreludedb interface.\n");
-			return prelude_option_error;
-		}
-
-		if ( prelude_db_interface_connect(db_interface) < 0 ) {
-			log(LOG_ERR, "could not connect libpreludedb.\n");
-			prelude_db_interface_destroy(db_interface);
-			return prelude_option_success;
-		}
-
-                if ( plugin_subscribe((plugin_generic_t *) &plugin) < 0 ) {
-			prelude_db_interface_destroy(db_interface);
-                        return prelude_option_error;
-		}
-
-                enabled = 1;
+static int db_activate(prelude_plugin_instance_t *pi, prelude_option_t *opt, const char *arg) 
+{
+        db_plugin_t *new;
+        
+        new = calloc(1, sizeof(*new));
+        if ( ! new ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return -1;
         }
 
+        prelude_plugin_instance_set_data(pi, new);
+        
         return prelude_option_success;
 }
 
 
 
-#define set_db(name)	 						\
-static int set_db_ ## name(prelude_option_t *opt, const char *arg)	\
-{									\
-	if ( db ## name )						\
-		free(db ## name);					\
-									\
-	db ## name = strdup(arg);					\
-	if ( ! db ## name ) {						\
-		log(LOG_ERR, "memory exhausted.\n");			\
-		return prelude_option_error;				\
-	}								\
-									\
-	return prelude_option_success;					\
-}
 
-set_db(format)
-set_db(type)
-set_db(host)
-set_db(port)
-set_db(name)
-set_db(user)
-set_db(pass)
-
-
-
-static int get_db_state(char *buf, size_t size) 
+prelude_plugin_generic_t *prelude_plugin_init(void)
 {
-        snprintf(buf, size, "%s", enabled ? "enabled" : "disabled");
-
-        return prelude_option_success;
-}
-
-
-
-plugin_generic_t *plugin_init(int argc, char **argv)
-{
+        int ret;
 	prelude_option_t *opt;
 
-        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "db",
-                                 "Option for the db plugin", no_argument,
-                                 set_db_state, get_db_state);
+        ret = prelude_db_init();
+        if ( ret < 0 ) {
+                log(LOG_ERR, "libpreludedb initialisation failed, DB plugin not registered!\n");
+                return NULL;
+        }
+                
+        opt = prelude_plugin_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "db",
+                                        "Option for the db plugin", optionnal_argument,
+                                        db_activate, NULL);
 
-	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'f', "format",
-			   "Format of the database", required_argument,
-			   set_db_format, NULL);
-
-	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 't', "type",
-			   "Type of database (mysql/pgsql)", required_argument,
-			   set_db_type, NULL);
-
-	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'h', "host",
-			   "The host where the database is running", required_argument,
-			   set_db_host, NULL);
+        prelude_plugin_set_activation_option((void *) &plugin, opt, db_init);
         
-        prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'p', "port",
-			   "The port where the database is running", required_argument,
-			   set_db_port, NULL);
+	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'f', "format",
+                                  "Format of the database", required_argument,
+                                  db_set_format, db_get_format);
+
+	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 't', "type",
+                                  "Type of database (mysql/pgsql)", required_argument,
+                                  db_set_type, db_get_type);
+
+	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'h', "host",
+                                  "The host where the database is running", required_argument,
+                                  db_set_host, db_get_host);
         
-	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'd', "name",
-			   "The name of the database where the alerts will be stored", required_argument,
-			   set_db_name, NULL);
+        prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'p', "port",
+                                  "The port where the database is running", required_argument,
+                                  db_set_port, db_get_port);
+        
+	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'd', "name",
+                                  "The name of the database where the alerts will be stored", required_argument,
+                                  db_set_name, db_get_name);
 
-	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'u', "user",
-			   "User of the database", required_argument,
-			   set_db_user, NULL);
+	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'u', "user",
+                                  "User of the database", required_argument,
+                                  db_set_user, db_get_user);
 
-	prelude_option_add(opt, CLI_HOOK|CFG_HOOK, 'P', "pass",
-			   "Password for the user", required_argument,
-			   set_db_pass, NULL);
+	prelude_plugin_option_add(opt, CLI_HOOK|CFG_HOOK, 'P', "pass",
+                                  "Password for the user", required_argument,
+                                  db_set_pass, db_get_pass);
+        
+        prelude_plugin_set_name(&plugin, "db");
+        prelude_plugin_set_author(&plugin, "Krzysztof Zaraska");
+        prelude_plugin_set_contact(&plugin, "kzaraska@student.uci.agh.edu.pl");
+        prelude_plugin_set_desc(&plugin, "Interface for writing alerts via libpreludedb library");
+        prelude_plugin_set_destroy_func(&plugin, db_destroy);
 
-        plugin_set_name(&plugin, "DB");
-        plugin_set_author(&plugin, "Krzysztof Zaraska");
-        plugin_set_contact(&plugin, "kzaraska@student.uci.agh.edu.pl");
-        plugin_set_desc(&plugin, "Interface for writing alerts via libpreludedb library");
-	plugin_set_running_func(&plugin, process_message);
-
-	return (plugin_generic_t *) &plugin;
+        report_plugin_set_running_func(&plugin, db_run);
+        
+	return (void *) &plugin;
 }

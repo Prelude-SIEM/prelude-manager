@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2001-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -26,9 +26,10 @@
 
 #include <libprelude/list.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/plugin-common.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
+#include <libprelude/prelude-plugin.h>
 #include <libprelude/idmef-message-id.h>
 #include <libprelude/idmef-message-id-format.h>
 #include <libprelude/idmef.h>

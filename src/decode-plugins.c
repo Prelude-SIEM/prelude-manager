@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2001-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -27,34 +27,39 @@
 #include <sys/time.h>
 #include <inttypes.h>
 
-#include <libprelude/list.h>
+#include <libprelude/prelude-list.h>
 #include <libprelude/idmef-tree.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/plugin-common.h>
-#include <libprelude/plugin-common-prv.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
 
 #include "plugin-decode.h"
 
 
-static LIST_HEAD(decode_plugins_list);
+static LIST_HEAD(decode_plugins_instance);
 
 
 /*
  *
  */
-static int subscribe(plugin_container_t *pc) 
+static int subscribe(prelude_plugin_instance_t *pi) 
 {
-        log(LOG_INFO, "- Subscribing %s to active decoding plugins.\n", pc->plugin->name);
-        return plugin_add(pc, &decode_plugins_list, NULL);
+        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
+
+        log(LOG_INFO, "- Subscribing %s to active decoding plugins.\n", plugin->name);
+
+        return prelude_plugin_add(pi, &decode_plugins_instance, NULL);
 }
 
 
-static void unsubscribe(plugin_container_t *pc) 
-{
-        log(LOG_INFO, "- Un-subscribing %s from active decoding plugins.\n", pc->plugin->name);
-        plugin_del(pc);
+static void unsubscribe(prelude_plugin_instance_t *pi) 
+{        
+        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
+
+        log(LOG_INFO, "- Un-subscribing %s from active decoding plugins.\n", plugin->name);
+
+        prelude_plugin_del(pi);
 }
 
 
@@ -67,17 +72,17 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *i
         int ret;
         plugin_decode_t *p;
         struct list_head *tmp;
-        plugin_container_t *pc;
+        prelude_plugin_instance_t *pi;
         
-        list_for_each(tmp, &decode_plugins_list) {
-            
-                pc = list_entry(tmp, plugin_container_t, ext_list);
-                
-                p = (plugin_decode_t *) pc->plugin;
+        list_for_each(tmp, &decode_plugins_instance) {
+
+                pi = prelude_list_get_object(tmp, prelude_plugin_instance_t);
+                                
+                p = (plugin_decode_t *) prelude_plugin_instance_get_plugin(pi);
                 if ( p->decode_id != plugin_id )
                         continue;
 
-                plugin_run_with_return_value(pc, plugin_decode_t, run, ret, msg, idmef);
+                ret = prelude_plugin_run(pi, plugin_decode_t, run, msg, idmef);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "%s couldn't decode sensor data.\n", p->name);
                         return -1;
@@ -109,7 +114,7 @@ int decode_plugins_init(const char *dirname, int argc, char **argv)
 		return -1;
 	}
 
-        ret = plugin_load_from_dir(dirname, argc, argv, subscribe, unsubscribe);
+        ret = prelude_plugin_load_from_dir(dirname, subscribe, unsubscribe);
         if ( ret < 0 )
                 log(LOG_ERR, "couldn't load plugin subsystem.\n");
         

@@ -56,22 +56,35 @@ static struct list_head filter_category_list[FILTER_CATEGORY_END];
 
 
 
-static filter_plugin_entry_t *new_filter_entry(prelude_plugin_instance_t *filter,
-                                               prelude_plugin_instance_t *plugin, void *data) 
+static int add_filter_entry(prelude_plugin_instance_t *filter,
+                            filter_category_t cat, prelude_plugin_instance_t *filtered_plugin_instance, void *data) 
 {
         filter_plugin_entry_t *new;
+        prelude_plugin_generic_t *plugin, *filtered_plugin;
         
         new = malloc(sizeof(*new));
         if ( ! new ) {
                 log(LOG_ERR, "memory exhausted.\n");
-                return NULL;
+                return -1;
         }
 
         new->data = data;
         new->filter = filter;
-        new->filtered_plugin = plugin;
+        new->filtered_plugin = filtered_plugin_instance;
+
+        list_add_tail(&new->list, &filter_category_list[cat]);
+
+        plugin = prelude_plugin_instance_get_plugin(filter);
         
-        return new;
+        if ( filtered_plugin_instance ) {
+                filtered_plugin = prelude_plugin_instance_get_plugin(filtered_plugin_instance);
+                log(LOG_INFO, "- Subscribing %s to filtering plugin with plugin hook %s[%s].\n",
+                    plugin->name, filtered_plugin->name, prelude_plugin_instance_get_name(filtered_plugin_instance));
+        } else
+                log(LOG_INFO, "- Subscribing %s to filtering plugin with category hook %d.\n",
+                    plugin->name, cat);
+        
+        return 0;
 }
 
 
@@ -82,6 +95,18 @@ static filter_plugin_entry_t *new_filter_entry(prelude_plugin_instance_t *filter
  */
 static int subscribe(prelude_plugin_instance_t *pi) 
 {
+#if 0
+        filter_entry_t *entry;
+        plugin_filter_t *filter = (plugin_filter_t *) prelude_plugin_instance_get_plugin(pi);
+
+        for ( entry = filter->category; entry->category != FILTER_CATEGORY_END; entry++ ) {
+                
+                if ( entry->plugin )
+                        add_filter_entry(pi, FILTER_CATEGORY_PLUGIN, entry->plugin, entry->private_data);
+                else
+                        add_filter_entry(pi, entry->category, NULL, entry->private_data);
+        }
+#endif
         return 0;
 }
 
@@ -96,45 +121,12 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
 
 
 
-int filter_plugins_add_plugin(prelude_plugin_instance_t *filter,
-                              prelude_plugin_instance_t *plugin, void *data)
+int filter_plugins_add_category(prelude_plugin_instance_t *pi, filter_category_t cat,
+                                prelude_plugin_instance_t *filtered_plugin, void *data)
 {
-        filter_plugin_entry_t *new;
-        prelude_plugin_generic_t *pf, *pp;
-
-        new = new_filter_entry(filter, plugin, data);
-        if ( ! new )
-                return -1;
-        
-        pf = prelude_plugin_instance_get_plugin(filter);
-        pp = prelude_plugin_instance_get_plugin(plugin);
-
-        log(LOG_INFO, "- Subscribing %s[%s] to filtering plugin with plugin hook %s[%s].\n",
-            pf->name, prelude_plugin_instance_get_name(filter),
-            pp->name, prelude_plugin_instance_get_name(plugin));
-        
-        list_add_tail(&new->list, &filter_category_list[FILTER_CATEGORY_PLUGIN]);
-        
-        return 0;
+        return add_filter_entry(pi, cat, filtered_plugin, data);
 }
 
-
-
-int filter_plugins_add_category(prelude_plugin_instance_t *filter, filter_category_t cat, void *data)
-{
-        filter_plugin_entry_t *new;
-        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(filter);
-
-        new = new_filter_entry(filter, NULL, data);
-        if ( ! new )
-                return -1;
-        
-        log(LOG_INFO, "- Subscribing %s to filtering plugin with category hook %d.\n", plugin->name, cat);
-
-        list_add_tail(&new->list, &filter_category_list[cat]);
-        
-        return 0;
-}
 
 
 

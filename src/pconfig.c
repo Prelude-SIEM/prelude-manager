@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1999, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 1999-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -30,14 +30,13 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-path.h>
 #include <libprelude/config-engine.h>
-#include <libprelude/plugin-common.h>
-#include <libprelude/plugin-common-prv.h>
-#include <libprelude/daemonize.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
+#include <libprelude/prelude-plugin.h>
+#include <libprelude/daemonize.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-client-mgr.h>
-#include <libprelude/prelude-getopt.h>
 
 #include "config.h"
 #include "pconfig.h"
@@ -50,21 +49,21 @@ struct report_config config;
 
 
 
-static int print_version(prelude_option_t *opt, const char *arg) 
+static int print_version(void **context, prelude_option_t *opt, const char *arg) 
 {
         printf("prelude-manager %s\n", VERSION);
         return prelude_option_end;
 }
 
 
-static int get_version(char *buf, size_t size) 
+static int get_version(void **context, char *buf, size_t size) 
 {
         snprintf(buf, size, "prelude-manager %s", VERSION);
         return prelude_option_success;
 }
 
 
-static int set_daemon_mode(prelude_option_t *opt, const char *arg) 
+static int set_daemon_mode(void **context, prelude_option_t *opt, const char *arg) 
 {
         prelude_daemonize(config.pidfile);
         prelude_log_use_syslog();
@@ -72,7 +71,7 @@ static int set_daemon_mode(prelude_option_t *opt, const char *arg)
 }
 
 
-static int set_pidfile(prelude_option_t *opt, const char *arg) 
+static int set_pidfile(void **context, prelude_option_t *opt, const char *arg) 
 {
         config.pidfile = strdup(arg);
         return prelude_option_success;
@@ -80,7 +79,7 @@ static int set_pidfile(prelude_option_t *opt, const char *arg)
 
 
 
-static int set_parent_manager(prelude_option_t *opt, const char *arg) 
+static int set_parent_manager(void **context, prelude_option_t *opt, const char *arg) 
 {
         int ret;
         
@@ -93,7 +92,7 @@ static int set_parent_manager(prelude_option_t *opt, const char *arg)
 
 
 
-static int set_child_manager(prelude_option_t *opt, const char *arg) 
+static int set_child_manager(void **context, prelude_option_t *opt, const char *arg) 
 {
         int ret;
 
@@ -107,7 +106,7 @@ static int set_child_manager(prelude_option_t *opt, const char *arg)
 
 
 
-static int set_sensor_listen_address(prelude_option_t *opt, const char *arg) 
+static int set_sensor_listen_address(void **context, prelude_option_t *opt, const char *arg) 
 {
         char *ptr = strdup(arg);
         
@@ -124,7 +123,7 @@ static int set_sensor_listen_address(prelude_option_t *opt, const char *arg)
 
 
 
-static int print_help(prelude_option_t *opt, const char *arg) 
+static int print_help(void **context, prelude_option_t *opt, const char *arg) 
 {
         prelude_option_print(NULL, CLI_HOOK, 25);
         return prelude_option_end;
@@ -135,6 +134,7 @@ static int print_help(prelude_option_t *opt, const char *arg)
 int pconfig_init(int argc, char **argv) 
 {
         int ret;
+        void *context = NULL;
         prelude_option_t *opt;
         
 	/* Default */
@@ -172,7 +172,7 @@ int pconfig_init(int argc, char **argv)
 
         prelude_set_program_name("prelude-manager");
         
-        ret = prelude_option_parse_arguments(NULL, PRELUDE_MANAGER_CONF, argc, argv);
+        ret = prelude_option_parse_arguments(&context, NULL, PRELUDE_MANAGER_CONF, argc, argv);
         if ( ret == prelude_option_end )
                 exit(0);
 

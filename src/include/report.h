@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2000, 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2000-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -26,15 +26,13 @@
 
 #include <libprelude/list.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/plugin-common.h>
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
+#include <libprelude/prelude-plugin.h>
 #include <libprelude/config-engine.h>
 
 #include <unistd.h>
-#include <libprelude/prelude-io.h>
-
-#include <libprelude/prelude-message.h>
-#include <libprelude/prelude-getopt.h>
-
 #include "plugin-report.h"
 
 #endif /* _MANAGER_REPORT_H */

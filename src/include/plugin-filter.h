@@ -62,14 +62,7 @@ typedef struct {
 } plugin_filter_t;
 
 
-
-#define prelude_plugin_run_func(p) (p)->run
-
-#define prelude_plugin_close_func(p) (p)->close
-
-#define prelude_plugin_set_running_func(p, f) prelude_plugin_run_func(p) = (f)
-
-#define prelude_plugin_set_closing_func(p, f) prelude_plugin_close_func(p) = (f)
+#define filter_plugin_set_running_func(p, f) (p)->run = (f)
 
 
 int filter_plugins_available(filter_category_t type);
@@ -80,10 +73,9 @@ int filter_plugins_run_by_category(idmef_message_t *msg, filter_category_t cat);
 
 int filter_plugins_run_by_plugin(idmef_message_t *message, prelude_plugin_instance_t *plugin);
 
-int filter_plugins_add_plugin(prelude_plugin_instance_t *filter,
-                              prelude_plugin_instance_t *filtered, void *data);
+int filter_plugins_add_category(prelude_plugin_instance_t *pi, filter_category_t cat,
+                                prelude_plugin_instance_t *filtered_plugin, void *data);
 
-int filter_plugins_add_category(prelude_plugin_instance_t *filter, filter_category_t cat, void *data);
 
 #endif /* _MANAGER_PLUGIN_FILTER_H */
 

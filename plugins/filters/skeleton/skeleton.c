@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2002-2004 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -29,8 +29,6 @@
 
 #include <libprelude/list.h>
 #include <libprelude/idmef-tree.h>
-#include <libprelude/plugin-common.h>
-#include <libprelude/plugin-common-prv.h>
 
 #include "report.h"
 

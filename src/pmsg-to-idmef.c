@@ -2,7 +2,8 @@
 #include <netinet/in.h>
 
 #include <libprelude/idmef.h>
-#include <libprelude/plugin-common.h>
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-getopt.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 #include <libprelude/idmef-message-id.h>
