@@ -70,7 +70,9 @@ static void cleanup(int sig)
          * stop the sensor server.
          */
         sensor_server_close(sensor_server);
-        admin_server_close(admin_server);
+
+        if ( config.admin_server_addr )
+                admin_server_close(admin_server);
         
         /*
          * close the scheduler.

@@ -1,5 +1,8 @@
 2002-02-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/prelude-manager.c (cleanup): 
+	only close admin server if it is enabled.
+
 	* src/ssl.c (load_certificate_if_needed): 
 	new function, stat the certificate file and reload it if it changed.
 	(ssl_auth_client): call load_certificate_if_needed()
