@@ -1,3 +1,9 @@
+2003-03-18  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+
+	* plugins/decodes/prelude-nids/passive-os-fingerprint.h:
+	include <inttypes.h> and <sys/types.h> instead of <stdin.h>
+	(FreeBSD compatibility fix). 
+
 2003-01-29  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* plugins/decodes/prelude-nids/packet-decode.c (ip_dump): 

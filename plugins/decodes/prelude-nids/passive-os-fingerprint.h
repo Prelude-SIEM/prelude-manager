@@ -25,7 +25,8 @@
 *****/
 
 
-#include <stdint.h>
+#include <inttypes.h>
+#include <sys/types.h>
 
 /* based on ettercap os fingerprint database */
 /* WWWW:_MSS:TT:WS:S:N:D:T:F:LN */
