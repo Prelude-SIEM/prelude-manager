@@ -97,9 +97,6 @@ static void init_manager_server(void)
                 log(LOG_INFO, "- couldn't start sensor server.\n");
                 exit(1);
         }
-
-        log(LOG_INFO, "- sensors server started (listening on %s:%d).\n",
-            config.addr, config.port);
 }
 
 

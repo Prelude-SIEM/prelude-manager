@@ -6,7 +6,7 @@ xmlmod_la_LDFLAGS = -module -avoid-version
 if HAVE_XML2
 
 xmlmod_la_SOURCES = xmlmod.c
-xmlmod_la_LIBADD  = @XML2_LIB@
+xmlmod_la_LIBADD  = @XML2_LIBS@
 xmlmoddir = $(report_plugin_dir)
 xmlmod_LTLIBRARIES = xmlmod.la
 
