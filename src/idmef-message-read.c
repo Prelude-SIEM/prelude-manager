@@ -61,7 +61,6 @@ static int additional_data_get(prelude_msg_t *msg, idmef_additional_data_t *data
         switch (tag) {
 
         case MSG_ADDITIONALDATA_TYPE:
-                data->type = ntohl( *(uint32_t *) buf);
                 extract_int(uint32, buf, len, data->type);
                 break;
 

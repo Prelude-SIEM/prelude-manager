@@ -1,5 +1,9 @@
 2002-02-21  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/idmef-message-read.c (additional_data_get): 
+	don't call ntohl directly, use extract_int.
+	
+	* plugins/decodes/prelude-nids/decode.c (get_address): 
 	* plugins/decodes/prelude-nids/packet-decode.c (get_address): 
 	correct typo in #ifdef.
 
