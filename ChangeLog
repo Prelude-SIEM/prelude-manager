@@ -1,5 +1,8 @@
 2002-04-09  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* configure.in: stop using profile-arcs for optimised build.
+	GCC generate bugged code with it.
+
 	* plugins/decodes/prelude-nids/packet-decode.c: 
 	(nids_packet_dump): use ICMP_MINLEN as the size for the
 	ICMP header.
