@@ -52,6 +52,9 @@ sensors-srvr = 127.0.0.1;
 # Host the database is listening on.
 # host = localhost;
 
+# Port the database is listening on.
+# port = 3306;
+
 # Name of the database.
 # dbname = prelude;
 
