@@ -129,7 +129,7 @@ int idmef_get_db_timestamp(const idmef_time_t *time, char *outptr, size_t size)
                 return 0;
         }
         
-        ret = strftime(outptr, size, "%Y-%m-%d%H:%M:%S", &utc);
+        ret = strftime(outptr, size, "%Y-%m-%d %H:%M:%S", &utc);
         if ( ret == 0 ) {
                 log(LOG_ERR, "error converting UTC time to string.\n");
                 return -1;
@@ -259,9 +259,12 @@ int idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size)
  */
 const char *idmef_additional_data_to_string(const idmef_additional_data_t *ad, char *buf, size_t *size) 
 {
-        uint32_t out32;
-        uint64_t out64;
+        uint32_t out32;        
         int ret = *size;
+        union {
+                uint64_t val64;
+                uint32_t val32[2];
+        } combo;
         
         switch (ad->type) {
                 
@@ -302,12 +305,11 @@ const char *idmef_additional_data_to_string(const idmef_additional_data_t *ad, c
                 break;
                 
         case ntpstamp:
-                ret = extract_uint64_safe(&out64, ad->data, ad->dlen);
+                ret = extract_uint64_safe(&combo.val64, ad->data, ad->dlen);
                 if ( ret < 0 )
                         return NULL;
                 
-                ret = snprintf(buf, *size, "0x%08ux.0x%08ux",
-                         ((const uint32_t *) &out64)[0],((const uint32_t *) &out64)[1]);
+                ret = snprintf(buf, *size, "0x%08ux.0x%08ux", combo.val32[0], combo.val32[1]);
                 break;
 
         case real:

@@ -1,9 +1,255 @@
-2003-04-22  Michael Boman <michael.boman@securecirt.com>
+2003-06-11  Stéphane Loeuillet <stephane.loeuillet@tiscali.fr>
 
-	* both mysql and pgsql now have a new command line option to
-	assign port number : dbport
-	* now works with MySQL v4.0+ (does not use mysql_connect
-	which have be deprecated, use mysql_real_connect instead)
+        * src/idmef-util.c : (idmef_get_db_timestamp)
+        Included patch from Laurent Pautet <landmir@landmir.net>
+          closing bug #84 :
+        a space was missing in inserted timestamp. only worked for
+          MySQL 3.2x to 4.0.x, not for MySQL 4.1.x nor PostgreSQL
+
+2003-06-11  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* manager-adduser/manager-adduser.c: 
+	Include an heavily modified patch from 
+	Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl. 
+
+	This patch bring the "keepalive" and "prompt" option
+	to the manager-adduser program.
+
+	* src/prelude-manager.c (init_manager_server): 
+	do not show where we are listening here. This is now
+	done by server-generic.
+
+	* src/server-generic.c (accept_connection): 
+	new function, handle both Ipv4 and Ipv6 connection.
+	
+	(server_generic_new): use resolve_addr().
+
+	(resolve_addr): use the new prelude-inet interface, so
+	that we can resolve ipv6 as well as ipv4 address.
+
+	(handle_connection): use accept_connection().
+	
+	(unix_server_start): 
+	(is_unix_socket_already_used): stop using 
+	prelude_get_socket_filename(), directly access sa->sun_path.
+	
+	* src/pconfig.c (pconfig_init): set config.addr to NULL 
+	as the default.
+	
+	(set_sensor_listen_address): use strrchr() instead of
+	strchr so that we can handle Ipv6 address.
+
+	* configure.in:
+	check wether Ipv6 is available on this system. Define
+	HAVE_IPV6 if it is. Use AC_DEFINE_UNQUOTED in place of
+	AC_DEFINE everywhere.
+
+	We are now able to accept both Ipv6 and Ipv4 connection.
+
+	* src/idmef-util.c (idmef_additional_data_to_string): 
+	fix GCC strict-aliasing warning by using an union.
+
+	* manager-adduser/ssl-register-client.c (recv_ack): 
+	fix GCC strict-aliasing warning.
+
+2003-05-14  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* src/idmef-message-scheduler.c: no need for 
+	stop_processing to be an atomic variable, as it is
+	protected by the input_mutex.
+	
+	(wait_for_message): unlock the mutex before exiting
+	the thread.
+
+2003-05-11  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* Included patch from Sylvain Gil <prelude-code@tootella.org>,
+	in order for Prelude Manager to compile under MacOSX:
+	
+	* acinclude.m4 (macosx): added AC_CHECK_TYPE
+
+	* configure.in (macosx): use $LIBPRELUDE_LIBS
+	add -no-cpp-precomp to CPPFLAGS on macosx
+	check for socklen_t
+
+2003-05-10  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* manager-adduser/ssl-register-client.c (ssl_register_client):
+	remove call to memset().
+	
+	(wait_install_request): remove call to prelude_io_close.
+
+2003-05-03  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* configure.in (pthread_cflags): update to new
+	libprelude-config scheme for getting pthread cflags.
+	Update libprelude requirements to 0.8.6.
+
+	* src/idmef-message-scheduler.c (wait_for_message): 
+	stop enabling asynchronous cancelation when waiting for
+	the input condition variable. Exit when stop_processing 
+	is set and we have no more data to process.
+	
+	(idmef_message_scheduler_exit): stop using pthread_cancel()
+	because it's result heavily depend on the architecture. Set
+	stop_processing to 1, and signal the input condition.
+
+	* plugins/decodes/prelude-nids/packet-decode.c (dump_tcp_flags): 
+	dump ECNECHO and CWR.
+	
+	(switch_ethertype): handle ETHERTYPE_ARP.
+
+	(tcp_dump): dump a fingerprint even if ECNECHO or CWR flags
+	are set.
+
+	* plugins/decodes/prelude-nids/nethdr.h:
+	TH_RES1 and TH_RES2 become TH_ECNECHO and TH_CWR.
+
+	* configure.in: remove trailing '/' from plugins directory.
+
+	* Makefile.am (install-data-local): remove trailing '/'
+	from $(DESTDIR).
+
+	* plugins/decodes/prelude-nids/packet-decode.c (ip_dump): 
+	fix a bug were ip_len would always be dumped as being 0.
+	(tcp_dump): TH_OFF() * 4.
+
+2003-05-01  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/decodes/prelude-nids/nethdr.h (IP_V): 
+	(TH_OFF): fix macro.
+
+	* plugins/decodes/prelude-nids/passive-os-fingerprint.h:
+	wscale is now an int. Mss changed from int16_t to int,
+	so that it can accept -1 and the whole tcp window range.
+
+	This fix some Ettercap compatibility problem, plus a 
+	possible failed assertion.
+
+	* plugins/decodes/prelude-nids/passive-os-fingerprint.c (passive_os_fingerprint_dump): 
+	cleanup.
+
+	* plugins/decodes/prelude-nids/packet-decode.c (ip_dump): 
+	(tcp_dump): correct the way we compute pof.len (ettercap
+	want the ip + ip option + tcp + tcp option size.
+
+2003-04-29  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/reports/xmlmod/Makefile.am: move xmldtddir out
+	of the automake conditional.
+
+2003-04-28  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* configure.in: 
+	* NEWS: bump version number to 0.8.7
+
+	* plugins/decodes/prelude-nids/Makefile.am (noinst_HEADERS): 
+	include passive-os-fingerprint.h
+
+	* plugins/db/mysql/Makefile.am: 
+	* plugins/db/pgsql/Makefile.am: 
+	always install .sql file. 
+
+	* configure.in: chmod +x prelude-manager-db-create.sh.
+
+2003-04-28  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+
+	* plugins/decodes/prelude-nids/passive-os-fingerprint.h:
+	include <inttypes.h> and <sys/types.h> instead of
+	<stdint.h>
+
+2003-04-27  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* prelude-manager-db-create.sh.in: Included patch
+	from Patrick Marie <mycroft@virgaria.org>, fixing
+	bug #0000072 and part of #0000073. This patch is a 
+	rewrite of the PostgreSQL database/user/tables creation.
+
+2003-04-27  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/decodes/prelude-nids/optparse.c (printopt): 
+	* plugins/decodes/prelude-nids/packet-decode.c (ether_dump): 
+	(icmp_dump): (igmp_dump): (data_dump): (udp_dump): (ip_dump): 
+	(tcp_dump): check snprintf() return value more carefully. 
+
+	(nids_packet_dump): continue anyway if one of the dumping
+	function fail.
+
+	* src/server-generic.c (server_generic_new): 
+	update to fit latest server-logic API changes.
+
+	* src/server-logic.c: update server-logic version. 
+	This one fix numerous bug and race, and got tested
+	on an heavily loaded IRC server.
+
+2003-04-27  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* acconfig.h: obsoleted by the AC_DEFINE() and 
+	AC_DEFINE_UNQUOTED() correction. Removed.
+
+	* configure.in: use AC_REAL_PATH_GENERIC for searching
+	pgsql and mysql database. use AC_PATH_GENERIC for 
+	searching the XML2 library. Correct use of AC_DEFINE and
+	AC_DEFINE_UNQUOTED.
+
+	* acinclude.m4: AC_PATH_GENERIC become AC_REAL_PATH_GENERIC.
+	Now take more argument : the _real_ script name (allow to
+	search for pg_config, mysql_config), if the script support
+	the prefix option, and the cflags and libs argument name.
+
+	AC_PATH_GENERIC now call AC_REAL_PATH_GENERIC.
+
+	You can now provide a prefix for pgsql, mysql, and xml2.
+	This fix bug #0000070 (" Problems with the --enable-pgsql 
+	configuration options"
+
+	* prelude-manager-db-create.sh.in: Included modified 
+	patch from Michael Boman <michael.boman@securecirt.com>, 
+	fixing bug #0000073 :
+
+	"prelude-manager-db-create.sh can only use local databases".
+
+	Modification to the patch include correction for a variable
+	name typo, echo-ing the dbport to put in the Manager configuration
+	file, and FreeBSD /bin/sh compatibility modification (removed 
+	[[ ]] syntax, and multi conditionnal test within if).
+	
+2003-04-27  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* prelude-manager-db-create.sh.in: Included patch
+	from Patrick Marie <mycroft@virgaria.org>, fixing
+	bug #0000074 : 
+
+	"prelude-manager-db-create.sh doesn't work with FreeBSD. /bin/sh. 
+	 Multi conditionnal "if" in test(1) are not supported, neither 
+	 [[ ]] syntax."
+
+2003-04-24  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+   
+	* ChangeLog:
+	* plugins/db/pgsql/pgsql.c: 
+	* plugins/db/mysql/mysql.c: 
+
+	previous commit reverted, because the modification were
+	invalid, and the ChangeLog entry wrong.
+
+	* plugins/db/pgsql/pgsql.c: 
+	(set_dbport): 
+	(plugin_init): 
+	(db_connect): 
+	
+	* plugins/db/mysql/mysql.c: 
+	(db_connect): use dbport variable. 
+	(set_dbport): impl.
+	(plugin_init): add a dbport option.
+
+	Patch from Michael Boman <michael.boman@securecirt.com>:
+
+	Both mysql and pgsql now have a new command line option to
+	assign port number : dbport.
+
+	Now works with MySQL v4.0+ (does not use mysql_connect which 
+	have been deprecated, use mysql_real_connect instead)
 
 2003-03-18  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
 
@@ -43,7 +289,7 @@
 	* plugins/decodes/prelude-nids/packet-decode.c (arp_dump): 
 	fix some bug in ARP packet dump.
 
-2002-01-23  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+2003-01-23  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
 
         * manager-adduser/ssl-register-client.c:
         Modified to use arbitrary length certificate buffer. 
