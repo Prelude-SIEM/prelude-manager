@@ -137,6 +137,9 @@ static int insert_userid(const uint64_t *alert_ident, const uint64_t *parent_ide
         char *name;
         const char *type;
 
+        /*
+         * FIXME: why not use parent_ident for target_ident ?
+         */
         type = idmef_userid_type_to_string(uid->type);
         if ( ! type )
                 return -1;
@@ -278,7 +281,7 @@ static int insert_web_service(const uint64_t *alert_ident, const uint64_t *servi
                 return -1;
         }
         
-        db_plugin_insert("Prelude_WebService", "alert_ident, parent_type, parent_ident, service_ident, url, cgi, method",
+        db_plugin_insert("Prelude_WebService", "alert_ident, parent_type, parent_ident, service_ident, url, cgi, http_method",
                          "%llu, '%c', %llu, %llu, '%s', '%u', '%s'", *alert_ident, parent_type, *parent_ident, *service_ident,
                          url, cgi, method);
 
@@ -340,8 +343,8 @@ static int insert_service(const uint64_t *alert_ident, const uint64_t *parent_id
 
 
 
-static int insert_linkage(const uint64_t *alert_ident, const uint64_t *parent_ident,
-                          char parent_type, const idmef_linkage_t *linkage) 
+static int insert_linkage(const uint64_t *alert_ident, const uint64_t *target_ident,
+                          const uint64_t *file_ident, const idmef_linkage_t *linkage) 
 {
         char *name, *path;
         const char *category;
@@ -360,42 +363,39 @@ static int insert_linkage(const uint64_t *alert_ident, const uint64_t *parent_id
                 return -1;
         }
                 
-        db_plugin_insert("Prelude_Linkage", "category, name, path", "%s, %s, %s",
-                         category, name, path);
+        db_plugin_insert("Prelude_Linkage", "alert_ident, target_ident, file_ident, category, name, path",
+                         "'%s', '%s', '%s'", category, name, path);
         
         free(name);
         free(path);
         
-        return insert_file(alert_ident, parent_ident, parent_type, linkage->file);
+        return insert_file(alert_ident, target_ident, 'L', linkage->file);
 }
 
 
 
 
-static int insert_file_access(const uint64_t *alert_ident, const uint64_t *parent_ident,
-                               char parent_type, const idmef_file_access_t *access)
+static int insert_file_access(const uint64_t *alert_ident, const uint64_t *target_ident,
+                              const uint64_t *file_ident, const idmef_file_access_t *access)
 {
         char *permission;
 
-        /*
-         * FIXME
-         */
-        
         permission = db_plugin_escape(idmef_string(&access->permission));
         if ( ! permission )
                 return -1;
         
-        db_plugin_insert("Prelude_FileAccess", "permission", "%s", permission);
+        db_plugin_insert("Prelude_FileAccess", "alert_ident, target_ident, file_ident, permission",
+                         "%llu, %llu, %llu, '%s'", alert_ident, target_ident, file_ident, permission);
         free(permission);
         
-        return insert_userid(alert_ident, parent_ident, parent_type, &access->userid);
+        return insert_userid(alert_ident, target_ident, 'F', &access->userid);
 }
 
 
 
 
-static int insert_file(const uint64_t *alert_ident, const uint64_t *parent_ident,
-                        char parent_type, const idmef_file_t *file) 
+static int insert_file(const uint64_t *alert_ident, const uint64_t *target_ident,
+                       char parent_type, const idmef_file_t *file) 
 {
         int ret;
         char *name, *path;
@@ -408,6 +408,9 @@ static int insert_file(const uint64_t *alert_ident, const uint64_t *parent_ident
         if ( ! file )
                 return 0;
 
+        /*
+         * why no parent_ident ???
+         */
         category = idmef_file_category_to_string(file->category);
         if ( ! category )
                 return -1;
@@ -428,22 +431,24 @@ static int insert_file(const uint64_t *alert_ident, const uint64_t *parent_ident
         
         db_plugin_insert("Prelude_File", "alert_ident, parent_type, parent_ident, ident, category, name, path, "
                          "create_time, modify_time, access_time, data_size, disk_size", "%llu, %c, %llu, %llu, "
-                         "%s, %s, %s, %s, %s, %s, %d, %d", *alert_ident, parent_type, *parent_ident, file->ident,
-                         category, name, path, ctime, mtime, atime, file->data_size, file->disk_size);
+                         "'%s', '%s', '%s', '%s', '%s', '%s', %d, %d", *alert_ident, parent_type, *target_ident,
+                         file->ident, category, name, path, ctime, mtime, atime, file->data_size, file->disk_size);
 
         free(name);
         free(path);
 
         list_for_each(tmp, &file->file_access_list) {
                 access = list_entry(tmp, idmef_file_access_t, list);
-                ret = insert_file_access(alert_ident, &file->ident, parent_type, access);
+
+                ret = insert_file_access(alert_ident, target_ident, &file->ident, access);
                 if ( ret < 0 )
                         return -1;
         }
 
         list_for_each(tmp, &file->file_linkage_list) {
                 linkage = list_entry(tmp, idmef_linkage_t, list);
-                ret = insert_linkage(alert_ident, &file->ident, parent_type, linkage);
+                
+                ret = insert_linkage(alert_ident, target_ident, &file->ident, linkage);
                 if ( ret < 0 )
                         return -1;
         }
@@ -499,13 +504,39 @@ static int insert_source(const uint64_t *alert_ident, const idmef_source_t *sour
 
 
 
+static int insert_file_list(const uint64_t *alert_ident,
+                            const uint64_t *target_ident, const struct list_head *file_list) 
+{
+        int ret;
+        idmef_file_t *file;
+        struct list_head *tmp;
+
+        if ( list_empty(file_list) )
+                return 0;
+        
+        db_plugin_insert("Prelude_FileList", "alert_ident, target_ident",
+                         "%llu, %llu", *alert_ident, *target_ident);
+        
+        list_for_each(tmp, file_list) {
+                file = list_entry(tmp, idmef_file_t, list);
+
+                ret = insert_file(alert_ident, target_ident, 'T', file);
+                if ( ret < 0 )
+                        return -1;
+        }
+
+        return 0;
+}
+
+
+
+
+
 static int insert_target(const uint64_t *alert_ident, const idmef_target_t *target)
 {
         int ret;
         char *interface;
         const char *decoy;
-        idmef_file_t *file;
-        struct list_head *tmp;
         
         if ( ! target )
                 return 0;
@@ -523,29 +554,35 @@ static int insert_target(const uint64_t *alert_ident, const idmef_target_t *targ
                          decoy, interface);
         
         ret = insert_node(alert_ident, &target->ident, 'T', target->node);
-        ret = insert_user(alert_ident, &target->ident, 'T', target->user);
-        ret = insert_process(alert_ident, &target->ident, 'T', target->process);
-        ret = insert_service(alert_ident, &target->ident, 'T', target->service);
-
-        free(interface);
+        if ( ret < 0 )
+                goto err;
         
-        list_for_each(tmp, &target->file_list) {
-                file = list_entry(tmp, idmef_file_t, list);
+        ret = insert_user(alert_ident, &target->ident, 'T', target->user);
+        if ( ret < 0 )
+                goto err;
+        
+        ret = insert_process(alert_ident, &target->ident, 'T', target->process);
+        if ( ret < 0 )
+                goto err;
+        
+        ret = insert_service(alert_ident, &target->ident, 'T', target->service);
+        if ( ret < 0 )
+                goto err;
 
-                ret = insert_file(alert_ident, &target->ident, 'T', file);
-                if ( ret < 0 )
-                        return -1;
-        }
+        ret = insert_file_list(alert_ident, &target->ident, &target->file_list);
 
-        return 0;
+ err:
+        free(interface);
+        return ret;
 }
+
 
 
 
 static int insert_analyzer(const uint64_t *parent_ident, char parent_type, const idmef_analyzer_t *analyzer) 
 {
         int ret;
-        char *manufacturer, *model, *version, *class;
+        char *manufacturer, *model, *version, *class, *ostype, *osversion;
 
         class = db_plugin_escape(idmef_string(&analyzer->class));
         if ( ! class )
@@ -571,15 +608,35 @@ static int insert_analyzer(const uint64_t *parent_ident, char parent_type, const
                 free(version);
                 return -1;
         }
+
+        ostype = db_plugin_escape(idmef_string(&analyzer->ostype));
+        if ( ! ostype ) {
+                free(class);
+                free(model);
+                free(version);
+                free(manufacturer);
+        }
+
+        osversion = db_plugin_escape(idmef_string(&analyzer->osversion));
+        if ( ! ostype ) {
+                free(class);
+                free(model);
+                free(version);
+                free(manufacturer);
+                free(ostype);
+        }
+
         
-        db_plugin_insert("Prelude_Analyzer", "parent_ident, parent_type, analyzerid, manufacturer, model, version, class",
-                          "%llu, '%c', %llu, '%s', '%s', '%s', '%s'", *parent_ident, parent_type, analyzer->analyzerid,
-                          manufacturer, model, version, class);
+        db_plugin_insert("Prelude_Analyzer", "parent_ident, parent_type, analyzerid, manufacturer, model, version, class, "
+                         "ostype, osversion", "%llu, '%c', %llu, '%s', '%s', '%s', '%s', '%s', '%s'", *parent_ident,
+                         parent_type, analyzer->analyzerid, manufacturer, model, version, class, ostype, osversion);
         
         free(class);
         free(model);
         free(version);
         free(manufacturer);
+        free(ostype);
+        free(osversion);
         
         ret = insert_node(parent_ident, &analyzer->analyzerid, 'A', analyzer->node);
         if ( ret < 0 )
@@ -829,6 +886,8 @@ static int insert_assessment(const uint64_t *alert_ident, const idmef_assessment
 
         if ( ! assessment )
                 return 0;
+
+        db_plugin_insert("Prelude_Assessment", "alert_ident", "%llu", *alert_ident);
         
         ret = insert_impact(alert_ident, assessment->impact);
         if ( ret < 0 )
@@ -848,6 +907,96 @@ static int insert_assessment(const uint64_t *alert_ident, const idmef_assessment
         
         return 0;
 }
+
+
+
+
+static int insert_overflow_alert(const uint64_t *alert_ident, const idmef_overflow_alert_t *overflow) 
+{
+        char *program, *buffer;
+
+        program = db_plugin_escape(idmef_string(&overflow->program));
+        if ( ! program )
+                return -1;
+
+        buffer = db_plugin_escape(overflow->buffer);
+        if ( ! buffer ) {
+                free(program);
+                return -1;
+        }
+        
+        db_plugin_insert("Prelude_OverflowAlert", "alert_ident, program, size, buffer",
+                         "%llu, '%s', %d, '%s'", *alert_ident, program, overflow->size, buffer);
+
+        free(buffer);
+        free(program);
+        
+        return 0;
+}
+
+
+
+
+static int insert_tool_alert(const uint64_t *alert_ident, const idmef_tool_alert_t *tool) 
+{
+        char *name, *command;
+        struct list_head *tmp;
+        idmef_alertident_t *ai;
+        
+        /*
+         * FIXME use alert_ident ?
+         */
+        name = db_plugin_escape(idmef_string(&tool->name));
+        if ( ! name )
+                return -1;
+
+        command = db_plugin_escape(idmef_string(&tool->command));
+        if ( ! command ) {
+                free(name);
+                return -1;
+        }
+
+        db_plugin_insert("Prelude_ToolAlert", "alert_ident, name, command", "%llu, '%s', '%s'",
+                         *alert_ident, name, command);
+
+        free(name);
+        free(command);
+
+        list_for_each(tmp, &tool->alertident_list){
+                ai = list_entry(tmp, idmef_alertident_t, list);
+                db_plugin_insert("Prelude_ToolAlert_Alerts", "alert_ident", "%llu", *alert_ident);
+        }
+
+        return 0;
+}
+
+
+
+static int insert_correlation_alert(const uint64_t *alert_ident, const idmef_correlation_alert_t *correlation) 
+{
+        char *name;
+        struct list_head *tmp;
+        idmef_alertident_t *ai;
+        
+        /*
+         * FIXME: use alert_ident ?
+         */
+        name = db_plugin_escape(idmef_string(&correlation->name));
+        if ( ! name )
+                return -1;
+
+        db_plugin_insert("Prelude_CorrelationAlert", "name", "%llu, '%s'",
+                         *alert_ident, name);
+        free(name);
+
+        list_for_each(tmp, &correlation->alertident_list){
+                ai = list_entry(tmp, idmef_alertident_t, list);
+                db_plugin_insert("Prelude_CorrelationAlert_Alerts", "alert_ident", "%llu", *alert_ident);
+        }
+
+        return 0;
+}
+
 
 
 
@@ -880,6 +1029,27 @@ static int insert_alert(const idmef_alert_t *alert)
                 return -1;
         
         ret = insert_analyzertime(&alert->ident, 'A', alert->analyzer_time);
+        if ( ret < 0 )
+                return -1;
+
+        switch (alert->type) {
+        case idmef_default:
+                ret = 0;
+                break;
+
+        case idmef_tool_alert:
+                ret = insert_tool_alert(&alert->ident, alert->detail.tool_alert);
+                break;
+
+        case idmef_overflow_alert:
+                ret = insert_overflow_alert(&alert->ident, alert->detail.overflow_alert);
+                break;
+
+        case idmef_correlation_alert:
+                ret = insert_correlation_alert(&alert->ident, alert->detail.correlation_alert);
+                break;
+        }
+
         if ( ret < 0 )
                 return -1;
         

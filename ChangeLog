@@ -1,3 +1,22 @@
+2002-01-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/idmef-util.c (idmef_node_category_to_string): 
+	add "hosts" category.
+
+	* src/idmef-db-output.c (insert_userid): 
+	(insert_linkage): 
+	(insert_file_access): 
+	(insert_analyzer): 
+	(insert_file): fit latest DB change.
+	(insert_target): better error checking.
+
+	
+	(insert_assessment): 
+	(insert_overflow_alert): 
+	(insert_tool_alert): 
+	(insert_correlation_alert): 
+	(insert_file_list): implemented.
+
 2002-01-25  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/idmef-util.c: never assert() here. Return NULL

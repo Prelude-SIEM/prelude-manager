@@ -198,6 +198,7 @@ const char *idmef_node_category_to_string(idmef_node_category_t category)
                 "coda",
                 "dfs",
                 "dns",
+                "hosts",
                 "kerberos",
                 "nds",
                 "nis",
