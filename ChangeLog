@@ -1,3 +1,19 @@
+2001-12-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/server.c: Update to fit server-logic change.
+	Better reantrancy.
+	
+	* src/server-logic.c: rename server_t to server_logic_t.
+	* src/pconfig.c (print_help): print help for database
+	plugins.
+
+	* plugins/db/pgsql/pgsql.c (db_insert_id): 
+	(db_insert): improve error message.
+	(print_help): (plugin_init): s/MySQL/PgSQL/ 
+
+	* configure.ac: check for PostgreSQL header, 
+	show conditionally enabled plugins.
+
 2001-12-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 	
 	* configure.ac :

@@ -21,7 +21,7 @@
 *
 *****/
 
-typedef struct server_struct server_t;
+typedef struct server_logic server_logic_t;
 
 
 /*
@@ -40,19 +40,19 @@ typedef int (server_read_func_t)(prelude_io_t *pio, void **cdata);
 /*
  *
  */
-int server_logic_stop(server_t *server);
+int server_logic_stop(server_logic_t *server);
 
 
 /*
  *
  */
-int server_logic_process_requests(server_t *server, prelude_io_t *pio, void *cdata);
+int server_logic_process_requests(server_logic_t *server, prelude_io_t *pio, void *cdata);
 
 
 /*
  *
  */
-server_t *server_logic_new(server_read_func_t *s_read, server_close_func_t *s_close);
+server_logic_t *server_logic_new(server_read_func_t *s_read, server_close_func_t *s_close);
 
 
 

@@ -77,7 +77,7 @@ typedef struct {
 
 
 
-struct server_struct {
+struct server_logic {
 
         void *sdata;
         
@@ -99,7 +99,7 @@ struct server_struct {
         
 
 
-static void remove_connection(server_t *server, server_fd_set_t *set, int cnx_key) 
+static void remove_connection(server_logic_t *server, server_fd_set_t *set, int cnx_key) 
 {        
         /*
          * Close the file descriptor associated with this set.
@@ -221,7 +221,7 @@ static void add_connection(server_fd_set_t *set, prelude_io_t *pio, void *cdata)
 
 
 
-static int handle_fd_event(server_t *server, server_fd_set_t *set, int cnx_key) 
+static int handle_fd_event(server_logic_t *server, server_fd_set_t *set, int cnx_key) 
 {        
         /*
          * Data is available on this fd,
@@ -258,7 +258,7 @@ static int handle_fd_event(server_t *server, server_fd_set_t *set, int cnx_key)
 static void *child_reader(void *ptr) 
 {
         int i, ret, active_fd;
-        server_t *server = ptr;
+        server_logic_t *server = ptr;
         struct pollfd pfd[MAX_FD_BY_THREAD];
         server_fd_set_t *set = server->new_set;
         
@@ -308,7 +308,7 @@ static void *child_reader(void *ptr)
 
 
 
-static server_fd_set_t *create_fd_set(server_t *server) 
+static server_fd_set_t *create_fd_set(server_logic_t *server) 
 {
         int ret, i;
         server_fd_set_t *new;
@@ -358,7 +358,7 @@ static server_fd_set_t *create_fd_set(server_t *server)
  *
  * Returns: 0 on success, -1 otherwise.
  */
-int server_logic_process_requests(server_t *server, prelude_io_t *pio, void *cdata) 
+int server_logic_process_requests(server_logic_t *server, prelude_io_t *pio, void *cdata) 
 {
         server_fd_set_t *set;
         
@@ -400,7 +400,7 @@ int server_logic_process_requests(server_t *server, prelude_io_t *pio, void *cda
  * server_logic_stop:
  * @server: The server to stop.
  */
-int server_logic_stop(server_t *server) 
+int server_logic_stop(server_logic_t *server) 
 {
         /*
          * Not implemented. Yet.
@@ -415,16 +415,16 @@ int server_logic_stop(server_t *server)
 
 /*
  * server_logic_new:
- * @s_read: The read function be called back on input.
+ * @s_read: The read function to be called back on input.
  * @s_close: The close function to be called on hang up.
  *
- * Returns: A pointer to a new server_t, NULL on error.
+ * Returns: A pointer to a new server_logic_t, NULL on error.
  */
-server_t *server_logic_new(server_read_func_t *s_read, server_close_func_t *s_close) 
+server_logic_t *server_logic_new(server_read_func_t *s_read, server_close_func_t *s_close) 
 {
-        server_t *new;
+        server_logic_t *new;
 
-        new = malloc(sizeof(server_t));
+        new = malloc(sizeof(server_logic_t));
         if ( ! new )
                 return NULL;
 

@@ -107,8 +107,10 @@ static int db_insert_id(char *table, char *field, unsigned long *id)
         snprintf(query, sizeof(query), "SELECT nextval('%s') FROM %s", field, table);
         
         ret = PQexec(pgsql, query);
-        if ( ret < 0 )
+        if ( ret < 0 || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
+                log(LOG_ERR, "Query %s failed : %s.\n", query, PQerrorMessage(pgsql));
                 return -1;
+        }
         
         *id = 1; 
         
@@ -130,7 +132,7 @@ static int db_insert(char *table, char *fields, char *values)
         
         ret = PQexec(pgsql, query);
         if ( ! ret || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
-                log(LOG_ERR, "Query \"%s\" returned an error.\n", query);
+                log(LOG_ERR, "Query \"%s\" failed.\n", query, PQerrorMessage(pgsql));
                 return -1;
         }
 
@@ -154,7 +156,7 @@ static void db_close(void)
  * Connect to the MySQL database
  */
 static int db_connect(void)
-{
+{        
         /*
          * Connect to the PostgreSQL database.
          */
@@ -200,7 +202,7 @@ static void set_dbpass(const char *optarg)
 
 static void print_help(const char *optarg) 
 {
-        fprintf(stderr, "Usage for MySQL :\n");
+        fprintf(stderr, "Usage for PgSQL :\n");
         fprintf(stderr, "-d --dbhost Tell the host where the MySQL DB is located.\n");
         fprintf(stderr, "-n --dbname Tell the name of the database to use.\n");
         fprintf(stderr, "-u --dbuser Username to use for database login.\n");
@@ -223,7 +225,7 @@ int plugin_init(unsigned int id)
                 { 0, 0, 0, 0 },
         };
 
-        plugin_set_name(&plugin, "PostgreSQL");
+        plugin_set_name(&plugin, "PgSQL");
         plugin_set_desc(&plugin, "Will log all alert to a PostgreSQL database.");
         plugin_set_escape_func(&plugin, db_escape);
         plugin_set_insert_func(&plugin, db_insert);

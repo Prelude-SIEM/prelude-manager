@@ -57,7 +57,6 @@
 
 
 static int unix_srvr = 0;
-static server_t *manager_srvr;
 extern struct report_config config;
 
 
@@ -299,7 +298,7 @@ static prelude_io_t *setup_unix_connection(int sock, struct sockaddr_un *addr)
 /*
  *
  */
-static int wait_connection(int sock, struct sockaddr *addr, socklen_t addrlen, int unix_sock) 
+static int wait_connection(server_logic_t *logic, int sock, struct sockaddr *addr, socklen_t addrlen) 
 {
         int ret;
         int client;
@@ -314,7 +313,7 @@ static int wait_connection(int sock, struct sockaddr *addr, socklen_t addrlen, i
                         continue;
                 }
                 
-                if ( unix_sock )
+                if ( unix_srvr )
                         pio = setup_unix_connection(client, (struct sockaddr_un *)addr);
                 else
                         pio = setup_inet_connection(client, (struct sockaddr_in *)addr);
@@ -329,12 +328,14 @@ static int wait_connection(int sock, struct sockaddr *addr, socklen_t addrlen, i
                         log(LOG_ERR, "couldn't set non blocking mode for client.\n");
                         prelude_io_close(pio);
                         prelude_io_destroy(pio);
+                        continue;
                 }
                 
-                ret = server_logic_process_requests(manager_srvr, pio, NULL);
+                ret = server_logic_process_requests(logic, pio, NULL);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "queueing client FD for server logic processing failed.\n");
-                        close(sock);
+                        prelude_io_close(pio);
+                        prelude_io_destroy(pio);
                         continue;
                 }
                 
@@ -412,7 +413,7 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
 /*
  *
  */
-static int unix_server_start(void) 
+static int unix_server_start(server_logic_t *logic) 
 {
         int ret, sock;
         struct sockaddr_un addr;
@@ -442,7 +443,7 @@ static int unix_server_start(void)
 
         unix_srvr = 1;
         
-        return wait_connection(sock, (struct sockaddr *) &addr, sizeof(addr), 1);
+        return wait_connection(logic, sock, (struct sockaddr *) &addr, sizeof(addr));
 }
 
 
@@ -450,7 +451,7 @@ static int unix_server_start(void)
 /*
  *
  */
-static int inet_server_start(void) 
+static int inet_server_start(server_logic_t *logic) 
 {
         int ret, on = 1, sock;
         struct sockaddr_in addr;
@@ -489,7 +490,7 @@ static int inet_server_start(void)
                 goto err;
 #endif
         
-        return wait_connection(sock, (struct sockaddr *) &addr, sizeof(addr), 0);
+        return wait_connection(logic, sock, (struct sockaddr *) &addr, sizeof(addr));
 
  err:
         close(sock);
@@ -505,10 +506,11 @@ static int inet_server_start(void)
 int manager_server_start(void)
 {
 	int ret;
+        server_logic_t *logic;
         
-        manager_srvr = server_logic_new(server_read_connection_cb, server_close_connection_cb);
-        if ( ! manager_srvr ) {
-                log(LOG_ERR, "couldn't setup Manager server.\n");
+        logic = server_logic_new(server_read_connection_cb, server_close_connection_cb);
+        if ( ! logic ) {
+                log(LOG_ERR, "couldn't initialize server pool.\n");
                 return -1;
         }
         
@@ -520,9 +522,9 @@ int manager_server_start(void)
         
         ret = strcmp(config.addr, "unix");
         if ( ret == 0 )
-                ret = unix_server_start();
+                ret = unix_server_start(logic);
         else 
-                ret = inet_server_start();
+                ret = inet_server_start(logic);
 
         return ret;
 }

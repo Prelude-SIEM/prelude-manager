@@ -94,12 +94,14 @@ AC_CHECK_PROG(PGSQL_CONFIG, pg_config, true, false)
 if test x$PGSQL_CONFIG = xtrue; then
 	PGSQL_LIBDIR=`pg_config --libdir`
 	PGSQL_INCLUDEDIR=`pg_config --includedir`
+
+	AC_CHECK_HEADER($PGSQL_INCLUDEDIR/libpq-fe.h, pgsql_hdr=true)
 fi
 
 AC_ARG_ENABLE(pgsql, [  --enable-pgsql  Enable PostgreSQL plugin [default=auto]], enable_pgsql="$enableval", enable_pgsql=auto)
 
 if test x$enable_pgsql = xauto; then
-        if test x$PGSQL_CONFIG = xtrue; then
+        if test x$PGSQL_CONFIG = xtrue && test x$pgsql_hdr = xtrue; then
                 enable_pgsql=yes;
         else
                 enable_pgsql=no;
@@ -354,4 +356,7 @@ dnl plugins/xmlmod/Makefile
 
 echo
 echo "*** Dumping configuration ***"
-echo "    - Use OpenSSL   : $enable_openssl"
+echo "    - Use OpenSSL       : $enable_openssl"
+echo "    - MySQL plugin      : $enable_mysql"
+echo "    - PostgreSQL plugin : $enable_pgsql"
+

@@ -146,6 +146,7 @@ static void print_help(void)
 
         plugin_set_args(0, NULL);
         plugins_print_opts(REPORT_PLUGIN_DIR);
+        plugins_print_opts(DB_PLUGIN_DIR);
 }
 
 
