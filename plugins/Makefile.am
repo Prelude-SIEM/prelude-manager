@@ -1,4 +1,4 @@
-#SUBDIRS = execmod filemod htmlmod xmlmod
+SUBDIRS = filemod #execmod htmlmod xmlmod
 
 INCLUDES = -I$(top_srcdir)/libmissing -I$(top_srcdir) \
            -I$(top_srcdir)/src/include \

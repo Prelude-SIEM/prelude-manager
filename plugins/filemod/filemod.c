@@ -120,11 +120,10 @@ int plugin_init(unsigned int id)
         plugin_set_running_func(&plugin, filemod_run);
         plugin_set_closing_func(&plugin, filemod_close);
         
-        plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_REPORT_CONF);
-        
+        plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_REPORT_CONF);        
         if ( ! logfile )
                 return -1;
-        
+                
         fd = fopen(logfile, "a");
         if ( ! fd ) {
                 log(LOG_ERR, "error opening %s for appending.\n", logfile);

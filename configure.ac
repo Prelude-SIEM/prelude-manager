@@ -275,6 +275,7 @@ libmissing/Makefile
 src/Makefile 
 src/include/Makefile
 plugins/Makefile
+plugins/filemod/Makefile
 
 ])
 

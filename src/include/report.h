@@ -30,6 +30,8 @@
 #if 0
 #include "packet.h"
 #endif
+
 #include "report-infos.h"
 #include "plugin-report.h"
 
+#include "libmissing.h"
