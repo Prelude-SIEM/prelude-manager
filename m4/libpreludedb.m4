@@ -52,7 +52,7 @@ dnl
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libpreludedb/db.h>
+#include <libpreludedb/preludedb-version.h>
 
 int
 main ()
