@@ -52,7 +52,7 @@ static int decode_plugin_register(plugin_container_t *pc)
 /*
  *
  */
-int decode_plugin_run(alert_t *alert) 
+int decode_plugins_run(int sock, alert_t *alert) 
 {
         int ret = -1;
         plugin_decode_t *p;
@@ -67,18 +67,23 @@ int decode_plugin_run(alert_t *alert)
                 if ( p->decode_id != alert->sensor_data_id )
                         continue;
                 
-                plugin_run_with_return_value(pc, &ret, plugin_decode_t, alert);
+                plugin_run_with_return_value(pc, &ret, plugin_decode_t, sock);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "%s couldn't decode sensor data.\n", p->name);
                         return -1;
                 }
 
+                if ( ret != alert->sensor_data_len ) {
+                        log(LOG_ERR, "decoded len (%d) doesn't match sensor data len (%d).\n",
+                            ret, alert->sensor_data_len);
+                        return -1;
+                }
+                
+
                 return ret;
         }
-
         
-        log(LOG_ERR, "No decode plugin for handling private data id %d.\n",
-            alert->sensor_data_id);
+        log(LOG_ERR, "No decode plugin for handling sensor id %d.\n", alert->sensor_data_id);
         
         return -1;
 }

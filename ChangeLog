@@ -1,5 +1,17 @@
 2001-08-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/decode-plugins.c (decode_plugins_run): 
+	the decoding plugins take a socket as argument, not an
+	alert.
+
+	* src/cnx.c (flush_unknow_data): new function,
+	called to flush private data that weren't recognized by
+	any decode plugins on the socket.
+
+	(wait_raw_report): If sensor_data_id is not ID_NO_DATA,
+	then start the decoding_plugins. Call flush_unknow_data() 
+	if no decoding plugins matched the data.
+
 	* src/ssl.c: pass a config_t as argument to ssl_read_config().
 
 	* src/ssl-register-client.c (ssl_register_client): 

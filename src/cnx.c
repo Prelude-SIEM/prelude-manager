@@ -43,11 +43,40 @@
 #include "pconfig.h"
 #include "ssl.h"
 #include "report-infos.h"
+#include "plugin-decode.h"
 
 
 static ssize_t (*my_read)(int fd, void *buf, size_t count);
 extern struct list_head __report_plugins;
 extern struct report_config config;
+
+
+
+static int flush_unknow_data(int fd, int dlen, ssize_t (*my_read)(int fd, void *data, size_t size)) 
+{
+        int ret;
+        char buf[dlen];
+        
+        while ( dlen ) {
+
+                ret = my_read(fd, buf, dlen);
+                if ( ret < 0 ) {
+                        if ( errno == EINTR )
+                                continue;
+
+                        return -1;
+                }
+
+                if ( ret == 0 )
+                        return -1;
+
+                dlen -= ret;
+        }
+
+        return 0;
+}
+
+
 
 
 /*
@@ -66,6 +95,12 @@ static int wait_raw_report(int socket)
                 ret = alert_read(socket, &alert, my_read);
                 if ( ret <= 0 )
                         return ret;
+
+                if ( alert.sensor_data_id != ID_NO_DATA ) {
+                        ret = decode_plugins_run(socket, &alert);
+                        if ( ret < 0 )
+                                flush_unknow_data(socket, alert.sensor_data_len, my_read);
+                }
                 
                 report_infos_get(&alert, &rinfos);
                 report_plugins_run(&alert, &rinfos);

@@ -28,7 +28,7 @@
 typedef struct {
         PLUGIN_GENERIC;
         uint8_t decode_id;
-        int (*run)(alert_t *alert);
+        int (*run)(int sock);
 } plugin_decode_t;
 
 
@@ -39,7 +39,7 @@ typedef struct {
 
 void decode_plugins_init(const char *dirname);
 
-void decode_plugins_run(alert_t *alert);
+int decode_plugins_run(int sock, alert_t *alert);
 
 int plugin_init(unsigned int id);
 
