@@ -1,3 +1,9 @@
+2002-03-17  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+
+	* src/idmef-message-read.c (source_get):
+	fix a bug causing an error when end of message (MSG_END_OF_TAG)
+	is reached
+
 2002-03-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/db/pgsql/postgres.sql: 
