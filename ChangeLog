@@ -1,3 +1,9 @@
+2002-05-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* configure.in: save LIBS variable in orig_libs... 
+	Then restore it. We don't want everything to link with
+	libwrap / libnsl.
+
 2002-05-16  Baptiste Malguy  <baptiste@malguy.net>
 
 	* src/include/*.h:

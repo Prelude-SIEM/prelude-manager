@@ -341,6 +341,7 @@ if test x$have_tcpd_header = xyes; then
 	AC_MSG_CHECKING(whether -lwrap require -lnsl)
 	tcpd_ldflags="-L$tcpd_lib_path $libwrap"
 
+	orig_libs=$LIBS
      	LIBS="$LIBS $tcpd_ldflags"
      	AC_TRY_LINK([extern int hosts_access; int allow_severity, deny_severity;], 
 		    [return hosts_access;], [have_tcp_wrapper=yes libnsl=""], [LIBS="$LIBS $libnsl"
@@ -356,6 +357,7 @@ if test x$have_tcpd_header = xyes; then
 	fi
 
 	LIBWRAP_LIBS="$LIBS"
+	LIBS=$orig_libs
 
 	if test x$have_tcp_wrapper = xyes; then 
 		AC_DEFINE(HAVE_TCP_WRAPPERS)
