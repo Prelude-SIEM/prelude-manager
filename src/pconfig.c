@@ -43,7 +43,6 @@
 #include "ssl.h"
 
 
-int config_quiet;
 struct report_config config;
 prelude_client_mgr_t *relay_managers = NULL;
 
@@ -101,7 +100,7 @@ static void configure_as_daemon(config_t *cfg)
         if ( ret ) {
                 if ( strcmp(ret, "true") == 0 ) {
                         config.daemonize = 1;
-                        config_quiet = 1;
+                        prelude_log_use_syslog();
                 }
         }
 }
@@ -114,8 +113,8 @@ static void configure_quiet(config_t *cfg)
         
         ret = config_get(cfg, "Prelude Manager", "quiet");
         if ( ret ) {
-                if ( strcmp(ret, "true") == 0 )
-                        config_quiet = 1;
+                if ( strcmp(ret, "true") == 0 ) 
+                        prelude_log_use_syslog();
         }
 
 }
@@ -180,7 +179,6 @@ int pconfig_init(int argc, char **argv)
 	/* Default */
 	config.addr = NULL;
 	config.port = 0;
-	config_quiet = 0;
 	config.daemonize = 0;
         config.pidfile = NULL;
       
@@ -195,11 +193,11 @@ int pconfig_init(int argc, char **argv)
                         config.port = atoi(optarg);
                         break;
                 case 'q':
-                        config_quiet = 1;
+                        prelude_log_use_syslog();
                         break;
                 case 'd':
-                        config_quiet = 1;
                         config.daemonize = 1;
+                        prelude_log_use_syslog();
                         break;
 
                 case 'P':
