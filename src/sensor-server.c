@@ -371,8 +371,6 @@ static int handle_declare_sensor(sensor_fd_t *cnx)
 
 static int handle_declare_admin(sensor_fd_t *cnx) 
 {
-        int state;
-        
         cnx->client_type = "admin";
         
         server_generic_log_client((server_generic_client_t *) cnx,
