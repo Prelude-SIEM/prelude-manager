@@ -52,7 +52,7 @@ static LIST_HEAD(sensor_cnx_list);
 static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
-static int get_option(prelude_msg_t *msg) 
+static int option_list_to_xml(prelude_msg_t *msg) 
 {
         int ret;
         void *buf;
@@ -65,13 +65,18 @@ static int get_option(prelude_msg_t *msg)
                 return -1;
         }
 
-        if ( ret == 0 ) {
-                log(LOG_ERR, "end of message without end of option tag.\n");
-                return -1;
-        }
+        if ( ret == 0 ) 
+                return 0;
         
         switch (tag) {
-
+                
+        case PRELUDE_OPTION_START:
+                printf("option start\n");
+                ret = option_list_to_xml(msg);
+                if ( ret < 0 )
+                        return -1;
+                break;
+                
         case PRELUDE_OPTION_NAME:
                 printf("option name = %s\n", (char *) buf);
                 break;
@@ -95,7 +100,7 @@ static int get_option(prelude_msg_t *msg)
         case PRELUDE_OPTION_INPUT_TYPE:
                 printf("option input type = %d\n", * (uint8_t *) buf);
                 break;
-
+                
         case PRELUDE_OPTION_END:
                 printf("end option.\n");
                 return 0;
@@ -105,51 +110,7 @@ static int get_option(prelude_msg_t *msg)
                 return -1;
         }
 
-        return get_option(msg);
-}
-
-
-
-static int optlist_to_xml(prelude_msg_t *msg) 
-{
-        int ret;
-        void *buf;
-        uint8_t tag;
-        uint32_t dlen;
-        
-        /*
-         * Convert the Prelude option list to XML here.
-         */
-        ret = prelude_msg_get(msg, &tag, &dlen, &buf);
-        if ( ret < 0 ) {
-                log(LOG_ERR, "error decoding message.\n");
-                return -1;
-        }
-
-        if ( ret == 0 ) {
-                prelude_msg_destroy(msg);
-                return 0; /* end of message do DTD validation here */
-        }
-        
-        switch (tag) {
-
-        case PRELUDE_OPTION_START:
-                printf("new option.\n");
-
-                ret = get_option(msg);
-                if ( ret < 0 ) {
-                        prelude_msg_destroy(msg);
-                        return -1;
-                }
-                
-                break;
-
-        default:
-                log(LOG_ERR, "Unknow option tag %d.\n", tag);
-                return -1;
-        }
-
-        return optlist_to_xml(msg);
+        return option_list_to_xml(msg);
 }
 
 
@@ -158,6 +119,7 @@ static int optlist_to_xml(prelude_msg_t *msg)
 static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata) 
 {
         int ret;
+        prelude_msg_t *msg;
         prelude_msg_status_t status;
         sensor_cnx_t *cnx = *clientdata;
         
@@ -175,30 +137,31 @@ static int read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata)
                  * We don't have the whole message yet
                  */
                 return 0;
-                        
+
+        msg = cnx->msg;
+        cnx->msg = NULL;
+        
         /*
          * If we get there, we have a whole message.
          */
-        switch ( prelude_msg_get_tag(cnx->msg) ) {
+        switch ( prelude_msg_get_tag(msg) ) {
                 
         case PRELUDE_MSG_IDMEF:
-                idmef_message_schedule(cnx->msg);
+                idmef_message_schedule(msg);
                 break;
                 
         case PRELUDE_MSG_OPTION_LIST:
-                ret = optlist_to_xml(cnx->msg);
+                ret = option_list_to_xml(msg);
                 if ( ret < 0 )
                         return -1;
                 break;
 
         default:
                 log(LOG_ERR, "Unknow message id %d\n", prelude_msg_get_tag(cnx->msg));
-                prelude_msg_destroy(cnx->msg);
+                prelude_msg_destroy(msg);
                 return -1;
         }
-        
-        cnx->msg = NULL;
-        
+                
         return 0;
 }
 

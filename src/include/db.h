@@ -26,6 +26,8 @@
 #include <libprelude/plugin-common.h>
 #include <libprelude/config-engine.h>
 
-#include "plugin-db.h"
+#include <libprelude/prelude-io.h>
+#include <libprelude/prelude-message.h>
+#include <libprelude/prelude-getopt.h>
 
-#include "libmissing.h"
+#include "plugin-db.h"

@@ -97,23 +97,40 @@ static void *start_admin_server(void *arg)
 int main(int argc, char **argv)
 {
         int ret;
+
+        /*
+         * Initialize plugin first.
+         */
+        ret = report_plugins_init(REPORT_PLUGIN_DIR, argc, argv);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "error initializing reporting plugins.\n");
+                return -1;
+        }
+        log(LOG_INFO, "- Initialized %d reporting plugins.\n", ret);
+
+        ret = db_plugins_init(DB_PLUGIN_DIR, argc, argv);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "error initializing database plugins.\n");
+                return -1;
+        }
+        log(LOG_INFO, "- Initialized %d database plugins.\n", ret);
+
+        ret = decode_plugins_init(DECODE_PLUGIN_DIR, argc, argv);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "error initializing decoding plugins.\n");
+                return -1;
+        }
+        log(LOG_INFO, "- Initialized %d decoding plugins.\n", ret);
+
+
+
+        /*
+         * handle command line arguments.
+         */
+        prelude_option_parse_arguments(NULL, PRELUDE_MANAGER_CONF, argc, argv);
         
         if ( pconfig_init(argc, argv) < 0 )
                 exit(1);
-        
-        prelude_log_set_prefix("    ");
-        
-        do_init(report_plugins_init(REPORT_PLUGIN_DIR),
-                "Initializing report plugins");
-
-        do_init(db_plugins_init(DB_PLUGIN_DIR),
-                "Initializing database plugins");
-        
-        do_init_nofail(decode_plugins_init(DECODE_PLUGIN_DIR),
-                       "Initializing decode plugins.");
-
-        log(LOG_INFO, "\n");
-        prelude_log_set_prefix(NULL);
         
         ret = idmef_ident_init();
         if ( ret < 0 )
@@ -123,8 +140,11 @@ int main(int argc, char **argv)
         signal(SIGINT, cleanup);
         signal(SIGQUIT, cleanup);
         signal(SIGABRT, cleanup);
-        
-        admin_server_new(config.admin_server_addr, config.admin_server_port);
+
+        /*
+         * start server
+         */
+        ret = admin_server_new(config.admin_server_addr, config.admin_server_port);
         if ( ret < 0 ) {
                 log(LOG_INFO, "- couldn't start administration server.\n");
                 exit(1);
@@ -139,10 +159,11 @@ int main(int argc, char **argv)
                 exit(1);
         }
         log(LOG_INFO, "- sensors server started (listening on %s:%d).\n",
-            config.addr, config.port);        
+        config.addr, config.port);        
 
         pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
-
+        
+        
         /*
          * Start prelude as a daemon if asked.
          */

@@ -42,13 +42,18 @@ static LIST_HEAD(used_decode_plugins);
 /*
  *
  */
-static int decode_plugin_register(plugin_container_t *pc) 
-{        
-        log(LOG_INFO, "Initialized %s.\n", pc->plugin->name);
-
-        return plugin_register_for_use(pc, &decode_plugins_list, NULL);
+static int subscribe(plugin_container_t *pc) 
+{
+        log(LOG_INFO, "- Subscribing %s to active decoding plugins.\n", pc->plugin->name);
+        return plugin_add(pc, &decode_plugins_list, NULL);
 }
 
+
+static void unsubscribe(plugin_container_t *pc) 
+{
+        log(LOG_INFO, "- Un-subscribing %s from active decoding plugins.\n", pc->plugin->name);
+        plugin_del(pc);
+}
 
 
 
@@ -122,17 +127,15 @@ void decode_plugins_free_data(void)
 /*
  *
  */
-void decode_plugins_init(const char *dirname) 
+int decode_plugins_init(const char *dirname, int argc, char **argv) 
 {
         int ret;
 
-        ret = plugin_load_from_dir(dirname, decode_plugin_register);
-        if ( ret < 0 ) 
+        ret = plugin_load_from_dir(dirname, argc, argv, subscribe, unsubscribe);
+        if ( ret < 0 )
                 log(LOG_ERR, "couldn't load plugin subsystem.\n");
-
-        if ( list_empty(&decode_plugins_list) )
-                log(LOG_ERR, "No decode plugin loaded."
-                    "You won't be able to get sensor private data.\n");
+        
+        return ret;
 }
 
 

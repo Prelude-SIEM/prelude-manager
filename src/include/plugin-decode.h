@@ -45,9 +45,9 @@ typedef struct {
 #define plugin_set_freeing_func(p, f) plugin_free_func(p) = (f)
 
 
-int plugin_init(unsigned int id);
+plugin_generic_t *plugin_init(int argc, char **argv);
 
-void decode_plugins_init(const char *dirname);
+int decode_plugins_init(const char *dirname, int argc, char **argv);
 
 void decode_plugins_free_data(void);
 

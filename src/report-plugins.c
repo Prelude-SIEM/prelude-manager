@@ -44,12 +44,19 @@ static LIST_HEAD(report_plugins_list);
 /*
  *
  */
-static int report_plugin_register(plugin_container_t *pc) 
+static int subscribe(plugin_container_t *pc) 
 {
-        log(LOG_INFO, "Initialized %s.\n", pc->plugin->name);
-
-        return plugin_register_for_use(pc, &report_plugins_list, NULL);
+        log(LOG_INFO, "- Subscribing %s to active reporting plugins.\n", pc->plugin->name);
+        return plugin_add(pc, &report_plugins_list, NULL);
 }
+
+
+static void unsubscribe(plugin_container_t *pc) 
+{
+        log(LOG_INFO, "- Un-subscribing %s from active reporting plugins.\n", pc->plugin->name);
+        plugin_del(pc);
+}
+
 
 
 
@@ -95,16 +102,17 @@ void report_plugins_close(void)
  * Open the plugin directory (dirname),
  * and try to load all plugins located in it.
  */
-int report_plugins_init(const char *dirname) {
+int report_plugins_init(const char *dirname, int argc, char **argv)
+{
         int ret;
         
-        ret = plugin_load_from_dir(dirname, report_plugin_register);
+        ret = plugin_load_from_dir(dirname, argc, argv, subscribe, unsubscribe);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't load plugin subsystem.\n");
                 return -1;
         }
         
-        return 0;
+        return ret;
 }
 
 

@@ -38,12 +38,14 @@
 #define MAX_QUERY_LENGTH 8192
 
 
+static int is_enabled = 0;
+static plugin_db_t plugin;
 static char *dbhost = NULL;
 static char *dbport = NULL;
 static char *dbname = NULL;
 static char *dbuser = NULL;
 static char *dbpass = NULL;
-static PGconn *pgsql;
+static PGconn *pgsql = NULL;
 
 
 
@@ -131,74 +133,106 @@ static int db_connect(void)
 }
 
 
-
-static void set_dbhost(const char *optarg) 
+static int set_dbhost(const char *optarg) 
 {
         dbhost = strdup(optarg);
+        return prelude_option_success;
 }
 
 
 
-static void set_dbname(const char *optarg) 
+static int set_dbname(const char *optarg) 
 {
         dbname = strdup(optarg);
+        return prelude_option_success;
 }
 
 
-static void set_dbuser(const char *optarg) 
+static int set_dbuser(const char *optarg) 
 {
         dbuser = strdup(optarg);
+        return prelude_option_success;
 }
 
 
-static void set_dbpass(const char *optarg) 
+static int set_dbpass(const char *optarg) 
 {
         dbpass = strdup(optarg);
+        return prelude_option_success;
 }
 
 
-
-static void print_help(const char *optarg) 
-{
-        fprintf(stderr, "Usage for PgSQL :\n");
-        fprintf(stderr, "-d --dbhost Tell the host where the MySQL DB is located.\n");
-        fprintf(stderr, "-n --dbname Tell the name of the database to use.\n");
-        fprintf(stderr, "-u --dbuser Username to use for database login.\n");
-        fprintf(stderr, "-p --dbpass Password to use for database login.\n");
-}
-
-
-
-
-int plugin_init(unsigned int id)
+static int set_pgsql_state(const char *arg) 
 {
         int ret;
-        static plugin_db_t plugin;
-        plugin_option_t opts[] = {
-                { "dbhost", required_argument, NULL, 'd', set_dbhost },
-                { "dbname", required_argument, NULL, 'n', set_dbname },
-                { "dbuser", required_argument, NULL, 'u', set_dbuser },
-                { "dbpass", required_argument, NULL, 'p', set_dbpass },
-                { "help", no_argument, NULL, 'h', print_help         },
-                { 0, 0, 0, 0 },
-        };
+        
+        if ( is_enabled == 1 ) {
+                db_close();
+                
+                ret = plugin_unsubscribe((plugin_generic_t *) &plugin);
+                if ( ret < 0 )
+                        return prelude_option_error;
+                is_enabled = 0;
+        }
 
+        else {
+                ret = db_connect();
+                if ( ret < 0 ) 
+                        return -1;
+                
+                ret = plugin_subscribe((plugin_generic_t *) &plugin);
+                if ( ret < 0 )
+                        return prelude_option_error;
+                
+                is_enabled = 1;
+        }
+        
+        return prelude_option_success;
+}
+
+
+
+static int get_pgsql_state(char *buf, size_t size) 
+{
+        snprintf(buf, size, "%s", (is_enabled == 1) ? "enabled" : "disabled");
+        return prelude_option_success;
+}
+
+
+
+
+plugin_generic_t *plugin_init(int argc, char **argv)
+{
+        int ret;
+        prelude_option_t *opt;
+
+        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "pgsql",
+                                 "Option for the PgSQL plugin", no_argument,
+                                 set_pgsql_state, get_pgsql_state);
+
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'd', "dbhost",
+                           "Tell the host where the PgSQL DB is located", required_argument,
+                           set_dbhost, NULL);
+        
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'n', "dbname",
+                           "Tell the name of the database to use", required_argument,
+                           set_dbname, NULL);
+
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'u', "dbuser",
+                           "Username to use for database login", required_argument,
+                           set_dbuser, NULL);
+
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'p', "dbpass",
+                           "Password to use for database login", required_argument,
+                           set_dbpass, NULL);
+        
         plugin_set_name(&plugin, "PgSQL");
         plugin_set_desc(&plugin, "Will log all alert to a PostgreSQL database.");
         plugin_set_escape_func(&plugin, db_escape);
         plugin_set_insert_func(&plugin, db_insert);
         plugin_set_closing_func(&plugin, db_close);
-        
-        plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_MANAGER_CONF);
-        
-        /*
-         * connect to db or exit
-         */
-        ret = db_connect();
-        if ( ret < 0 ) 
-                return -1;
        
-	return plugin_register((plugin_generic_t *)&plugin);
+	return (plugin_generic_t *) &plugin;
 }
 
 

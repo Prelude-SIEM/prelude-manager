@@ -36,6 +36,7 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-client-mgr.h>
+#include <libprelude/prelude-getopt.h>
 
 #include "libmissing.h"
 #include "config.h"
@@ -143,11 +144,7 @@ static void print_help(void)
         fprintf(stderr, "\t-u --user Create user.\n");
 
         fprintf(stderr, "\nUsage (plugin help):\n\n");
-        fprintf(stderr, "\t-m --plugin <name> <option> to set/get plugin specific options.\n\n");
-
-        plugin_set_args(0, NULL);
-        plugins_print_opts(REPORT_PLUGIN_DIR);
-        plugins_print_opts(DB_PLUGIN_DIR);
+        prelude_option_print(CLI_HOOK, 25);
 }
 
 
@@ -177,7 +174,7 @@ int pconfig_init(int argc, char **argv)
 	config.daemonize = 0;
         config.pidfile = NULL;
       
-	while ( (c = getopt_long(argc, argv, "l:p:qdhvm:P:", opts, NULL)) != -1 ) {
+	while ( (c = getopt_long(argc, argv, "l:p:qdhvP:", opts, NULL)) != -1 ) {
 
 		switch (c) {
                     
@@ -199,17 +196,12 @@ int pconfig_init(int argc, char **argv)
                         break;
 
                 case 'h':
-                        plugin_set_args(argc, argv);
                         print_help();
                         exit(0);
 
                 case 'v':
                         printf("\n%s version %s.\n\n", PACKAGE, VERSION);
                         exit(0);
-
-                case 'm':
-                        plugin_set_args(argc, argv);
-                        goto end;
 
                 default:
                         return -1;

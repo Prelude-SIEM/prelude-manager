@@ -374,7 +374,7 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
 static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addrlen) 
 {
         int ret;
-
+                
         ret = access(UNIX_SOCK, F_OK);
         if ( ret < 0 )
                 return 0;
@@ -405,7 +405,7 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
  */
 static int unix_server_start(server_generic_t *server) 
 {
-        int ret, mode = 0;
+        int ret;
         struct sockaddr_un *addr;
         
         addr = malloc(sizeof(struct sockaddr_un));
@@ -441,11 +441,7 @@ static int unix_server_start(server_generic_t *server)
          * Everyone should be able to access the filesystem object
          * representing our socket.
          */
-        mode |= S_IRUSR|S_IWUSR|S_IXUSR;
-        mode |= S_IRGRP|S_IWGRP|S_IXGRP;
-        mode |= S_IROTH|S_IWOTH|S_IXOTH;
-        
-        ret = chmod(UNIX_SOCK, mode);
+        ret = chmod(UNIX_SOCK, S_IRWXU|S_IRWXG|S_IRWXO);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't set permission for UNIX socket.\n");
                 return -1;

@@ -44,12 +44,12 @@ typedef struct {
 
 
 
-int report_plugins_init(const char *dirname);
+int report_plugins_init(const char *dirname, int argc, char **argv);
 
 void report_plugins_run(idmef_message_t *message);
 
 void report_plugins_close(void);
 
-int plugin_init(unsigned int id);
+plugin_generic_t *plugin_init(int argc, char **argv);
 
 #endif

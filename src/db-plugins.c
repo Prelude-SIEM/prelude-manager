@@ -49,13 +49,19 @@ static LIST_HEAD(db_plugins_list);
 /*
  *
  */
-static int db_plugin_register(plugin_container_t *pc) 
+static int subscribe(plugin_container_t *pc) 
 {
-        log(LOG_INFO, "Initialized %s.\n", pc->plugin->name);
-        db = (plugin_db_t *) pc->plugin;
-
-        return plugin_register_for_use(pc, &db_plugins_list, NULL);
+        log(LOG_INFO, "- Subscribing %s to active database plugins.\n", pc->plugin->name);
+        return plugin_add(pc, &db_plugins_list, NULL);
 }
+
+
+static void unsubscribe(plugin_container_t *pc) 
+{
+        log(LOG_INFO, "- Un-subscribing %s from active database plugins.\n", pc->plugin->name);
+        plugin_del(pc);
+}
+
 
 
 
@@ -119,16 +125,17 @@ void db_plugins_close(void)
  *
  * Returns: 0 on success, -1 if an error occured.
  */
-int db_plugins_init(const char *dirname) {
+int db_plugins_init(const char *dirname, int argc, char **argv)
+{
         int ret;
         
-        ret = plugin_load_from_dir(dirname, db_plugin_register);
+        ret = plugin_load_from_dir(dirname, argc, argv, subscribe, unsubscribe);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't load plugin subsystem.\n");
                 return -1;
         }
 
-        return 0;
+        return ret;
 }
 
 

@@ -48,7 +48,7 @@ typedef struct {
 
 
 
-int db_plugins_init(const char *dirname);
+int db_plugins_init(const char *dirname, int argc, char **argv);
 
 
 char *db_plugin_escape(const char *string);
@@ -59,7 +59,7 @@ void db_plugins_run(idmef_message_t *idmef);
 
 void db_plugins_close(void);
 
-int plugin_init(unsigned int id);
+plugin_generic_t *plugin_init(int argc, char **argv);
 
 #endif
 

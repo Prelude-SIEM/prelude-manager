@@ -1,3 +1,31 @@
+2002-01-04  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/sensor-server.c (option_list_to_xml): 
+	handle all message to xml translation here.
+	(read_connection_cb): always set msg to NULL so
+	we don't destroy it twice.
+
+	* src/pconfig.c (print_help): 
+	stop using old plugin option API. Use prelude-getopt.
+
+	
+	* src/prelude-manager.c (main): 
+	* src/decode-plugins.c: 
+	* src/report-plugins.c: 
+	* src/db-plugins.c: 
+
+	fit plugins API change allowing asynchronous subscribtion
+	/ un-subscribtion of plugin.
+	
+	* plugins/decodes/prelude-nids/decode.c: 
+	* plugins/db/pgsql/pgsql.c: 
+	* plugins/db/mysql/mysql.c: 
+
+	fit plugins API change allowing asynchronous subscribtion
+	/ un-subscribtion of plugin.
+
+	Add support for prelude-getopt.
+
 2002-01-02  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/server-generic.c (unix_server_start): 

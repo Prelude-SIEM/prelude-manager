@@ -288,7 +288,7 @@ static void nids_decode_free(void)
 
 
 
-int plugin_init(unsigned int id)
+plugin_generic_t *plugin_init(int argc, char **argv)
 {
         static plugin_decode_t plugin;
         
@@ -299,10 +299,11 @@ int plugin_init(unsigned int id)
         
         plugin_set_running_func(&plugin, nids_decode_run);
         plugin_set_freeing_func(&plugin, nids_decode_free);
-        
         plugin.decode_id = MSG_FORMAT_PRELUDE_NIDS;
+
+        plugin_subscribe((plugin_generic_t *) &plugin);
         
-	return plugin_register((plugin_generic_t *)&plugin);
+	return (plugin_generic_t *) &plugin;
 }
 
 
