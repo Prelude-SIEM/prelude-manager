@@ -60,7 +60,7 @@ prelude_option_t *manager_root_optlist;
 static size_t nserver = 0;
 static char **global_argv;
 static volatile sig_atomic_t got_sighup = 0;
-
+static const char *cfgfile = PRELUDE_MANAGER_CONF;
 
 
 /*
@@ -151,6 +151,8 @@ int main(int argc, char **argv)
         int ret;
         prelude_string_t *err;
         struct sigaction action;
+
+        prelude_init(&argc, argv);
         
         global_argv = argv;
         manager_root_optlist = prelude_option_new_root();
@@ -195,8 +197,19 @@ int main(int argc, char **argv)
         ret = pconfig_init(manager_root_optlist, argc, argv);
         if ( ret < 0 )
                 exit(1);
+        
+        ret = prelude_option_parse_arguments(manager_client, manager_root_optlist, &cfgfile, &argc, argv, &err);
+        if ( ret < 0 ) {
+                if ( err )
+                        log(LOG_INFO, "error parsing options: %s.\n", prelude_string_get_string(err));
 
-        ret = prelude_client_new(&manager_client, 0, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, &argc, argv);
+                else if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
+                        prelude_perror(ret, "error parsing options (%d != %d)", prelude_error_get_code(ret), PRELUDE_ERROR_EOF);
+                
+                return -1;
+        }
+        
+        ret = prelude_client_new(&manager_client, 0, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error creating prelude-client object");
                 
@@ -208,16 +221,6 @@ int main(int argc, char **argv)
         
         fill_analyzer_infos();        
         prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
-        
-        ret = prelude_option_parse_arguments(manager_client, manager_root_optlist, PRELUDE_MANAGER_CONF, &argc, argv, &err);
-        if ( ret < 0 ) {
-                if ( err )
-                        log(LOG_INFO, "error parsing options: %s.\n", prelude_string_get_string(err));
-                else
-                        prelude_perror(ret, "error parsing options");
-                
-                return -1;
-        }
         
         ret = prelude_client_start(manager_client);
         if ( ret < 0 ) {
