@@ -168,16 +168,16 @@ int pmsg_to_idmef(idmef_message_t **idmef, prelude_msg_t *msg)
 
         while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) == 0 ) {
                 
-                if ( tag == MSG_ALERT_TAG ) 
+                if ( tag == IDMEF_MSG_ALERT_TAG ) 
 			ret = handle_alert_msg(msg, *idmef);
 
-                else if ( tag == MSG_HEARTBEAT_TAG ) 
+                else if ( tag == IDMEF_MSG_HEARTBEAT_TAG ) 
                         ret = handle_heartbeat_msg(msg, *idmef);
 
-                else if ( tag == MSG_OWN_FORMAT )
+                else if ( tag == IDMEF_MSG_OWN_FORMAT )
                         ret = handle_proprietary_msg(msg, *idmef, buf, len);
 
-                else if ( tag == MSG_END_OF_TAG )
+                else if ( tag == IDMEF_MSG_END_OF_TAG )
                         continue;
                 
                 else prelude_log(PRELUDE_LOG_ERR, "unknown IDMEF tag: %d.\n", tag);

@@ -70,7 +70,7 @@ static int iterator(idmef_value_t *val, void *extra)
                 return -1;
         }
         
-        ret = prelude_string_sprintf(out, "%s: ", idmef_path_get_name(data->object->path));
+        ret = prelude_string_sprintf(out, "%s: ", idmef_path_get_name(data->object->path, -1));
         if ( ret < 0 ) {
                 prelude_perror(ret, "error writing string");
                 return -1;
@@ -110,10 +110,10 @@ static int debug_run(prelude_plugin_instance_t *pi, idmef_message_t *msg)
                 
 		ret = idmef_path_get(entry->path, msg, &val);
                 if ( ret < 0 ) {
-                        prelude_perror(ret, "error getting value for object '%s'", idmef_path_get_name(entry->path));
+                        prelude_perror(ret, "error getting value for object '%s'", idmef_path_get_name(entry->path, -1));
                         continue;
                 }
-
+                                
                 if ( ret == 0 )
                         continue; /* no match */
 
