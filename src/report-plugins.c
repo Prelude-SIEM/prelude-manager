@@ -63,7 +63,7 @@ static void unsubscribe(plugin_container_t *pc)
 /*
  * Start all plugins of kind 'list'.
  */
-void report_plugins_run(idmef_message_t *msg)
+void report_plugins_run(const idmef_message_t *msg)
 {
         struct list_head *tmp;
         plugin_container_t *pc;

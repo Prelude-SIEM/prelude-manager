@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998 - 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1998 - 2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -29,7 +29,7 @@
 
 typedef struct {
         PLUGIN_GENERIC;
-        void (*run)(idmef_message_t *message);
+        void (*run)(const idmef_message_t *message);
         void (*close)(void);
 } plugin_report_t;
 
@@ -46,7 +46,7 @@ typedef struct {
 
 int report_plugins_init(const char *dirname, int argc, char **argv);
 
-void report_plugins_run(idmef_message_t *message);
+void report_plugins_run(const idmef_message_t *message);
 
 void report_plugins_close(void);
 

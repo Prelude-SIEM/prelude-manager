@@ -1,6 +1,3 @@
-#################################
-# Configuration for the Manager #
-#################################
 [Prelude Manager]
 
 # Address where the sensors serber is listening on.
@@ -52,42 +49,13 @@ admin-srvr = 0.0.0.0:5555;
 
 
 
+[TextMod]
 
-[XmlMod]
-
-# Tell if this plugin should be enabled or not.
+# Tell SimpleMod to output to stderr
+# stderr;
 #
-enable = yes;
 
+logfile = /var/log/prelude.log;
 
-# Directory where XML log should be written in.
-#
-xmldir = /var/log/prelude/xml;
-
-
-[HtmlMod]
-
-# Tell if this plugin should be enabled or not.
-#
-enable = yes;
-
-
-# Directory where HTML log should be written in.
-#
-htmldir = /var/log/prelude/html;
-
-
-
-
-[FileMod]
-
-# Tell if this plugin should be enabled or not.
-#
-enable = yes;
-
-
-# Filename where the log should be written in.
-#
-logfile = /var/log/prelude/prelude.log;
 
 
