@@ -8,7 +8,8 @@ noinst_HEADERS = 			\
 	server-generic.h		\
 	sensor-server.h			\
 	idmef-message-scheduler.h 	\
-	auth.h
+	auth.h				\
+	relaying.h
 
 include_HEADERS = 			\
 		plugin-decode.h		\

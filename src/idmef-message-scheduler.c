@@ -47,6 +47,7 @@
 #include <libprelude/extract.h>
 #include <libprelude/threads.h>
 #include <libprelude/common.h>
+#include <libprelude/prelude-client.h>
 
 #include "plugin-decode.h"
 #include "plugin-report.h"
