@@ -885,6 +885,7 @@ static void dump_idmef_alert_func(const char *name, const idmef_alert_t *alert)
         
         dump_member(name, alert, uint64, ident);
         dump_member_ptr(name, alert, idmef_assessment, assessment);
+        dump_member(name, alert, idmef_analyzer, analyzer);
         dump_member(name, alert, idmef_time, create_time);
         dump_member_ptr(name, alert, idmef_time, detect_time);
         dump_member_ptr(name, alert, idmef_time, analyzer_time);

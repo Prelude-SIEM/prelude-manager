@@ -1,3 +1,12 @@
+2002-04-11  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+
+	* plugins/reports/debug/debug.c: added missing call to process
+	analyzer information
+
+2002-04-09  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
+
+	* plugins/reports/debug/debug.c: added -s (--silent) option
+
 2002-04-09  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* configure.in: stop using profile-arcs for optimised build.
