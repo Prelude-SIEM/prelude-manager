@@ -28,7 +28,6 @@ struct report_config {
 	unsigned int port;
 	int daemonize;
         const char *pidfile;
-        int use_xdr;
         int use_ssl;
         int ssl_key_crypt;
 }; 

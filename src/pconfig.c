@@ -136,6 +136,7 @@ static void print_help(void)
 int pconfig_init(int argc, char **argv) {
 	int c;
         config_t *cfg;
+        int crypt_key = 1;
 #ifdef HAVE_SSL
         int wait_cert = 0;
         int creat_cert = 0;
@@ -163,8 +164,6 @@ int pconfig_init(int argc, char **argv) {
 	config.port = 0;
 	config_quiet = 0;
 	config.daemonize = 0;
-        config.use_xdr = 0;
-        config.ssl_key_crypt = 1;
         config.pidfile = NULL;
       
 	while ( (c = getopt_long(argc, argv, "l:p:uqdhvcnwm:P:", opts, NULL)) != -1 ) {
@@ -210,7 +209,7 @@ int pconfig_init(int argc, char **argv) {
 			break;
 
                 case 'n':
-                        config.ssl_key_crypt = 0;
+                        crypt_key = 0;
                         break;
 
 		case 'w':
@@ -245,7 +244,7 @@ int pconfig_init(int argc, char **argv) {
         }
 
         if ( creat_cert )
-                exit(ssl_create_certificate());
+                exit(ssl_create_certificate(cfg, crypt_key));
                 
         if ( wait_cert ) {
                 if ( strcmp(config.addr, "unix") == 0 ) {
@@ -255,7 +254,7 @@ int pconfig_init(int argc, char **argv) {
                         return -1;
                 }
                 
-                exit(ssl_register_client(cfg));
+                exit(ssl_register_client(cfg, crypt_key));
         }
 #endif
         

@@ -136,7 +136,8 @@ int ssl_init_server(void)
         if ( ! cfg ) {
                 log(LOG_ERR, "couldn't open %s.\n", PRELUDE_REPORT_CONF);
                 return -1;
-                
+        }
+        
         ssl_read_config(cfg);
 
         config_close(cfg);
@@ -197,7 +198,6 @@ int ssl_init_server(void)
 
 
 
-extern struct report_config config;
 
 /**
  * ssl_create_certificate:
@@ -207,7 +207,7 @@ extern struct report_config config;
  *
  * Returns: 0 on success, -1 on error.
  */
-int ssl_create_certificate(config_t *cfg)
+int ssl_create_certificate(config_t *cfg, int crypt_key)
 {
         X509 *x509ss;
         const char *filename;
@@ -219,7 +219,7 @@ int ssl_create_certificate(config_t *cfg)
         filename = ssl_get_cert_filename(REPORT_KEY);
         
         x509ss = ssl_gen_crypto(ssl_get_days(), ssl_get_key_length(),
-                                filename, config.ssl_key_crypt);
+                                filename, crypt_key);
         if ( ! x509ss ) {
                 fprintf(stderr, "\nError building report private key\n");
                 return -1;

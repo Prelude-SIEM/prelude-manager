@@ -31,6 +31,8 @@ ssize_t ssl_read(int fd, void *buf, size_t count);
 
 ssize_t ssl_write(int fd, const void *buf, size_t count);
 
-int ssl_create_certificate(void);
+int ssl_create_certificate(config_t *cfg, int crypt_key);
 
-int ssl_register_client(config_t *cfg);
+int ssl_register_client(config_t *cfg, int crypt_key);
+
+
