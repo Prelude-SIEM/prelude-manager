@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Jeremie Brebec / Toussaint Mathieu
+* Copyright (C) 2001, 2002 Jeremie Brebec / Toussaint Mathieu
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -21,4 +21,4 @@
 *
 *****/
 
-int ssl_register_client(void);
+int ssl_register_client(prelude_io_t *fd, char *pass, size_t size);

@@ -985,13 +985,13 @@ static int insert_correlation_alert(const uint64_t *alert_ident, const idmef_cor
         if ( ! name )
                 return -1;
 
-        db_plugin_insert("Prelude_CorrelationAlert", "name", "%llu, '%s'",
+        db_plugin_insert("Prelude_CorrelationAlert", "ident, name", "%llu, '%s'",
                          *alert_ident, name);
         free(name);
 
         list_for_each(tmp, &correlation->alertident_list){
                 ai = list_entry(tmp, idmef_alertident_t, list);
-                db_plugin_insert("Prelude_CorrelationAlert_Alerts", "alert_ident", "%llu", *alert_ident);
+                db_plugin_insert("Prelude_CorrelationAlert_Alerts", "ident, alert_ident", "%llu", *alert_ident);
         }
 
         return 0;

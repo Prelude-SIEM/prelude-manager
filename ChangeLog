@@ -1,3 +1,12 @@
+2002-02-04  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* manager-adduser updated.
+
+	* src/server-generic.c (handle_plaintext_authentication): 
+	correct return value.
+	(server_generic_new): when 127.0.0.1 is specified, start an
+	UNIX server.
+
 2002-02-01  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/idmef-message-scheduler.c (get_message_from_file): 

@@ -189,7 +189,8 @@ static int handle_plaintext_authentication(prelude_msg_t *msg, server_generic_cl
         ret = prelude_auth_check(MANAGER_AUTH_FILE, user, pass);
         if ( ret < 0 ) {
                 log(LOG_INFO, "[%s] - plaintext authentication failed.\n", client->addr);
-                return send_plaintext_authentication_result(client->fd, PRELUDE_MSG_AUTH_FAILED);
+                send_plaintext_authentication_result(client->fd, PRELUDE_MSG_AUTH_FAILED);
+                return -1;
         }
 
         client->is_authenticated = 1;
@@ -733,8 +734,7 @@ server_generic_t *server_generic_new(const char *addr, uint16_t port,
                 return NULL;
         }
         
-        ret = strcmp(addr, "unix");
-        if ( ret == 0 ) {
+        if ( strcmp(addr, "unix") == 0 || strcmp(addr, "127.0.0.1") == 0 ) {
                 server->unix_srvr = 1;
                 ret = unix_server_start(server);
         } else {

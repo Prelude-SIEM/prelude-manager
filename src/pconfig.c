@@ -37,7 +37,6 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-client-mgr.h>
 #include <libprelude/prelude-getopt.h>
-#include <libprelude/ssl-register.h>
 
 #include "config.h"
 #include "pconfig.h"
@@ -48,17 +47,6 @@
 
 struct report_config config;
 prelude_client_mgr_t *relay_managers = NULL;
-
-
-#if 0
-static int create_account(const char *arg) 
-{
-        int ret;
-        
-        ssl_add_certificate();
-        exit(ret);
-}
-#endif
 
 
 static int print_version(const char *arg) 

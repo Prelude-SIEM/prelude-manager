@@ -41,7 +41,7 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/config-engine.h>
-#include <libprelude/ssl-register.h>
+#include <libprelude/ssl-settings.h>
 #include <libprelude/ssl-gencrypto.h>
 #include <libprelude/ssl-registration-msg.h>
 
@@ -52,51 +52,6 @@
 #define ACKMSGLEN ACKLENGTH + SHA_DIGEST_LENGTH + HEADLENGTH + PADMAXSIZE
 
 
-static int wait_connection(void) 
-{
-        unsigned int len;
-        int sock, ret, on = 1;
-        struct sockaddr_in sa_server, sa_client;
-        
-	sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock < 0) {
-		perror("socket");
-		return EXIT_FAILURE;
-	}
-
-	memset(&sa_server, '\0', sizeof(sa_server));
-	sa_server.sin_family = AF_INET;
-	sa_server.sin_addr.s_addr = INADDR_ANY;
-	sa_server.sin_port = htons(5554);
-
-        ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
-        if ( ret < 0 ) {
-                perror("setsockopt");
-                return -1;
-        }
-        
-	ret = bind(sock, (struct sockaddr *) &sa_server, sizeof(sa_server));
-	if ( ret < 0 ) {
-		perror("bind");
-		return EXIT_FAILURE;
-	}
-
-	ret = listen(sock, 5);
-	if ( ret < 0 ) {
-		perror("listen");
-		return EXIT_FAILURE;
-	}
-
-        fprintf(stderr, "waiting for install request from Prelude ...\n");
-        
-        len = sizeof(struct sockaddr_in);
-        ret = accept(sock, (struct sockaddr *) &sa_client, &len);
-        close(sock);
-
-        fprintf(stderr, "Connection from %s.\n", inet_ntoa(sa_client.sin_addr));
-        
-        return ret;
-}
 
 
 
@@ -241,35 +196,31 @@ static int create_manager_key_if_needed(void)
 
 
 
-int ssl_register_client(void)
+int ssl_register_client(prelude_io_t *fd, char *pass, size_t size)
 {
-        int sock;
-        prelude_io_t *pio;
-        des_key_schedule skey1, skey2;
-
+        int ret;
+        des_cblock pre1, pre2;
+	des_key_schedule skey1, skey2;
+        
         if ( create_manager_key_if_needed() < 0 )
                 return -1;
         
-        if (des_generate_2key(&skey1, &skey2, 1) != 0) {
-		fprintf(stderr, "Problem making one shot password\n");
-		fprintf(stderr, "\nRegistration failed\n");
+        des_string_to_2keys(pass, &pre1, &pre2);
+        memset(pass, 0, size);
+        
+        ret = des_set_key_checked(&pre1, skey1);
+        memset(&pre1, 0, sizeof(des_cblock));
+        if ( ret < 0 ) 
 		return -1;
-	}
-        
-        sock = wait_connection();
-        if ( sock < 0 ) {
-                fprintf(stderr, "error waiting client connection (%s).\n", strerror(errno));
-                return -1;
-        }
 
-        pio = prelude_io_new();
-        if (! pio )
-                return -1;
-
-        prelude_io_set_sys_io(pio, sock);
-        
-        return wait_install_request(pio, &skey1, &skey2);
+	ret = des_set_key_checked(&pre2, skey2);
+	memset(&pre2, 0, sizeof(des_cblock));
+        if ( ret < 0 )
+		return -1;
+                
+        return wait_install_request(fd, &skey1, &skey2);
 }
+
 
 #endif
 
