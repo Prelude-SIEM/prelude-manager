@@ -258,8 +258,10 @@ static prelude_io_t *setup_inet_connection(int sock, struct sockaddr_in *addr)
         log(LOG_INFO, "new connection from %s.\n", from);
 
         pio = setup_connection(sock, from);
-        if ( ! pio )
+        if ( ! pio ) {
+                log(LOG_INFO, "closing connection with %s.\n", from);
                 return NULL;
+        }
         
         return pio;
 }
@@ -271,10 +273,16 @@ static prelude_io_t *setup_inet_connection(int sock, struct sockaddr_in *addr)
  *
  */
 static prelude_io_t *setup_unix_connection(int sock, struct sockaddr_un *addr)
-{                
+{
+        prelude_io_t *pio;
+        
         log(LOG_INFO, "new UNIX connection.\n");
         
-        return handle_normal_connection(sock, "unix");
+        pio = handle_normal_connection(sock, "unix");
+        if ( ! pio )
+                log(LOG_INFO, "closing unix connection.\n");
+
+        return pio;
 }
 
 
@@ -306,8 +314,6 @@ static int wait_connection(int sock, struct sockaddr *addr, socklen_t addrlen, i
                         close(client);
                         continue;
                 }
-
-                printf("Queuing for processing.\n");
                 
                 ret = server_logic_process_requests(manager_srvr, client, pio);
                 if ( ret < 0 ) {
