@@ -1,5 +1,4 @@
-DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\"
-INCLUDES = -I$(top_srcdir)/src/include -I$(top_srcdir)
+DEFS = -I$(top_srcdir)/src/include -I$(top_srcdir) @defined@ -DCONFIG_DIR=\"@configdir@\"
 
 bin_PROGRAMS = manager-adduser
 manager_adduser_LDADD = @LIBPRELUDE_LIBS@
