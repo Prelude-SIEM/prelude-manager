@@ -225,8 +225,8 @@ static int ether_dump(idmef_additional_data_t *data, packet_t *packet)
 static int arp_dump(idmef_additional_data_t *data, packet_t *packet) 
 {
         int i, len = 0;
+        const char *ptr;
         uint16_t op, hrd;
-        const char *ptr = NULL;
         etherarphdr_t *arp = packet->p.arp_hdr;
         struct {
                 int type;
@@ -261,7 +261,8 @@ static int arp_dump(idmef_additional_data_t *data, packet_t *packet)
         
         op = extract_uint16(&arp->arp_op);
         hrd = extract_uint16(&arp->arp_hrd);
-        
+
+        ptr = NULL;
         for ( i = 0; type_tbl[i].name != NULL; i++ ) {
                 if ( op == type_tbl[i].type ) {
                         ptr = type_tbl[i].name;
@@ -271,6 +272,7 @@ static int arp_dump(idmef_additional_data_t *data, packet_t *packet)
 
         len = snprintf(buf, sizeof(buf), "type=%d(%s) ", op, (ptr) ? ptr : "unknown" );     
 
+        ptr = NULL;
         for ( i = 0; f_tbl[i].name != NULL; i++ ) {
                 if ( hrd == f_tbl[i].type ) {
                         ptr = f_tbl[i].name;
