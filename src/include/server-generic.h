@@ -23,8 +23,25 @@
 
 #include <inttypes.h>
 
-typedef struct manager_server manager_server_t;
+typedef struct server_generic server_generic_t;
 
-manager_server_t *manager_server_start(const char *addr, uint16_t port);
+/*
+ * Callback function type for accepting a connection.
+ */
+typedef int (server_generic_accept_func_t)(prelude_io_t *cfd, void **cdata);
 
-void manager_server_close(manager_server_t *server);
+
+/*
+ * Callback function type for closing a connection.
+ */
+typedef void (server_generic_close_func_t)(void *cdata);
+
+
+
+server_generic_t *server_generic_new(const char *addr, uint16_t port,
+                                     server_generic_accept_func_t *accept,
+                                     server_read_func_t *read, server_generic_close_func_t *close);
+
+int server_generic_start(server_generic_t *server);
+
+void server_generic_close(server_generic_t *server);

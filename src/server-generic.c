@@ -48,52 +48,25 @@
 #include <libprelude/prelude-auth.h>
 
 #include "pconfig.h"
-#include "server-generic.h"
 #include "server-logic.h"
+#include "server-generic.h"
+#include "alert-scheduler.h"
 
 
 #define UNIX_SOCK "/var/lib/prelude/socket"
 
 
 
-struct generic_server {
+struct server_generic {
+        int sock;
         int unix_srvr;
+        socklen_t addrlen;
+        struct sockaddr *addr;
         struct server_logic *logic;
+        
+        server_generic_accept_func_t *accept;
+        server_generic_close_func_t *close;
 };
-
-
-
-static int server_read_connection_cb(void *sdata, prelude_io_t *src, void **clientdata) 
-{
-        int ret;
-        
-        ret = prelude_msg_read((prelude_msg_t **) clientdata, src);
-        if ( ret < 0 )
-                return -1; /* an error occured */
-
-        if ( ret == 0 )
-                return 0;  /* message not fully read yet */
-        
-#if 0
-        switch (prelude_msg_get_tag(*clientdata)) {
-                
-            case PRELUDE_MSG_IDMEF:
-                alert_schedule(*clientdata, src);
-                break;
-
-        case PRELUDE_OPTION_LIST:
-                break;        
-        }
-#endif   
-        
-        /*
-         * If we get there, we have a whole message.
-         */
-        alert_schedule(*clientdata, src);
-        *clientdata = NULL;
-        
-        return 0;
-}
 
 
 
@@ -103,21 +76,17 @@ static int server_close_connection_cb(void *sdata, prelude_io_t *pio, void *clie
         int ret;
         server_generic_t *server = sdata;
 
+        server->close(clientdata);
+        
         if ( server->unix_srvr )
                 log(LOG_INFO, "closing connection on UNIX socket.\n");
         else {
-                struct sockaddr_in addr;
-                int len = sizeof(addr);
-                
-                getpeername(prelude_io_get_fd(pio), (struct sockaddr *)&addr, &len);
-                log(LOG_INFO, "closing connection with %s.\n", inet_ntoa(addr.sin_addr));
+                struct sockaddr_in *addr = (struct sockaddr_in *) server->addr;
+                log(LOG_INFO, "closing connection with %s.\n", inet_ntoa(addr->sin_addr));
         }
-
+        
         ret = prelude_io_close(pio);
         prelude_io_destroy(pio);
-
-        if ( clientdata )
-                prelude_msg_destroy(clientdata);
         
         return ret;
 }
@@ -195,6 +164,8 @@ static int setup_connection(prelude_io_t *fd, const char *addr)
                 log(LOG_ERR, "error reading Prelude client config string.\n");
                 return -1;
         }
+
+        printf("ret = %d, ptr = %p\n", ret, ptr);
         
         if ( strstr(ptr, "use_ssl=yes;") ) 
                 ret = handle_ssl_connection(fd, addr);
@@ -314,24 +285,26 @@ static prelude_io_t *setup_unix_connection(int sock, struct sockaddr_un *addr)
 /*
  *
  */
-static int wait_connection(server_logic_t *logic, int sock, struct sockaddr *addr, socklen_t addrlen, int unix_srvr) 
+static int wait_connection(server_generic_t *server)
 {
         int ret;
         int client;
+        void *clientdata;
         prelude_io_t *pio;
+        
         
         while ( 1 ) {
                 
-                client = accept(sock, addr, &addrlen);
+                client = accept(server->sock, server->addr, &server->addrlen);
                 if ( client < 0 ) {
                         log(LOG_ERR, "couldn't accept connection.\n");
                         continue;
                 }
                 
-                if ( unix_srvr )
-                        pio = setup_unix_connection(client, (struct sockaddr_un *)addr);
+                if ( server->unix_srvr )
+                        pio = setup_unix_connection(client, (struct sockaddr_un *)server->addr);
                 else
-                        pio = setup_inet_connection(client, (struct sockaddr_in *)addr);
+                        pio = setup_inet_connection(client, (struct sockaddr_in *)server->addr);
                 
                 if ( ! pio ) {
                         close(client);
@@ -345,8 +318,14 @@ static int wait_connection(server_logic_t *logic, int sock, struct sockaddr *add
                         prelude_io_destroy(pio);
                         continue;
                 }
+
+                clientdata = NULL;
                 
-                ret = server_logic_process_requests(logic, pio, NULL);
+                ret = server->accept(pio, &clientdata);
+                if ( ret < 0 )
+                        continue;
+                
+                ret = server_logic_process_requests(server->logic, pio, clientdata);
                 if ( ret < 0 ) {
                         log(LOG_ERR, "queueing client FD for server logic processing failed.\n");
                         prelude_io_close(pio);
@@ -428,35 +407,45 @@ static int is_unix_socket_already_used(int sock, struct sockaddr *addr, int addr
 /*
  *
  */
-static int unix_server_start(server_logic_t *logic) 
+static int unix_server_start(server_generic_t *server) 
 {
-        int ret, sock;
-        struct sockaddr_un addr;
+        int ret;
+        struct sockaddr_un *addr;
         
         log(LOG_INFO, "\tStarting Unix Manager server.\n");
 
-        sock = socket(AF_UNIX, SOCK_STREAM, 0);
-        if ( sock < 0 ) {
+        addr = malloc(sizeof(struct sockaddr_un));
+        if ( ! addr ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return -1;
+        }
+        
+        server->sock = socket(AF_UNIX, SOCK_STREAM, 0);
+        if ( server->sock < 0 ) {
                 log(LOG_ERR, "couldn't create socket.\n");
 		return -1;
 	}
         
-        addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, UNIX_SOCK, sizeof(addr.sun_path));
+        addr->sun_family = AF_UNIX;
+        strncpy(addr->sun_path, UNIX_SOCK, sizeof(addr->sun_path));
         
-        ret = is_unix_socket_already_used(sock, (struct sockaddr *) &addr, sizeof(addr));
+        ret = is_unix_socket_already_used(server->sock, (struct sockaddr *) addr, sizeof(*addr));
         if ( ret == 1 || ret == -1 ) {
-                close(sock);
+                close(server->sock);
+                free(addr);
                 return -1;
         }
         
-        ret = generic_server(sock, (struct sockaddr *) &addr, sizeof(addr));
+        ret = generic_server(server->sock, (struct sockaddr *) addr, sizeof(*addr));
         if ( ret < 0 ) {
-                close(sock);
+                close(server->sock);
+                free(addr);
                 return -1;
         }
+
+        server->addr = (struct sockaddr *) addr;
         
-        return wait_connection(logic, sock, (struct sockaddr *) &addr, sizeof(addr), 1);
+        return 0;
 }
 
 
@@ -465,36 +454,42 @@ static int unix_server_start(server_logic_t *logic)
 /*
  *
  */
-static int inet_server_start(server_logic_t *logic, const char *server, uint16_t port) 
+static int inet_server_start(server_generic_t *server, const char *saddr, uint16_t port) 
 {
-        int ret, on = 1, sock;
-        struct sockaddr_in addr;
+        int ret, on = 1;
+        struct sockaddr_in *addr;
 
         log(LOG_INFO, "\tStarting Tcp Manager server.\n" );
+
+        addr = malloc(sizeof(struct sockaddr_in));
+        if ( ! addr ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return -1;
+        }
         
-        sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        if ( sock < 0 ) {
+        server->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if ( server->sock < 0 ) {
                 log(LOG_ERR, "couldn't create socket.\n");
                 return -1;
         }
         
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(port);
-        addr.sin_addr.s_addr = inet_addr(server);
+        addr->sin_family = AF_INET;
+        addr->sin_port = htons(port);
+        addr->sin_addr.s_addr = inet_addr(saddr);
         
-        ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
+        ret = setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't set SO_REUSEADDR socket option.\n");
                 goto err;
         }
 
-        ret = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(int));
+        ret = setsockopt(server->sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(int));
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't set SO_KEEPALIVE socket option.\n");
                 goto err;
         }
         
-        ret = generic_server(sock, (struct sockaddr *) &addr, sizeof(addr));
+        ret = generic_server(server->sock, (struct sockaddr *) addr, sizeof(*addr));
         if ( ret < 0 )
                 goto err;
 
@@ -503,11 +498,13 @@ static int inet_server_start(server_logic_t *logic, const char *server, uint16_t
 	if ( ret < 0 )
                 goto err;
 #endif
+
+        server->addr = (struct sockaddr *) addr;
         
-        return wait_connection(logic, sock, (struct sockaddr *) &addr, sizeof(addr), 0);
+        return 0;
 
  err:
-        close(sock);
+        close(server->sock);
         return -1;
 }
 
@@ -517,36 +514,54 @@ static int inet_server_start(server_logic_t *logic, const char *server, uint16_t
 /*
  *
  */
-server_generic_t *server_generic_new(const char *addr, uint16_t port)
+server_generic_t *server_generic_new(const char *addr, uint16_t port, server_generic_accept_func_t *acceptf,
+                                     server_read_func_t *readf, server_generic_close_func_t *closef)
 {
         int ret;
-        server_logic_t *logic;
-        server_generic_t *srvr;
+        server_generic_t *server;
 
-        srvr = malloc(sizeof(*srvr));
-        if ( ! srvr ) {
+        server = malloc(sizeof(*server));
+        if ( ! server ) {
                 log(LOG_ERR, "memory exhausted.\n");
                 return NULL;
         }
+
+        server->accept = acceptf;
+        server->close = closef;
         
-        logic = server_logic_new(srvr, server_read_connection_cb, server_close_connection_cb);
-        if ( ! logic ) {
+        server->logic = server_logic_new(server, readf, server_close_connection_cb);
+        if ( ! server->logic ) {
                 log(LOG_ERR, "couldn't initialize server pool.\n");
-                free(srvr);
+                free(server);
                 return NULL;
         }
         
         ret = strcmp(addr, "unix");
         if ( ret == 0 ) {
-                srvr->unix_srvr = 1;
-                ret = unix_server_start(logic);
+                server->unix_srvr = 1;
+                ret = unix_server_start(server);
         } else {
-                srvr->unix_srvr = 0;
-                ret = inet_server_start(logic, addr, port);
+                server->unix_srvr = 0;
+                ret = inet_server_start(server, addr, port);
+        }
+
+        if ( ret < 0 ) {
+                server_logic_stop(server->logic);
+                free(server);
+                return NULL;
         }
         
-        return (ret < 0) ? NULL : srvr;
+        return server;
 }
+
+
+
+
+int server_generic_start(server_generic_t *server) 
+{
+        return wait_connection(server);
+}
+
 
 
 
@@ -556,8 +571,6 @@ void server_generic_close(server_generic_t *server)
 
         if ( server->unix_srvr )
                 unlink(UNIX_SOCK);
-        
-        alert_scheduler_exit();
 }
 
 
