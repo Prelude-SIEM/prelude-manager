@@ -1,5 +1,11 @@
 2002-05-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/idmef-message-read.c (idmef_message_read): 
+	as of now, ident is always set from the Manager.
+
+	(idmef_message_read): add a missing break statement,
+	call idmef_heartbeat_get_ident().
+
 	* src/sensor-server.c (read_connection_cb): 
 	remove FIXME message. This is for a later release.
 

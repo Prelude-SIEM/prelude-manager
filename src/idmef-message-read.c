@@ -1348,21 +1348,24 @@ int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg)
                 if ( ret < 0 )
                         return -1;
                 
-                /*
-                 * if the sensor didn't set alert identity itself.
-                 */
-                if ( idmef->message.alert->ident == 0 )
-                        idmef_alert_get_ident(idmef->message.alert);
+                idmef_alert_get_ident(idmef->message.alert);
 
                 break;
 
         case MSG_HEARTBEAT_TAG:
+                                
                 idmef_heartbeat_new(idmef);
+
                 ret = heartbeat_get(msg, idmef->message.heartbeat);
                 if ( ret < 0 )
                         return -1;
 
+                idmef_heartbeat_get_ident(idmef->message.heartbeat);
+                
+                break;
+                
         case MSG_OWN_FORMAT:
+                                
                 ret = extract_uint8_safe(&tag, buf, len);
                 if ( ret < 0 )
                         return -1;

@@ -40,6 +40,7 @@
 
 
 static prelude_ident_t *alert_ident;
+static prelude_ident_t *heartbeat_ident;
 
 
 int idmef_ident_init(void) 
@@ -50,6 +51,12 @@ int idmef_ident_init(void)
                 return -1;
         }
 
+        heartbeat_ident = prelude_ident_new(PRELUDE_MANAGER_CONFDIR"/heartbeat.ident");
+        if ( ! heartbeat_ident ) {
+                log(LOG_ERR, "couldn't initialize unique heartbeat ident.\n");
+                return -1;
+        }
+        
         return 0;
 }
 
@@ -57,12 +64,20 @@ int idmef_ident_init(void)
 void idmef_ident_exit(void) 
 {
         prelude_ident_destroy(alert_ident);
+        prelude_ident_destroy(heartbeat_ident);        
 }
 
 
 void idmef_alert_get_ident(idmef_alert_t *alert) 
 {
         alert->ident = prelude_ident_inc(alert_ident);
+}
+
+
+
+void idmef_heartbeat_get_ident(idmef_heartbeat_t *hb) 
+{
+        hb->ident = prelude_ident_inc(heartbeat_ident);
 }
 
 

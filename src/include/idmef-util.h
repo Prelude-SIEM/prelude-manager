@@ -63,6 +63,7 @@ void idmef_ident_exit(void);
 
 void idmef_alert_get_ident(idmef_alert_t *alert);
 
+void idmef_heartbeat_get_ident(idmef_heartbeat_t *heartbeat);
 
 
 #define MAX_UTC_DATETIME_SIZE  23   /* YYYY-MM-DDThh:mm:ss.ssZ */
