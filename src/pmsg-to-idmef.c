@@ -81,7 +81,7 @@ static int handle_heartbeat_msg(prelude_msg_t *msg, idmef_message_t *idmef)
         if ( ! heartbeat )
                 return -1;
 
-        if ( ! idmef_read_heartbeat(msg, heartbeat) )
+        if ( ! idmef_heartbeat_read(heartbeat, msg) )
                 return -1;
 
         if ( ! idmef_heartbeat_get_analyzer_time(heartbeat) )
@@ -101,7 +101,7 @@ static int handle_alert_msg(prelude_msg_t *msg, idmef_message_t *idmef)
         if ( ! alert )
                 return -1;
         
-        if ( ! idmef_read_alert(msg, alert) )
+        if ( ! idmef_alert_read(alert, msg) )
                 return -1;
         
         if ( ! idmef_alert_get_analyzer_time(alert) )

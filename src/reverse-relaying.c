@@ -151,7 +151,7 @@ void reverse_relay_send_msg(idmef_message_t *idmef)
                 prelude_msgbuf_set_callback(msgbuf, send_msgbuf);
         }
         
-        idmef_write_message(msgbuf, idmef);
+        idmef_message_write(idmef, msgbuf);
         prelude_msgbuf_mark_end(msgbuf);
 }
 

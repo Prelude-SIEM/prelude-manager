@@ -75,7 +75,7 @@ static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idme
                 prelude_msgbuf_set_data(msgbuf, plugin->parent_manager);
         }
         
-        idmef_write_message(msgbuf, idmef);
+        idmef_message_write(idmef, msgbuf);
         prelude_msgbuf_mark_end(msgbuf);
         
         return 0;
