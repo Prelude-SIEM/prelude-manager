@@ -606,6 +606,11 @@ static prelude_bool_t is_unix_addr(const char **out, const char *addr, unsigned 
 {
         int ret;
         const char *ptr;
+
+        if ( ! addr ) {
+                *out = prelude_connection_get_default_socket_filename();
+                return TRUE;
+        }
         
         ret = strncmp(addr, "unix", 4);
         if ( ret != 0 )
@@ -613,7 +618,7 @@ static prelude_bool_t is_unix_addr(const char **out, const char *addr, unsigned 
         
         ptr = strchr(addr, ':');        
         *out = (ptr && *(ptr + 1)) ? ptr + 1 : prelude_connection_get_default_socket_filename();
-
+        
         return TRUE;
 }
 
@@ -650,7 +655,7 @@ static int resolve_addr(server_generic_t *server, const char *addr, unsigned int
         const char *unixpath = NULL;
         int ret, ai_family, ai_addrlen;
         
-        if ( ! addr || is_unix_addr(&unixpath, addr, port) ) {
+        if ( is_unix_addr(&unixpath, addr, port) ) {
                 ai_family = AF_UNIX;
                 ai_addrlen = sizeof(struct sockaddr_un);
         }
