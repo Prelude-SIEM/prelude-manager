@@ -94,20 +94,60 @@ static int setup_openssl_thread(void)
 
 
 
+static int handle_ssl_error(SSL *ssl, int ret, int errnum) 
+{
+        int ssl_error;
+
+        ssl_error = SSL_get_error(ssl, ret);
+        
+        switch (ssl_error) {
+                
+        case SSL_ERROR_WANT_READ:
+        case SSL_ERROR_WANT_WRITE:
+                return 0;
+                
+        case SSL_ERROR_ZERO_RETURN:
+                return -1;
+
+        case SSL_ERROR_SYSCALL:
+                if ( ret == 0 )
+                        /*
+                         * an EOF was observed that violates the protocol
+                         */
+                        return -1;
+                
+                if ( ret == -1 && (errnum == EAGAIN || errnum == EINTR) )
+                        /*
+                         * we got interrupted, let's try again.
+                         */
+                        return 0;
+                
+                return -1;
+                
+        default:
+                log(LOG_ERR, "SSL error: %s. (err=%d).\n", ERR_reason_error_string(ERR_get_error()), ssl_error);
+                return -1;
+        }
+}
+
+
+
+
 static int do_ssl_accept(SSL *ssl) 
 {
         int ret;
+
+        errno = EAGAIN;
         
-        ret = SSL_accept(ssl);  
+        ret = SSL_accept(ssl);        
         if ( ret <= 0 ) {
                 
-                ret = SSL_get_error(ssl, ret);
-                if ( ret == SSL_ERROR_WANT_READ )
+                if ( handle_ssl_error(ssl, ret, errno) == 0 )
                         /*
                          * we need more data.
                          */
                         return 0;
-
+                
                 ERR_print_errors_fp(stderr);
                 return -1;
         }
@@ -131,6 +171,7 @@ static int load_certificate_if_needed(void)
         }
 
         if ( ret == 0 && st.st_mtime != old_mtime ) {
+                
                 /*
                  * certificate file has changed, we have to reload it
                  * to take new entry into account.

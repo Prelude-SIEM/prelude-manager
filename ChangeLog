@@ -1,3 +1,21 @@
+2002-06-01  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/ssl.c (handle_ssl_error): 
+	new function, handle SSL error better.
+
+	* src/server-generic.c (authenticate_client): 
+	if is_ssl is set and that handle_authentication return 0,
+	then return and do not accept the connection. This fix 
+	possible grave problem with SSL connection.
+
+	* manager-adduser/ssl-register-client.c (ssl_register_client): 
+	use des_set_key instead of des_set_key_checked, so that it 
+	compile with older OpenSSL version.
+
+	* manager-adduser/manager-adduser.c (main): 
+	call prelude_set_program_name, cause it will be used
+	for SSL certificate subject generation.
+
 2002-05-31  Laurent Oudot  <oudot.laurent@wanadoo.fr>
  
 	* prelude-manager-db-create.sh:

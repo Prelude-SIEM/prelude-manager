@@ -38,6 +38,7 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-auth.h>
+#include <libprelude/prelude-path.h>
 
 #include "auth.h"
 #include "config.h"
@@ -347,6 +348,12 @@ int main(void)
         prelude_io_t *fd;
         prelude_msg_t *config;
 
+        /*
+         * This will be used for SSL subject
+         * generation.
+         */
+        prelude_set_program_name("prelude-manager");
+        
 #ifdef HAVE_SSL
         ret = ssl_create_manager_key_if_needed();
         if ( ret < 0 )

@@ -244,7 +244,7 @@ static int handle_authentication(prelude_msg_t *msg, server_generic_client_t *cl
                 
         case PRELUDE_MSG_AUTH_PLAINTEXT:
                 client->is_ssl = 0;
-                ret = handle_plaintext_authentication(msg, client);
+                ret = handle_plaintext_authentication(msg, client);                
                 break;
 
         default:
@@ -286,7 +286,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                 ret = handle_ssl_authentication(client);
                 if ( ret <= 0 )
                         return ret;
-         
+                
                 return server->accept(client);
         }
 
@@ -299,9 +299,9 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                         prelude_msg_destroy(client->msg);
                         client->msg = NULL;
                         
-                        if ( ret < 0 )
+                        if ( ret < 0 || (ret == 0 && client->is_ssl) )
                                 return ret;
-                
+
                         return server->accept(client);
                 }
                 
@@ -358,7 +358,7 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
         
         if ( client->is_authenticated )
                 server->close(client);
-
+        
         free(ptr);
         
         return 0;

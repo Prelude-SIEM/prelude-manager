@@ -203,12 +203,12 @@ int ssl_register_client(prelude_io_t *fd, char *pass, size_t size)
         des_string_to_2keys(pass, &pre1, &pre2);
         memset(pass, 0, size);
         
-        ret = des_set_key_checked(&pre1, skey1);
+        ret = des_set_key(&pre1, skey1);
         memset(&pre1, 0, sizeof(des_cblock));
         if ( ret < 0 ) 
 		return -1;
 
-	ret = des_set_key_checked(&pre2, skey2);
+	ret = des_set_key(&pre2, skey2);
 	memset(&pre2, 0, sizeof(des_cblock));
         if ( ret < 0 )
 		return -1;
