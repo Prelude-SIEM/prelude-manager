@@ -225,7 +225,7 @@ int main(int argc, char **argv)
                 return -1;
         }
         
-        ret = prelude_option_parse_arguments(manager_root_optlist, &cfgfile, &argc, argv, &err, manager_client);
+        ret = prelude_option_read(manager_root_optlist, &cfgfile, &argc, argv, &err, manager_client);
         if ( ret < 0 ) {
                 if ( err )
                         prelude_log(PRELUDE_LOG_WARN, "error parsing options: %s.\n", prelude_string_get_string(err));
