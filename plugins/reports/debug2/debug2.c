@@ -84,7 +84,7 @@ static int debug_run(prelude_plugin_instance_t *pi, idmef_message_t *msg)
 	prelude_list_for_each(tmp, &plugin->object_list) {
 		entry = prelude_list_entry(tmp, debug_object_t, list);
 
-		val = idmef_message_get(msg, entry->object);
+		val = idmef_object_get(msg, entry->object);
                 if ( ! val ) {
                         printf("%s = NULL!\n", entry->name);
                         continue;
