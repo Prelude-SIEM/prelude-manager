@@ -1,3 +1,13 @@
+2002-04-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* prelude-manager.conf.in: 
+	more comment in default configuration file.
+
+	* Makefile.am (install-data-local): 
+	Only install default configuration file if it does not
+	exit... If a configuration file is already present, warn
+	the user and install in prelude-manager.conf-dist.
+
 2002-04-07  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
 
 	* src/idmef-message-read.c: changed inclusion order to fix compilation
