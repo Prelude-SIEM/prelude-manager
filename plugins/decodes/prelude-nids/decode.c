@@ -39,9 +39,6 @@
 #include "nids-alert-id.h"
 #include "plugin-decode.h"
 #include "packet.h"
-#include "optparse.h"
-#include "ethertype.h"
-
 
 
 

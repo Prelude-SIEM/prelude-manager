@@ -40,7 +40,6 @@
 
 
 #include "pconfig.h"
-#include "auth.h"
 #include "server.h"
 #include "plugin-decode.h"
 

@@ -52,7 +52,6 @@
 #include "pconfig.h"
 #include "server.h"
 #include "server-logic.h"
-#include "auth.h"
 
 
 

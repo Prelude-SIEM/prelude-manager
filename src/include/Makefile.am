@@ -1,9 +1,14 @@
-noinst_HEADERS = \
+noinst_HEADERS = 		\
 	pconfig.h		\
 	server.h		\
-	ethertype.h		\
 	ssl.h 			\
-	report.h		\
-	report-infos.h 		\
-	plugin-report.h		\
-	server-logic.h
+	server-logic.h		\
+	alert-scheduler.h
+
+include_HEADERS = 			\
+		plugin-decode.h		\
+		plugin-report.h		\
+		report.h		\
+		idmef.h
+
+

@@ -30,8 +30,6 @@
 #include <libprelude/socket-op.h>
 #include <libprelude/auth-common.h>
 
-#include "auth.h"
-
 
 #define AUTH_FILE CONFIG_DIR"/prelude-report.auth"
 
