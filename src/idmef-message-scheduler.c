@@ -349,7 +349,7 @@ static void read_message_scheduled(idmef_queue_t *queue)
 {
         int ret, i = 0;
         prelude_msg_t *msg;
-        uint32_t msg_count = 0;
+        unsigned int msg_count = 0;
 
         while ( i++ < MESSAGE_PER_SENSOR ) {
 
@@ -562,7 +562,7 @@ static int init_file_output(const char *filename, file_output_t *out)
                 return -1;
         }
         
-        wfd = prelude_open_persistant_tmpfile(filename, O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);
+        wfd = open(filename, O_WRONLY|O_APPEND|O_CREAT, S_IRUSR|S_IWUSR);
         if ( wfd < 0 ) {
                 prelude_perror(wfd, "couldn't open %s in append mode", filename);
                 return -1;
