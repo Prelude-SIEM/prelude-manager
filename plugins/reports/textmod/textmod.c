@@ -498,19 +498,18 @@ static void process_classification(idmef_classification_t *classification)
 
 static void process_data(idmef_additional_data_t *data) 
 {
-        char buf[1024];
-	int retval;
-        
-        retval = idmef_additionaldata_data_to_string(data, buf, sizeof (buf));
-	if ( retval < 0 )
-                return;
+        const char *tmp;
 
-        if ( retval <= 80 )
+	tmp = idmef_additionaldata_data_to_string(data);
+	if ( ! tmp )
+		return;
+
+	if ( strlen(tmp) <= 80 )
                 print(0, "* %s: %s\n", 
-		      idmef_string(idmef_additional_data_get_meaning(data)), buf);
+		      idmef_string(idmef_additional_data_get_meaning(data)), tmp);
         else
                 print(0, "* %s:\n%s\n", 
-		      idmef_string(idmef_additional_data_get_meaning(data)), buf);
+		      idmef_string(idmef_additional_data_get_meaning(data)), tmp);
 }
 
 

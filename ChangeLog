@@ -1,3 +1,15 @@
+2004-01-01  Nicolas Delon  <delon.nicolas@wanadoo.fr>
+
+	* plugins/reports/textmod/textmod.c:
+	(process_data)
+	fit idmef_additionaldata_data_to_string changes
+
+	* plugins/reports/xmlmod/xmlmod.c
+	(process_additional_data)
+	fit idmef_additionaldata_data_to_string changes
+
+	Happy new year to our ChangeLog readers ! ;)
+
 2003-12-28  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* plugins/reports/db/db.c (process_message): 
