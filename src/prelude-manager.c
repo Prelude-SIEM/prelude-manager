@@ -47,6 +47,10 @@
 #include "reverse-relaying.h"
 #include "config.h"
 
+
+#define MANAGER_MODEL "Prelude Manager"
+#define MANAGER_CLASS "Manager"
+#define MANAGER_MANUFACTURER "The Prelude Team http://www.prelude-ids.org"
 #define DEFAULT_ANALYZER_NAME "prelude-manager"
 
 
@@ -90,6 +94,21 @@ static void init_manager_server(void)
 
 
 
+static void fill_analyzer_infos(void)
+{
+        idmef_analyzer_t *local = NULL;
+
+        local = prelude_client_get_analyzer(manager_client);
+        assert(local);
+                
+        idmef_analyzer_set_version(local, idmef_string_new_constant(VERSION));
+        idmef_analyzer_set_model(local, idmef_string_new_constant(MANAGER_MODEL));
+        idmef_analyzer_set_class(local, idmef_string_new_constant(MANAGER_CLASS));
+        idmef_analyzer_set_manufacturer(local, idmef_string_new_constant(MANAGER_MANUFACTURER));
+}
+
+
+
 int main(int argc, char **argv)
 {
         int ret;
@@ -128,7 +147,7 @@ int main(int argc, char **argv)
         if ( ! manager_client )
                 return -1;
         
-        prelude_client_set_flags(manager_client, PRELUDE_CLIENT_ASYNC_SEND);
+        fill_analyzer_infos();
         
         ret = idmef_message_scheduler_init(manager_client);
         if ( ret < 0 ) {
@@ -139,7 +158,9 @@ int main(int argc, char **argv)
         ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, argc, argv);
         if ( ret < 0 )
                 return -1;
-                
+        
+        prelude_client_set_flags(manager_client, PRELUDE_CLIENT_ASYNC_SEND);
+
         action.sa_flags = 0;
         sigemptyset(&action.sa_mask);
         action.sa_handler = cleanup;

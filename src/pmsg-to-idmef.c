@@ -24,24 +24,6 @@ extern prelude_client_t *manager_client;
 
 
 
-static idmef_analyzer_t *get_local_analyzer(void)
-{
-        idmef_analyzer_t *local = NULL;
-
-        local = prelude_client_get_analyzer(manager_client);
-        if ( local )
-                return local;
-                
-        idmef_analyzer_set_version(local, idmef_string_new_constant(VERSION));
-        idmef_analyzer_set_model(local, idmef_string_new_constant(MANAGER_MODEL));
-        idmef_analyzer_set_class(local, idmef_string_new_constant(MANAGER_CLASS));
-        idmef_analyzer_set_manufacturer(local, idmef_string_new_constant(MANAGER_MANUFACTURER));
-        
-        return local;
-}
-
-
-
 
 static int fill_local_analyzer_infos(idmef_analyzer_t *analyzer)
 {
@@ -53,7 +35,7 @@ static int fill_local_analyzer_infos(idmef_analyzer_t *analyzer)
         do {
                 next = idmef_analyzer_get_analyzer(analyzer);
                 if ( ! next ) 
-                        idmef_analyzer_set_analyzer(analyzer, idmef_analyzer_ref(local));
+                        idmef_analyzer_set_analyzer(analyzer, prelude_client_get_analyzer(manager_client));
                 
                 analyzer = next;
 
