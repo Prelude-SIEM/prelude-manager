@@ -445,7 +445,7 @@ static int ip_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *
 
         prelude_strbuf_sprintf(buf, "%s -> ", get_address(&ip->ip_src));
         prelude_strbuf_sprintf(buf,
-                               "-> %s [hl=%d,version=%d,tos=%d,len=%d,id=%d,ttl=%d,prot=%d",
+                               "%s [hl=%d,version=%d,tos=%d,len=%d,id=%d,ttl=%d,prot=%d",
                                get_address(&ip->ip_dst), IP_HL(ip) * 4, IP_V(ip), ip->ip_tos,
                                len, id, ip->ip_ttl, ip->ip_p);
                 

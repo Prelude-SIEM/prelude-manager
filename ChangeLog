@@ -1,3 +1,8 @@
+2004-02-05  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/decodes/prelude-nids/packet-decode.c (ip_dump): 
+	fix typo...
+
 2004-02-04  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* plugins/decodes/prelude-nids/packet-decode.c (data_dump): 
