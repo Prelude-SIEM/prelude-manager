@@ -49,6 +49,28 @@ static int fill_local_analyzer_infos(idmef_analyzer_t *analyzer)
 
 
 
+static idmef_time_t *get_msg_time(prelude_msg_t *msg)
+{
+        struct timeval tv;
+        idmef_time_t *time;
+
+        prelude_msg_get_time(msg, &tv);
+        
+        time = idmef_time_new();
+        if ( ! time ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return NULL;
+        }
+
+        idmef_time_set_sec(time, tv.tv_sec);
+        idmef_time_set_usec(time, tv.tv_usec);
+        
+        return time;
+}
+
+
+
+
 static int handle_heartbeat_msg(prelude_msg_t *msg, idmef_message_t *idmef)
 {
         idmef_heartbeat_t *heartbeat;
@@ -59,6 +81,9 @@ static int handle_heartbeat_msg(prelude_msg_t *msg, idmef_message_t *idmef)
 
         if ( ! idmef_read_heartbeat(msg, heartbeat) )
                 return -1;
+
+        if ( ! idmef_heartbeat_get_analyzer_time(heartbeat) )
+                idmef_heartbeat_set_analyzer_time(heartbeat, get_msg_time(msg));
         
         return fill_local_analyzer_infos(idmef_heartbeat_get_analyzer(heartbeat));
 }
@@ -76,7 +101,9 @@ static int handle_alert_msg(prelude_msg_t *msg, idmef_message_t *idmef)
         
         if ( ! idmef_read_alert(msg, alert) )
                 return -1;
-
+        
+        if ( ! idmef_alert_get_analyzer_time(alert) )
+                idmef_alert_set_analyzer_time(alert, get_msg_time(msg));
         
         return fill_local_analyzer_infos(idmef_alert_get_analyzer(alert));
 }
@@ -99,6 +126,7 @@ static int handle_proprietary_msg(prelude_msg_t *msg, idmef_message_t *idmef, vo
 
         return 0;
 }
+
 
 
 
@@ -135,7 +163,7 @@ idmef_message_t *pmsg_to_idmef(prelude_msg_t *msg)
         
         if ( ret == 0 )
                 return idmef;
-
+        
         log(LOG_ERR, "error reading IDMEF message.\n");
         idmef_message_destroy(idmef);
                 
