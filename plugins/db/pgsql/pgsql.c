@@ -90,7 +90,7 @@ static int db_insert(char *table, char *fields, char *values)
         
         ret = PQexec(pgsql, query);
         if ( ! ret || PQresultStatus(ret) != PGRES_COMMAND_OK ) {
-                log(LOG_ERR, "Query \"%s\" failed.\n", query, PQerrorMessage(pgsql));
+                log(LOG_ERR, "Query \"%s\" failed : %s.\n", query, PQerrorMessage(pgsql));
                 return -1;
         }
 

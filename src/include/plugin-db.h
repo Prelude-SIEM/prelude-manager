@@ -26,7 +26,6 @@
 
 #define DB_INSERT_END ((void *)0x1)
 
-
 typedef struct {
         PLUGIN_GENERIC;
         char *(*db_escape)(const char *input);
@@ -51,7 +50,10 @@ typedef struct {
 
 int db_plugins_init(const char *dirname);
 
-void db_plugins_insert(char *table, char *fields, ...);
+
+char *db_plugin_escape(const char *string);
+
+void db_plugin_insert(char *table, char *fields, const char *fmp, ...);
 
 void db_plugins_run(idmef_alert_t *alert);
 

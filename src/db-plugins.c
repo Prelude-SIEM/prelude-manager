@@ -41,6 +41,7 @@
 #include "idmef-db-output.h"
 
 
+static plugin_db_t *db = NULL;
 static LIST_HEAD(db_plugins_list);
 
 
@@ -51,67 +52,35 @@ static LIST_HEAD(db_plugins_list);
 static int db_plugin_register(plugin_container_t *pc) 
 {
         log(LOG_INFO, "\tInitialized %s.\n", pc->plugin->name);
+        db = (plugin_db_t *) pc->plugin;
 
         return plugin_register_for_use(pc, &db_plugins_list, NULL);
 }
 
 
 
+char *db_plugin_escape(const char *string) 
+{
+        if ( ! string )
+                string = "NULL";
+        
+        return db->db_escape(string);
+}
 
-/**
- * db_plugins_insert:
- * @table: Pointer to string defining the database table.
- * @fields: Pointer to string defining the database fields.
- * @...: An undefined number of arguments to be escaped before insertion.
- *
- * This function insert all the provided argument into all active database,
- * in the table @table, and in the fields @fields (separated by a ',').
- *
- * The last argument of this function should alway be %DB_INSERT_END, to tell
- * the function about the end of the variable arguments lists.
- */
-void db_plugins_insert(char *table, char *fields, ...)
+
+
+
+void db_plugin_insert(char *table, char *fields, const char *fmt, ...)
 {
         va_list ap;
-        int ret, len;
-        struct list_head *tmp;
-        plugin_container_t *pc;
-        char query[8192], *str, *next;
-        
-        va_start(ap, fields);
-        
-        list_for_each(tmp, &db_plugins_list) {
+        char query[8192];
 
-                pc = list_entry(tmp, plugin_container_t, ext_list);
-
-                len = 0;
-
-                next = va_arg(ap, char *);
-                while ( next != DB_INSERT_END ) {
-                        
-                        str = next;
-                        if ( ! str )
-                                str = "";
-                        
-                        plugin_run_with_return_value(pc, plugin_db_t, db_escape, str, str);
-                        if ( ! str ) {
-                                log(LOG_ERR, "error escaping query string.\n");
-                                break;
-                        }
-                        
-                        next = va_arg(ap, char *);
-                        if ( next != DB_INSERT_END )
-                                len += snprintf(query + len, sizeof(query) - len, "\"%s\",", str);
-                        else
-                                len += snprintf(query + len, sizeof(query) - len, "\"%s\"", str);
-                                                
-                        free(str);
-                }
-                
-                plugin_run_with_return_value(pc, plugin_db_t, db_insert, ret, table, fields, query);
-        }
         
+        va_start(ap, fmt);
+        vsnprintf(query, sizeof(query), fmt, ap);
         va_end(ap);
+        
+        db->db_insert(table, fields, query);
 }
 
 
@@ -133,28 +102,12 @@ void db_plugins_run(idmef_alert_t *alert)
 
 
 
-/**
- * db_plugins_close:
- *
- * Tell all the active DB plugins to close connection with their
- * database.
- */
 void db_plugins_close(void)
-{
-        plugin_db_t *plugin;
-        struct list_head *tmp;
-        plugin_container_t *pc;
-        
-
-        list_for_each(tmp, &db_plugins_list) {
-                
-                pc = list_entry(tmp, plugin_container_t, ext_list);
-
-                plugin = (plugin_db_t *) pc->plugin;
-                if ( plugin_close_func(plugin) )
-                        plugin_close_func(plugin)();
-        }
+{        
+        if ( plugin_close_func(db) )
+                plugin_close_func(db)();
 }
+
 
 
 
