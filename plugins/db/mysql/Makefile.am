@@ -9,7 +9,7 @@ if HAVE_MYSQL
 
 mysql_la_SOURCES = mysql.c
 mysql_la_LIBADD = @MYSQL_LIBS@
-mysqldir = $(libdir)/prelude/db
+mysqldir = $(db_plugin_dir)
 mysql_LTLIBRARIES = mysql.la
 
 endif

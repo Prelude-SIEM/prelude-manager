@@ -107,12 +107,18 @@ int report_plugins_init(const char *dirname, int argc, char **argv)
         int ret;
         
         ret = plugin_load_from_dir(dirname, argc, argv, subscribe, unsubscribe);
-        if ( ret < 0 ) {
+
+        /*
+         * don't return an error if the report directory doesn't exist.
+         * this could happen as it's normal to not use report plugins on
+         * certain system.
+         */
+        if ( ret < 0 && errno != ENOENT ) {
                 log(LOG_ERR, "couldn't load plugin subsystem.\n");
                 return -1;
         }
         
-        return ret;
+        return 0;
 }
 
 

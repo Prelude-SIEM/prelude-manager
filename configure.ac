@@ -308,9 +308,9 @@ AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS(gettimeofday select socket strdup strerror strstr)
 
-configdir=$sysconfdir/prelude
+configdir=$sysconfdir/prelude-manager
 prelude_manager_conf=$configdir/prelude-manager.conf
-plugindir=$libdir/prelude
+plugindir=$libdir/prelude-manager
 report_plugin_dir=$plugindir/reports/
 decode_plugin_dir=$plugindir/decodes/
 db_plugin_dir=$plugindir/db/

@@ -1,6 +1,6 @@
 SUBDIRS = libmissing manager-adduser src plugins
 
-preludeconfdir = $(sysconfdir)/prelude
+preludeconfdir = $(configdir)
 preludeconf_DATA = prelude-manager.conf
 
 EXTRA_DIST = $(preludeconf_DATA) config.h \
@@ -8,5 +8,5 @@ EXTRA_DIST = $(preludeconf_DATA) config.h \
              ChangeLog
 
 install-data-local:
-	$(INSTALL) -d /var/log/prelude;
-	$(INSTALL) -d $(localstatedir)/prelude;
+	$(INSTALL) -d /var/lib/prelude
+	$(INSTALL) -d /var/spool/prelude
