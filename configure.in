@@ -318,7 +318,7 @@ plugins/filters/idmef-criteria/Makefile
 
 plugins/reports/Makefile
 plugins/reports/db/Makefile
-plugins/reports/debug2/Makefile
+plugins/reports/debug/Makefile
 plugins/reports/relaying/Makefile
 plugins/reports/textmod/Makefile
 plugins/reports/xmlmod/Makefile
