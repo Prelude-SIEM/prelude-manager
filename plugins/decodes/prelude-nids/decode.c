@@ -140,6 +140,9 @@ static int packet_to_idmef(idmef_alert_t *alert, packet_t *p)
         for ( i = 0; p[i].proto != p_end; i++ ) {
 
                 if ( p[i].proto == p_ip ) {
+                        if ( p[i].len != sizeof(iphdr_t) )
+                                return -1;
+                        
                         ret = gather_ip_infos(alert, p[i].p.ip);
                         if ( ret < 0 )
                                 return -1;
@@ -159,6 +162,7 @@ static int packet_to_idmef(idmef_alert_t *alert, packet_t *p)
                         if ( ret < 0 )
                                 return -1;
                 }
+                
                 else if ( p[i].proto == p_udp ) {
 
                         if ( p[i].len != sizeof(udphdr_t) )
