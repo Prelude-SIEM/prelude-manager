@@ -156,7 +156,7 @@ ask_password () {
 	stty sane
 	echo
 
-	echo -n "Please comfirm entered password: "
+	echo -n "Please confirm entered password: "
 	stty -echo
 	read answerbis
 	stty sane
