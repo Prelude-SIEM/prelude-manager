@@ -41,5 +41,6 @@
 #include "vasnprintf.h"
 #include "vsnprintf.h"
 #include "xsize.h"
+#include "inet_ntop.h"
 
 #endif /* _PRELUDE_MANAGER_LIBMISSING_H */
