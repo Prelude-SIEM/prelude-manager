@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2002, 2003 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -174,23 +174,25 @@ int idmef_get_idmef_timestamp(const idmef_time_t *time, char *outptr, size_t siz
          * Format as the IDMEF draft tell us to.
          */
         len += ret = strftime(outptr, size, "%Y-%m-%dT%H:%M:%S", &utc);
-        if ( ret == 0 ) {
+        if ( ret == 0 || ret >= size ) {
                 log(LOG_ERR, "error converting UTC time to string.\n");
                 return -1;
         }
 
         len += ret = snprintf(outptr + len, size - len, ".%03u", time->usec / 1000);
-
+        if ( ret < 0 || ret >= size - len)
+                return -1;
+        
         if ( local.tm_hour > utc.tm_hour )
-                snprintf(outptr + len, size - len, "+%.2d:00", local.tm_hour - utc.tm_hour);
+                ret = snprintf(outptr + len, size - len, "+%.2d:00", local.tm_hour - utc.tm_hour);
 
         else if ( local.tm_hour < utc.tm_hour )
-                snprintf(outptr + len, size - len, "-%.2d:00", utc.tm_hour - local.tm_hour);
+                ret = snprintf(outptr + len, size - len, "-%.2d:00", utc.tm_hour - local.tm_hour);
 
         else if ( local.tm_hour == utc.tm_hour )
-                snprintf(outptr + len, size - len, "Z");
+                ret = snprintf(outptr + len, size - len, "Z");
 
-        return 0;
+        return  ( ret < 0 || ret >= (size - len) ) ? -1 : 0;
 }
 
 
@@ -217,15 +219,17 @@ int idmef_get_timestamp(const idmef_time_t *time, char *outptr, size_t size)
         }
         
         len += ret = strftime(outptr, size, "%Y-%m-%d %H:%M:%S", &lt);
-        if ( ret == 0 ) {
+        if ( ret == 0 || ret >= size ) {
                 log(LOG_ERR, "error converting UTC time to string.\n");
                 return -1;
         }
 
         len += ret = snprintf(outptr + len, size - len, ".%03u", time->usec / 1000);
+        if ( ret < 0 || ret >= (size - len) )
+                return -1;
         
         len += ret = strftime(outptr + len, size - len, "%z", &lt);
-        if ( ret == 0 ) {
+        if ( ret == 0 || ret >= size ) {
                 log(LOG_ERR, "error converting UTC time to string.\n");
                 return -1;
         }
@@ -338,8 +342,10 @@ const char *idmef_additional_data_to_string(const idmef_additional_data_t *ad, c
          * would have been written to the final string if enought space
          * had been available.
          */
-        if ( ret < *size )
-                *size = ret;
+        if ( ret < 0 || ret >= *size )
+                return NULL;
+        
+        *size = ret;
 
         return buf;
 }

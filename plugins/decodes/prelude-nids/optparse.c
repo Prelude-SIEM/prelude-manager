@@ -85,6 +85,8 @@ static void printopt(const char *comment, ...)
         va_start(va, comment);
         ret = vsnprintf(buf, bsize, comment, va);
         va_end(va);
+
+        assert(ret > 0 && ret < bsize);
         
         buf += ret;
         bsize -= ret;

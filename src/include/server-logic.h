@@ -68,6 +68,24 @@ server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read, serve
  */
 void server_logic_remove_client(server_logic_client_t *client);
 
+
+/*
+ *
+ */
+void server_logic_set_max_connection(server_logic_t *server, unsigned int max);
+
+
+/*
+ *
+ */
+void server_logic_set_max_fd_by_thread(server_logic_t *server, unsigned int max);
+
+
+/*
+ *
+ */
+void server_logic_set_min_running_thread(server_logic_t *server, unsigned int min);
+
 #endif /* _MANAGER_SERVER_LOGIC_H */
 
 

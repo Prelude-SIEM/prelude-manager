@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2002, 2003 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -84,7 +84,7 @@ static int set_skeleton_hook(prelude_option_t *opt, const char *arg)
                 { "relaying", FILTER_CATEGORY_RELAYING   },
                 { NULL, 0                                },
         };
-
+        
         for ( i = 0; tbl[i].hook != NULL; i++ ) {
                 ret = strcasecmp(arg, tbl[i].hook);
                 if ( ret == 0 ) {

@@ -1,4 +1,4 @@
-SUBDIRS =
+SUBDIRS = skeleton
 
 INCLUDES = -I$(top_srcdir)/libmissing -I$(top_srcdir) \
            -I$(top_srcdir)/src/include \
