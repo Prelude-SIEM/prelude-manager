@@ -108,10 +108,8 @@ static void configure_as_daemon(config_t *cfg)
         
         ret = config_get(cfg, "Prelude Manager", "daemon");
         if ( ret ) {
-                if ( strcmp(ret, "true") == 0 ) {
+                if ( strcmp(ret, "true") == 0 )
                         config.daemonize = 1;
-                        prelude_log_use_syslog();
-                }
         }
 }
 
@@ -194,7 +192,6 @@ int pconfig_init(int argc, char **argv)
                         break;
                 case 'd':
                         config.daemonize = 1;
-                        prelude_log_use_syslog();
                         break;
 
                 case 'P':

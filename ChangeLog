@@ -1,5 +1,12 @@
 2001-12-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/server-generic.c (inet_server_start): 
+	(unix_server_start): 
+	* src/report-plugins.c (report_plugin_register): 
+	* src/decode-plugins.c (decode_plugin_register): 
+	* src/db-plugins.c (db_plugin_register): 
+	remove \t put garbage in syslog log.
+
 	* src/server-generic.c (inet_server_start): fit
 	prelude-io API change.
 

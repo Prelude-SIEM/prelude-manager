@@ -44,7 +44,7 @@ static LIST_HEAD(used_decode_plugins);
  */
 static int decode_plugin_register(plugin_container_t *pc) 
 {        
-        log(LOG_INFO, "\tInitialized %s.\n", pc->plugin->name);
+        log(LOG_INFO, "Initialized %s.\n", pc->plugin->name);
 
         return plugin_register_for_use(pc, &decode_plugins_list, NULL);
 }

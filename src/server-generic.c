@@ -407,8 +407,6 @@ static int unix_server_start(server_generic_t *server)
         int ret;
         struct sockaddr_un *addr;
         
-        log(LOG_INFO, "\tStarting Unix Manager server.\n");
-
         addr = malloc(sizeof(struct sockaddr_un));
         if ( ! addr ) {
                 log(LOG_ERR, "memory exhausted.\n");
@@ -453,8 +451,6 @@ static int inet_server_start(server_generic_t *server, const char *saddr, uint16
 {
         int ret, on = 1;
         struct sockaddr_in *addr;
-
-        log(LOG_INFO, "\tStarting Tcp Manager server.\n" );
 
         addr = malloc(sizeof(struct sockaddr_in));
         if ( ! addr ) {

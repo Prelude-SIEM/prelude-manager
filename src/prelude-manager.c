@@ -99,8 +99,9 @@ int main(int argc, char **argv)
         
         if ( pconfig_init(argc, argv) < 0 )
                 exit(1);
-
-
+        
+        prelude_log_set_prefix("    ");
+        
         do_init(report_plugins_init(REPORT_PLUGIN_DIR),
                 "Initializing report plugins");
 
@@ -110,31 +111,50 @@ int main(int argc, char **argv)
         do_init_nofail(decode_plugins_init(DECODE_PLUGIN_DIR),
                        "Initializing decode plugins.");
 
+        log(LOG_INFO, "\n");
+        prelude_log_set_prefix(NULL);
+        
         ret = idmef_ident_init();
         if ( ret < 0 )
                 exit(1);
         
         signal(SIGTERM, cleanup);
         signal(SIGINT, cleanup);
-        signal(SIGSEGV, cleanup);
+        signal(SIGQUIT, cleanup);
+        signal(SIGABRT, cleanup);
+        
+        ret = admin_server_new(config.admin_server_addr, config.admin_server_port);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "- couldn't start administration server.\n");
+                exit(1);
+        }
+        log(LOG_INFO, "- administration server started (listening on %s:%d).\n",
+            config.admin_server_addr, config.admin_server_port);
+                
+
+        ret = sensor_server_new(config.addr, config.port);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "- couldn't start sensor server.\n");
+                exit(1);
+        }
+        log(LOG_INFO, "- sensors server started (listening on %s:%d).\n",
+            config.addr, config.port);
+        
+
+        pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
 
         /*
          * Start prelude as a daemon if asked.
          */
-        if ( config.daemonize == 1 )
-                do_init(daemon_start(config.pidfile),
-                        "Starting Prelude Report as a daemon.");
-
-        do_init(admin_server_new(config.admin_server_addr, config.admin_server_port),
-                "Starting Administration server");
-        
-        do_init(sensor_server_new(config.addr, config.port),
-                "Starting Sensors server");
-
-        pthread_create(&admin_server_thr, NULL, start_admin_server, NULL);
+        if ( config.daemonize == 1 ) {
+                ret = prelude_daemonize(config.pidfile);
+                if ( ret < 0 )
+                        return -1;
+                prelude_log_use_syslog();
+        }
         
         sensor_server_start(); /* never return */
-
+        
 	exit(0);	
 }
 
