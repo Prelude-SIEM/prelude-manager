@@ -52,9 +52,18 @@ AC_PATH_GENERIC(libprelude, 0.8.9, ,
 libprelude_prefix=`$LIBPRELUDE_CONFIG --prefix`
 AC_SUBST(libprelude_prefix)
 
-pthread_cflags=`$LIBPRELUDE_CONFIG --pthread-cflags`
 prelude_config_prefix=`$LIBPRELUDE_CONFIG --prelude-config-prefix`
 defined="$defined $LIBPRELUDE_CFLAGS $pthread_cflags -DPRELUDE_CONFIG_DIR=\\\"$prelude_config_prefix\\\""
+
+
+
+dnl **************************************************
+dnl * Check for pthread                              *
+dnl **************************************************
+
+ACX_PTHREAD(, AC_MSG_ERROR(couldn't find suitable pthread implementation))
+defined="$defined $PTHREAD_CFLAGS"
+CC="$PTHREAD_CC"
 
 
 
@@ -359,7 +368,6 @@ plugins/filters/filter/Makefile
 
 plugins/reports/Makefile
 plugins/reports/db/Makefile
-plugins/reports/debug/Makefile
 plugins/reports/debug2/Makefile
 plugins/reports/relaying/Makefile
 plugins/reports/textmod/Makefile
@@ -371,6 +379,7 @@ dnl **** TODO add the following lines in above section ****
 dnl docs/Makefile
 dnl docs/api/Makefile
 
+dnl plugins/reports/debug/Makefile
 dnl plugins/execmod/Makefile
 dnl plugins/filemod/Makefile
 dnl plugins/htmlmod/Makefile

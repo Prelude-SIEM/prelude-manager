@@ -8,7 +8,7 @@ DEFS = -I$(top_srcdir)/ -I$(srcdir)/include/        \
 	-DMANAGER_FIFO_DIR=\"@manager_fifo_dir@\"
 
 bin_PROGRAMS = prelude-manager
-prelude_manager_LDADD = @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@
+prelude_manager_LDADD = @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@
 
 if HAVE_XML2
  XML_OBJS= -dlopen $(top_builddir)/plugins/reports/xmlmod/xmlmod.la
@@ -21,7 +21,7 @@ endif
 DLOPENED_OBJS=$(XML_OBJS) $(DB_OBJS)
 
 prelude_manager_LDFLAGS = -export-dynamic \
- 		-dlopen $(top_builddir)/plugins/decodes/prelude-nids/prelude-nids.la 	\
+		-dlopen $(top_builddir)/plugins/decodes/prelude-nids/prelude-nids.la 	\
 		-dlopen $(top_builddir)/plugins/filters/filter/filter.la 		\
 		-dlopen $(top_builddir)/plugins/reports/relaying/relaying.la		\
 		-dlopen $(top_builddir)/plugins/reports/textmod/textmod.la		\
