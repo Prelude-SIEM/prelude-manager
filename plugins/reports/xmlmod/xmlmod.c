@@ -705,8 +705,7 @@ static void dump_to_buffer(xmlDoc *doc, xmlOutputBufferPtr out)
 {
         xmlNodeDumpOutput(out, doc, doc->children, 0, format, NULL);
 
-        if ( format )
-                xmlOutputBufferWriteString(out, "\n");
+	xmlOutputBufferWriteString(out, "\n");
         
         xmlOutputBufferFlush(out);
 }

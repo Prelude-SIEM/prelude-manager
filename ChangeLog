@@ -1,3 +1,8 @@
+2002-10-29  Sylvain Gil <prelude-code@tootella.org>
+
+	* plugins/reports/xmlmod/xmlmod.c: added a \n
+	to all idmef-message output to be more syslog like
+
 2002-10-25  Sylvain Gil <prelude-code@tootella.org>
 
 	* plugins/reports/xmlmod/xmlmod.c: added -d option
