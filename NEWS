@@ -1,0 +1,13 @@
+* 2002-08-26, prelude-manager-0.8.3:
+	- Fix off by one error in dynamic database query generation (Yoann Vandoorselaere).
+	- Textmod plugin formatting fix (Yoann Vandoorselaere).
+	- Handle message containing inode information (Yoann Vandoorselaere).
+	- Fix memory leak in PostgreSQL plugin (Krzysztof Zaraska).
+	- More detailed MySQL error messages (Krzysztof Zaraska).
+	- Avoid potentially missing \0 on really long filename (Guillaume Pelat).
+
+* 2002-08-01, prelude-manager-0.8.2:
+	- Fix possible MySQL plugin compilation problem (Yann Droneaud).
+
+* 2002-08-01, prelude-manager-0.8.1:
+	- Compile again on FreeBSD-STABLE (Krzysztof Zaraska).
