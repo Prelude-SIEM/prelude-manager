@@ -1,3 +1,17 @@
+2002-01-14  Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>
+	* plugins/reports/debug/debug.c:
+	* plugins/reports/debug/Makefile.am:
+	add a new debug report plugin
+
+	* configure.ac:
+	* plugins/reports/Makefile.am:
+	builds new debug report plugin
+
+	* src/include/report.h:
+	include <libprelude/prelude-io.h>
+	include <libprelude/prelude-message.h>
+	include <libprelude/prelude-getopt.h>
+
 2002-01-11  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/idmef-util.c: 
