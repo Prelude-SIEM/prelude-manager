@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -46,9 +46,9 @@
 
 
 /*
- * If modifying this value beside 256, carefull
- * to not use an uint8_t for the free_tbl and free_index members
- * to avoid wrap arround.
+ * If modifying this value beside 256, take care
+ * about the size of the sig_atomic_t index, which could be
+ * only 8 bits long on some architecture.
  */
 #define MAX_FD_BY_THREAD 100
 
