@@ -382,9 +382,13 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
 #else
 		cdata->port = ntohs(addr.sin_port);
 #endif
-                in_addr = prelude_inet_sockaddr_get_inaddr(sa);
+                in_addr = prelude_sockaddr_get_inaddr(sa);
+                if ( ! in_addr ) {
+                        close(sock);
+                        return -1;
+                }
                 
-                str = prelude_inet_ntop(sa->sa_family, in_addr, out, sizeof(out));
+                str = inet_ntop(sa->sa_family, in_addr, out, sizeof(out));
                 if ( str ) {
                         snprintf(out + strlen(out), sizeof(out) - strlen(out), ":%d", cdata->port);
                         cdata->addr = strdup(out);
@@ -775,8 +779,10 @@ int server_generic_bind(server_generic_t *server, const char *saddr, uint16_t po
                 prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s).\n",
                             ((struct sockaddr_un *) server->sa)->sun_path);
         else {
-                assert(in_addr = prelude_inet_sockaddr_get_inaddr(server->sa));
-                prelude_inet_ntop(server->sa->sa_family, in_addr, out, sizeof(out));
+                in_addr = prelude_sockaddr_get_inaddr(server->sa);
+                assert(in_addr);
+                
+                inet_ntop(server->sa->sa_family, in_addr, out, sizeof(out));
                 prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s port %u).\n", out, port);
         }
                 

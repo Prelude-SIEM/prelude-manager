@@ -39,7 +39,7 @@
         prelude_msg_t *msg;          \
         int state;                   \
         char *addr;                  \
-        uint16_t port;               \
+        unsigned int port;           \
         uint64_t ident;              \
         char *permission_string;     \
         pthread_mutex_t mutex;       \
