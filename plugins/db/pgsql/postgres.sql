@@ -310,7 +310,7 @@ create table Prelude_ServicePortlist (
 alert_ident          INT8                 not null,
 parent_type          VARCHAR(1)           not null,
 parent_ident         INT8                 not null,
-portlist	     VARCHAR(255)         not null,
+portlist	     VARCHAR(255)         not null /*,*/
 /* INDEX                (alert_ident,parent_type,parent_ident) null */
 );
 

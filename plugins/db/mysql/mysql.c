@@ -96,11 +96,8 @@ static int db_insert(const char *query)
 {
         int ret = 0;
 
-#if MYSQL_VERSION_ID >= 32200
- 	ret = mysql_real_query(&mysql, query, strlen(query));
-#else
         ret = mysql_query(&mysql, query);
-#endif
+
         if ( ret ) {
                 log(LOG_ERR, "Query \"%s\" returned %d: %s\n", 
                 	query, ret, mysql_error(&mysql));
@@ -128,7 +125,9 @@ static void db_close(void)
  */
 static int db_connect(void)
 {
+#if MYSQL_VERSION_ID < 32200
         int state;
+#endif
 
         if ( ! dbhost || ! dbname ) {
                 log(LOG_INFO, "MySQL logging not enabled because dbhost / dbname information missing.\n");
@@ -141,7 +140,7 @@ static int db_connect(void)
 
 	mysql_init(&mysql);
 #if MYSQL_VERSION_ID >= 32200
-	connection = mysql_real_connect(&mysql, dbhost, dbuser, dbpass, dbname, atoi(dbport), NULL, CLIENT_COMPRESS + CLIENT_SSL);
+	connection = mysql_real_connect(&mysql, dbhost, dbuser, dbpass, dbname, atoi(dbport), NULL, 0);
 #else
 	connection = mysql_connect(&mysql, dbhost, dbuser, dbpass);
 #endif
@@ -151,6 +150,7 @@ static int db_connect(void)
                 return -1;
         }
 
+#if MYSQL_VERSION_ID < 32200
         /*
          * select which database to use on the server
          */
@@ -162,6 +162,7 @@ static int db_connect(void)
                 mysql_close(connection);
                 return -1;
         }
+#endif
 
         return 0;
 }
