@@ -30,6 +30,7 @@
 
 #include <libprelude/prelude-inttypes.h>
 #include <libprelude/idmef.h>
+#include <libprelude/prelude-error.h>
 
 #include <libpreludedb/db-type.h>
 #include <libpreludedb/db.h>
@@ -41,6 +42,7 @@
 #include <libpreludedb/db-message-ident.h>
 #include <libpreludedb/db-interface.h>
 #include <libpreludedb/db-interface-string.h>
+
 
 #include "libmissing.h"
 #include "report.h"
