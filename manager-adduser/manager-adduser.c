@@ -39,7 +39,6 @@ int main(void)
 {
         int ret;
         char buf[16];
-        char filename[256];
         
         fprintf(stderr, "\n\nAuthentication method (cipher/plaintext) [cipher] : ");
         fgets(buf, sizeof(buf), stdin);

@@ -41,6 +41,7 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/config-engine.h>
+#include <libprelude/ssl-register.h>
 #include <libprelude/ssl-gencrypto.h>
 #include <libprelude/ssl-registration-msg.h>
 

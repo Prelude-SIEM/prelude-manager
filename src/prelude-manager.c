@@ -86,9 +86,7 @@ static void cleanup(int sig)
 
 
 static void init_manager_server(void) 
-{
-        int ret;
-        
+{        
         /*
          * Initialize the sensors server.
          */
