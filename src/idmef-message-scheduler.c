@@ -136,27 +136,36 @@ static void signal_input_available(void)
 }
 
 
-
-
 /*
  * Wait until a message is queued.
  */
-static void wait_for_message(void) 
+static void wait_for_message(struct timeval *start) 
 {
         int ret;
-        struct timeval now;
         struct timespec ts;
+        struct timeval end;
         
         pthread_mutex_lock(&input_mutex);            
         
         while ( ! input_available && ! stop_processing ) {
-                gettimeofday(&now, NULL);
-                ts.tv_sec = now.tv_sec + 1;
-                ts.tv_nsec = now.tv_usec * 1000;
+
+                if ( start->tv_sec == 0 ) {
+                        gettimeofday(start, NULL);
+                        start->tv_sec++;
+                }
+                
+                ts.tv_sec = start->tv_sec;
+                ts.tv_nsec = start->tv_usec * 1000;
                 
                 ret = pthread_cond_timedwait(&input_cond, &input_mutex, &ts);
-                if ( ret == ETIMEDOUT ) 
+                if ( ret == ETIMEDOUT ) {
+                        start->tv_sec = 0;
                         prelude_wake_up_timer();
+                } else {
+                        gettimeofday(&end, NULL);
+                        start->tv_sec += (end.tv_sec - start->tv_sec);
+                        start->tv_usec += (end.tv_usec - start->tv_usec);
+                }
         }
         
         if ( ! input_available && stop_processing ) {
@@ -420,7 +429,9 @@ static void *message_reader(void *arg)
 {
         int ret;
         sigset_t set;
-        
+        struct timeval tv;
+
+        tv.tv_sec = 0;
         sigfillset(&set);
         
         ret = pthread_sigmask(SIG_SETMASK, &set, NULL);
@@ -428,10 +439,10 @@ static void *message_reader(void *arg)
                 log(LOG_ERR, "couldn't set thread signal mask.\n");
                 return NULL;
         }
-
+        
         while ( ! stop_processing ) {
                 schedule_queued_message();
-                wait_for_message();
+                wait_for_message(&tv);
         }
 
         /*
