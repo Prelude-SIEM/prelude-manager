@@ -24,8 +24,9 @@
 #ifndef PLUGIN_DECODE_H
 #define PLUGIN_DECODE_H
 
-#include "idmef.h"
+#include <libprelude/idmef-tree.h>
 
+#include "idmef-func.h"
 
 typedef struct {
         PLUGIN_GENERIC;

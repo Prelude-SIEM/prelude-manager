@@ -36,12 +36,14 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/alert-id.h>
+#include <libprelude/idmef-tree.h>
 
 #include "alert-scheduler.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
 #include "pconfig.h"
-#include "idmef.h"
+#include "idmef-func.h"
+#include "idmef-message-read.h"
 
 
 #define MAX_ALERT_IN_MEMORY 200
@@ -170,10 +172,14 @@ static void process_message(prelude_msg_t *msg)
         manager_relay_msg_if_needed(msg);
                 
         idmef = idmef_alert_new();
-        
-        ret = decode_plugins_run(msg, idmef->message.alert);
-        if ( ret >= 0 ) 
-                report_plugins_run(idmef->message.alert);
+
+        ret = idmef_message_read(idmef, msg);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error reading IDMEF message.\n");
+                return;
+        }
+
+        report_plugins_run(idmef->message.alert);
         
         idmef_message_free(idmef);
         

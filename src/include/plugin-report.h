@@ -24,8 +24,8 @@
 #ifndef PLUGIN_REPORT_H
 #define PLUGIN_REPORT_H
 
-#include "idmef.h"
 
+#include <libprelude/idmef-tree.h>
 
 typedef struct {
         PLUGIN_GENERIC;

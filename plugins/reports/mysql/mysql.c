@@ -111,7 +111,7 @@ static int db_insert(char *table, char *fields, char *values)
 
 
 
-static void print_address(const char *alert_ident, const char *parent_ident,
+static void print_address(unsigned long alert_ident, const char *parent_ident,
                           const char parent_type, const char *node_ident,
                           const idmef_address_t *addr) 
 {
@@ -127,7 +127,7 @@ static void print_address(const char *alert_ident, const char *parent_ident,
         /*
          * prepare values
          */
-        snprintf(query, sizeof(query), "\"%s\", \"%c\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%d\", \"%s\", \"%s\"",
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%d\", \"%s\", \"%s\"",
                  alert_ident, parent_type, parent_ident, node_ident, ident,
                  category, vlan_name, addr->vlan_num, address, netmask);
 
@@ -148,7 +148,7 @@ static void print_address(const char *alert_ident, const char *parent_ident,
 
 
 
-static void print_node(const char *alert_ident, const char *parent_ident,
+static void print_node(unsigned long alert_ident, const char *parent_ident,
                        const char parent_type, const idmef_node_t *node) 
 {
         struct list_head *tmp;
@@ -164,11 +164,16 @@ static void print_node(const char *alert_ident, const char *parent_ident,
         /*
          * prepare query
          */
-        snprintf(query, sizeof(query), "\"%s\", \"%c\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"",
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"",
                  alert_ident, parent_type, parent_ident, ident, category, location, name);
 
         db_insert("Prelude_Node",
                   "alert_ident, parent_type, parent_ident, ident, category, location, name", query);
+        
+        list_for_each(tmp, &node->address_list) {
+                addr = list_entry(tmp, idmef_address_t, list);
+                print_address(alert_ident, parent_ident, parent_type, ident, addr);
+        }
         
         /*
          * free memory allocated by db_escape()
@@ -177,17 +182,13 @@ static void print_node(const char *alert_ident, const char *parent_ident,
         free(ident);
         free(location);
         free(category);
-        
-        list_for_each(tmp, &node->address_list) {
-                addr = list_entry(tmp, idmef_address_t, list);
-                print_address(alert_ident, parent_ident, parent_type, ident, addr);
-        }
 }
 
 
 
 
-static void print_userid(const char *parent_ident, const idmef_userid_t *uid) 
+static void print_userid(unsigned long alert_ident, const char *parent_ident,
+                         char parent_type, const char *user_ident, const idmef_userid_t *uid) 
 {
         char query[MAX_QUERY_LENGTH];
         char *ident, *name, *number, *type;
@@ -200,10 +201,11 @@ static void print_userid(const char *parent_ident, const idmef_userid_t *uid)
         /*
          * prepare query
          */
-        snprintf(query, sizeof(query), "\"%s\", \"%s\", \"%s\", \"%s\", \"%s\"",
-                 parent_ident, ident, type, name, number);
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"",
+                 alert_ident, parent_type, parent_ident, user_ident, ident, type, name, number);
 
-        db_insert("Prelude_UserId", "parent_ident, ident, type, name, number", query);
+        db_insert("Prelude_UserId", "alert_ident, paretnt_type, "
+                  "parent_ident, user_ident, ident, type, name, number", query);
 
         /*
          * free memory allocated by db_escape()
@@ -219,7 +221,7 @@ static void print_userid(const char *parent_ident, const idmef_userid_t *uid)
 
 
 
-static void print_user(const char *alert_ident, const char *parent_ident,
+static void print_user(unsigned long alert_ident, const char *parent_ident,
                        const char parent_type, const idmef_user_t *user) 
 {
         idmef_userid_t *uid;
@@ -232,7 +234,7 @@ static void print_user(const char *alert_ident, const char *parent_ident,
         /*
          * prepare query
          */
-        snprintf(query, sizeof(query), "\"%s\", \"%c\", \"%s\", \"%s\", \"%s\"",
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\", \"%s\"",
                  alert_ident, parent_type, parent_ident, ident, category);
 
         db_insert("Prelude_User", "alert_ident, parent_type, parent_ident, ident, category", query);
@@ -245,13 +247,13 @@ static void print_user(const char *alert_ident, const char *parent_ident,
         
         list_for_each(tmp, &user->userid_list) {
                 uid = list_entry(tmp, idmef_userid_t, list);
-                print_userid(alert_ident, uid);
+                print_userid(alert_ident, parent_ident, parent_type, ident, uid);
         }
 }
 
 
 
-static void print_process(const char *alert_ident, const char *parent_ident,
+static void print_process(unsigned long alert_ident, const char *parent_ident,
                           const char parent_type, const idmef_process_t *process) 
 {
         char query[MAX_QUERY_LENGTH], *ident, *name, *path;
@@ -263,7 +265,7 @@ static void print_process(const char *alert_ident, const char *parent_ident,
         /*
          * prepare query
          */
-        snprintf(query, sizeof(query), "\"%s\", \"%c\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"",
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"",
                  alert_ident, parent_type, parent_ident, ident, name, process->pid, path);
 
         db_insert("Prelude_Process", "alert_ident, parent_type, parent_ident, ident, name, pid, path",
@@ -279,7 +281,7 @@ static void print_process(const char *alert_ident, const char *parent_ident,
 
 
 
-static void print_service(const char *alert_ident, const char *parent_ident,
+static void print_service(unsigned long alert_ident, const char *parent_ident,
                           const char parent_type, const idmef_service_t *service) 
 {
         char query[MAX_QUERY_LENGTH];
@@ -295,7 +297,7 @@ static void print_service(const char *alert_ident, const char *parent_ident,
         /*
          * prepare query
          */
-        snprintf(query, sizeof(query), "\"%s\", \"%c\", \"%s\", \"%s\", \"%s\", \"%d\", \"%s\"", alert_ident,
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\", \"%s\", \"%d\", \"%s\"", alert_ident,
                  parent_type, parent_ident, ident, name, service->port, protocol);
 
         db_insert("Prelude_Service", "alert_ident, parent_type, parent_ident, ident, "
@@ -312,7 +314,7 @@ static void print_service(const char *alert_ident, const char *parent_ident,
 
 
 
-static void print_source(const char *alert_ident, const idmef_source_t *source)
+static void print_source(unsigned long alert_ident, const idmef_source_t *source)
 {
         char query[MAX_QUERY_LENGTH], *ident, *interface, *spoofed;
 
@@ -326,7 +328,7 @@ static void print_source(const char *alert_ident, const idmef_source_t *source)
         /*
          * prepare query
          */
-        snprintf(query, sizeof(query), "\"%s\", \"%s\", \"%s\", \"%s\"",
+        snprintf(query, sizeof(query), "\"%ld\", \"%s\", \"%s\", \"%s\"",
                  alert_ident, ident, spoofed, interface);
         
         db_insert("Prelude_Source", "alert_ident, ident, spoofed, interface", query);
@@ -347,7 +349,7 @@ static void print_source(const char *alert_ident, const idmef_source_t *source)
 
 
 
-static void print_target(const char *alert_ident, const idmef_target_t *target)
+static void print_target(unsigned long alert_ident, const idmef_target_t *target)
 {
         char query[MAX_QUERY_LENGTH], *ident, *interface, *decoy;
 
@@ -361,7 +363,7 @@ static void print_target(const char *alert_ident, const idmef_target_t *target)
         /*
          * prepare query
          */
-        snprintf(query, sizeof(query), "\"%s\", \"%s\", \"%s\", \"%s\"",
+        snprintf(query, sizeof(query), "\"%ld\", \"%s\", \"%s\", \"%s\"",
                  alert_ident, ident, decoy, interface);
         
         db_insert("Prelude_Source", "alert_ident, ident, spoofed, interface", query);
@@ -380,7 +382,7 @@ static void print_target(const char *alert_ident, const idmef_target_t *target)
 
 
 
-static void print_analyzer(const char *parent_ident, const idmef_analyzer_t *analyzer) 
+static void print_analyzer(unsigned long parent_ident, const idmef_analyzer_t *analyzer) 
 {
         char query[MAX_QUERY_LENGTH], parent_type;
         char *analyzerid, *manufacturer, *model, *version, *class;
@@ -399,7 +401,7 @@ static void print_analyzer(const char *parent_ident, const idmef_analyzer_t *ana
         /*
          * prepare query
          */ 
-        snprintf(query, sizeof(query), "\"%s\", \"%c\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"",
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"",
                  parent_ident, parent_type, analyzerid, manufacturer, model, version, class);
 
         db_insert("Prelude_Analyzer", "parent_ident, parent_type, analyzerid, "
@@ -421,7 +423,7 @@ static void print_analyzer(const char *parent_ident, const idmef_analyzer_t *ana
 
 
 
-static void print_classification(const char *alert_ident, const idmef_classification_t *class) 
+static void print_classification(unsigned long alert_ident, const idmef_classification_t *class) 
 {
         char *name, *url, *origin;
         char query[MAX_QUERY_LENGTH];
@@ -437,7 +439,7 @@ static void print_classification(const char *alert_ident, const idmef_classifica
         /*
          * prepare query
          */
-        snprintf(query, sizeof(query), "\"%s\", \"%s\", \"%s\", \"%s\"",
+        snprintf(query, sizeof(query), "\"%ld\", \"%s\", \"%s\", \"%s\"",
                  alert_ident, origin, name, url);
 
         /*
@@ -455,7 +457,7 @@ static void print_classification(const char *alert_ident, const idmef_classifica
 
 
 
-static void print_data(const char *parent_ident, const idmef_additional_data_t *ad) 
+static void print_data(unsigned long parent_ident, const idmef_additional_data_t *ad) 
 {
         char query[MAX_QUERY_LENGTH];
         char parent_type, *meaning, *data, *type;
@@ -469,7 +471,7 @@ static void print_data(const char *parent_ident, const idmef_additional_data_t *
         meaning = db_escape(ad->meaning);
         type = db_escape(idmef_additional_data_type_to_string(ad->type));
         
-        snprintf(query, sizeof(query), "\"%s\", \"%c\", \"%s\", \"%s\", \"%s\"",
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\", \"%s\"",
                  parent_ident, parent_type, type, meaning, data);
 
         db_insert("Prelude_AdditionalData", "parent_ident, parent_type, type, meaning, data", query);
@@ -481,22 +483,61 @@ static void print_data(const char *parent_ident, const idmef_additional_data_t *
 
 
 
+static void print_createtime(unsigned long parent_ident, char parent_type, idmef_time_t *time) 
+{
+        char query[MAX_QUERY_LENGTH], *ntpstamp;
+
+        ntpstamp = db_escape(time->ntpstamp);
+        
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\"", parent_ident, parent_type, ntpstamp);
+        db_insert("Prelude_CreateTime", "parent_ident, parent_type, ntpstamp", query);
+
+        free(ntpstamp);
+}
+
+
+
+
+static void print_detecttime(unsigned long alert_ident, idmef_time_t *time) 
+{
+        char query[MAX_QUERY_LENGTH], *ntpstamp;
+
+        ntpstamp = db_escape(time->ntpstamp);
+        
+        snprintf(query, sizeof(query), "\"%ld\", \"%s\"", alert_ident, ntpstamp);
+        db_insert("Prelude_DetectTime", "alert_ident, ntpstamp", query);
+
+        free(ntpstamp);
+}
+
+
+
+static void print_analyzertime(unsigned long parent_ident, char parent_type, idmef_time_t *time) 
+{
+        char query[MAX_QUERY_LENGTH], *ntpstamp;
+
+        ntpstamp = db_escape(time->ntpstamp);
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\"", parent_ident, parent_type, ntpstamp);
+        db_insert("Prelude_AnalyzerTime", "parent_ident, parent_type, ntpstamp", query);
+
+        free(ntpstamp);
+}
+
+
+
 static void print_alert(idmef_alert_t *alert) 
 {
+        unsigned long ident;
         struct list_head *tmp;
         idmef_source_t *source;
         idmef_target_t *target;
-
-        char query[MAX_QUERY_LENGTH];
-        char *ident, *impact, *action;
-
         idmef_classification_t *class;
         idmef_additional_data_t *data;
-        
+        char query[MAX_QUERY_LENGTH], *impact, *action;
+
         /*
          * escape SQL special chars
          */
-        ident = db_escape(alert->ident);
         impact = db_escape(alert->impact);
         action = db_escape(alert->action);
 
@@ -504,16 +545,21 @@ static void print_alert(idmef_alert_t *alert)
          * prepare query
          */
         snprintf(query, sizeof(query),
-                 "\"%s\", \"%s\", \"%s\"", ident, impact, action);
+                 "\"%s\", \"%s\"", impact, action);
 
         /* insert into DB */
-        db_insert("Prelude_Alert", "ident, impact, action", query);
+        db_insert("Prelude_Alert", "impact, action", query);
 
         /* free memory allocated by db_escape() */
         free(impact);
         free(action);
 
+        ident = mysql_insert_id(&mysql);
+
         print_analyzer(ident, &alert->analyzer);
+        print_createtime(ident, 'A', &alert->create_time);
+        print_detecttime(ident, &alert->detect_time);
+        print_analyzertime(ident, 'A', &alert->analyzer_time);
         
         list_for_each(tmp, &alert->source_list) {
                 source = list_entry(tmp, idmef_source_t, list);
@@ -535,9 +581,6 @@ static void print_alert(idmef_alert_t *alert)
                 data = list_entry(tmp, idmef_additional_data_t, list);
                 print_data(ident, data);
         }
-
-        /* free memory allocated by db_escape() */
-        free(ident);
 }
 
 

@@ -28,6 +28,6 @@
 
 #include "plugin-report.h"
 
-#include "libmissing.h"
+#include "idmef-func.h"
 
-#include "idmef.h"
+#include "libmissing.h"

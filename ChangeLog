@@ -1,3 +1,17 @@
+2001-11-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/Makefile.am (INCLUDES): Include local headers *before* installed
+	headers.
+
+	* plugins/reports/mysql/mysql.c: alert ident is auto incremented.
+	Also fix some missing insert.
+
+	* plugins/decodes/prelude-nids/decode.c: 
+	Remove code that is now handled by generic IDMEF message subsystem.
+
+	* src/idmef-message-read.c: new file. Read IDMEF message.
+	* src/include/idmef-func.h: moved idmef.h here.
+
 2001-11-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* Kill warning everywhere.

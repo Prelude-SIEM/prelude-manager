@@ -1,8 +1,6 @@
 SUBDIRS = include
 
-INCLUDES = @LIBPRELUDE_CFLAGS@ @XML2_CFLAGS@ \
-           -I$(top_srcdir)/ -I$(top_srcdir)/libmissing -I$(srcdir)/include/
-
+INCLUDES = -I$(top_srcdir)/ -I$(top_srcdir)/libmissing -I$(srcdir)/include/ @LIBPRELUDE_CFLAGS@ @XML2_CFLAGS@  
 DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\"       \
         -DREPORT_PLUGIN_DIR=\"@report_plugin_dir@\" \
 	-DDECODE_PLUGIN_DIR=\"@decode_plugin_dir@\" \
@@ -21,6 +19,8 @@ prelude_manager_SOURCES =			\
 			ssl.c			\
 			decode-plugins.c	\
 			alert-scheduler.c	\
-			idmef.c
+			idmef-func.c		\
+			idmef-message-read.c	\
+			api.c
 
 

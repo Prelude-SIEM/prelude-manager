@@ -34,8 +34,10 @@
 #include <libprelude/alert-id.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
+#include <libprelude/idmef-message-id.h>
+#include <libprelude/idmef-tree.h>
 
-
+#include "idmef-func.h"
 #include "nids-alert-id.h"
 #include "plugin-decode.h"
 #include "packet.h"
@@ -212,16 +214,12 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert)
         uint8_t tag;
         uint32_t len;
         struct timeval tv;
-        idmef_classification_t *class;
-        idmef_additional_data_t *data;
-
-        class = idmef_classification_new(alert);
-        if ( ! class ) 
-                return -1;
-
+        
         while ( 1 ) {
 
                 ret = prelude_msg_get(pmsg, &tag, &len, &buf);
+                printf("nids get %d, %d\n", ret, tag);
+                
                 if ( ret < 0 ) {
                         log(LOG_ERR, "error decoding message.\n");
                         return -1;
@@ -234,30 +232,6 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert)
                         break;
 
                 switch (tag) {
-                        
-                case ID_PRELUDE_NIDS_PLUGIN_NAME:
-                case ID_PRELUDE_NIDS_PLUGIN_AUTHOR:
-                case ID_PRELUDE_NIDS_PLUGIN_CONTACT:
-                case ID_PRELUDE_NIDS_PLUGIN_DESC:
-                        break;
-                        
-                case ID_PRELUDE_NIDS_MESSAGE:
-                        data = idmef_additional_data_new(alert);
-                        if ( ! data )
-                                return -1;
-                        
-                        data->type = string;
-                        data->meaning = "Attack information";
-                        data->data = buf;
-                        break;
-
-                case ID_PRELUDE_NIDS_REFERENCE_ORIGIN:
-                        class->origin = unknow;
-                        break;
-
-                case ID_PRELUDE_NIDS_REFERENCE_URL:
-                        class->url = buf;
-                        break;
 
                 case ID_PRELUDE_NIDS_TS_SEC:
                         tv.tv_sec = ntohl( (*(long *)buf));
@@ -267,24 +241,21 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert)
                         tv.tv_usec = ntohl( (*(long *)buf)) ;
                         break;
                         
-                case ID_PRELUDE_NIDS_CLASSIFICATION_NAME:
-                        class->name = buf;
-                        break;
-
                 case ID_PRELUDE_NIDS_PACKET:
                         ret = msg_to_packet(pmsg, alert);
                         if ( ret < 0 )
                                 return -1;
                         break;
 
+                case MSG_END_OF_TAG:
+                        return 0;
+                        
                 default:
                         log(LOG_ERR, "unknow tag : %d.\n", tag);
                         break;
                 }
         }
 
-
-        alert->ident = "fixme";
         alert->impact = "unknown";
         
         return 0;
