@@ -278,7 +278,6 @@ CFAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarat
 AC_OUTPUT([
 
 Makefile 
-prelude-manager.conf
 
 libmissing/Makefile
 manager-adduser/Makefile
