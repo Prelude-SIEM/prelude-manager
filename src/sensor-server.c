@@ -54,10 +54,7 @@ typedef struct {
 
 
 static LIST_HEAD(sensor_cnx_list);
-static prelude_ident_t *analyzer_ident;
 static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t ident_request_lock = PTHREAD_MUTEX_INITIALIZER;
-
 
 
 static int option_list_to_xml(sensor_fd_t *cnx, prelude_msg_t *msg) 
@@ -123,42 +120,6 @@ static int option_list_to_xml(sensor_fd_t *cnx, prelude_msg_t *msg)
 
 
 
-static int handle_request_ident(sensor_fd_t *cnx)
-{
-        uint64_t nident;
-        prelude_msg_t *msg;
-        
-        msg = prelude_msg_new(1, sizeof(uint64_t), PRELUDE_MSG_ID, 0);
-        if ( ! msg )
-                return -1;
-
-        pthread_mutex_lock(&ident_request_lock);
-        cnx->analyzerid = prelude_ident_inc(analyzer_ident);
-        pthread_mutex_unlock(&ident_request_lock);
-
-#ifndef WORDS_BIGENDIAN
-        
-        /*
-         * Put in network byte order
-         */
-        ((uint32_t *) &nident)[0] = htonl(((uint32_t *) &cnx->analyzerid)[1]);
-        ((uint32_t *) &nident)[1] = htonl(((uint32_t *) &cnx->analyzerid)[0]);
-#endif
-        /*
-         * send the message
-         */
-        prelude_msg_set(msg, PRELUDE_MSG_ID_REPLY, sizeof(nident), &nident);
-        prelude_msg_write(msg, cnx->fd);
-        prelude_msg_destroy(msg);
-
-        log(LOG_INFO, "[%s] - allocated ident %llu on sensor request.\n", cnx->addr, cnx->analyzerid);
-        
-        return 0;
-}
-
-
-
-
 static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen) 
 {
         int ret;
@@ -213,10 +174,6 @@ static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg)
                 
         case PRELUDE_MSG_ID_DECLARE:
                 ret = handle_declare_ident(cnx, buf, dlen);
-                break;
-                
-        case PRELUDE_MSG_ID_REQUEST:
-                ret = handle_request_ident(cnx);
                 break;
                 
         default:
@@ -337,10 +294,6 @@ server_generic_t *sensor_server_new(const char *addr, uint16_t port)
 {
         int ret;
         server_generic_t *server;
-
-        analyzer_ident = prelude_ident_new(CONFIG_DIR"/analyzer.ident");
-        if ( ! analyzer_ident )
-                return NULL;
         
         server = server_generic_new(addr, port, sizeof(sensor_fd_t), accept_connection_cb,
                                     read_connection_cb, close_connection_cb);

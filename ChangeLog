@@ -1,5 +1,14 @@
 2002-05-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/sensor-server.c (handle_request_ident): removed.
+
+	(read_ident_message): remove handling of 
+	PRELUDE_MSG_ID_REQUEST. The Manager is no more responssible
+	for analyzer ID allocation.
+
+	(sensor_server_new): remove initialization of analyzer ident
+	object.
+
 	Fix daemon mode for Prelude Manager. Prelude-Manager should
 	fork() before thread are created.
 	
