@@ -62,6 +62,10 @@ const char *idmef_source_spoofed_to_string(idmef_spoofed_t spoofed);
 
 const char *idmef_target_decoy_to_string(idmef_spoofed_t decoy);
 
+void idmef_get_ntp_timestamp(struct timeval *tv, char *outptr, size_t size);
+
+void idmef_get_timestamp(struct timeval *tv, char *outptr, size_t size);
+
 #endif
 
 

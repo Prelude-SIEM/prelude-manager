@@ -21,6 +21,6 @@ prelude_manager_SOURCES =			\
 			alert-scheduler.c	\
 			idmef-func.c		\
 			idmef-message-read.c	\
-			api.c
+			ntp.c			
 
 
