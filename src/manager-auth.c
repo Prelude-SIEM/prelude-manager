@@ -56,11 +56,12 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 
 static int global_dh_lifetime;
-static uint16_t global_dh_bits;
+static unsigned int global_dh_bits;
 static gnutls_certificate_credentials cred;
 static gnutls_dh_params cur_dh_params = NULL;
 static prelude_timer_t dh_param_regeneration_timer;
 static pthread_mutex_t dh_regen_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 
 static int dh_check_elapsed(void)
@@ -89,13 +90,13 @@ static int dh_check_elapsed(void)
 
 
 
-static int dh_params_load(gnutls_dh_params dh, uint16_t req_bits)
+static int dh_params_load(gnutls_dh_params dh, unsigned int req_bits)
 {
         int ret;
         FILE *fd;
         ssize_t size;
-        uint16_t *bits;
         prelude_io_t *pfd;
+        unsigned int *bits;
         gnutls_datum prime, generator;
         
         fd = fopen(DH_FILENAME, "r");
@@ -157,7 +158,7 @@ static int dh_params_load(gnutls_dh_params dh, uint16_t req_bits)
 
 
 
-static int dh_params_save(gnutls_dh_params dh, uint16_t dh_bits)
+static int dh_params_save(gnutls_dh_params dh, unsigned int dh_bits)
 {
         int ret, fd;
         prelude_io_t *pfd;
@@ -382,7 +383,7 @@ static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnut
                 goto err;
         }
         
-        ret = sscanf(buf, "%" PRIu64, analyzerid);
+        ret = sscanf(buf, "%" PRELUDE_PRIu64, analyzerid);
         if ( ret != 1 ) {
                 ret = -1;
                 server_generic_log_client(client, PRELUDE_LOG_WARN, "error parsing certificate DN.\n");
@@ -407,7 +408,6 @@ static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnut
         gnutls_x509_crt_deinit(cert);   
         return ret;
 }
-
 
 
 

@@ -81,7 +81,7 @@ server_generic_t *server_generic_new(size_t serverlen,
                                      server_generic_write_func_t *write,
                                      server_generic_close_func_t *close);
 
-int server_generic_bind(server_generic_t *server, const char *addr, uint16_t port);
+int server_generic_bind(server_generic_t *server, const char *addr, unsigned int port);
 
 void server_generic_start(server_generic_t **server, size_t nserver);
 

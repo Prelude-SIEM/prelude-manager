@@ -750,7 +750,7 @@ server_generic_t *server_generic_new(size_t clientlen, server_generic_accept_fun
 
 
 
-int server_generic_bind(server_generic_t *server, const char *saddr, uint16_t port)
+int server_generic_bind(server_generic_t *server, const char *saddr, unsigned int port)
 {
         int ret;
         char out[128];
@@ -829,7 +829,7 @@ void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t prior
         char buf[1024];
         
         if ( cnx->ident && cnx->permission_string ) {
-                ret = snprintf(buf, sizeof(buf), " 0x%" PRIx64 " %s]: ", cnx->ident, cnx->permission_string);
+                ret = snprintf(buf, sizeof(buf), " 0x%" PRELUDE_PRIx64 " %s]: ", cnx->ident, cnx->permission_string);
                 if ( ret < 0 || ret >= sizeof(buf) )
                         return;
         } else {

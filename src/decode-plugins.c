@@ -66,7 +66,7 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
 /*
  *
  */
-int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *idmef) 
+int decode_plugins_run(unsigned int plugin_id, prelude_msg_t *msg, idmef_message_t *idmef) 
 {
         int ret;
         manager_decode_plugin_t *p;
@@ -90,7 +90,7 @@ int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *msg, idmef_message_t *i
                 return 0;
         }
         
-        prelude_log(PRELUDE_LOG_WARN, "No decode plugin for handling sensor id %d.\n", plugin_id);
+        prelude_log(PRELUDE_LOG_WARN, "No decode plugin for handling sensor id %u.\n", plugin_id);
         
         return -1;
 }

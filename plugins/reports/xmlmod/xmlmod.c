@@ -244,7 +244,7 @@ static void process_user_id(xmlNodePtr parent, idmef_user_id_t *user_id)
         idmef_attr_string(new, "ident", idmef_user_id_get_ident(user_id));
         idmef_attr_enum(new, "type", idmef_user_id_get_type(user_id), idmef_user_id_type_to_string);
         idmef_content_string(new, "name", idmef_user_id_get_name(user_id));
-        idmef_content_generic_optional(new, "number", "%" PRIu32, idmef_user_id_get_number(user_id));
+        idmef_content_generic_optional(new, "number", "%" PRELUDE_PRIu32, idmef_user_id_get_number(user_id));
 }
 
 
@@ -286,7 +286,7 @@ static void process_process(xmlNodePtr parent, idmef_process_t *process)
 
         idmef_attr_string(new, "ident", idmef_process_get_ident(process));
         idmef_content_string(new, "name", idmef_process_get_name(process));
-        idmef_content_generic_optional(new, "pid", "%" PRIu32, idmef_process_get_pid(process));
+        idmef_content_generic_optional(new, "pid", "%" PRELUDE_PRIu32, idmef_process_get_pid(process));
         idmef_content_string(new, "path", idmef_process_get_path(process));
 
 	string = NULL;
@@ -356,10 +356,10 @@ static void process_service(xmlNodePtr parent, idmef_service_t *service)
                 return;
 
         idmef_attr_string(new, "ident", idmef_service_get_ident(service));
-	idmef_content_generic_optional(new, "ip_version", "%" PRIu8, idmef_service_get_ip_version(service));
+	idmef_content_generic_optional(new, "ip_version", "%" PRELUDE_PRIu8, idmef_service_get_ip_version(service));
         idmef_content_string(new, "name", idmef_service_get_name(service));
-        idmef_content_generic_optional(new, "port", "%" PRIu16, idmef_service_get_port(service));
-	idmef_content_generic_optional(new, "iana_protocol_number", "%" PRIu8, idmef_service_get_iana_protocol_number(service));
+        idmef_content_generic_optional(new, "port", "%" PRELUDE_PRIu16, idmef_service_get_port(service));
+	idmef_content_generic_optional(new, "iana_protocol_number", "%" PRELUDE_PRIu8, idmef_service_get_iana_protocol_number(service));
 	idmef_content_string(new, "iana_protocol_name", idmef_service_get_iana_protocol_name(service));
         idmef_content_string(new, "portlist", idmef_service_get_portlist(service));
         idmef_content_string(new, "protocol", idmef_service_get_protocol(service));
@@ -459,11 +459,11 @@ static void process_inode(xmlNodePtr parent, idmef_inode_t *inode)
 
         process_time(new, "change-time", idmef_inode_get_change_time(inode));
 
-        idmef_content_generic_optional(new, "number", "%" PRIu32, idmef_inode_get_number(inode));
-        idmef_content_generic_optional(new, "major-device", "%" PRIu32,  idmef_inode_get_major_device(inode));
-        idmef_content_generic_optional(new, "minor-device", "%" PRIu32, idmef_inode_get_minor_device(inode));
-        idmef_content_generic_optional(new, "c-major-device", "%" PRIu32, idmef_inode_get_c_major_device(inode));
-        idmef_content_generic_optional(new, "c-minor-devide", "%" PRIu32, idmef_inode_get_c_minor_device(inode));
+        idmef_content_generic_optional(new, "number", "%" PRELUDE_PRIu32, idmef_inode_get_number(inode));
+        idmef_content_generic_optional(new, "major-device", "%" PRELUDE_PRIu32,  idmef_inode_get_major_device(inode));
+        idmef_content_generic_optional(new, "minor-device", "%" PRELUDE_PRIu32, idmef_inode_get_minor_device(inode));
+        idmef_content_generic_optional(new, "c-major-device", "%" PRELUDE_PRIu32, idmef_inode_get_c_major_device(inode));
+        idmef_content_generic_optional(new, "c-minor-devide", "%" PRELUDE_PRIu32, idmef_inode_get_c_minor_device(inode));
 }
 
 
@@ -490,8 +490,8 @@ static void process_file(xmlNodePtr parent, idmef_file_t *file)
         process_time(new, "create-time", idmef_file_get_create_time(file));
         process_time(new, "modify-time", idmef_file_get_modify_time(file));
         process_time(new, "access-time", idmef_file_get_access_time(file));
-        idmef_content_generic_optional(new, "data-size", "%" PRIu64, idmef_file_get_data_size(file));
-        idmef_content_generic_optional(new, "disk-size", "%" PRIu64, idmef_file_get_disk_size(file));
+        idmef_content_generic_optional(new, "data-size", "%" PRELUDE_PRIu64, idmef_file_get_data_size(file));
+        idmef_content_generic_optional(new, "disk-size", "%" PRELUDE_PRIu64, idmef_file_get_disk_size(file));
 
 	file_access = NULL;
 	while ( (file_access = idmef_file_get_next_file_access(file, file_access)) )

@@ -28,6 +28,6 @@ int decode_plugins_init(const char *dirname, void *data);
 
 void decode_plugins_free_data(void);
 
-int decode_plugins_run(uint8_t plugin_id, prelude_msg_t *pmsg, idmef_message_t *idmef);
+int decode_plugins_run(unsigned plugin_id, prelude_msg_t *pmsg, idmef_message_t *idmef);
 
 #endif /* _MANAGER_PLUGIN_DECODE_H */

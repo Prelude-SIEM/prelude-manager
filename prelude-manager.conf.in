@@ -55,8 +55,6 @@ listen = 127.0.0.1
 # You might use this option multiple time for different plugins.
 #
 # failover = name_of_plugin
-# failover-initial-timeout = 10 * 60
-# failover-increase = * 2
 
 
 ####################################
@@ -139,14 +137,11 @@ listen = 127.0.0.1
 
 
 # [Debug]
+# 
+# logfile = stderr
 #
-# Print the value of each element:
-# verbose 
+# Specify the name of the IDMEF object to print (you might select multiple objects).
+# If no object is provided, 'Debug' will print out the entire message.
 #
-# Be aggressive, print strings even if consistency checks fail 
-# (may lead to crash):
-#
-# aggressive
-#
-# Use wide format for lists:
-# wide-format
+# object = alert.classification.text
+

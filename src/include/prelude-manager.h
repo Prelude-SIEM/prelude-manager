@@ -43,7 +43,7 @@ typedef struct {
  */
 typedef struct {
         PRELUDE_PLUGIN_GENERIC;
-        uint8_t decode_id;
+        unsigned int decode_id;
         int (*run)(prelude_msg_t *ac, idmef_message_t *idmef);
 } manager_decode_plugin_t;
 
