@@ -228,8 +228,7 @@ static int read_connection_cb(server_generic_client_t *client)
                 break;
                 
         case PRELUDE_MSG_OPTION_LIST:
-                log(LOG_INFO, "[%s] - FIXME: (%s) message to XML translation here.\n", cnx->addr, __FUNCTION__);
-                
+                                
                 ret = option_list_to_xml(cnx, msg);
                 if ( ret == 0 )
                         manager_relay_msg_if_needed(msg);

@@ -1,5 +1,8 @@
 2002-05-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/sensor-server.c (read_connection_cb): 
+	remove FIXME message. This is for a later release.
+
 	* plugins/reports/textmod/textmod.c (process_analyzer): 
 	print analyzerId.
 
