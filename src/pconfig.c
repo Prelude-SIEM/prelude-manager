@@ -133,7 +133,7 @@ int pconfig_init(int argc, char **argv)
         int ret;
         
 	/* Default */
-	config.addr = "0.0.0.0";
+	config.addr = "unix";
 	config.port = 5554;
         config.admin_server_port = 5555;
 	config.daemonize = 0;
