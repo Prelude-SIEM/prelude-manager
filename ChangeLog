@@ -1,3 +1,9 @@
+2002-02-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* manager-adduser/ssl-register-client.c (create_manager_key_if_needed): 
+	fix a typo, thanks to Sebastien Tricaud <tricauds@tammy.croftj.net>
+	for pointing this out.
+
 2002-02-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* prelude-manager.conf.in (admin-srvr): update.

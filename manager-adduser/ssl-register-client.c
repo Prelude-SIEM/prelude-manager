@@ -177,7 +177,7 @@ static int create_manager_key_if_needed(void)
         if ( ret == 0 )
                 return 0;
 
-        fprintf(stderr, "\nNo Manager key exist... Buildling Manager private key...");
+        fprintf(stderr, "\nNo Manager key exist... Building Manager private key...");
 
         ask_ssl_settings(&keysize, &expire);
         
