@@ -418,6 +418,12 @@ static void process_analyzer(const idmef_analyzer_t *analyzer)
         
         if ( idmef_string(&analyzer->osversion) )
                 print(0, "* Analyzer OS version: %s\n", idmef_string(&analyzer->osversion));
+
+        if ( analyzer->node )
+                process_node(0, analyzer->node);
+
+        if ( analyzer->process )
+                process_process(0, analyzer->process);
 }
 
 

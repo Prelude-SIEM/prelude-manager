@@ -1,5 +1,8 @@
 2002-05-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* plugins/reports/textmod/textmod.c (process_analyzer): 
+	print process and analyzer if any.
+
 	* src/idmef-message-read.c (idmef_message_read): 
 	as of now, ident is always set from the Manager.
 
