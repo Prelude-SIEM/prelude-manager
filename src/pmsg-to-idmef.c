@@ -74,7 +74,7 @@ static int fill_local_analyzer_infos(idmef_analyzer_t *analyzer)
 
 
 
-static idmef_time_t *get_msg_time(prelude_msg_t *msg)
+static idmef_time_t *get_msg_time(prelude_msg_t *msg, idmef_time_t *create_time)
 {
         struct timeval tv;
         idmef_time_t *time;
@@ -89,6 +89,7 @@ static idmef_time_t *get_msg_time(prelude_msg_t *msg)
 
         idmef_time_set_sec(time, tv.tv_sec);
         idmef_time_set_usec(time, tv.tv_usec);
+	idmef_time_set_gmt_offset(time, idmef_time_get_gmt_offset(create_time));
         
         return time;
 }
@@ -108,8 +109,10 @@ static int handle_heartbeat_msg(prelude_msg_t *msg, idmef_message_t *idmef)
                 return -1;
 
         if ( ! idmef_heartbeat_get_analyzer_time(heartbeat) )
-                idmef_heartbeat_set_analyzer_time(heartbeat, get_msg_time(msg));
-        
+                idmef_heartbeat_set_analyzer_time(heartbeat,
+						  get_msg_time(msg,
+							       idmef_heartbeat_get_create_time(heartbeat)));
+
         return fill_local_analyzer_infos(idmef_heartbeat_get_analyzer(heartbeat));
 }
 
@@ -128,7 +131,9 @@ static int handle_alert_msg(prelude_msg_t *msg, idmef_message_t *idmef)
                 return -1;
         
         if ( ! idmef_alert_get_analyzer_time(alert) )
-                idmef_alert_set_analyzer_time(alert, get_msg_time(msg));
+                idmef_alert_set_analyzer_time(alert,
+					      get_msg_time(msg,
+							   idmef_alert_get_create_time(alert)));
         
         return fill_local_analyzer_infos(idmef_alert_get_analyzer(alert));
 }
