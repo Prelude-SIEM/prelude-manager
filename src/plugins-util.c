@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -44,7 +44,7 @@
  * Returns: Pointer on an allocated buffer containing the hexadecimal dump,
  * or NULL if an error occured.
  */
-char *prelude_string_to_hex(const unsigned char *input, uint32_t len) 
+char *prelude_string_to_hex(const unsigned char *input, uint32_t  len) 
 {
         int i, totlen;
         unsigned char c;
@@ -53,29 +53,32 @@ char *prelude_string_to_hex(const unsigned char *input, uint32_t len)
         const int text_offset = 51;
         const char hextbl[] = { '0', '1', '2', '3', '4', '5', '6', '7',
                                 '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
         
         round = (len / 16) + 1;
         totlen = (round * (text_offset + 16 + 1)) + 1;
         
         ret = line = malloc(totlen);
-        if ( ! line )
+        if ( ! line ) {
+                log(LOG_ERR, "memory exhausted.\n");
                 return NULL;
+        }
         
         text = line + text_offset;
                 
         for ( i = 0; i < len; i++ ) {
-                
+
                 c = *input++;
                 *line++ = hextbl[c >> 4];
                 *line++ = hextbl[c & 0xf];
                 *line++ = ' ';
                 *text++ = isprint(c) ? c : '.';
-                
+
                 if ( (i + 1) % 16 == 0 ) {
-                        *text++ = '\n';
+                        *text++ = '\n';                        
                         line = text;
-                        text = text + text_offset;
+                        
+                        if ( i + 1 < len ) 
+                                text = text + text_offset;       
                 }
                 
                 else if ( (i + 1) % 4 == 0 ) 
@@ -83,7 +86,9 @@ char *prelude_string_to_hex(const unsigned char *input, uint32_t len)
         }
         
         if ( i % 16 != 0 ) {
-                
+                /*
+                 * fill remaining unwritten data with white space.
+                 */
                 while ( i++ % 16 != 0 ) {
 
                         *text++ = ' ';
@@ -97,7 +102,7 @@ char *prelude_string_to_hex(const unsigned char *input, uint32_t len)
                 
                 *text++ = '\n';
         }
-
+        
         *text++ = '\0';
         
         return ret;

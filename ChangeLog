@@ -1,3 +1,9 @@
+2002-04-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/plugins-util.c (prelude_string_to_hex): 
+	don't increment text pointer if we are at the end of the buffer.
+	This fix bug #0000020 (Non ASCII character in hexadecimal dump).
+
 2002-04-11  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
 
 	* plugins/reports/debug/debug.c: added missing call to process
