@@ -212,7 +212,7 @@ int main(int argc, char **argv)
                 return -1;
         }
         
-        prelude_client_set_flags(manager_client, PRELUDE_CLIENT_ASYNC_SEND);
+        prelude_client_set_flags(manager_client, PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
 
         /*
          * start server
