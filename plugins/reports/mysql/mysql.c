@@ -485,16 +485,13 @@ static void print_data(unsigned long parent_ident, const idmef_additional_data_t
 
 static void print_createtime(unsigned long parent_ident, char parent_type, idmef_time_t *time) 
 {
-        char query[MAX_QUERY_LENGTH], *ntpstamp;
+        char query[MAX_QUERY_LENGTH], *ntpstamp, *t;
 
-        printf("%s\n", time->ntpstamp);
-        
+        t = db_escape(time->time);
         ntpstamp = db_escape(time->ntpstamp);
-
-        printf("%s\n", ntpstamp);
         
-        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\"", parent_ident, parent_type, ntpstamp);
-        db_insert("Prelude_CreateTime", "parent_ident, parent_type, ntpstamp", query);
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\"", parent_ident, parent_type, t, ntpstamp);
+        db_insert("Prelude_CreateTime", "parent_ident, parent_type, time, ntpstamp", query);
 
         free(ntpstamp);
 }
@@ -504,12 +501,13 @@ static void print_createtime(unsigned long parent_ident, char parent_type, idmef
 
 static void print_detecttime(unsigned long alert_ident, idmef_time_t *time) 
 {
-        char query[MAX_QUERY_LENGTH], *ntpstamp;
-
+        char query[MAX_QUERY_LENGTH], *ntpstamp, *t;
+        
+        t = db_escape(time->time);
         ntpstamp = db_escape(time->ntpstamp);
         
-        snprintf(query, sizeof(query), "\"%ld\", \"%s\"", alert_ident, ntpstamp);
-        db_insert("Prelude_DetectTime", "alert_ident, ntpstamp", query);
+        snprintf(query, sizeof(query), "\"%ld\", \"%s\", \"%s\"", alert_ident, t, ntpstamp);
+        db_insert("Prelude_DetectTime", "alert_ident, time, ntpstamp", query);
 
         free(ntpstamp);
 }
@@ -518,11 +516,13 @@ static void print_detecttime(unsigned long alert_ident, idmef_time_t *time)
 
 static void print_analyzertime(unsigned long parent_ident, char parent_type, idmef_time_t *time) 
 {
-        char query[MAX_QUERY_LENGTH], *ntpstamp;
+        char query[MAX_QUERY_LENGTH], *ntpstamp, *t;
 
+        t = db_escape(time->time);
         ntpstamp = db_escape(time->ntpstamp);
-        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\"", parent_ident, parent_type, ntpstamp);
-        db_insert("Prelude_AnalyzerTime", "parent_ident, parent_type, ntpstamp", query);
+
+        snprintf(query, sizeof(query), "\"%ld\", \"%c\", \"%s\", \"%s\"", parent_ident, parent_type, t, ntpstamp);
+        db_insert("Prelude_AnalyzerTime", "parent_ident, parent_type, time, ntpstamp", query);
 
         free(ntpstamp);
 }
