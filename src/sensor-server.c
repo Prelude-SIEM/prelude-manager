@@ -329,7 +329,7 @@ static int handle_declare_parent_relay(sensor_fd_t *cnx)
         server_generic_log_client((server_generic_client_t *) cnx,
                                   "client declared to be a parent relay (we relay to him).\n");
         
-        return reverse_relay_tell_receiver_alive(pc);
+        return reverse_relay_set_receiver_alive(pc);
 }
 
 
@@ -522,7 +522,7 @@ static void close_connection_cb(server_generic_client_t *ptr)
         if ( cnx->cnx ) {
                 cnx->fd = NULL;
                 prelude_connection_close(cnx->cnx);
-                reverse_relay_tell_dead(cnx->cnx, cnx->capability);
+                reverse_relay_set_dead(cnx->cnx, cnx->capability);
         }
         
         if ( ! prelude_list_is_empty(&cnx->list) ) {

@@ -21,9 +21,9 @@
 *
 *****/
 
-int reverse_relay_tell_receiver_alive(prelude_connection_t *cnx);
+int reverse_relay_set_receiver_alive(prelude_connection_t *cnx);
 
-int reverse_relay_tell_dead(prelude_connection_t *cnx, prelude_connection_capability_t capability);
+int reverse_relay_set_dead(prelude_connection_t *cnx, prelude_connection_capability_t capability);
 
 int reverse_relay_add_receiver(prelude_connection_t *cnx);
 

@@ -40,7 +40,7 @@ int relaying_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, void *da
 
 
 typedef struct {
-        prelude_connection_mgr_t *parent_manager;
+        prelude_connection_pool_t *conn_pool;
 } relaying_plugin_t;
 
 
@@ -52,9 +52,9 @@ extern prelude_client_t *manager_client;
 
 static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 {
-        prelude_connection_mgr_t *mgr = prelude_msgbuf_get_data(msgbuf);
+        prelude_connection_pool_t *pool = prelude_msgbuf_get_data(msgbuf);
         
-        prelude_connection_mgr_broadcast(mgr, msg);
+        prelude_connection_pool_broadcast(pool, msg);
                 
         return 0;
 }
@@ -66,7 +66,7 @@ static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idme
         int ret;
         relaying_plugin_t *plugin = prelude_plugin_instance_get_data(pi);
 
-        if ( ! plugin->parent_manager )
+        if ( ! plugin->conn_pool ) 
                 return 0;
         
         if ( ! msgbuf ) {
@@ -75,7 +75,7 @@ static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idme
                         return ret;
 
                 prelude_msgbuf_set_callback(msgbuf, send_msgbuf);
-                prelude_msgbuf_set_data(msgbuf, plugin->parent_manager);
+                prelude_msgbuf_set_data(msgbuf, plugin->conn_pool);
         }
         
         idmef_message_write(idmef, msgbuf);
@@ -107,21 +107,21 @@ static int relaying_set_manager(prelude_option_t *opt, const char *optarg, prelu
         prelude_client_profile_t *cp;
         relaying_plugin_t *plugin = prelude_plugin_instance_get_data(context);
 
-        if ( ! plugin->parent_manager ) {
+        if ( ! plugin->conn_pool ) {
                 cp = prelude_client_get_profile(manager_client);
                 
-                ret = prelude_connection_mgr_new(&plugin->parent_manager, cp, PRELUDE_CONNECTION_CAPABILITY_CONNECT);
-                if ( ! plugin->parent_manager )
+                ret = prelude_connection_pool_new(&plugin->conn_pool, cp, PRELUDE_CONNECTION_CAPABILITY_CONNECT);
+                if ( ! plugin->conn_pool )
                         return ret;
 
-                prelude_connection_mgr_set_flags(plugin->parent_manager, PRELUDE_CONNECTION_MGR_FLAGS_RECONNECT);
+                prelude_connection_pool_set_flags(plugin->conn_pool, PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
         }
                 
-        ret = prelude_connection_mgr_set_connection_string(plugin->parent_manager, optarg);
+        ret = prelude_connection_pool_set_connection_string(plugin->conn_pool, optarg);
         if ( ret < 0 )
                 return ret;
 
-        ret = prelude_connection_mgr_init(plugin->parent_manager);
+        ret = prelude_connection_pool_init(plugin->conn_pool);
         if ( ret < 0 )
                 return ret;
 
@@ -135,10 +135,10 @@ static int relaying_get_manager(prelude_option_t *opt, prelude_string_t *out, vo
 {
         relaying_plugin_t *plugin = prelude_plugin_instance_get_data(context);
 
-        if ( ! plugin->parent_manager )
+        if ( ! plugin->conn_pool )
                 return 0;
 
-        prelude_string_sprintf(out, "%s", prelude_connection_mgr_get_connection_string(plugin->parent_manager));
+        prelude_string_sprintf(out, "%s", prelude_connection_pool_get_connection_string(plugin->conn_pool));
 
         return 0;
 }

@@ -28,7 +28,7 @@
 
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/prelude-connection-mgr.h>
+#include <libprelude/prelude-connection-pool.h>
 
 #include "reverse-relaying.h"
 #include "server-generic.h"
@@ -37,7 +37,7 @@
 
 typedef struct {
         pthread_mutex_t mutex;
-        prelude_connection_mgr_t *mgr;
+        prelude_connection_pool_t *pool;
 } reverse_relay_t;
 
 
@@ -49,12 +49,12 @@ extern prelude_client_t *manager_client;
 
 
 
-static int connection_event_cb(prelude_connection_mgr_t *mgr,
-                               prelude_connection_mgr_event_t event, prelude_connection_t *cnx) 
+static int connection_event_cb(prelude_connection_pool_t *pool,
+                               prelude_connection_pool_event_t event, prelude_connection_t *cnx) 
 {
         int ret;
         
-        if ( ! (event & PRELUDE_CONNECTION_MGR_EVENT_ALIVE) )
+        if ( ! (event & PRELUDE_CONNECTION_POOL_EVENT_ALIVE) )
                 return 0;
 
         prelude_connection_set_data(cnx, &initiator);
@@ -68,15 +68,15 @@ static int connection_event_cb(prelude_connection_mgr_t *mgr,
 
 
 
-int reverse_relay_tell_receiver_alive(prelude_connection_t *cnx) 
+int reverse_relay_set_receiver_alive(prelude_connection_t *cnx) 
 {
         int ret;
 
-        if ( ! receiver.mgr )
+        if ( ! receiver.pool )
                 return 0;
         
         pthread_mutex_lock(&receiver.mutex);
-        ret = prelude_connection_mgr_tell_connection_alive(receiver.mgr, cnx);
+        ret = prelude_connection_pool_set_connection_alive(receiver.pool, cnx);
         pthread_mutex_unlock(&receiver.mutex);
 
         return ret;
@@ -84,13 +84,13 @@ int reverse_relay_tell_receiver_alive(prelude_connection_t *cnx)
 
 
 
-int reverse_relay_tell_dead(prelude_connection_t *cnx, prelude_connection_capability_t capability) 
+int reverse_relay_set_dead(prelude_connection_t *cnx, prelude_connection_capability_t capability) 
 {
         int ret = -1;
         reverse_relay_t *ptr = prelude_connection_get_data(cnx);
         
         pthread_mutex_lock(&ptr->mutex);
-        ret = prelude_connection_mgr_tell_connection_dead(ptr->mgr, cnx);
+        ret = prelude_connection_pool_set_connection_dead(ptr->pool, cnx);
         pthread_mutex_unlock(&ptr->mutex);
         
         return ret;
@@ -108,20 +108,20 @@ int reverse_relay_add_receiver(prelude_connection_t *cnx)
         
         pthread_mutex_lock(&receiver.mutex);
 
-        if ( ! receiver.mgr ) {
-                ret = prelude_connection_mgr_new(&receiver.mgr, cp, PRELUDE_CONNECTION_CAPABILITY_NONE);
-                if ( ! receiver.mgr ) {
-                        prelude_perror(ret, "error creating connection-mgr object");
+        if ( ! receiver.pool ) {
+                ret = prelude_connection_pool_new(&receiver.pool, cp, PRELUDE_CONNECTION_CAPABILITY_NONE);
+                if ( ! receiver.pool ) {
+                        prelude_perror(ret, "error creating connection pool");
                         return -1;
                 }
                 
-                prelude_connection_mgr_set_flags(receiver.mgr, ~PRELUDE_CONNECTION_MGR_FLAGS_RECONNECT);
-                prelude_connection_mgr_init(receiver.mgr);
+                prelude_connection_pool_set_flags(receiver.pool, ~PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
+                prelude_connection_pool_init(receiver.pool);
         }
 
         prelude_connection_set_data(cnx, &receiver);
         
-        ret = prelude_connection_mgr_add_connection(receiver.mgr, cnx);
+        ret = prelude_connection_pool_add_connection(receiver.pool, cnx);
         if ( ret < 0 ) 
                 prelude_perror(ret, "error adding connection");
                 
@@ -137,10 +137,10 @@ prelude_connection_t *reverse_relay_search_receiver(uint64_t analyzerid)
         prelude_connection_t *cnx;
         prelude_list_t *head, *tmp;
                 
-        if ( ! receiver.mgr )
+        if ( ! receiver.pool )
                 return NULL;
         
-        head = prelude_connection_mgr_get_connection_list(receiver.mgr);
+        head = prelude_connection_pool_get_connection_list(receiver.pool);
         
         pthread_mutex_lock(&receiver.mutex);
         
@@ -163,7 +163,7 @@ prelude_connection_t *reverse_relay_search_receiver(uint64_t analyzerid)
 static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 {        
         pthread_mutex_lock(&receiver.mutex);
-        prelude_connection_mgr_broadcast(receiver.mgr, msg);
+        prelude_connection_pool_broadcast(receiver.pool, msg);
         pthread_mutex_unlock(&receiver.mutex);
                 
         return 0;
@@ -176,7 +176,7 @@ void reverse_relay_send_msg(idmef_message_t *idmef)
         int ret;
         static prelude_msgbuf_t *msgbuf = NULL;
         
-        if ( ! receiver.mgr )
+        if ( ! receiver.pool )
                 return;
 
         if ( ! msgbuf ) {
@@ -202,28 +202,27 @@ int reverse_relay_create_initiator(const char *arg)
         
         cp = prelude_client_get_profile(manager_client);
         
-        ret = prelude_connection_mgr_new(&initiator.mgr, cp, PRELUDE_CONNECTION_CAPABILITY_RECV_IDMEF);
+        ret = prelude_connection_pool_new(&initiator.pool, cp, PRELUDE_CONNECTION_CAPABILITY_RECV_IDMEF);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error creating reverse relay");
                 return ret;
         }
         
-        prelude_connection_mgr_set_flags(initiator.mgr, PRELUDE_CONNECTION_MGR_FLAGS_RECONNECT);
-        prelude_connection_mgr_set_event_handler(initiator.mgr,
-                                                 PRELUDE_CONNECTION_MGR_EVENT_DEAD|PRELUDE_CONNECTION_MGR_EVENT_ALIVE,
-                                                 connection_event_cb);
+        prelude_connection_pool_set_flags(initiator.pool, PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
+        prelude_connection_pool_set_event_handler(initiator.pool, PRELUDE_CONNECTION_POOL_EVENT_DEAD |
+                                                  PRELUDE_CONNECTION_POOL_EVENT_ALIVE, connection_event_cb);
         
-        ret = prelude_connection_mgr_set_connection_string(initiator.mgr, arg);
+        ret = prelude_connection_pool_set_connection_string(initiator.pool, arg);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error setting reverse relay connection string");
-                prelude_connection_mgr_destroy(initiator.mgr);
+                prelude_connection_pool_destroy(initiator.pool);
                 return ret;
         }
 
-        ret = prelude_connection_mgr_init(initiator.mgr);
+        ret = prelude_connection_pool_init(initiator.pool);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error initializing reverse relay");
-                prelude_connection_mgr_destroy(initiator.mgr);
+                prelude_connection_pool_destroy(initiator.pool);
                 return ret;
         }
         
@@ -235,10 +234,10 @@ int reverse_relay_create_initiator(const char *arg)
 
 int reverse_relay_init(void)
 {
-        receiver.mgr = NULL;
+        receiver.pool = NULL;
         pthread_mutex_init(&receiver.mutex, NULL);
 
-        initiator.mgr = NULL;
+        initiator.pool = NULL;
         pthread_mutex_init(&initiator.mutex, NULL);
 
         return 0;
