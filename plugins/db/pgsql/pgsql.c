@@ -93,6 +93,8 @@ static int db_insert(const char *query)
                 return -1;
         }
 
+	PQclear(ret);
+
         return 0;
 }
 
