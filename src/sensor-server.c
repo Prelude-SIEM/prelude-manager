@@ -58,8 +58,11 @@ typedef struct {
 } sensor_fd_t;
 
 
-extern prelude_client_t *manager_client;
+static int read_connection_cb(server_generic_client_t *client);
 
+
+
+extern prelude_client_t *manager_client;
 
 static PRELUDE_LIST(sensors_cnx_list);
 static pthread_mutex_t sensors_list_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -416,6 +419,53 @@ static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg)
 
 
 
+static int read_after_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
+{
+        int ret = -1;
+        
+        if ( tag == PRELUDE_MSG_IDMEF )
+                ret = idmef_message_schedule(cnx->queue, msg);
+        
+        else if ( tag == PRELUDE_MSG_OPTION_REQUEST )
+                ret = request_sensor_option(cnx, msg);
+
+        else if ( tag == PRELUDE_MSG_OPTION_REPLY )
+                ret = reply_sensor_option(cnx, msg);
+        
+        if ( tag != PRELUDE_MSG_IDMEF || ret < 0 )
+                prelude_msg_destroy(msg);
+        
+        if ( ret < 0 ) {
+                server_generic_log_client((server_generic_client_t *) cnx, "error processing request.\n");
+                return ret;
+        }
+        
+        return read_connection_cb((server_generic_client_t *) cnx);
+}
+
+
+
+static int read_prior_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
+{
+        int ret = -1;
+
+        if ( ! cnx->ident && tag == PRELUDE_MSG_ID )
+                ret = read_ident_message(cnx, msg);
+        
+        if ( ! cnx->capability && tag == PRELUDE_MSG_CONNECTION_CAPABILITY )
+                ret = read_connection_type(cnx, msg);
+            
+        prelude_msg_destroy(msg);
+        
+        if ( ret < 0 ) {
+                server_generic_log_client((server_generic_client_t *) cnx, "error registering client.\n");
+                return ret;
+        }
+        
+        return read_connection_cb((server_generic_client_t *) cnx);
+}
+
+
 
 static int read_connection_cb(server_generic_client_t *client)
 {
@@ -440,45 +490,11 @@ static int read_connection_cb(server_generic_client_t *client)
         cnx->msg = NULL;
         
         tag = prelude_msg_get_tag(msg);
+
+        if ( ! cnx->ident || ! cnx->capability )
+                return read_prior_setup(cnx, msg, tag);
         
-        /*
-         * If we get there, we have a whole message.
-         */        
-        switch ( tag ) {
-
-        case PRELUDE_MSG_IDMEF:
-                ret = idmef_message_schedule(cnx->queue, msg);
-                break;
-                
-        case PRELUDE_MSG_ID:
-                ret = (cnx->ident) ? -1 : read_ident_message(cnx, msg);
-                break;
-
-        case PRELUDE_MSG_CONNECTION_CAPABILITY:
-                ret = (cnx->capability) ? -1 : read_connection_type(cnx, msg);
-                break;
-                
-        case PRELUDE_MSG_OPTION_REQUEST:
-                ret = request_sensor_option(cnx, msg);
-                break;
-
-        case PRELUDE_MSG_OPTION_REPLY:
-                ret = reply_sensor_option(cnx, msg);
-                break;
-                
-        default:
-                ret = -1;
-                break;
-        }
-
-        if ( ret < 0 )
-                server_generic_log_client((server_generic_client_t *) cnx,
-                                          "error processing client request.\n");
-
-        if ( tag != PRELUDE_MSG_IDMEF )
-                prelude_msg_destroy(msg);
-
-        return (ret < 0) ? ret : read_connection_cb(client);
+        return read_after_setup(cnx, msg, tag);
 }
 
 
