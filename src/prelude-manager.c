@@ -113,6 +113,18 @@ static void fill_analyzer_infos(void)
 
 
 
+static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
+{
+        idmef_heartbeat_t *hb = idmef_message_get_heartbeat(idmef);
+        prelude_ident_t *ident = prelude_client_get_unique_ident(client);
+        
+        idmef_heartbeat_set_ident(hb, prelude_ident_inc(ident));
+        
+        idmef_message_process(client, idmef);
+}
+
+
+
 int main(int argc, char **argv)
 {
         int ret;
@@ -152,7 +164,7 @@ int main(int argc, char **argv)
                 return -1;
         
         fill_analyzer_infos();        
-        prelude_client_set_heartbeat_cb(manager_client, idmef_message_process);
+        prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
                 
         ret = prelude_client_init(manager_client, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF, argc, argv);
         if ( ret < 0 )
