@@ -38,6 +38,7 @@
 #include <libprelude/prelude-message.h>
 #include <libprelude/plugin-common.h>
 #include <libprelude/idmef-tree.h>
+#include <libprelude/threads.h>
 
 #include "plugin-decode.h"
 #include "plugin-report.h"

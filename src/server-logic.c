@@ -32,6 +32,7 @@
 #include <libprelude/list.h>
 #include <libprelude/common.h>
 #include <libprelude/prelude-io.h>
+#include <libprelude/threads.h>
 
 #include "server-logic.h"
 

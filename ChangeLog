@@ -1,5 +1,12 @@
 2001-12-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* configure.ac: add --enable-profiling
+
+	* src/server-logic.c: 
+	* src/prelude-manager.c: 
+	* src/idmef-message-scheduler.c: 
+	include threads.h in case profiling is enabled.
+	
 	* Added missing CREDITS file, taken from prelude-nids and updated
 	with the necessary entry.
 

@@ -114,6 +114,18 @@ AC_SUBST(PGSQL_LIBDIR)
 AC_SUBST(PGSQL_INCLUDEDIR)
 
 
+dnl **************************************************
+dnl * Enable / Disable gprof profiling.              *
+dnl **************************************************
+
+AC_ARG_ENABLE(profiling, [  --enable-profiling Enable Gprof profiling - with thread workaround [default=no]], \
+	      enable_profiling=yes, enable_profiling=no)
+
+if test x$enable_profiling = xyes ; then
+	CFLAGS="$CFLAGS -pg"
+	AC_DEFINE(ENABLE_PROFILING)
+fi
+
 
 
 dnl **************************************************
@@ -360,4 +372,4 @@ echo "*** Dumping configuration ***"
 echo "    - Use OpenSSL       : $enable_openssl"
 echo "    - MySQL plugin      : $enable_mysql"
 echo "    - PostgreSQL plugin : $enable_pgsql"
-
+echo "    - Enable profiling  : $enable_profiling"

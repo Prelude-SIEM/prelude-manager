@@ -38,7 +38,7 @@
 #include <libprelude/config-engine.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
-
+#include <libprelude/threads.h>
 
 #include "sensor-server.h"
 #include "admin-server.h"
