@@ -27,7 +27,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 
-#include <libprelude/prelude-list.h>
+#include <libprelude/idmef.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-path.h>
 #include <libprelude/config-engine.h>
@@ -38,10 +38,13 @@
 #include <libprelude/daemonize.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-client-mgr.h>
+#include <libprelude/prelude-linked-object.h>
 
 #include "config.h"
 #include "pconfig.h"
 #include "ssl.h"
+#include "server-generic.h"
+#include "reverse-relaying.h"
 
 
 
@@ -80,28 +83,10 @@ static int set_pidfile(void **context, prelude_option_t *opt, const char *arg)
 
 
 
-static int set_parent_manager(void **context, prelude_option_t *opt, const char *arg) 
+
+static int set_reverse_relay(void **context, prelude_option_t *opt, const char *arg) 
 {
-        int ret;
-        
-        ret = manager_parent_setup_from_cfgline(arg);
-        if ( ret < 0 )
-                return prelude_option_error;
-
-        return prelude_option_success;
-}
-
-
-
-static int set_child_manager(void **context, prelude_option_t *opt, const char *arg) 
-{
-        int ret;
-
-        ret = manager_children_setup_from_cfgline(arg);
-        if ( ret < 0 )
-                return prelude_option_error;
-        
-        return prelude_option_success;
+        return reverse_relay_create_initiator(arg);
 }
 
 
@@ -159,13 +144,9 @@ int pconfig_init(int argc, char **argv)
          */
         prelude_option_set_priority(opt, option_run_first);
         
-        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'p', "parent-managers",
-                           "List of managers address:port pair where messages should be sent to",
-                           required_argument, set_parent_manager, NULL);
-
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'c', "child-managers",
                            "List of managers address:port pair where messages should be gathered from",
-                           required_argument, set_child_manager, NULL);
+                           required_argument, set_reverse_relay, NULL);
         
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 's', "sensors-srvr", 
                            "Address the sensors server should listen on (addr:port)", required_argument,
