@@ -9,7 +9,23 @@ DEFS = -I$(top_srcdir)/ -I$(srcdir)/include/        \
 
 bin_PROGRAMS = prelude-manager
 prelude_manager_LDADD = @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@
-prelude_manager_LDFLAGS = -export-dynamic 
+
+if HAVE_XML2
+ XML_OBJS= -dlopen $(top_builddir)/plugins/reports/xmlmod/xmlmod.la
+endif
+
+if HAVE_LIBPRELUDEDB
+ DB_OBJS= -dlopen $(top_builddir)/plugins/reports/db/db.la
+endif
+
+DLOPENED_OBJS=$(XML_OBJS) $(DB_OBJS)
+
+prelude_manager_LDFLAGS = -export-dynamic \
+ 		-dlopen $(top_builddir)/plugins/decodes/prelude-nids/prelude-nids.la 	\
+		-dlopen $(top_builddir)/plugins/filters/filter/filter.la 		\
+		-dlopen $(top_builddir)/plugins/reports/relaying/relaying.la		\
+		-dlopen $(top_builddir)/plugins/reports/textmod/textmod.la		\
+		$(DLOPENED_OBJS)
 
 prelude_manager_SOURCES =			\
 			pconfig.c		\
