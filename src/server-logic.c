@@ -339,15 +339,18 @@ static int handle_fd_event(server_fd_set_t *set, int cnx_key)
         int ret = -2;
         
         assert(set->client[cnx_key]->key == cnx_key);
-                
-        if ( ret != -1 && set->pfd[cnx_key].revents & (POLLERR|POLLHUP|POLLNVAL) ) {
-                dprint("thread=%ld: key=%d, fd=%d: Hanging up.\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd);
-                ret = -1;
-        }
-        
-        else if ( set->pfd[cnx_key].events & POLLIN && set->pfd[cnx_key].revents & POLLIN ) {                
+
+        if ( set->pfd[cnx_key].events & POLLIN && set->pfd[cnx_key].revents & POLLIN ) {                
                 ret = set->parent->read(set->parent->sdata, set->client[cnx_key]);
                 dprint("thread=%ld: key=%d, fd=%d: Data available (ret=%d)\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd, ret);
+        }
+
+        /*
+         * POLLHUP and POLLOUT are mutually exclusive.
+         */
+        if ( set->pfd[cnx_key].revents & (POLLERR|POLLHUP|POLLNVAL) ) {
+                dprint("thread=%ld: key=%d, fd=%d: Hanging up.\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd);
+                ret = -1;
         }
 
         else if ( ret != -1 && set->pfd[cnx_key].events & POLLOUT && set->pfd[cnx_key].revents & POLLOUT ) {
