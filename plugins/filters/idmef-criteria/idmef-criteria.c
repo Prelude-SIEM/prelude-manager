@@ -158,7 +158,8 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_generic_t **plugin, vo
                                  filter_activate, NULL);
         if ( ret < 0 )
                 return ret;
-        
+
+        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
         prelude_plugin_set_activation_option((void *) &filter_plugin, opt, NULL);
         
         ret = prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
