@@ -78,7 +78,7 @@ char *db_plugin_escape(const char *string)
 
 
 
-void db_plugin_insert(char *table, char *fields, const char *fmt, ...)
+void db_plugin_insert(const char *table, const char *fields, const char *fmt, ...)
 {
         va_list ap;
         char query[8192];

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -29,7 +29,7 @@
 typedef struct {
         PLUGIN_GENERIC;
         char *(*db_escape)(const char *input);
-        int (*db_insert)(char *table, char *fields, char *value);
+        int (*db_insert)(const char *table, const char *fields, const char *value);
         void (*close)(void);
 } plugin_db_t;
 
@@ -53,7 +53,7 @@ int db_plugins_init(const char *dirname, int argc, char **argv);
 
 char *db_plugin_escape(const char *string);
 
-void db_plugin_insert(char *table, char *fields, const char *fmp, ...);
+void db_plugin_insert(const char *table, const char *fields, const char *fmt, ...);
 
 void db_plugins_run(idmef_message_t *idmef);
 
