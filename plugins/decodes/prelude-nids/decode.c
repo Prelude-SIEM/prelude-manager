@@ -89,14 +89,14 @@ static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip)
         if ( ! daddr )
                 return -1;
         
-        source->spoofed = unknow;
-        source->node.category = unknow;
+        source->spoofed = unknown;
+        source->node.category = unknown;
 
         saddr->category = ipv4_addr;
         saddr->address = strdup(inet_ntoa(ip->ip_src));
         
-        target->decoy = unknow;
-        target->node.category = unknow;
+        target->decoy = unknown;
+        target->node.category = unknown;
 
         daddr->category = ipv4_addr;
         daddr->address = strdup(inet_ntoa(ip->ip_dst));
@@ -250,12 +250,10 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_alert_t *alert)
                         return 0;
                         
                 default:
-                        log(LOG_ERR, "unknow tag : %d.\n", tag);
+                        log(LOG_ERR, "unknown tag : %d.\n", tag);
                         break;
                 }
         }
-
-        alert->impact = "unknown";
         
         return 0;
 }
