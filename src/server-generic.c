@@ -744,9 +744,11 @@ void server_generic_log_client(server_generic_client_t *cnx, const char *fmt, ..
         va_end(ap);
         
         if ( cnx->port )
-                log(LOG_INFO, "[%s:%u %s:0x%llx]: %s", cnx->addr, cnx->port, cnx->client_type, cnx->ident, buf);
+                log(LOG_INFO, "[%s:%u %s:0x%" PRIx64 "]: %s",
+                    cnx->addr, cnx->port, cnx->client_type, cnx->ident, buf);
         else
-                log(LOG_INFO, "[unix %s:0x%llx]: %s", cnx->client_type, cnx->ident, buf);
+                log(LOG_INFO, "[unix %s:0x%" PRIx64 "]: %s",
+                    cnx->client_type, cnx->ident, buf);
 }
 
 
@@ -762,8 +764,14 @@ const char *server_generic_get_addr_string(server_generic_client_t *client, char
         if ( ret < 0 || ret >= size )
                 return buf;
         
-        if ( client->port )
-                snprintf(buf + ret, size - ret, ":%u", client->port);
+        if ( client->port ) {
+                ret += snprintf(buf + ret, size - ret, ":%u", client->port);
+                if ( ret < 0 || ret >= size )
+                        return buf;
+        }
 
+        if ( client->ident )
+                snprintf(buf + ret, size - ret, " %s:0x%" PRIx64, client->client_type, client->ident);        
+        
         return buf;
 }
