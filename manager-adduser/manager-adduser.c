@@ -20,9 +20,28 @@
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *****/
-int alert_scheduler_init(void);
+#include <stdio.h>
+#include <libprelude/prelude-auth.h>
 
-void alert_scheduler_exit(void);
+#include "ssl-register-client.h"
 
-void alert_schedule(prelude_msg_t *msg, prelude_io_t *pio);
+int config_quiet = 0;
 
+
+int main(void) 
+{
+        int ret;
+        char buf[1024];
+        
+        fprintf(stderr, "\n\nAuthentication method (cipher/plaintext) [cipher] : ");
+        fgets(buf, sizeof(buf), stdin);
+        buf[strlen(buf) - 1] = '\0';
+        
+        ret = strcmp(buf, "plaintext");
+        if ( ret == 0 )
+                ret = prelude_auth_create_account(MANAGER_AUTH_FILE, 0);
+        else
+                ret = ssl_register_client();
+
+        exit(ret);
+}
