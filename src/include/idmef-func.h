@@ -34,6 +34,8 @@ idmef_message_t *idmef_heartbeat_new(void);
 
 void idmef_message_free(idmef_message_t *msg);
 
+void idmef_additional_data_free(idmef_additional_data_t *data);
+
 idmef_additional_data_t *idmef_additional_data_new(idmef_alert_t *alert);
 
 idmef_source_t *idmef_source_new(idmef_alert_t *alert);

@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <assert.h>
 #include <inttypes.h>
+#include <errno.h>
 
 #include <libprelude/list.h>
 #include <libprelude/common.h>

@@ -202,6 +202,13 @@ idmef_additional_data_t *idmef_additional_data_new(idmef_alert_t *alert)
 
 
 
+void idmef_additional_data_free(idmef_additional_data_t *data) 
+{
+        list_del(&data->list);
+        free(data);
+}
+
+
 
 idmef_source_t *idmef_source_new(idmef_alert_t *alert) 
 {
