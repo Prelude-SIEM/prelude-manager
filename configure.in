@@ -63,6 +63,50 @@ AM_PATH_LIBPRELUDE(0.9.0, ,
 defined="$defined $LIBPRELUDE_PTHREAD_CFLAGS -DPRELUDE_CONFIG_DIR=\\\"$LIBPRELUDE_CONFIG_PREFIX\\\""
 
 
+dnl ***
+dnl *** Can we use -Werror -Wmissing-braces for some checks ? ***
+AX_CFLAGS_GCC_OPTION(-Werror -Wmissing-braces, buggy_pthread_cppflags)
+
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS $buggy_pthread_cppflags"
+
+AC_MSG_CHECKING(for buggy pthread mutex initializers)
+AC_TRY_COMPILE(
+[
+#include <pthread.h>
+], 
+[
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+],
+compile_ok="yes", compile_ok="no")
+
+CFLAGS="$old_CFLAGS"
+
+if test x$compile_ok = xyes; then
+   AC_MSG_RESULT(no)
+else
+   AC_MSG_RESULT(yes)
+   buggy_pthread_initializers="yes"
+fi
+
+
+dnl **************************************************
+dnl * Check for GnuTLS.                              *
+dnl **************************************************
+AM_PATH_LIBGNUTLS(1.0.17, gnutls=yes, gnutls=no)
+if test x$gnutls != xyes; then
+	AC_MSG_ERROR(libgnutls is required in order to build prelude-manager.)
+fi
+
+old_CPPFLAGS=$CPPFLAGS
+CPPFLAGS="$LIBGNUTLS_CFLAGS"
+
+AC_CHECK_HEADER(gnutls/gnutls.h, ,
+       		AC_MSG_ERROR("libgnutls development headers are required to build libprelude"))
+CPPFLAGS=$old_CPPFLAGS
+
+
+
 dnl **************************************************
 dnl * Check for libpreludedb                         *
 dnl **************************************************
@@ -231,6 +275,10 @@ AX_CFLAGS_GCC_OPTION(-Wcast-qual)
 AX_CFLAGS_GCC_OPTION(-Wcast-align)
 AX_CFLAGS_GCC_OPTION(-Wnested-externs)
 AX_CFLAGS_GCC_OPTION(-Wunused)
+
+if test x$buggy_pthread_initializers = xyes; then
+   AX_CFLAGS_GCC_OPTION(-Wno-missing-braces)
+fi
 
 AC_SUBST(CFLAGS)
 

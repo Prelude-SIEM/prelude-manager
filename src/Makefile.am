@@ -1,6 +1,6 @@
 SUBDIRS = include
 
-AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing \
+AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing @LIBGNUTLS_CFLAGS@ \
         @defined@ -DCONFIG_DIR=\"@configdir@\" \
         -DREPORT_PLUGIN_DIR=\"@report_plugin_dir@\" \
         -DDECODE_PLUGIN_DIR=\"@decode_plugin_dir@\" \
