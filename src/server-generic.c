@@ -183,11 +183,22 @@ static int handle_plaintext_connection(prelude_msg_t *msg, const char *addr)
 static int handle_connection(prelude_msg_t *msg, server_generic_client_t *client) 
 {
         int ret;
+        void *buf;
         uint8_t tag;
-
-        tag = prelude_msg_get_tag(msg);
+        uint32_t dlen;
         
-        switch ( tag ) {
+        tag = prelude_msg_get_tag(msg);
+
+        if ( tag != PRELUDE_MSG_AUTH ) {
+                log(LOG_INFO, "expected authentication tag got (%d).\n", tag);
+                return -1;
+        }
+
+        ret = prelude_msg_get(msg, &tag, &dlen, &buf);
+        if ( ret <= 0 )
+                return -1;
+        
+        switch (tag) {
 
         case PRELUDE_MSG_AUTH_SSL:
                 ret = handle_ssl_connection(client->fd, client->addr);
@@ -195,14 +206,10 @@ static int handle_connection(prelude_msg_t *msg, server_generic_client_t *client
                 
         case PRELUDE_MSG_AUTH_PLAINTEXT:
                 ret = handle_plaintext_connection(msg, client->addr);
-                break;
-
-        default:
-                log(LOG_INFO, "Invalid message received (%d).\n", tag);
-                return -1;
+                break;              
         }
 
-        return ret;
+        return handle_connection(msg, client);
 }
 
 
@@ -223,6 +230,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
         status = prelude_msg_read(&client->msg, client->fd);
         
         if ( status == prelude_msg_finished ) {                
+
                 ret = handle_connection(client->msg, client);
                 if ( ret < 0 )
                         return -1;
@@ -230,6 +238,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                 prelude_msg_destroy(client->msg);
                 client->msg = NULL;
                 client->is_authenticated = 1;
+
                 return server->accept(client);
         }
         
