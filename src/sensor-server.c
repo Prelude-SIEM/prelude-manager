@@ -485,7 +485,7 @@ static int write_connection_cb(server_generic_client_t *client)
                 ret = prelude_msg_write(cur, sclient->fd);        
                 if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
                         pthread_mutex_lock(&sclient->mutex);
-                        prelude_linked_object_add(&dst->write_msg_list, (prelude_linked_object_t *) msg);
+                        prelude_linked_object_add(&sclient->write_msg_list, (prelude_linked_object_t *) cur);
                         pthread_mutex_unlock(&sclient->mutex);
                         return 0;
                 }
