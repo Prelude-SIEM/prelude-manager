@@ -633,7 +633,7 @@ static int flush_orphan_fifo(const char *filename)
 
 int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg) 
 {
-        message_queue_t *mqueue = NULL;
+        message_queue_t *mqueue;
 
         if ( ! queue )
                 return -1;
@@ -648,12 +648,10 @@ int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg)
                 mqueue = &queue->mid;
                 break;
 
-        case PRELUDE_MSG_PRIORITY_LOW:
+        default:
                 mqueue = &queue->low;
                 break;
         }
-
-        assert(mqueue);
         
         queue_message(queue, mqueue, msg);        
         signal_input_available();
