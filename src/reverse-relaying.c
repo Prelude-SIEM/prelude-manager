@@ -26,18 +26,9 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include <libprelude/prelude-inttypes.h>
-#include <libprelude/idmef.h>
+#include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/prelude-list.h>
-#include <libprelude/prelude-linked-object.h>
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-message.h>
-#include <libprelude/prelude-connection.h>
 #include <libprelude/prelude-connection-mgr.h>
-#include <libprelude/prelude-async.h>
-#include <libprelude/prelude-message-buffered.h>
-#include <libprelude/idmef-message-write.h>
 
 #include "reverse-relaying.h"
 #include "server-generic.h"

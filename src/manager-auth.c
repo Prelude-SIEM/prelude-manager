@@ -37,7 +37,6 @@
 
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/config-engine.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-timer.h>

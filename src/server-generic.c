@@ -41,11 +41,9 @@
 
 #include <libprelude/common.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/config-engine.h>
 #include <libprelude/prelude-io.h>
-#include <libprelude/prelude-message.h>
+#include <libprelude/prelude-msg.h>
 #include <libprelude/prelude-message-id.h>
-#include <libprelude/extract.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-inet.h>
 #include <libprelude/prelude-error.h>

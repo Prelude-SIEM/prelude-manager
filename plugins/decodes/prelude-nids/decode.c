@@ -33,7 +33,8 @@
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-tree-wrap.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/extract.h>
+#include <libprelude/prelude-error.h>
+#include <libprelude/prelude-extract.h>
 
 #include "packet.h"
 #include "decode.h"
@@ -51,7 +52,7 @@ pof_host_data_t pof_host_data;
 
 static const char *get_address(struct in_addr *addr) 
 {
-        return inet_ntoa(extract_ipv4_addr(addr));        
+        return inet_ntoa(prelude_extract_ipv4_addr(addr));        
 }
 
 
@@ -197,8 +198,8 @@ static int packet_to_idmef(idmef_alert_t *alert, packet_t *p)
                         if ( p[i].len != sizeof(tcphdr_t) )
                                 return -1;
 
-                        sport = extract_uint16(&p[i].p.tcp->th_sport);
-                        dport = extract_uint16(&p[i].p.tcp->th_dport);
+                        sport = prelude_extract_uint16(&p[i].p.tcp->th_sport);
+                        dport = prelude_extract_uint16(&p[i].p.tcp->th_dport);
                                           
                         ret = gather_protocol_infos(alert, sport, dport, "tcp");
                         if ( ret < 0 )
@@ -210,8 +211,8 @@ static int packet_to_idmef(idmef_alert_t *alert, packet_t *p)
                         if ( p[i].len != sizeof(udphdr_t) )
                                 return -1;
                         
-                        sport = extract_uint16(&p[i].p.udp_hdr->uh_sport);
-                        dport = extract_uint16(&p[i].p.udp_hdr->uh_dport);
+                        sport = prelude_extract_uint16(&p[i].p.udp_hdr->uh_sport);
+                        dport = prelude_extract_uint16(&p[i].p.udp_hdr->uh_dport);
                         
                         ret = gather_protocol_infos(alert, sport, dport, "udp");
                         if ( ret < 0 )

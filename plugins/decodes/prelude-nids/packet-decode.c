@@ -30,7 +30,8 @@
 #include "packet.h"
 
 #include <libprelude/prelude-log.h>
-#include <libprelude/extract.h>
+#include <libprelude/prelude-error.h>
+#include <libprelude/prelude-extract.h>
 #include <libprelude/prelude-string.h>
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-tree-wrap.h>
@@ -75,7 +76,7 @@ extern pof_host_data_t pof_host_data;
 
 static const char *get_address(struct in_addr *addr) 
 {
-        return inet_ntoa(extract_ipv4_addr(addr));
+        return inet_ntoa(prelude_extract_ipv4_addr(addr));
 }
 
 
@@ -213,7 +214,7 @@ static int ether_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_
         
         prelude_string_sprintf(buf, "%s -> ", etheraddr_string(hdr->ether_shost));
         
-        t = extract_uint16(&hdr->ether_type);
+        t = prelude_extract_uint16(&hdr->ether_type);
         type = switch_ethertype(t);
         prelude_string_sprintf(buf, "%s [ether_type=%s (%d)]", etheraddr_string(hdr->ether_dhost), type, t);
 
@@ -278,8 +279,8 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         if ( ! buf )
                 return -1;
         
-        op = extract_uint16(&arp->arp_op);
-        hrd = extract_uint16(&arp->arp_hrd);
+        op = prelude_extract_uint16(&arp->arp_op);
+        hrd = prelude_extract_uint16(&arp->arp_hrd);
 
         ptr = NULL;
         for ( i = 0; type_tbl[i].name != NULL; i++ ) {
@@ -301,11 +302,11 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         
         prelude_string_sprintf(buf, "f=%d(%s) ", hrd, (ptr) ? ptr : "unknown");
 
-        tmp_addr.s_addr = align_uint32(arp->arp_tpa);
+        tmp_addr.s_addr = prelude_align_uint32(arp->arp_tpa);
         prelude_string_sprintf(buf, "tpa=%s,tha=%s,",
                                get_address(&tmp_addr), etheraddr_string(arp->arp_tha));
 
-        tmp_addr.s_addr = align_uint32(arp->arp_spa);
+        tmp_addr.s_addr = prelude_align_uint32(arp->arp_spa);
         prelude_string_sprintf(buf, "spa=%s,sha=%s",
                                get_address(&tmp_addr), etheraddr_string(arp->arp_sha));
 
@@ -435,9 +436,9 @@ static int ip_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *
         if ( ! buf )
                 return -1;
         
-        id = extract_uint16(&ip->ip_id);
-        off = extract_uint16(&ip->ip_off);
-        len = extract_uint16(&ip->ip_len);
+        id = prelude_extract_uint16(&ip->ip_id);
+        off = prelude_extract_uint16(&ip->ip_off);
+        len = prelude_extract_uint16(&ip->ip_len);
         pof_host_data.len = IP_HL(ip) * 4;
 
         prelude_string_sprintf(buf, "%s -> ", get_address(&ip->ip_src));
@@ -532,12 +533,12 @@ static int tcp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         
         pof_host_data.len += TH_OFF(tcp) * 4;
         
-        pof_host_data.win = win = extract_uint16(&tcp->th_win);
-        urp = extract_uint16(&tcp->th_urp);
-        sport = extract_uint16(&tcp->th_sport);
-        dport = extract_uint16(&tcp->th_dport);
-        seq = extract_uint32(&tcp->th_seq);
-        ack = extract_uint32(&tcp->th_ack);
+        pof_host_data.win = win = prelude_extract_uint16(&tcp->th_win);
+        urp = prelude_extract_uint16(&tcp->th_urp);
+        sport = prelude_extract_uint16(&tcp->th_sport);
+        dport = prelude_extract_uint16(&tcp->th_dport);
+        seq = prelude_extract_uint32(&tcp->th_seq);
+        ack = prelude_extract_uint32(&tcp->th_ack);
         
         prelude_string_sprintf(buf, "%d -> %d [flags=", sport, dport);
         flags = tcp->th_flags & ~(TH_ECNECHO|TH_CWR);
@@ -589,9 +590,9 @@ static int udp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         if (! buf )
                 return -1;
         
-        len = extract_uint16(&udp->uh_ulen);
-        sport = extract_uint16(&udp->uh_sport);
-        dport = extract_uint16(&udp->uh_dport);
+        len = prelude_extract_uint16(&udp->uh_ulen);
+        sport = prelude_extract_uint16(&udp->uh_sport);
+        dport = prelude_extract_uint16(&udp->uh_dport);
         
         prelude_string_sprintf(buf, "%d -> %d [len=%d]", sport, dport, len);
 

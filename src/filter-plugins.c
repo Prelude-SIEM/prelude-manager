@@ -31,11 +31,8 @@
 #include <sys/time.h>
 #include <assert.h>
 
-#include <libprelude/prelude-inttypes.h>
-#include <libprelude/prelude-list.h>
+#include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/prelude-io.h>
-#include <libprelude/prelude-message.h>
 
 #include "plugin-filter.h"
 

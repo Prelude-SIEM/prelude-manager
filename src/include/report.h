@@ -29,7 +29,6 @@
 #include <libprelude/prelude-msg.h>
 #include <libprelude/prelude-option.h>
 #include <libprelude/prelude-plugin.h>
-#include <libprelude/config-engine.h>
 
 #include <unistd.h>
 #include "plugin-report.h"

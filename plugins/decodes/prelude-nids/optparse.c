@@ -30,7 +30,8 @@
 
 #include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/extract.h>
+#include <libprelude/prelude-error.h>
+#include <libprelude/prelude-extract.h>
 
 #include "nethdr.h"
 #include "optparse.h"
@@ -79,7 +80,7 @@ static int tcp_optval(prelude_string_t *obuf, unsigned char *optbuf, int opt, si
         switch (opt) {
                 
         case TCPOPT_MAXSEG:
-                prelude_string_sprintf(obuf, "mss %u", extract_uint16(optbuf));
+                prelude_string_sprintf(obuf, "mss %u", prelude_extract_uint16(optbuf));
                 break;
                 
         case TCPOPT_WSCALE:
@@ -98,35 +99,35 @@ static int tcp_optval(prelude_string_t *obuf, unsigned char *optbuf, int opt, si
 
                         prelude_string_sprintf(obuf, "sack %d", datalen / 8);
                         for ( i = 0; i < datalen; i += 8 ) {
-                                s = extract_uint32(optbuf + i);
-                                e = extract_uint32(optbuf + i + 4);
+                                s = prelude_extract_uint32(optbuf + i);
+                                e = prelude_extract_uint32(optbuf + i + 4);
                         }
                 }
                 break;
                                 
         case TCPOPT_ECHO:
-                prelude_string_sprintf(obuf, "echo %u", extract_uint32(optbuf));
+                prelude_string_sprintf(obuf, "echo %u", prelude_extract_uint32(optbuf));
                 break;
                               
         case TCPOPT_ECHOREPLY:
-                prelude_string_sprintf(obuf, "echoreply %u", extract_uint32(optbuf));
+                prelude_string_sprintf(obuf, "echoreply %u", prelude_extract_uint32(optbuf));
                 break;
 
         case TCPOPT_TIMESTAMP:
                 prelude_string_sprintf(obuf, "timestamp %u %u",
-                                       extract_uint32(optbuf), extract_uint32(optbuf + 4));
+                                       prelude_extract_uint32(optbuf), prelude_extract_uint32(optbuf + 4));
                 break;
                 
         case TCPOPT_CC:
-                prelude_string_sprintf(obuf, "cc %u", extract_uint32(optbuf));
+                prelude_string_sprintf(obuf, "cc %u", prelude_extract_uint32(optbuf));
                 break;
 
         case TCPOPT_CCNEW:
-                prelude_string_sprintf(obuf, "ccnew %u", extract_uint32(optbuf));
+                prelude_string_sprintf(obuf, "ccnew %u", prelude_extract_uint32(optbuf));
                 break;
                 
         case TCPOPT_CCECHO:
-                prelude_string_sprintf(obuf, "ccecho %u", extract_uint32(optbuf));
+                prelude_string_sprintf(obuf, "ccecho %u", prelude_extract_uint32(optbuf));
                 break;
 
         default:

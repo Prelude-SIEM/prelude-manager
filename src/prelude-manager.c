@@ -202,9 +202,9 @@ int main(int argc, char **argv)
                 log(LOG_INFO, "%s: error initializing prelude-client object: %s.\n",
                     prelude_strsource(ret), prelude_strerror(ret));
 
-                if ( prelude_error_get_code(ret) & PRELUDE_CLIENT_NEED_SETUP )
-                        prelude_client_installation_error(manager_client);
-                
+                if ( prelude_client_is_setup_needed(manager_client, ret) )
+                        prelude_client_print_setup_error(manager_client);
+
                 return -1;
         }
         
