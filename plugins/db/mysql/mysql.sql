@@ -108,6 +108,7 @@ PRIMARY KEY(alert_ident,target_ident)
 
 DROP TABLE IF EXISTS Prelude_File; 
 CREATE TABLE Prelude_File (
+ ident INT(8) NOT NULL,
  alert_ident INT(8) NOT NULL,
  target_ident INT(8) NOT NULL,
  path VARCHAR(255) NOT NULL,
@@ -119,7 +120,7 @@ CREATE TABLE Prelude_File (
  data_size INT NULL,
  disk_size INT NULL,
 #PRIMARY KEY(alert_ident,target_ident,path,name)
-INDEX (alert_ident,target_ident)
+INDEX (alert_ident,target_ident, ident)
 );
 
 # 5.2.7.5.1
@@ -127,6 +128,7 @@ DROP TABLE IF EXISTS Prelude_FileAccess;
 CREATE TABLE Prelude_FileAccess (
  alert_ident INT(8) NOT NULL,
  target_ident INT(8) NOT NULL,
+ file_ident INT(8) NOT NULL,
  path_file VARCHAR(255) NOT NULL,
  name_file VARCHAR(255) NOT NULL,
  userId_ident INT(8) NOT NULL,
@@ -134,25 +136,25 @@ CREATE TABLE Prelude_FileAccess (
 #PRIMARY KEY(alert_ident,target_ident,path_file,name_file,userId_ident)
 # FileAccess is only used for Targets Files and Target UserId.
 # In the Table UserId, parent_type=T and parnt_ident=target_ident
-INDEX (alert_ident,target_ident)
+INDEX (alert_ident,target_ident, file_ident)
 );
 
 DROP TABLE IF EXISTS Prelude_Linkage;
 CREATE TABLE Prelude_Linkage (
  alert_ident INT(8) NOT NULL,
  target_ident INT(8) NOT NULL,
- path_file VARCHAR(255) NOT NULL, # path of the source file
- name_file VARCHAR(255) NOT NULL, # name of the source file
+ file_ident INT(8) NOT NULL,
  name VARCHAR(255) NOT NULL,	# path of the dest file (linked file)
  path VARCHAR(255) NOT NULL,	# name of the dest file (linked file)
  category ENUM("hard-link","mount-point","reparse-point","shortcut","stream","symbolic-link") NOT NULL,
-INDEX (alert_ident,target_ident)
+INDEX (alert_ident,target_ident, file_ident)
 );
 
 DROP TABLE IF EXISTS Prelude_Inode;
 CREATE TABLE Prelude_Inode (
  alert_ident INT(8) NOT NULL,
  target_ident INT(8) NOT NULL,
+ file_ident INT(8) NOT NULL,
  path_file VARCHAR(255) NOT NULL,
  name_file VARCHAR(255) NOT NULL,
  change_time DATETIME NULL,
@@ -162,7 +164,7 @@ CREATE TABLE Prelude_Inode (
  c_major_device INT NULL,
  c_minor_device INT NULL,
 #PRIMARY KEY(alert_ident,target_ident,path_file,name_file) 
-INDEX (alert_ident,target_ident) 
+INDEX (alert_ident,target_ident, file_ident) 
 );
 
 

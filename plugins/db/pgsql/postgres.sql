@@ -173,7 +173,8 @@ constraint PK_PRELUDE_DETECTTIME primary key (alert_ident)
 
 create table Prelude_File (
 alert_ident          INT8                 not null,
-target_ident         INT4                 not null,
+target_ident         INT8                 not null,
+ident		     INT8		  not null,
 path                 VARCHAR(255)         not null,
 name                 VARCHAR(255)         not null,
 category             VARCHAR(9)		  null,
@@ -187,7 +188,8 @@ disk_size            INT4                 null /*,*/
 
 create table Prelude_FileAccess (
 alert_ident          INT8                 not null,
-target_ident         INT4                 not null,
+target_ident         INT8                 not null,
+file_ident	     INT8		  not null,
 path_file            VARCHAR(255)         not null,
 name_file            VARCHAR(255)         not null,
 userId_ident         INT4                 not null,
@@ -197,7 +199,7 @@ permission           VARCHAR(255)         null /*,*/
 
 create table Prelude_FileList (
 alert_ident          INT8                 not null,
-target_ident         INT4                 not null,
+target_ident         INT8                 not null,
 constraint PK_PRELUDE_FILELIST primary key (alert_ident, target_ident)
 );
 
@@ -217,7 +219,8 @@ constraint PK_PRELUDE_IMPACT primary key (alert_ident)
 
 create table Prelude_Inode (
 alert_ident          INT8                 not null,
-target_ident         INT4                 not null,
+target_ident         INT8                 not null,
+file_ident	     INT8		  not null,
 path_file            VARCHAR(255)         not null,
 name_file            VARCHAR(255)         not null,
 change_time          DATE                 null,
@@ -231,9 +234,8 @@ c_minor_device       INT4                 null/*,*/
 
 create table Prelude_Linkage (
 alert_ident          INT8                 not null,
-target_ident         INT4                 not null,
-path_file            VARCHAR(255)         not null,
-name_file            VARCHAR(255)         not null,
+target_ident         INT8                 not null,
+file_ident	     INT8		  not null,
 name                 VARCHAR(255)         not null,
 path                 VARCHAR(255)         not null,
 category             VARCHAR(14)	  not null /*,*/
