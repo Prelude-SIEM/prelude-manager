@@ -45,7 +45,6 @@
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-message.h>
 #include <libprelude/prelude-message-id.h>
-#include <libprelude/prelude-auth.h>
 #include <libprelude/extract.h>
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-inet.h>
