@@ -212,7 +212,7 @@ int main(int argc, char **argv)
         if ( ret < 0 )
                 return -1;
 
-        ret = prelude_client_new(&manager_client, DEFAULT_ANALYZER_NAME, config.config_file);
+        ret = prelude_client_new(&manager_client, DEFAULT_ANALYZER_NAME);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error creating prelude-client object");                
                 return -1;
@@ -222,6 +222,7 @@ int main(int argc, char **argv)
         prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
         prelude_client_set_flags(manager_client, prelude_client_get_flags(manager_client) & ~PRELUDE_CLIENT_FLAGS_CONNECT);
         prelude_client_set_flags(manager_client, prelude_client_get_flags(manager_client) | PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
+        prelude_client_set_config_filename(manager_client, config.config_file);
         
         ret = prelude_client_init(manager_client);
         if ( ret < 0 ) {
@@ -233,7 +234,7 @@ int main(int argc, char **argv)
                 return ret;
         }
         
-        ret = prelude_option_read(manager_root_optlist, &config.config_file, &argc, argv, &err, manager_client);
+        ret = prelude_option_read(manager_root_optlist, &config.config_file, &argc, argv, &err, manager_client);        
         if ( ret < 0 ) {
                 if ( err )
                         prelude_log(PRELUDE_LOG_WARN, "error parsing options: %s.\n", prelude_string_get_string(err));
