@@ -383,8 +383,6 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
         ret = verify_certificate(client, session);
         if ( ret < 0 ) 
                 return -1;
-
-        printf("okay authenticated\n");
         
         return 1;
 }
