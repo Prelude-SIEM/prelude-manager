@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -226,18 +226,19 @@ static int arp_dump(idmef_additional_data_t *data, packet_t *packet)
 {
         int i, len = 0;
         uint16_t op, hrd;
+        const char *ptr = NULL;
         etherarphdr_t *arp = packet->p.arp_hdr;
         struct {
                 int type;
                 const char *name;
         } type_tbl[] = {
-                { ARPOP_REQUEST, "type=request " },
-                { ARPOP_REPLY, "type=reply " },
-                { ARPOP_RREQUEST, "type=request(RArp) " },
-                { ARPOP_RREPLY, "type=reply(RArp) " },
-                { ARPOP_InREQUEST, "type=request(InArp) " },
-                { ARPOP_InREPLY, "type=reply(InArp) " },
-                { ARPOP_NAK, "type=reply(atm Arp NAK) " },
+                { ARPOP_REQUEST, "request" },
+                { ARPOP_REPLY, "reply" },
+                { ARPOP_RREQUEST, "request(RArp)" },
+                { ARPOP_RREPLY, "reply(RArp)" },
+                { ARPOP_InREQUEST, "request(InArp)" },
+                { ARPOP_InREPLY, "reply(InArp)" },
+                { ARPOP_NAK, "reply(atm Arp NAK)" },
                 { 0, NULL },
         };
 
@@ -262,16 +263,22 @@ static int arp_dump(idmef_additional_data_t *data, packet_t *packet)
         hrd = extract_uint16(&arp->arp_hrd);
         
         for ( i = 0; type_tbl[i].name != NULL; i++ ) {
-                if ( op == type_tbl[i].type )
-                        len = snprintf(buf, sizeof(buf), "type=%s ", type_tbl[i].name);
-                break;
+                if ( op == type_tbl[i].type ) {
+                        ptr = type_tbl[i].name;
+                        break;
+                }
         }
 
+        len = snprintf(buf, sizeof(buf), "type=%d(%s) ", op, (ptr) ? ptr : "unknown" );     
+
         for ( i = 0; f_tbl[i].name != NULL; i++ ) {
-                if ( hrd == f_tbl[i].type )
-                        len += snprintf(buf, sizeof(buf), "f=%s ", f_tbl[i].name);
-                break;
+                if ( hrd == f_tbl[i].type ) {
+                        ptr = f_tbl[i].name;
+                        break;
+                }
         }
+        
+        len += snprintf(buf + len, sizeof(buf) - len, "f=%d(%s) ", hrd, (ptr) ? ptr : "unknown");
         
         len += snprintf(buf + len, sizeof(buf) - len, "tpa=%s,tha=%s,",
                         get_address((struct in_addr *)arp->arp_tpa), etheraddr_string(arp->arp_tha));

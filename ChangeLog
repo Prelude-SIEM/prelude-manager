@@ -1,3 +1,8 @@
+2003-01-24  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/decodes/prelude-nids/packet-decode.c (arp_dump): 
+	fix some bug in ARP packet dump.
+
 2002-01-23  Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>
 
         * manager-adduser/ssl-register-client.c:
