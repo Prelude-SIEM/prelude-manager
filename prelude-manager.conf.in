@@ -3,8 +3,8 @@
 # <IMPORTANT>
 #
 # Sections are importants, and things won't work correctly if they are not 
-# un-commented. For example you need to uncomment [MySQL] if you want the 
-# MySQL plugin to be loaded.
+# un-commented. For example you need to uncomment [db] if you want the 
+# database plugin to be loaded.
 #
 # </IMPORTANT>
 
