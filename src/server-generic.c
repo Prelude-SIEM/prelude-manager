@@ -348,7 +348,7 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
 #endif
                 in_addr = prelude_inet_sockaddr_get_inaddr(sa);
                 
-                str = inet_ntop(sa->sa_family, in_addr, out, sizeof(out));
+                str = prelude_inet_ntop(sa->sa_family, in_addr, out, sizeof(out));
                 if ( str )                
                         cdata->addr = strdup(str);
         }
