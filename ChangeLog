@@ -1,3 +1,8 @@
+2003-12-14  Nicolas Delon  <delon.nicolas@wanadoo.fr>
+
+	* plugins/filters/skeleton/skeleton.c:
+	fix a compil issue
+
 2003-12-13  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* manager-adduser/manager-adduser.c (handle_plaintext_account_creation): 
