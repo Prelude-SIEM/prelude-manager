@@ -85,11 +85,18 @@ static int set_reverse_relay(void *context, prelude_option_t *opt, const char *a
 
 
 
-static int set_sensor_listen_address(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
+static int set_listen_address(void *context, prelude_option_t *opt, const char *arg, prelude_string_t *err) 
 {
         char *ptr = strdup(arg);
         
         config.addr = ptr;
+
+        /*
+         * if the address string start with unix, then don't try to
+         * read the port number since a path can follow unix after the ':' separator.
+         */
+        if ( strncmp(ptr, "unix", 4) == 0 )
+                return 0;
         
         ptr = strrchr(ptr, ':');
         if ( ptr ) {
@@ -182,9 +189,9 @@ int manager_options_init(prelude_option_t *manager_root_optlist, int argc, char 
                            "List of managers address:port pair where messages should be gathered from",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_reverse_relay, NULL);
         
-        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 's', "sensors-srvr", 
+        prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'l', "listen", 
                            "Address the sensors server should listen on (addr:port)",
-                           PRELUDE_OPTION_ARGUMENT_REQUIRED, set_sensor_listen_address, NULL);
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED, set_listen_address, NULL);
 
         opt = prelude_option_add(manager_root_optlist, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'f', "failover",
                                  "Enable failover for specified report plugin",

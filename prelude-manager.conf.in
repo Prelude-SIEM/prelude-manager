@@ -12,14 +12,15 @@
 include = @LIBPRELUDE_CONFIG_PREFIX@/default/global.conf
 
 
-# Address where the sensors server is listening on.
-# if value is 127.0.0.1 (or is resolved as being 127.0.0.1), 
-# it mean the Manager server will be listening via a local (UNIX) 
-# socket.
+# Address where the prelude-manager server is listening on.
+# if value is unix, or unix:/path/to/unix/socket, an UNIX domain
+# socket will be used.
 #
-# format : address:port
+# listen = address:port
+# listen = unix:/tmp/prelude-manager.socket
+# listen = unix
 #
-sensors-srvr = 127.0.0.1
+listen = unix
 
 
 # Number of bits of the prime used in the Diffie Hellman key exchange. 
