@@ -1,4 +1,4 @@
-SUBDIRS = src plugins docs
+SUBDIRS = plugins src docs
 
 EXTRA_DIST = prelude-manager.conf config.h 				\
              AUTHORS COPYING COPYING.OpenSSL INSTALL NEWS README 	\
