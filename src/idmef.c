@@ -53,6 +53,7 @@ idmef_message_t *idmef_alert_new(void)
         INIT_LIST_HEAD(&alert.target_list);
         INIT_LIST_HEAD(&alert.classification_list);
         INIT_LIST_HEAD(&alert.additional_data_list);
+        INIT_LIST_HEAD(&alert.analyzer.node.address_list);
         
         return &msg;
 }
