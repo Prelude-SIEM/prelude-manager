@@ -287,7 +287,7 @@ static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen)
 
 static int handle_declare_parent_relay(sensor_fd_t *cnx) 
 {
-        int state, ret;
+        int ret;
         prelude_connection_t *pc;
 
         if ( ! cnx->ident )
@@ -299,38 +299,37 @@ static int handle_declare_parent_relay(sensor_fd_t *cnx)
                  * This reverse relay is already known:
                  * Associate the new FD with it, and tell connection-mgr, the connection is alive.
                  */
-                prelude_connection_set_fd(pc, cnx->fd);
+                prelude_connection_set_fd_nodup(pc, cnx->fd);
+                cnx->cnx = pc;
         } else {
                 /*
                  * First time a child relay with this address connect here.
                  * Add it to the manager list. Type of the created connection is -parent-
                  * because *we* are sending the alert to the child.
-                 */
-                ret = prelude_connection_new(&pc, cnx->addr, cnx->port);
+                 */                
+                ret = prelude_connection_new(&pc, NULL);
                 if ( ret < 0 ) {
-                        prelude_perror(ret, "error creating connection for %s:%d");
+                        server_generic_log_client((server_generic_client_t *) cnx,
+                                                  "error creating placebo connection for %s: %s.\n",
+                                                  cnx->addr, prelude_strerror(ret));
                         return -1;
                 }
                 
                 prelude_connection_set_peer_analyzerid(pc, cnx->ident);
-                prelude_connection_set_fd(pc, cnx->fd);
-                reverse_relay_add_receiver(pc);
+                prelude_connection_set_fd_nodup(pc, cnx->fd);
+                cnx->cnx = pc;
+                
+                ret = reverse_relay_add_receiver(pc);
+                if ( ret < 0 )
+                        return ret;
         }
         
-        state = prelude_connection_get_state(pc);
-        state |= PRELUDE_CONNECTION_ESTABLISHED;
-        state &= ~PRELUDE_CONNECTION_OWN_FD;
+        prelude_connection_set_state(pc, PRELUDE_CONNECTION_STATE_ESTABLISHED|prelude_connection_get_state(pc));
 
-        prelude_connection_set_state(pc, state);
-        
         server_generic_log_client((server_generic_client_t *) cnx,
                                   "client declared to be a parent relay (we relay to him).\n");
         
-        reverse_relay_tell_receiver_alive(pc);
-
-        cnx->cnx = pc;
-                
-        return 0;
+        return reverse_relay_tell_receiver_alive(pc);
 }
 
 
@@ -431,7 +430,7 @@ static int read_connection_cb(server_generic_client_t *client)
                         return 0;
 
                 if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
-                        server_generic_log_client((server_generic_client_t *) cnx, "%s: %s\n",
+                        server_generic_log_client((server_generic_client_t *) cnx, "message read error %s: %s\n",
                                                   prelude_strsource(ret), prelude_strerror(ret));
 
                 return -1;
@@ -457,11 +456,6 @@ static int read_connection_cb(server_generic_client_t *client)
 
         case PRELUDE_MSG_CONNECTION_CAPABILITY:
                 ret = (cnx->capability) ? -1 : read_connection_type(cnx, msg);
-                if ( ret == -2 ) {
-                        prelude_msg_destroy(msg);
-                        return ret;
-                }
-                
                 break;
                 
         case PRELUDE_MSG_OPTION_REQUEST:
@@ -477,9 +471,9 @@ static int read_connection_cb(server_generic_client_t *client)
                 break;
         }
 
-        if ( ret < 0 ) 
+        if ( ret < 0 )
                 server_generic_log_client((server_generic_client_t *) cnx,
-                                          "invalid message sent by the client.\n");
+                                          "error processing client request.\n");
 
         if ( tag != PRELUDE_MSG_IDMEF )
                 prelude_msg_destroy(msg);
@@ -596,15 +590,21 @@ int sensor_server_add_client(server_generic_t *server, prelude_connection_t *cnx
                 prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
-        
-        cdata->queue = idmef_message_scheduler_queue_new();
-        if ( ! cdata->queue ) {
+
+        cdata->addr = strdup(prelude_connection_get_peer_addr(cnx));
+        if ( ! cdata->addr ) {
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 free(cdata);
                 return -1;
         }
-
-        cdata->port = prelude_connection_get_dport(cnx);
-        cdata->addr = strdup(prelude_connection_get_daddr(cnx));
+        
+        cdata->queue = idmef_message_scheduler_queue_new();
+        if ( ! cdata->queue ) {
+                free(cdata->addr);
+                free(cdata);
+                return -1;
+        }
+        
         cdata->state |= SERVER_GENERIC_CLIENT_STATE_ACCEPTED;
         cdata->fd = prelude_connection_get_fd(cnx);
                 

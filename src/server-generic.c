@@ -344,10 +344,10 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
                 prelude_log(PRELUDE_LOG_ERR, "accept returned an error.\n");
                 return -1;
         }
-        
-        if ( server->sa->sa_family == AF_UNIX ) 
-                cdata->addr = strdup("unix");
-        else {         
+
+        if ( server->sa->sa_family == AF_UNIX )
+                cdata->addr = strdup(((struct sockaddr_un *) server->sa)->sun_path);
+        else {
                 void *in_addr;
                 char out[128];
                 const char *str;
@@ -361,8 +361,10 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
                 in_addr = prelude_inet_sockaddr_get_inaddr(sa);
                 
                 str = prelude_inet_ntop(sa->sa_family, in_addr, out, sizeof(out));
-                if ( str )                
-                        cdata->addr = strdup(str);
+                if ( str ) {
+                        snprintf(out + strlen(out), sizeof(out) - strlen(out), ":%d", cdata->port);
+                        cdata->addr = strdup(out);
+                }
         }
 
         if ( ! cdata->addr ) {
@@ -600,51 +602,85 @@ static int inet_server_start(server_generic_t *server,
 
 
 
-
-static int resolve_addr(server_generic_t *server, const char *addr, uint16_t port) 
+static prelude_bool_t is_unix_addr(const char **out, const char *addr, unsigned int port)
 {
         int ret;
-        prelude_addrinfo_t *ai, hints;
+        const char *ptr;
+        
+        ret = strncmp(addr, "unix", 4);
+        if ( ret != 0 )
+                return FALSE;
+        
+        ptr = strchr(addr, ':');        
+        *out = (ptr && *(ptr + 1)) ? ptr + 1 : prelude_connection_get_default_socket_filename();
+
+        return TRUE;
+}
+
+
+
+static int do_getaddrinfo(struct addrinfo **ai, const char *addr, unsigned int port)
+{
+        int ret;
+        struct addrinfo hints;
         char service[sizeof("00000")];
 
         memset(&hints, 0, sizeof(hints));
+        snprintf(service, sizeof(service), "%u", port);
         
         hints.ai_family = PF_UNSPEC;
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
 
-        snprintf(service, sizeof(service), "%u", port);
-        
-        ret = prelude_inet_getaddrinfo(addr, service, &hints, &ai);        
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't resolve %s.\n", addr);
-                return -1;
-        }
-        
-        ret = prelude_inet_addr_is_loopback(ai->ai_family, prelude_inet_sockaddr_get_inaddr(ai->ai_addr));
-        if ( ret == 0 ) {
-                ai->ai_family = AF_UNIX;
-                ai->ai_addrlen = sizeof(struct sockaddr_un);
-        }
-        
-        server->sa = malloc(ai->ai_addrlen);
-        if ( ! server->sa ) {
-                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
-                prelude_inet_freeaddrinfo(ai);
+        ret = getaddrinfo(addr, service, &hints, ai);
+        if ( ret != 0 ) {
+                prelude_log(PRELUDE_LOG_WARN, "could not resolve %s: %s.\n",
+                            addr, (ret == EAI_SYSTEM) ? strerror(errno) : gai_strerror(ret));
                 return -1;
         }
 
-        server->sa_len = ai->ai_addrlen;
-        server->sa->sa_family = ai->ai_family;
+        return 0;
+}
+
+
+
+static int resolve_addr(server_generic_t *server, const char *addr, unsigned int port) 
+{
+        struct addrinfo *ai;
+        const char *unixpath = NULL;
+        int ret, ai_family, ai_addrlen;
         
-        if ( ai->ai_family != AF_UNIX )
-                memcpy(server->sa, ai->ai_addr, ai->ai_addrlen);
-        else {
-                struct sockaddr_un *un = (struct sockaddr_un *) server->sa;
-                prelude_connection_get_socket_filename(un->sun_path, sizeof(un->sun_path), port);
+        if ( ! addr || is_unix_addr(&unixpath, addr, port) ) {
+                ai_family = AF_UNIX;
+                ai_addrlen = sizeof(struct sockaddr_un);
         }
-        
-        prelude_inet_freeaddrinfo(ai);
+
+        else {
+                ret = do_getaddrinfo(&ai, addr, port);
+                if ( ret < 0 )
+                        return -1;
+
+                ai_family = ai->ai_family;
+                ai_addrlen = ai->ai_addrlen;
+        }
+
+        server->sa = malloc(ai_addrlen);
+        if ( ! server->sa ) {
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
+                freeaddrinfo(ai);
+                return -1;
+        }
+
+        server->sa_len = ai_addrlen;
+        server->sa->sa_family = ai_family;
+                
+        if ( ai_family != AF_UNIX ) {
+                memcpy(server->sa, ai->ai_addr, ai->ai_addrlen);
+                freeaddrinfo(ai);
+        } else {
+                struct sockaddr_un *un = (struct sockaddr_un *) server->sa;
+                strncpy(un->sun_path, unixpath, sizeof(un->sun_path));
+        }
 
         return 0;
 }
@@ -693,10 +729,8 @@ int server_generic_bind(server_generic_t *server, const char *saddr, uint16_t po
         void *in_addr;
         
         ret = resolve_addr(server, saddr, port);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "couldn't resolve %s.\n", saddr);
-                return -1;
-        }
+        if ( ret < 0 )
+                return ret;
         
         if ( server->sa->sa_family == AF_UNIX )
                 ret = unix_server_start(server);
@@ -705,18 +739,20 @@ int server_generic_bind(server_generic_t *server, const char *saddr, uint16_t po
         
         if ( ret < 0 ) {
                 server_logic_stop(server->logic);
+                free(server->sa);
                 free(server);
                 return -1;
         }
 
         if ( server->sa->sa_family == AF_UNIX )
-                snprintf(out, sizeof(out), "unix socket");
+                prelude_log(PRELUDE_LOG_INFO, "- sensors server started (listening on %s).\n",
+                            ((struct sockaddr_un *) server->sa)->sun_path);
         else {
                 assert(in_addr = prelude_inet_sockaddr_get_inaddr(server->sa));
                 prelude_inet_ntop(server->sa->sa_family, in_addr, out, sizeof(out));
+                prelude_log(PRELUDE_LOG_INFO, "- sensors server started (listening on %s port %u).\n", out, port);
         }
-        
-        prelude_log(PRELUDE_LOG_INFO, "- sensors server started (listening on %s port %d).\n", out, port);
+                
 
         return 0;
 }
@@ -765,12 +801,8 @@ void server_generic_log_client(server_generic_client_t *cnx, const char *fmt, ..
         vsnprintf(buf, sizeof(buf), fmt, ap);
         va_end(ap);
         
-        if ( cnx->port )
-                prelude_log(PRELUDE_LOG_WARN, "[%s:%u %s:0x%" PRIx64 "]: %s",
-                            cnx->addr, cnx->port, cnx->client_type, cnx->ident, buf);
-        else
-                prelude_log(PRELUDE_LOG_WARN, "[unix %s:0x%" PRIx64 "]: %s",
-                            cnx->client_type, cnx->ident, buf);
+        prelude_log(PRELUDE_LOG_WARN, "[%s %s:0x%" PRIx64 "]: %s",
+                    cnx->addr, cnx->client_type, cnx->ident, buf);
 }
 
 
@@ -785,12 +817,6 @@ const char *server_generic_get_addr_string(server_generic_client_t *client, char
         ret = snprintf(buf, size, "%s", client->addr);
         if ( ret < 0 || ret >= size )
                 return buf;
-        
-        if ( client->port ) {
-                ret += snprintf(buf + ret, size - ret, ":%u", client->port);
-                if ( ret < 0 || ret >= size )
-                        return buf;
-        }
 
         if ( client->ident )
                 snprintf(buf + ret, size - ret, " %s:0x%" PRIx64, client->client_type, client->ident);        
