@@ -1,7 +1,20 @@
-Prelude-Manager - http://www.prelude-ids.org
-by Yoann Vandoorselaere <yoann.v@prelude-ids.com>
+Prelude-Manager is brought to you by PreludeIDS Technologies (http://www.prelude-ids.com),
 
-This is the Prelude-Manager server, the Prelude events collector.
+
+Prelude-Manager Overview
+========================
+
+Prelude-Manager server is the Prelude events collector.
+
+Prelude-Manager is a high availability server that accepts secured connections from 
+distributed sensors or other managers and saves received events to a media specified 
+by the user (database, logfile, mail, etc).
+
+The server is a high availability server capable of handling large number of connections, 
+and processing large amounts of events. It uses a per client scheduling queues in order to 
+process events by severity fairly accross clients. 
+
+
 
 REQUIREMENTS
 ============
