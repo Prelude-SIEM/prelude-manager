@@ -47,6 +47,8 @@
 #include <libprelude/prelude-client.h>
 #include <libprelude/prelude-error.h>
 
+#include <gnutls/gnutls.h>
+
 #include "config.h"
 #include "libmissing.h"
 #include "manager-auth.h"
@@ -58,7 +60,7 @@ struct server_generic {
 
         int sock;
 
-        size_t sa_len;
+        size_t slen;
         struct sockaddr *sa;
         
         size_t clientlen;
@@ -558,13 +560,13 @@ static int unix_server_start(server_generic_t *server)
 		return -1;
 	}
         
-        ret = is_unix_socket_already_used(server->sock, sa, server->sa_len);
+        ret = is_unix_socket_already_used(server->sock, sa, server->slen);
         if ( ret == 1 || ret < 0  ) {
                 close(server->sock);
                 return -1;
         }
 
-        ret = generic_server(server->sock, server->sa, server->sa_len);
+        ret = generic_server(server->sock, server->sa, server->slen);
         if ( ret < 0 ) {
                 close(server->sock);
                 return -1;
@@ -699,7 +701,7 @@ static int resolve_addr(server_generic_t *server, const char *addr, unsigned int
                 return -1;
         }
 
-        server->sa_len = ai_addrlen;
+        server->slen = ai_addrlen;
         server->sa->sa_family = ai_family;
                 
         if ( ai_family != AF_UNIX ) {
@@ -763,7 +765,7 @@ int server_generic_bind(server_generic_t *server, const char *saddr, unsigned in
         if ( server->sa->sa_family == AF_UNIX )
                 ret = unix_server_start(server);
         else 
-                ret = inet_server_start(server, saddr, server->sa, server->sa_len);
+                ret = inet_server_start(server, saddr, server->sa, server->slen);
         
         if ( ret < 0 ) {
                 server_logic_stop(server->logic);
