@@ -17,6 +17,5 @@ include_HEADERS = 			\
 		plugin-filter.h		\
 		plugin-util.h		\
 		report.h		\
-		idmef-util.h		\
 	 	decode.h		
 
