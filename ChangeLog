@@ -1,3 +1,8 @@
+2003-12-26  Nicolas Delon  <delon.nicolas@wanadoo.fr>
+
+	* plugins/reports/db/db.c:
+	fit last changes in libpreludedb (add two includes)
+
 2003-12-25  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* plugins/decodes/prelude-nids/decode.c (decode_message): 

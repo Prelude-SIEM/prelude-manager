@@ -34,6 +34,8 @@
 #include <libpreludedb/db-type.h>
 #include <libpreludedb/db.h>
 #include <libpreludedb/db-connection-data.h>
+#include <libpreludedb/sql-connection-data.h>
+#include <libpreludedb/sql.h>
 #include <libpreludedb/db-connection.h>
 #include <libpreludedb/db-object-selection.h>
 #include <libpreludedb/db-message-ident.h>
