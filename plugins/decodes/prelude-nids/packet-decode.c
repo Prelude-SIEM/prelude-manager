@@ -347,8 +347,8 @@ static int ip_dump(idmef_additional_data_t *data, packet_t *packet)
         dst = strdup(get_address(&ip->ip_dst));
         
         r = snprintf(buf, sizeof(buf),
-                     "%s -> %s [hl=%d,version=%d,tos=%d,len=%d,id=%d,ttl=%d",
-                     src, dst, IP_HL(ip) * 4, IP_V(ip), ip->ip_tos, len, id, ip->ip_ttl);
+                     "%s -> %s [hl=%d,version=%d,tos=%d,len=%d,id=%d,ttl=%d,prot=%d",
+                     src, dst, IP_HL(ip) * 4, IP_V(ip), ip->ip_tos, len, id, ip->ip_ttl, ip->ip_p);
 
         if ( off & 0x3fff ) {
                 r += snprintf(buf + r, sizeof(buf) - r, ",frag=[offset=%d",  (off & 0x1fff) * 8);

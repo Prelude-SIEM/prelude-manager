@@ -135,13 +135,15 @@ static int handle_request_ident(sensor_fd_t *cnx)
         pthread_mutex_lock(&ident_request_lock);
         cnx->analyzerid = prelude_ident_inc(analyzer_ident);
         pthread_mutex_unlock(&ident_request_lock);
+
+#ifndef WORDS_BIGENDIAN
         
         /*
          * Put in network byte order
          */
         ((uint32_t *) &nident)[0] = htonl(((uint32_t *) &cnx->analyzerid)[1]);
         ((uint32_t *) &nident)[1] = htonl(((uint32_t *) &cnx->analyzerid)[0]);
-
+#endif
         /*
          * send the message
          */

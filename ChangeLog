@@ -1,3 +1,12 @@
+2002-04-24  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* plugins/decodes/prelude-nids/packet-decode.c (ip_dump): 
+	print protocol.
+
+	* src/sensor-server.c (handle_request_ident): 
+	only convert ident to network byte order if WORDS_BIGENDIAN
+	is not defined.
+
 2002-04-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/reports/debug/debug.c: 
