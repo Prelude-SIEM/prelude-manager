@@ -42,6 +42,7 @@
         uint16_t port;               \
         uint64_t ident;              \
         char *permission_string;     \
+        pthread_mutex_t mutex;       \
         prelude_connection_permission_t permission
 
 

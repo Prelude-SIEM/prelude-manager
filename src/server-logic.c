@@ -345,7 +345,7 @@ static int handle_fd_event(server_fd_set_t *set, int cnx_key)
         /*
          * POLLHUP and POLLOUT are mutually exclusive.
          */
-        if ( ret >= 0 && set->pfd[cnx_key].revents & (POLLERR|POLLHUP|POLLNVAL) ) {
+        if ( ! got_event && ret >= 0 && set->pfd[cnx_key].revents & (POLLERR|POLLHUP|POLLNVAL) ) {
                 got_event = TRUE;
                 dprint("thread=%ld: key=%d, fd=%d: Hanging up.\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd);
                 ret = -1; /* trigger remove_connection() */

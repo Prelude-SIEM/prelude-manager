@@ -53,17 +53,13 @@
 typedef struct {
         SERVER_GENERIC_OBJECT;
         prelude_list_t list;
-
-        pthread_mutex_t mutex;
+        
         idmef_queue_t *queue;
         prelude_connection_t *cnx;
         prelude_bool_t we_connected;
         prelude_list_t write_msg_list;
         reverse_relay_receiver_t *rrr;
 } sensor_fd_t;
-
-
-static int read_connection_cb(server_generic_client_t *client);
 
 
 
@@ -92,6 +88,25 @@ static sensor_fd_t *search_client(prelude_list_t *head, uint64_t analyzerid)
 
 
 
+static int write_client(sensor_fd_t *dst, prelude_msg_t *msg)
+{
+        int ret;
+        
+        ret = prelude_msg_write(msg, dst->fd);
+        if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
+                pthread_mutex_lock(&dst->mutex);
+                prelude_linked_object_add(&dst->write_msg_list, (prelude_linked_object_t *) msg);
+                server_logic_notify_write_enable((server_logic_client_t *) dst);
+                pthread_mutex_unlock(&dst->mutex);
+                return ret;
+        }
+
+        prelude_msg_destroy(msg);
+
+        return ret;
+}
+
+        
 
 static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzerid, prelude_msg_t *msg) 
 {
@@ -126,7 +141,7 @@ static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzeri
                 }
         }
 
-        ret = sensor_server_write_client((server_generic_client_t *) target, msg);
+        sensor_server_write_client((server_generic_client_t *) target, msg);
  out:
         pthread_mutex_unlock(&sensors_list_mutex);
         
@@ -253,15 +268,18 @@ static int request_sensor_option(server_generic_client_t *client, prelude_msg_t 
         }
         
         ret = forward_message_to_analyzerid(sclient, ident, msg);
-        if ( ret == -1 )
+        if ( ret == -1 ) {
+                prelude_msg_destroy(msg);
                 send_unreachable_message(client, target_route, target_hop, TARGET_UNREACHABLE, sizeof(TARGET_UNREACHABLE));
-
-        if ( ret == -2 )
+        }
+        
+        if ( ret == -2 ) {
+                prelude_msg_destroy(msg);
                 send_unreachable_message(client, target_route, target_hop, TARGET_PROHIBITED, sizeof(TARGET_PROHIBITED));
-                
+        }
+        
         return 0;
 }
-
 
 
 
@@ -280,8 +298,10 @@ static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         /*
          * The one replying the option doesn't care about client presence or not.
          */
-        forward_message_to_analyzerid(client, ident, msg);
-
+        ret = forward_message_to_analyzerid(client, ident, msg);
+        if ( ret < 0 )
+                prelude_msg_destroy(msg);
+        
         return 0;
 }
 
@@ -301,7 +321,7 @@ static int handle_declare_receiver(sensor_fd_t *sclient)
                  * First time a child relay with this address connect here.
                  * Add it to the manager list. Type of the created connection is -parent-
                  * because *we* are sending the alert to the child.
-                 */                                
+                 */
                 ret = reverse_relay_new_receiver(&sclient->rrr, client, sclient->ident);
                 if ( ret < 0 )
                         return -1;
@@ -331,47 +351,9 @@ static int handle_declare_client(sensor_fd_t *cnx)
 
 
 
-
-static int read_connection_type(sensor_fd_t *cnx, prelude_msg_t *msg) 
+static int handle_msg(sensor_fd_t *client, prelude_msg_t *msg, uint8_t tag)
 {
-        void *buf;
-        uint8_t tag;
-        int ret = -1;  
-        uint32_t dlen;
-        
-        ret = prelude_msg_get(msg, &tag, &dlen, &buf);
-        if ( ret < 0 ) {
-                server_generic_log_client((server_generic_client_t *) cnx, PRELUDE_LOG_WARN,
-                                          "error decoding message - %s: %s.\n",
-                                          prelude_strsource(ret), prelude_strerror(ret));
-                return -1;
-        }
-        
-        if ( tag & PRELUDE_CONNECTION_PERMISSION_IDMEF_READ ) {
-
-                if ( ! (cnx->permission & PRELUDE_CONNECTION_PERMISSION_IDMEF_READ) ) {
-                        server_generic_log_client((server_generic_client_t *) cnx, PRELUDE_LOG_WARN,
-                                                  "insufficient credentials to read IDMEF message: closing connection.\n");
-                        return -1;
-                }
-                
-                ret = handle_declare_receiver(cnx);
-                if ( ret < 0 )
-                        return -1;
-        }
-        
-        ret = handle_declare_client(cnx);
-        if ( ret < 0 )
-                return -1;
-        
-        return 0;
-}
-
-
-
-static int read_after_setup(sensor_fd_t *client, prelude_msg_t *msg, uint8_t tag)
-{
-        int ret = -1;
+        int ret;
         
         if ( tag == PRELUDE_MSG_IDMEF ) {
                 /*
@@ -384,12 +366,11 @@ static int read_after_setup(sensor_fd_t *client, prelude_msg_t *msg, uint8_t tag
                      (! (client->permission & PRELUDE_CONNECTION_PERMISSION_IDMEF_READ ) &&   client->we_connected) ) {
                         server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_WARN,
                                                   "insufficient credentials to write IDMEF message.\n");
+                        prelude_msg_destroy(msg);
                         return -1;
                 }
-                                
+
                 ret = idmef_message_schedule(client->queue, msg);
-                if ( ret == 0 )
-                        return 0;
         }
         
         else if ( tag == PRELUDE_MSG_OPTION_REQUEST )
@@ -398,10 +379,11 @@ static int read_after_setup(sensor_fd_t *client, prelude_msg_t *msg, uint8_t tag
         else if ( tag == PRELUDE_MSG_OPTION_REPLY )
                 ret = reply_sensor_option(client, msg);
 
-        else if ( tag == PRELUDE_MSG_CONNECTION_CAPABILITY )
-                ret = read_connection_type(client, msg);
-        
-        prelude_msg_destroy(msg);
+        else {
+                /* unknown message, ignore silently for backward compatibility */
+                prelude_msg_destroy(msg);
+                return 0;
+        }
         
         if ( ret < 0 ) {
                 server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_WARN,
@@ -409,24 +391,7 @@ static int read_after_setup(sensor_fd_t *client, prelude_msg_t *msg, uint8_t tag
                 return -1;
         }
         
-        return read_connection_cb((server_generic_client_t *) client);
-}
-
-
-
-static int read_prior_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
-{
-        int ret = -1;
-        
-        if ( tag == PRELUDE_MSG_CONNECTION_CAPABILITY )
-                ret = read_connection_type(cnx, msg);
-            
-        prelude_msg_destroy(msg);
-        
-        if ( ret < 0 )
-                return -1;
-        
-        return read_connection_cb((server_generic_client_t *) cnx);
+        return ret;
 }
 
 
@@ -434,7 +399,6 @@ static int read_prior_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
 static int read_connection_cb(server_generic_client_t *client)
 {
         int ret;
-        uint8_t tag;
         prelude_msg_t *msg;
         sensor_fd_t *cnx = (sensor_fd_t *) client;
         
@@ -450,16 +414,11 @@ static int read_connection_cb(server_generic_client_t *client)
 
                 return -1;
         }
-        
+
         msg = cnx->msg;
         cnx->msg = NULL;
-        
-        tag = prelude_msg_get_tag(msg);
-
-        if ( ! cnx->permission )
-                return read_prior_setup(cnx, msg, tag);
-        
-        return read_after_setup(cnx, msg, tag);
+                
+        return handle_msg(cnx, msg, prelude_msg_get_tag(msg));
 }
 
 
@@ -470,7 +429,7 @@ static int write_connection_cb(server_generic_client_t *client)
         prelude_list_t *tmp;
         prelude_msg_t *cur = NULL;
         sensor_fd_t *sclient = (sensor_fd_t *) client;
-
+        
         pthread_mutex_lock(&sclient->mutex);
         
         prelude_list_for_each(&sclient->write_msg_list, tmp) {
@@ -481,32 +440,26 @@ static int write_connection_cb(server_generic_client_t *client)
         
         pthread_mutex_unlock(&sclient->mutex);
 
-        if ( cur ) {
-                ret = prelude_msg_write(cur, sclient->fd);        
-                if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
-                        pthread_mutex_lock(&sclient->mutex);
-                        prelude_linked_object_add(&sclient->write_msg_list, (prelude_linked_object_t *) cur);
-                        pthread_mutex_unlock(&sclient->mutex);
-                        return 0;
-                }
-                
-                prelude_msg_destroy(cur);
-        }
+        if ( cur )
+                ret = write_client(sclient, cur);
         
         pthread_mutex_lock(&sclient->mutex);
-
+                
         if ( prelude_list_is_empty(&sclient->write_msg_list) ) {
                 server_logic_notify_write_disable((server_logic_client_t *) client);
                 pthread_mutex_unlock(&sclient->mutex);
                 
                 if ( server_generic_client_get_state(client) & SERVER_GENERIC_CLIENT_STATE_FLUSHING )
                         ret = reverse_relay_set_receiver_alive(sclient->rrr, client);
+
+                return ret;
         }
 
         pthread_mutex_unlock(&sclient->mutex);
         
         return ret;
 }
+
 
 
 
@@ -560,13 +513,30 @@ static int close_connection_cb(server_generic_client_t *ptr)
 
 static int accept_connection_cb(server_generic_client_t *ptr) 
 {
+        int ret;
         sensor_fd_t *fd = (sensor_fd_t *) ptr;
         
         fd->we_connected = FALSE;
-        pthread_mutex_init(&fd->mutex, NULL);
         
         prelude_list_init(&fd->list);
         prelude_list_init(&fd->write_msg_list);
+
+        if ( fd->permission & PRELUDE_CONNECTION_PERMISSION_IDMEF_READ ) {
+
+                if ( ! (fd->permission & PRELUDE_CONNECTION_PERMISSION_IDMEF_READ) ) {
+                        server_generic_log_client((server_generic_client_t *) ptr, PRELUDE_LOG_WARN,
+                                                  "insufficient credentials to read IDMEF message: closing connection.\n");
+                        return -1;
+                }
+                
+                ret = handle_declare_receiver(fd);                
+                if ( ret < 0 )
+                        return -1;
+        }
+        
+        ret = handle_declare_client(fd);
+        if ( ret < 0 )
+                return -1;
         
         return 0;
 }
@@ -641,9 +611,23 @@ int sensor_server_add_client(server_generic_t *server, prelude_connection_t *cnx
 
 
 
+int sensor_server_queue_write_client(server_generic_client_t *client, void *msg) 
+{
+        sensor_fd_t *dst = (sensor_fd_t *) client;
+
+        pthread_mutex_lock(&dst->mutex);
+        
+        prelude_linked_object_add_tail(&dst->write_msg_list, (prelude_linked_object_t *) msg);
+        server_logic_notify_write_enable((server_logic_client_t *) dst);
+        
+        pthread_mutex_unlock(&dst->mutex);
+                
+        return 0;
+}
+
+
 int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *msg) 
 {
-        int ret;
         sensor_fd_t *dst = (sensor_fd_t *) client;
 
         pthread_mutex_lock(&dst->mutex);
@@ -656,18 +640,5 @@ int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *m
 
         pthread_mutex_unlock(&dst->mutex);
         
-        ret = prelude_msg_write(msg, dst->fd);        
-        if ( ret == 0 )
-                prelude_msg_destroy(msg);
-        
-        else if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
-                pthread_mutex_lock(&dst->mutex);
-                prelude_linked_object_add_tail(&dst->write_msg_list, (prelude_linked_object_t *) msg);
-                pthread_mutex_unlock(&dst->mutex);
-                
-                server_logic_notify_write_enable((server_logic_client_t *) dst);
-                return ret;
-        }
-        
-        return ret;
+        return write_client(dst, msg);
 }

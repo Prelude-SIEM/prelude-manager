@@ -118,7 +118,7 @@ static int send_auth_result(server_generic_client_t *client, int result)
 
         client->msg = NULL;
                 
-        return (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ? 0 : -1;
+        return (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ? 1 : -1;
 }
 
 
@@ -134,7 +134,7 @@ static int send_auth_result(server_generic_client_t *client, int result)
 static int authenticate_client(server_generic_t *server, server_generic_client_t *client) 
 {
         int ret;
-
+        
         if ( ! client->msg && ! (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ) {
 
                 ret = manager_auth_client(client, client->fd);                
@@ -146,11 +146,19 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                 
                 client->state |= SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED;
                 
-                return send_auth_result(client, PRELUDE_MSG_AUTH_SUCCEED);
+                ret = send_auth_result(client, PRELUDE_MSG_AUTH_SUCCEED);
+                if ( ret != 1 )
+                        return ret;
         }
 
-        if ( client->msg )
-                return send_auth_result(client, -1);
+        else if ( client->msg ) {
+                ret = send_auth_result(client, -1);
+                if ( ret != 1 )
+                        return ret;
+        }
+        
+        if ( ! client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED )
+                return -1;
         
         if ( server->sa->sa_family == AF_UNIX && ! (client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED) ) {
                 ret = manager_auth_disable_encryption(client, client->fd);
@@ -198,19 +206,16 @@ static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
         
-        do {
-                if ( client->state & SERVER_GENERIC_CLIENT_STATE_CLOSING ) {
-                        ret = server_logic_remove_client(ptr);
-                        return (ret == 0) ? -2 /* stop further processing */ : 0;
-                }
-                
-                else if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
-                        ret = server->read(client);
-                
-                else
-                        ret = authenticate_client(server, client);
-                                
-        } while ( ret == 0 && prelude_io_pending(client->fd) > 0 );
+        if ( client->state & SERVER_GENERIC_CLIENT_STATE_CLOSING ) {
+                /* stop further processing */
+                ret = (server_logic_remove_client(ptr) == 0) ? -2 : 0;
+        }
+        
+        else if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
+                ret = server->read(client);
+        
+        else
+                ret = authenticate_client(server, client);
         
         return ret;
 }
@@ -246,8 +251,13 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
         if ( client->fd ) {
                 
                 ret = prelude_io_close(client->fd);
-                if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
+                if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
+
+                        if ( server->sa->sa_family != AF_UNIX && gnutls_record_get_direction(prelude_io_get_fdptr(client->fd)) == 1 )
+                                server_logic_notify_write_enable(ptr);
+                        
                         return -1;
+                }
                 
                 prelude_io_destroy(client->fd);
         }
@@ -812,14 +822,24 @@ void server_generic_process_requests(server_generic_t *server, server_generic_cl
 void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t priority, const char *fmt, ...)
 {
         va_list ap;
+        int ret = 0;
         char buf[1024];
         
+        if ( cnx->ident && cnx->permission_string ) {
+                ret = snprintf(buf, sizeof(buf), " 0x%" PRIx64 " %s]: ", cnx->ident, cnx->permission_string);
+                if ( ret < 0 || ret >= sizeof(buf) )
+                        return;
+        } else {
+                ret = snprintf(buf, sizeof(buf), "]: ");
+                if ( ret < 0 || ret >= sizeof(buf) )
+                        return;
+        }
+                
         va_start(ap, fmt);
-        vsnprintf(buf, sizeof(buf), fmt, ap);
+        vsnprintf(buf + ret, sizeof(buf) - ret, fmt, ap);
         va_end(ap);
         
-        prelude_log(priority, "[%s 0x%" PRIx64 " %s]: %s",
-                    cnx->addr, cnx->ident, cnx->permission_string, buf);
+        prelude_log(priority, "[%s%s", cnx->addr, buf);
 }
 
 
