@@ -29,6 +29,7 @@
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-util.h>
 
+#include "libmissing.h"
 #include "report.h"
 
 

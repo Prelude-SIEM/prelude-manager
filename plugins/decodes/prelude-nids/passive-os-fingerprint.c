@@ -28,6 +28,7 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/idmef.h>
 
+#include "libmissing.h"
 #include "passive-os-fingerprint.h"
 
 
