@@ -1,3 +1,8 @@
+***
+* Using this file is deprecated, use svn look at the logs.
+***
+
+
 2004-02-06  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* plugins/reports/textmod/textmod.c (process_data): 
