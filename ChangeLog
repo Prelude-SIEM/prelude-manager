@@ -1,3 +1,7 @@
+2002-08-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* configure.in: correct OpenSSL, PgSQL, MySQL test.
+
 2002-08-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* NEWS: updated.

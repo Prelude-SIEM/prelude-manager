@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(src)
 AC_PREREQ(2.53)
 AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(prelude-manager, 0.8.0)
+AM_INIT_AUTOMAKE(prelude-manager, 0.8.3)
 AM_CONFIG_HEADER(config.h)
 AM_DISABLE_STATIC
 
@@ -54,12 +54,12 @@ dnl **************************************************
 dnl * Check for OpenSSL.                             *
 dnl **************************************************
 
-AC_CHECK_HEADER(openssl/ssl.h, openssl_header=yes)
+AC_ARG_ENABLE(openssl, [  --enable-openssl	Enable OpenSSL support [default=auto]], enable_openssl="$enableval", enable_openssl=yes)
 
-AC_ARG_ENABLE(openssl, [  --enable-openssl Use OpenSSL to communicate with Report Server [default=auto]], \
-	      enable_openssl="$enableval", enable_openssl=auto)
+if test x$enable_openssl = xyes; then
 
-if test x$enable_openssl = xauto ; then
+	AC_CHECK_HEADER(openssl/ssl.h, openssl_header=yes)
+
 	if test x$openssl_header = xyes; then
 		AC_DEFINE(HAVE_SSL)
     		enable_openssl=yes
@@ -124,9 +124,9 @@ if test x$mysql_use = xtrue; then
 	CFLAGS=$CFLAGS_bak
 fi
 
-AC_ARG_ENABLE(mysql, [  --enable-mysql  Enable MySQL plugin [default=auto]], enable_mysql="$enableval", enable_mysql=auto)
+AC_ARG_ENABLE(mysql, [  --enable-mysql  Enable MySQL plugin [default=auto]], enable_mysql="$enableval", enable_mysql=yes)
 
-if test x$enable_mysql = xauto; then
+if test x$enable_mysql = xyes; then
         if test x$mysql_use = xtrue; then
                 enable_mysql=yes;
         else
@@ -155,9 +155,9 @@ if test x$PGSQL_CONFIG = xtrue; then
 	AC_CHECK_HEADER($PGSQL_INCLUDEDIR/libpq-fe.h, pgsql_hdr=true)
 fi
 
-AC_ARG_ENABLE(pgsql, [  --enable-pgsql  Enable PostgreSQL plugin [default=auto]], enable_pgsql="$enableval", enable_pgsql=auto)
+AC_ARG_ENABLE(pgsql, [  --enable-pgsql  Enable PostgreSQL plugin [default=auto]], enable_pgsql="$enableval", enable_pgsql=yes)
 
-if test x$enable_pgsql = xauto; then
+if test x$enable_pgsql = xyes; then
         if test x$PGSQL_CONFIG = xtrue && test x$pgsql_hdr = xtrue; then
                 enable_pgsql=yes;
         else
