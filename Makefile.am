@@ -1,8 +1,7 @@
 SUBDIRS = plugins src docs
 
 EXTRA_DIST = prelude-manager.conf config.h 				\
-             AUTHORS COPYING COPYING.OpenSSL INSTALL NEWS README 	\
-             ChangeLog
+             AUTHORS COPYING INSTALL NEWS README ChangeLog
 
 install-data-local:
 	$(INSTALL) -d -m 700 $(DESTDIR)$(configdir);
