@@ -20,6 +20,12 @@
 #endif
 
 
+typedef struct {
+        void *clientdata;
+        struct pollfd *pfd;
+} manager_cnx_t;
+
+
 
 typedef struct {
         struct list_head list;
@@ -31,10 +37,11 @@ typedef struct {
         
         pthread_mutex_t pfd_mutex;
 
+        void *client_data[MAX_FD_BY_PROCESS];
         struct pollfd used_tbl[MAX_FD_BY_PROCESS];
 
-        int free_index;
-        struct pollfd *free_tbl[MAX_FD_BY_PROCESS];
+        int cnx_index;
+        manager_cnx_t cnx_tbl[MAX_FD_BY_PROCESS];
         
 } manager_fd_set_t;
 
@@ -45,7 +52,7 @@ typedef struct {
  */
 static LIST_HEAD(free_fd_list);
 static pthread_mutex_t list_mutex;
-static int (*data_available_cb)(int fd);
+static int (*data_available_cb)(int fd, void *clientdata);
 
 
 
@@ -86,13 +93,14 @@ static void remove_connection(manager_fd_set_t *set, struct pollfd *pfd)
          * Increase the number of free fd,
          * then add this fd to our free fd array.
          */
-        set->free_tbl[set->free_index++] = pfd;
-
+        set->cnx_tbl[set->cnx_index].pfd = pfd;
+        set->cnx_tbl[set->cnx_index++].clientdata = NULL;
+        
         /*
          * If we can accept connection again,
          * put this set into our free FD list.
          */
-        if ( set->free_index == 1 ) {
+        if ( set->cnx_index == 1 ) {
                 dprint("thread=%ld, Adding to list.\n", pthread_self());
                 list_add_tail(&set->list, &free_fd_list);
         }
@@ -100,7 +108,7 @@ static void remove_connection(manager_fd_set_t *set, struct pollfd *pfd)
         /*
          * If there is no more used fd, kill this set.
          */
-        else if ( set->free_index == MAX_FD_BY_PROCESS ) {
+        else if ( set->cnx_index == MAX_FD_BY_PROCESS ) {
                 
                 list_del(&set->list);
                 
@@ -121,7 +129,7 @@ static void remove_connection(manager_fd_set_t *set, struct pollfd *pfd)
 
 
 
-static void add_connection(manager_fd_set_t *set, int fd) 
+static void add_connection(manager_fd_set_t *set, int fd, void *clientdata) 
 {
         struct pollfd *ptr;
         
@@ -130,18 +138,24 @@ static void add_connection(manager_fd_set_t *set, int fd)
         /*
          * We should never enter here if there is no free fd.
          */
-        assert(set->free_index > 0);
+        assert(set->cnx_index > 0);
 
+        
         /*
          * Get a free fd.
          */
-        ptr = set->free_tbl[--set->free_index];
+        ptr = set->cnx_tbl[--set->cnx_index].pfd;
+
+        /*
+         * Set client data.
+         */
+        set->cnx_tbl[set->cnx_index].clientdata = clientdata;
         
         /*
          * Are we still able to accept connection ?
          */
-        if ( set->free_index == 0 ) {
-                dprint("Max connection for this thread reached (%d).\n", set->free_index);
+        if ( set->cnx_index == 0 ) {
+                dprint("Max connection for this thread reached (%d).\n", set->cnx_index);
 
                 /*
                  * We are not, remove this set from our list.
@@ -164,16 +178,16 @@ static void add_connection(manager_fd_set_t *set, int fd)
 
 
 
-static int handle_fd_event(manager_fd_set_t *set, struct pollfd *pfd) 
+static int handle_fd_event(manager_fd_set_t *set, manager_cnx_t *cnx) 
 {        
         /*
          * Data is available on this fd,
          * call the user provided callback.
          */        
-        if ( pfd->revents & POLLIN ) {
+        if ( cnx->pfd->revents & POLLIN ) {
                 
-                if ( data_available_cb(pfd->fd) < 0 )
-                        remove_connection(set, pfd);
+                if ( data_available_cb(cnx->pfd->fd, cnx->clientdata) < 0 )
+                        remove_connection(set, cnx->pfd);
 
                 return 0;
         }
@@ -183,7 +197,7 @@ static int handle_fd_event(manager_fd_set_t *set, struct pollfd *pfd)
          */
         else {
                 dprint("thread=%ld - Hanging up.\n", pthread_self());
-                remove_connection(set, pfd);
+                remove_connection(set, cnx->pfd);
                 return 0;
         }
 
@@ -232,7 +246,7 @@ static void *child_reader(void *ptr)
 
                         set->used_tbl[i].revents = fdset[i].revents;
                         
-                        ret = handle_fd_event(set, &set->used_tbl[i]);
+                        ret = handle_fd_event(set, &set->cnx_tbl[i]);
                         if ( ret == 0 )
                                 active_fd--;
                 }
@@ -253,11 +267,12 @@ static manager_fd_set_t *create_fd_set(void)
                 return NULL;
         }
 
-        new->free_index = MAX_FD_BY_PROCESS;
+        new->cnx_index = MAX_FD_BY_PROCESS;
         
         for ( i = 0; i < MAX_FD_BY_PROCESS; i++ ) {
                 new->used_tbl[i].fd = -1;
-                new->free_tbl[i] = &new->used_tbl[i];
+                new->cnx_tbl[i].clientdata = NULL;
+                new->cnx_tbl[i].pfd = &new->used_tbl[i];
         }
 
         pthread_mutex_init(&new->pfd_mutex, NULL);
@@ -280,7 +295,7 @@ static manager_fd_set_t *create_fd_set(void)
 /*
  *
  */
-int server_process_requests(int client) 
+int server_process_requests(int client, void *clientdata) 
 {
         manager_fd_set_t *set;
         
@@ -307,10 +322,10 @@ int server_process_requests(int client)
                  * add_connection should never call
                  * list_del() at this time, so we don't need locking.
                  */
-                add_connection(set, client);
+                add_connection(set, client, clientdata);
         } else {
                 set = list_entry(free_fd_list.next, manager_fd_set_t, list);
-                add_connection(set, client);
+                add_connection(set, client, clientdata);
                 pthread_mutex_unlock(&list_mutex);
         }
         
@@ -320,7 +335,7 @@ int server_process_requests(int client)
 
 
 
-void server_logic_init(int (*data_cb)(int fd)) 
+void server_logic_init(int (*data_cb)(int fd, void *clientdata)) 
 {
         data_available_cb = data_cb;
 }

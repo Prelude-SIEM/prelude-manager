@@ -50,7 +50,7 @@ static void configure_listen_address(config_t *cfg)
         if ( config.addr )
                 return;
 
-        ret = config_get(cfg, "Prelude Report", "listen");
+        ret = config_get(cfg, "Prelude Manager", "listen");
         if ( ! ret )
                 config.addr = "unix";
         else
@@ -66,7 +66,7 @@ static void configure_listen_port(config_t *cfg)
         if ( config.port != 0 )
                 return;
         
-        ret = config_get(cfg, "Prelude Report", "port");
+        ret = config_get(cfg, "Prelude Manager", "port");
         if ( ! ret )
                 config.port = 5554;
         else
@@ -79,7 +79,7 @@ static void configure_as_daemon(config_t *cfg)
 {
         const  char *ret;
         
-        ret = config_get(cfg, "Prelude Report", "daemon");
+        ret = config_get(cfg, "Prelude Manager", "daemon");
         if ( ret ) {
                 if ( strcmp(ret, "true") == 0 ) {
                         config.daemonize = 1;
@@ -94,7 +94,7 @@ static void configure_quiet(config_t *cfg)
 {
         const char *ret;
         
-        ret = config_get(cfg, "Prelude Report", "quiet");
+        ret = config_get(cfg, "Prelude Manager", "quiet");
         if ( ret ) {
                 if ( strcmp(ret, "true") == 0 )
                         config_quiet = 1;
@@ -117,10 +117,10 @@ static void print_help(void)
         
         fprintf(stderr, "\t-u --user Create user.\n");
 #ifdef HAVE_SSL
-        fprintf(stderr, "\t-c --certificate Create Prelude Report certificate.\n");
+        fprintf(stderr, "\t-c --certificate Create the Prelude Manager certificate.\n");
         fprintf(stderr, "\t-n --not-crypt Specify that the key should be stored\n"
                 "\t   as is (not encrypted) on the local hardisk. This will prevent\n"
-                "\t   you to be asked for a password each time you run Prelude Report.\n");
+                "\t   you to be asked for a password each time you run the Manager.\n");
         fprintf(stderr, "\t-w --wait Wait for Prelude client public key.\n");
 #endif
 
@@ -133,7 +133,8 @@ static void print_help(void)
 
 
 
-int pconfig_init(int argc, char **argv) {
+int pconfig_init(int argc, char **argv)
+{
 	int c;
         config_t *cfg;
         int crypt_key = 1;
@@ -170,7 +171,7 @@ int pconfig_init(int argc, char **argv) {
 
 		switch (c) {
                 case 'u':
-                        exit(auth_create_account(CONFIG_DIR"/prelude-report.auth", 1));
+                        exit(auth_create_account(CONFIG_DIR"/prelude-manager.auth", 1));
                         
                 case 'l':
                         config.addr = optarg;
@@ -224,9 +225,9 @@ int pconfig_init(int argc, char **argv) {
 
  end:
 
-        cfg = config_open(PRELUDE_REPORT_CONF);
+        cfg = config_open(PRELUDE_MANAGER_CONF);
         if ( ! cfg ) {
-                log(LOG_ERR, "couldn't open config file %s.\n", PRELUDE_REPORT_CONF);
+                log(LOG_ERR, "couldn't open config file %s.\n", PRELUDE_MANAGER_CONF);
                 return -1;
         }
         
@@ -249,8 +250,8 @@ int pconfig_init(int argc, char **argv) {
         if ( wait_cert ) {
                 if ( strcmp(config.addr, "unix") == 0 ) {
                         fprintf(stderr, "SSL communication is only usefull when communicating\n"
-                                "to the report server throught the network. The configured\n"
-                                "report server address is set to local UNIX socket.\n");
+                                "to the Prelude Manager throught the network. The configured\n"
+                                "address is set to local UNIX socket.\n");
                         return -1;
                 }
                 

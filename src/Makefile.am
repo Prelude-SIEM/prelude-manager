@@ -9,10 +9,10 @@ DEFS = @defined@ -DCONFIG_DIR=\"@configdir@\"       \
 	-DLOCALSTATEDIR=\"@localstatedir@\"
 
 bin_PROGRAMS = prelude-manager
-prelude_report_LDADD = @COMMON_LIBS@ @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@ -lpthread
-prelude_report_LDFLAGS = -export-dynamic 
+prelude_manager_LDADD = @COMMON_LIBS@ @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@ -lpthread
+prelude_manager_LDFLAGS = -export-dynamic 
 
-prelude_report_SOURCES =			\
+prelude_manager_SOURCES =			\
 			auth.c			\
 			pconfig.c		\
 			prelude-manager.c	\
@@ -21,5 +21,4 @@ prelude_report_SOURCES =			\
 			server-logic.c		\
 			ssl-register-client.c	\
 			ssl.c			\
-			decode-plugins.c	\
-			alert-fifo.c
+			decode-plugins.c	

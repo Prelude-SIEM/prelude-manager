@@ -252,7 +252,7 @@ report_plugin_dir=$plugindir/reports/
 decode_plugin_dir=$plugindir/decodes/
 protocol_plugin_dir=$plugindir/protocols/
 
-AC_DEFINE_UNQUOTED(PRELUDE_REPORT_CONF, "$prelude_manager_conf")
+AC_DEFINE_UNQUOTED(PRELUDE_MANAGER_CONF, "$prelude_manager_conf")
 
 AC_SUBST(defined)
 AC_SUBST(configdir)

@@ -45,7 +45,9 @@
 #include "ssl.h"
 #include "pconfig.h"
 
+
 #define ACKMSGLEN ACKLENGTH + SHA_DIGEST_LENGTH + HEADLENGTH + PADMAXSIZE
+
 
 
 extern struct report_config config;
@@ -107,15 +109,15 @@ static int send_own_certificate(int sock,
         X509 *x509ss;
         char buf[BUFMAXSIZE];
                 
-        x509ss = load_x509(ssl_get_cert_filename(REPORT_KEY));
+        x509ss = load_x509(MANAGER_KEY);
 	if ( !x509ss ) {
-		fprintf(stderr, "Error reading own certificate\n");
+		fprintf(stderr, "Error reading own certificate.\n");
 		return -1;
 	}
         
         len = x509_to_msg(x509ss, buf, BUFMAXSIZE, skey1, skey2);
         if (len < 0) {
-                fprintf(stderr, "Error reading own certificate\n");
+                fprintf(stderr, "Error reading own certificate.\n");
                 return -1;
         }
 
@@ -137,7 +139,6 @@ static int wait_certificate(int sd,
         char buf[BUFMAXSIZE];
 	char cert[BUFMAXSIZE];
 	char ack[ACKMSGLEN];
-        const char *filename;
         
         /*
          * receive Prelude certificate
@@ -176,11 +177,9 @@ static int wait_certificate(int sd,
                 fprintf(stderr, "Bad message received\n");
                 goto err;
         }
-
-        filename = ssl_get_cert_filename(PRELUDE_CERTS);
         
-        fprintf(stderr, "Writing Prelude certificate to %s\n", filename);
-        if (!save_cert(filename, cert, certlen)) {
+        fprintf(stderr, "Writing Prelude certificate to %s\n", SENSORS_CERTIFICATES);
+        if (!save_cert(SENSORS_CERTIFICATES, cert, certlen)) {
                 fprintf(stderr, "Error writing Prelude certificate\n");
                 return -1;
         }
@@ -205,7 +204,7 @@ int ssl_register_client(config_t *cfg)
         int sock;
         des_key_schedule skey1, skey2;
         
-	ssl_read_config(cfg);
+	ssl_read_config(cfg, NULL);
 
         if (des_generate_2key(&skey1, &skey2, 1) != 0) {
 		fprintf(stderr, "Problem making one shot password\n");

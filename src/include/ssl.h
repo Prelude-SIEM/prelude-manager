@@ -21,6 +21,11 @@
 *
 *****/
 
+
+#define MANAGER_KEY CONFIG_DIR"/prelude-manager.key"
+#define SENSORS_CERTIFICATES CONFIG_DIR"/sensors.certs"
+
+
 int ssl_auth_client(int socket);
 
 int ssl_init_server(void);

@@ -1,3 +1,67 @@
+2001-09-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/ssl.c (ssl_init_server): use PRELUDE_MANAGER_CONF
+	instead of PRELUDE_REPORT_CONF. call ssl_read_config() with
+	a NULL section name.	
+
+	Use SENSORS_CERTIFICATE instead of PRELUDE_CERTS and MANAGER_KEY 
+	instead of REPORT_KEY.
+	
+	(ssl_create_certificate): ditto.
+
+	* src/ssl-register-client.c (send_own_certificate): 
+	rename REPORT_KEY to MANAGER_KEY.
+	(wait_certificate): rename PRELUDE_CERTS to SENSORS_CERTIFICATES.
+	(ssl_register_client): pass a NULL section name to ssl_read_config,
+	to that the ssl configuration key don't need to be in a specific section.
+
+	* src/server.c (data_available_cb): 
+	Take a void pointer to client data.
+	Theses clientdata are in fact the read function to be
+	used for this file descriptor (ssl_read or read).
+
+	(setup_unix_connection): Return a readfunc_t pointer.
+	(setup_inet_connection): Return a readfunc_t pointer (pointer
+	on the read function to use) or NULL on error. 
+
+	(wait_connection): If the setup_unix / setup_inet _connection()
+	call fail, close the client socket, but don't pass the FD to
+	server_process_request().
+
+	Pass the returned read function pointer as clientdata for the
+	server_process_request() call.
+
+	(setup_connection): Fix bad ssl_read_delimited() usage.
+	Don't pass a static buffer, as ssl_read_delimited() will alocate
+	the buffer to store read data.
+
+	* src/server-logic.c: new type : manager_cnx_t,
+	containing information about a connection (pointer on
+	a member of a pollfd, and pointer on connection specific data).
+
+	(remove_connection): 
+	(add_connection): 
+	(handle_fd_event): 
+	(child_reader): 
+	(create_fd_set): 
+	(server_process_requests): 
+
+	Make the necessary change so that it is possible to associate
+	private data per connection.
+	
+	* src/pconfig.c (configure_listen_address): 
+	(configure_listen_port): 
+	(configure_as_daemon): 
+	(configure_quiet): 
+	Rename configuration file section from Prelude Report to
+	Prelude Manager.
+	(pconfig_init): Store plaintext authentication information
+	in prelude-manager.auth instead of prelude-report.auth.
+
+	* Makefile.am (preludeconf_DATA): Rename generated
+	filename from prelude-report.conf to prelude-manager.conf
+	
+
 2001-09-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/Makefile.am (bin_PROGRAMS): 

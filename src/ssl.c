@@ -130,15 +130,14 @@ int ssl_init_server(void)
         int n;
         config_t *cfg;
 	SSL_METHOD *method;
-        const char *filename;
 
-        cfg = config_open(PRELUDE_REPORT_CONF);
+        cfg = config_open(PRELUDE_MANAGER_CONF);
         if ( ! cfg ) {
-                log(LOG_ERR, "couldn't open %s.\n", PRELUDE_REPORT_CONF);
+                log(LOG_ERR, "couldn't open %s.\n", PRELUDE_MANAGER_CONF);
                 return -1;
         }
         
-        ssl_read_config(cfg);
+        ssl_read_config(cfg, NULL);
 
         config_close(cfg);
         
@@ -165,23 +164,19 @@ int ssl_init_server(void)
 	SSL_CTX_set_verify(ctx,
                            SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 
-        filename = ssl_get_cert_filename(PRELUDE_CERTS);
-
-	n = SSL_CTX_load_verify_locations(ctx, filename, NULL);
+	n = SSL_CTX_load_verify_locations(ctx, SENSORS_CERTIFICATES, NULL);
 	if (n <= 0) {
 		ERR_print_errors_fp(stderr);
 		return -1;
 	}
 
-	filename = ssl_get_cert_filename(REPORT_KEY);
-
-	n = SSL_CTX_use_certificate_file(ctx, filename, SSL_FILETYPE_PEM);
+	n = SSL_CTX_use_certificate_file(ctx, MANAGER_KEY, SSL_FILETYPE_PEM);
 	if (n <= 0) {
 		ERR_print_errors_fp(stderr);
 		return -1;
 	}
 
-	n = SSL_CTX_use_PrivateKey_file(ctx, filename, SSL_FILETYPE_PEM);
+	n = SSL_CTX_use_PrivateKey_file(ctx, MANAGER_KEY, SSL_FILETYPE_PEM);
 	if (n <= 0) {
 		ERR_print_errors_fp(stderr);
 		return -1;
@@ -210,16 +205,13 @@ int ssl_init_server(void)
 int ssl_create_certificate(config_t *cfg, int crypt_key)
 {
         X509 *x509ss;
-        const char *filename;
         
-        ssl_read_config(cfg);
+        ssl_read_config(cfg, NULL);
 
         printf("\nBuilding report private key...\n");
-
-        filename = ssl_get_cert_filename(REPORT_KEY);
         
         x509ss = ssl_gen_crypto(ssl_get_days(), ssl_get_key_length(),
-                                filename, crypt_key);
+                                MANAGER_KEY, crypt_key);
         if ( ! x509ss ) {
                 fprintf(stderr, "\nError building report private key\n");
                 return -1;

@@ -52,20 +52,20 @@
 #include "plugin-decode.h"
 
 
+
 extern struct report_config config;
-static ssize_t (*my_read)(int fd, void *buf, size_t count);
 
 
 /*
  *
  */
-static int data_available_cb(int fd) 
+static int data_available_cb(int fd, void *clientdata) 
 {
         uint8_t tag;
         xmlNodePtr idmef_msg;
         alert_container_t *ac;
         
-        ac = prelude_alert_read(fd, &tag);
+        ac = prelude_alert_read(fd, &tag, clientdata);
         if ( ! ac )
                 return -1;
 
@@ -125,7 +125,7 @@ static int set_options(const char *optbuf)
 
 static int setup_connection(int sock) 
 {
-        char buf[1024];
+        char *ptr, buf[1024];
         int ret, len;
         const char *ssl;
         
@@ -144,14 +144,17 @@ static int setup_connection(int sock)
                 return -1;
         }
         
-        ret = socket_read_delimited(sock, (void **)&buf, read);
+        ret = socket_read_delimited(sock, (void **)&ptr, read);
         if ( ret < 0 ) {
                 log(LOG_ERR, "error reading Prelude client config string.\n");
                 return -1;
         }
 
+        ret = set_options(ptr);
 
-        return set_options(buf);
+        free(ptr);
+
+        return ret;
 }
 
 
@@ -194,35 +197,34 @@ static int tcpd_auth(int clnt_sock)
 /*
  *
  */
-static int setup_inet_connection(int sock, struct sockaddr *addr, unsigned int *addrlen) 
+static readfunc_t *setup_inet_connection(int sock, struct sockaddr *addr, unsigned int *addrlen) 
 {
         int ret;
         const char *from;
-
+        readfunc_t *readfunc = &read;
+        
         from = inet_ntoa(((struct sockaddr_in *)addr)->sin_addr);
         
 #ifdef HAVE_TCPD_H
         ret = tcpd_auth(sock);
         if ( ret < 0 )
-                return -1;
+                return NULL;
 #endif
 
         log(LOG_INFO, "new connection from %s.\n", from);
 
         ret = setup_connection(sock);
         if ( ret < 0 )
-                return -1;
-        
-        my_read = read;
+                return NULL;
         
 #ifdef HAVE_SSL
         if ( config.use_ssl == 1 ) {
-                my_read = ssl_read;
+                readfunc = &ssl_read;
                 
                 ret = ssl_auth_client(sock);
                 if ( ret < 0 ) {
                         log(LOG_INFO, "SSL authentication failed with %s.\n", from);
-                        return -1;
+                        return NULL;
                 }
                 
                 log(LOG_INFO, "SSL authentication suceeded with %s.\n", from);
@@ -230,9 +232,9 @@ static int setup_inet_connection(int sock, struct sockaddr *addr, unsigned int *
                 
 #endif
                 if ( auth_check(sock) < 0 ) 
-                        return -1;
+                        return NULL;
 
-        return 0;
+        return readfunc;
 }
 
 
@@ -241,13 +243,11 @@ static int setup_inet_connection(int sock, struct sockaddr *addr, unsigned int *
 /*
  *
  */
-static int setup_unix_connection(int sock, struct sockaddr *addr, unsigned int *addrlen) 
+static readfunc_t *setup_unix_connection(int sock, struct sockaddr *addr, unsigned int *addrlen) 
 {        
         log(LOG_INFO, "new local connection.\n");
-
-        my_read = read;
         
-        return 0;
+        return &read;
 }
 
 
@@ -257,7 +257,8 @@ static int setup_unix_connection(int sock, struct sockaddr *addr, unsigned int *
  */
 static int wait_connection(int sock, struct sockaddr *addr, unsigned int addrlen, int unix_sock) 
 {
-        int ret, client;
+        int client;
+        readfunc_t *ret;
         
         while ( 1 ) {
                 
@@ -273,10 +274,12 @@ static int wait_connection(int sock, struct sockaddr *addr, unsigned int addrlen
                 else
                         ret = setup_inet_connection(client, addr, &addrlen);
                 
-                if ( ret < 0 )
+                if ( ! ret ) {
                         close(client);
-
-                server_process_requests(client);
+                        continue;
+                }
+                
+                server_process_requests(client, ret);
         }
         
         return 0;
@@ -449,7 +452,7 @@ int manager_server_start(void)
 {
 	int ret;
 
-        server_logic_init(data_available_cb);
+        server_logic_init(&data_available_cb);
         
         ret = strcmp(config.addr, "unix");
 
