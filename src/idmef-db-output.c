@@ -233,7 +233,7 @@ static int insert_process(uint64_t alert_ident, uint64_t parent_ident,
                 if ( ! arg )
                         return -1;
                 
-                db_plugin_insert("Prelyde_ProcessArg", "alert_ident, parent_type, parent_ident, arg",
+                db_plugin_insert("Prelude_ProcessArg", "alert_ident, parent_type, parent_ident, arg",
                                  "%llu, '%c', %llu, '%s'", alert_ident, parent_type, parent_ident, arg);
 
                 free(arg);
