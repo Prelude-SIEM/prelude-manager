@@ -8,4 +8,9 @@ mysql_la_LIBADD = @MYSQL_LIBS@
 mysqldir = $(db_plugin_dir)
 mysql_LTLIBRARIES = mysql.la
 
+EXTRA_DIST = mysql.sql
+
+install-data-local:
+	$(INSTALL) -d -m 755 $(DESTDIR)/$(manager_data_dir)/mysql
+	$(INSTALL) -m 600 $(srcdir)/mysql.sql $(DESTDIR)/$(manager_data_dir)/mysql; 
 endif

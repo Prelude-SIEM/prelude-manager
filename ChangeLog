@@ -1,3 +1,15 @@
+2002-07-23  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* prelude-manager-db-create.sh (manager_user): 
+	moved to prelude-manager-db-create.sh.in, to include
+	absolute path to the SQL scripts.
+
+	* plugins/db/pgsql/Makefile.am (install-data-local): 
+	install postgresql.sql
+
+	* plugins/db/mysql/Makefile.am (install-data-local): 
+	install mysql.sql
+
 2002-07-22  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/reports/textmod/textmod.c (process_string_list): 

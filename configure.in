@@ -35,6 +35,9 @@ if test "x$sysconfdir" = "x\${prefix}/etc"; then
     sysconfdir="$prefix/etc"
 fi
 
+if test "x$datadir" = "x\${prefix}/share"; then
+    datadir="$prefix/share"
+fi
 
 
 dnl **************************************************
@@ -380,10 +383,12 @@ decode_plugin_dir=$plugindir/decodes/
 filter_plugin_dir=$plugindir/filters/
 db_plugin_dir=$plugindir/db/
 manager_fifo_dir=$localstatedir/spool/prelude-manager
+manager_data_dir=$datadir/prelude-manager
 
 AC_DEFINE_UNQUOTED(PRELUDE_MANAGER_CONFDIR, "$configdir")
 AC_DEFINE_UNQUOTED(PRELUDE_MANAGER_CONF, "$prelude_manager_conf")
 
+AC_SUBST(manager_data_dir)
 AC_SUBST(defined)
 AC_SUBST(configdir)
 AC_SUBST(localstatedir)
@@ -409,6 +414,7 @@ docs/Makefile
 docs/api/Makefile
 
 prelude-manager.conf
+prelude-manager-db-create.sh
 
 manager-adduser/Makefile
 
