@@ -23,6 +23,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "memset.h"
 #include "inet_ntop.h"
 
 #define NS_IN6ADDRSZ 16
