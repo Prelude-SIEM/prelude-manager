@@ -337,6 +337,9 @@ static void process_file_linkage(int depth, const struct list_head *head)
 
 static void process_inode(int depth, const idmef_inode_t *inode) 
 {
+        if ( ! inode )
+                return;
+        
         print(depth, "Inode:");
 
         if ( inode->number )
