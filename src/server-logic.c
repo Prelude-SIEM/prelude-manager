@@ -437,6 +437,9 @@ server_logic_t *server_logic_new(void *sdata,
 /**
  * server_logic_stop:
  * @server: Pointer on a #server_logic_t object.
+ *
+ * Signal to the server thread(s) that they should stop
+ * processing requests.
  */
 void server_logic_stop(server_logic_t *server) 
 {

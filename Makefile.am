@@ -1,4 +1,4 @@
-SUBDIRS = manager-adduser src plugins
+SUBDIRS = manager-adduser src plugins docs
 
 preludeconfdir = $(configdir)
 preludeconf_DATA = prelude-manager.conf

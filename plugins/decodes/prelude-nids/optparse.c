@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1999,2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1999,2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -24,23 +24,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdarg.h>
+#include <inttypes.h>
 
-/*
- * extract.h stolen from tcpdump source
- */
-#include <libprelude/common.h>
+#include <libprelude/prelude-log.h>
+
+#include "nethdr.h"
+#include "optparse.h"
 
 #define MAX_OPTS_LEN 40
 
-#include "optparse.h"
-
-
 #ifndef IPOPT_SECURITY
-#define IPOPT_SECURITY 130
+ #define IPOPT_SECURITY 130
 #endif
 
 #ifndef IPOPT_RA
-#define IPOPT_RA 148
+ #define IPOPT_RA 148
+#endif
+
+#ifdef NEED_ALIGNED_ACCESS
+#define EXTRACT_16BITS(p) \
+        ((u_int16_t)*((const u_int8_t *)(p) + 0) << 8 | \
+        (u_int16_t)*((const u_int8_t *)(p) + 1))
+#define EXTRACT_32BITS(p) \
+        ((u_int32_t)*((const u_int8_t *)(p) + 0) << 24 | \
+        (u_int32_t)*((const u_int8_t *)(p) + 1) << 16 | \
+        (u_int32_t)*((const u_int8_t *)(p) + 2) << 8 | \
+        (u_int32_t)*((const u_int8_t *)(p) + 3))
+#else
+
+#define EXTRACT_16BITS(p) \
+        ((u_int16_t)ntohs(*(const u_int16_t *)(p)))
+#define EXTRACT_32BITS(p) \
+        ((u_int32_t)ntohl(*(const u_int32_t *)(p)))
 #endif
 
 
@@ -67,8 +83,9 @@
  */
 
 
-static char **buf;
-static size_t *bsize;
+static char *buf;
+static size_t bsize;
+
 
 static void printopt(const char *comment, ...) 
 {
@@ -76,11 +93,11 @@ static void printopt(const char *comment, ...)
         va_list va;
 
         va_start(va, comment);
-        ret = vsnprintf(*buf, *bsize, comment, va);
+        ret = vsnprintf(buf, bsize, comment, va);
         va_end(va);
-
-        *buf += ret;
-        *bsize -= ret;
+        
+        buf += ret;
+        bsize -= ret;
 }
 
 
@@ -90,7 +107,6 @@ static void printopt(const char *comment, ...)
  */
 static int tcp_optval(unsigned char *optbuf, int opt, int datalen) 
 {
-#if 0
         int i;
         
         switch (opt) {
@@ -153,8 +169,6 @@ static int tcp_optval(unsigned char *optbuf, int opt, int datalen)
 
         }
 
-#endif
-
         return -1;
 }
 
@@ -165,7 +179,6 @@ static int tcp_optval(unsigned char *optbuf, int opt, int datalen)
  */
 static int ip_optval(unsigned char *optbuf, int opt, int datalen)
 {
-#if 0
         int optlen = datalen + 2;
 
 #warning "support for dumping the following options should be added : ts, rr, srr, lsrr"
@@ -203,7 +216,6 @@ static int ip_optval(unsigned char *optbuf, int opt, int datalen)
                 printopt("ipopt-%d{%d}", opt, optlen);
                 break;
         }
-#endif
         
         return -1;
 }
@@ -216,7 +228,6 @@ static int ip_optval(unsigned char *optbuf, int opt, int datalen)
  */
 static int is_1byte_option(int opt) 
 {
-#if 0
         if ( opt == TCPOPT_NOP ) {
                 printopt("nop");
                 return 0;
@@ -227,7 +238,6 @@ static int is_1byte_option(int opt)
                 return 0;
         }
 
-#endif
         return -1;
 }
 
@@ -334,18 +344,22 @@ static int walk_options(unsigned char *optbuf, int totlen,
 /*
  *
  */
-int tcp_optdump(unsigned char *optbuf, size_t optlen, char **buffer, size_t *bufsize) 
+const char *tcp_optdump(unsigned char *optbuf, size_t optlen)
 {
+        static char buffer[1024];
+        
         buf = buffer;
-        bsize = bufsize;
+        bsize = sizeof(buffer);
         
         if ( optlen > MAX_OPTS_LEN ) {
                 printopt("total option len (%d) > maximum option len (%d).",
                          optlen, MAX_OPTS_LEN);
-                return -1;
+                return buffer;
         }
         
-        return walk_options(optbuf, optlen, tcp_optval);
+        walk_options(optbuf, optlen, tcp_optval);
+
+        return buffer;
 }
 
 
@@ -353,18 +367,22 @@ int tcp_optdump(unsigned char *optbuf, size_t optlen, char **buffer, size_t *buf
 /*
  *
  */
-int ip_optdump(unsigned char *optbuf, size_t optlen, char **buffer, size_t *bufsize) 
-{        
+const char *ip_optdump(unsigned char *optbuf, size_t optlen)
+{
+        static char buffer[1024];
+        
         buf = buffer;
-        bsize = bufsize;
+        bsize = sizeof(buffer);
 
         if ( optlen > MAX_OPTS_LEN ) {
                 printopt("total option len (%d) > maximum option len (%d).",
                          optlen, MAX_OPTS_LEN);
-                return -1;
+                return buffer;
         }
+
+        walk_options(optbuf, optlen, ip_optval);
         
-        return walk_options(optbuf, optlen, ip_optval);
+        return buffer;
 }
 
 

@@ -1,3 +1,14 @@
+2002-01-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* configure.in: update gtk-doc detection routine. 
+	Check if we support un-aligned access.
+
+	* plugins/decodes/prelude-nids/optparse.c: 
+	* plugins/decodes/prelude-nids/packet-decode.c: 
+	* plugins/decodes/prelude-nids/decode.c: 
+
+	re-activated. You should now get packet dump in your alert.
+
 2001-01-27  Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>
 	* configure.in: if mysql_config is not present try to find 
 	libmysqlclient.so and mysql.h. This fallback should not be considered

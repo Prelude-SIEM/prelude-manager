@@ -43,7 +43,7 @@
 #include "config.h"
 
 
-#define extract_idmef_string(buf, len, dst) \
+#define extract_idmef_string(buf, len, dst)  \
         extract_string(buf, len, dst.string)
 
 

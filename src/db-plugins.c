@@ -96,9 +96,9 @@ void db_plugin_insert(const char *table, const char *fields, const char *fmt, ..
 
 /**
  * db_plugins_run:
- * @alert: Pointer to an IDMEF alert.
+ * @idmef: Pointer to an IDMEF message.
  *
- * Will output the IDMEF alert to all active database.
+ * Will output the IDMEF message to all active database.
  */
 void db_plugins_run(idmef_message_t *idmef) 
 {
@@ -122,6 +122,8 @@ void db_plugins_close(void)
 /**
  * db_plugins_init:
  * @dirname: Pointer to a directory string.
+ * @argc: Number of command line argument.
+ * @argv: Array containing the command line arguments.
  *
  * Tell the DB plugins subsystem to load DB plugins from @dirname.
  *

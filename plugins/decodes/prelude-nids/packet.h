@@ -3,7 +3,7 @@
 
 /*****
 *
-* Copyright (C) 1998 - 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 1998 - 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -80,6 +80,7 @@ union proto_u {
 
 
 typedef struct {
+        char *data; /* we store pointer to string here */
         uint16_t len;
         uint8_t proto;
         union proto_u p;

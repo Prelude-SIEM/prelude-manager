@@ -28,7 +28,8 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <netdb.h>
-#include <assert.h>
+
+#include <libprelude/extract.h>
 
 #include "packet.h"
 #include "decode.h"
@@ -37,12 +38,24 @@
 
 
 
-static char *hex_data = NULL;
 static char *sport_data = NULL;
 static char *dport_data = NULL;
 static char *shost_data = NULL;
 static char *dhost_data = NULL;
+static packet_t packet[MAX_PKTDEPTH + 1];
 
+
+
+static const char *get_address(struct in_addr *addr) 
+{
+#ifdef NEED_ALIGNEMENT
+        struct in_addr tmp;
+        
+        memmove(&tmp, addr, sizeof(*addr));
+        addr = &tmp;
+#endif
+        return inet_ntoa(*addr);        
+}
 
 
 
@@ -72,11 +85,11 @@ static int gather_ip_infos(idmef_alert_t *alert, iphdr_t *ip)
                 return -1;
         
         saddr->category = ipv4_addr;
-        shost_data = strdup(inet_ntoa(ip->ip_src));
+        shost_data = strdup(get_address(&ip->ip_src));
         idmef_string_set(&saddr->address, shost_data);
         
         daddr->category = ipv4_addr;
-        dhost_data = strdup(inet_ntoa(ip->ip_dst));
+        dhost_data = strdup(get_address(&ip->ip_dst));
         idmef_string_set(&daddr->address, dhost_data);
 
         return 0;
@@ -100,7 +113,8 @@ static int gather_protocol_infos(idmef_alert_t *alert, uint16_t sport, uint16_t 
                 idmef_source_service_new(source);
                 idmef_string(&source->service->name) = sport_data;
                 idmef_string(&source->service->protocol) = proto;
-                source->service->port = ntohs(sport);
+
+                source->service->port = sport;
         }
 
         if ( ! list_empty(&alert->target_list) ) {
@@ -109,31 +123,10 @@ static int gather_protocol_infos(idmef_alert_t *alert, uint16_t sport, uint16_t 
                 ptr = getservbyport(dport, proto);
                 
                 idmef_target_service_new(target);
-                target->service->port = ntohs(dport);
+                target->service->port = dport;
                 idmef_string(&target->service->protocol) = proto;
                 idmef_string(&target->service->name) = dport_data = (ptr) ? strdup(ptr->s_name) : NULL;
         }
-
-        return 0;
-}
-
-
-
-
-static int gather_payload_infos(idmef_alert_t *alert, unsigned char *data, size_t len) 
-{
-        idmef_additional_data_t *pdata;
-        
-        pdata = idmef_alert_additional_data_new(alert);
-        if ( ! pdata ) 
-                return -1;
-        
-        pdata->type = string;
-        idmef_string_set_constant(&pdata->meaning, "Packet Payload");
-        
-        idmef_string(&pdata->data) = hex_data = prelude_string_to_hex(data, len);
-        if ( ! hex_data )
-                return -1;
 
         return 0;
 }
@@ -145,6 +138,7 @@ static int packet_to_idmef(idmef_alert_t *alert, packet_t *p)
 {
         int i;
         int ret;
+        uint16_t sport, dport;
         
         for ( i = 0; p[i].proto != p_end; i++ ) {
 
@@ -155,18 +149,18 @@ static int packet_to_idmef(idmef_alert_t *alert, packet_t *p)
                 }
                 
                 else if ( p[i].proto == p_tcp ) {
-                        ret = gather_protocol_infos(alert, p[i].p.tcp->th_sport, p[i].p.tcp->th_dport, "tcp");
+                        extract_int(uint16, &p[i].p.tcp->th_sport, sizeof(uint16_t), sport);
+                        extract_int(uint16, &p[i].p.tcp->th_dport, sizeof(uint16_t), dport);
+                        
+                        ret = gather_protocol_infos(alert, sport, dport, "tcp");
                         if ( ret < 0 )
                                 return -1;
                 }
                 else if ( p[i].proto == p_udp ) {
-                        ret = gather_protocol_infos(alert, p[i].p.udp_hdr->uh_sport, p[i].p.udp_hdr->uh_dport, "udp");
-                        if ( ret < 0 )
-                                return -1;
-                }
-                
-                else if ( p[i].proto == p_data ) {
-                        ret = gather_payload_infos(alert, p[i].p.data, p[i].len);
+                        extract_int(uint16, &p[i].p.udp_hdr->uh_sport, sizeof(uint16_t), sport);
+                        extract_int(uint16, &p[i].p.udp_hdr->uh_dport, sizeof(uint16_t), dport);
+                        
+                        ret = gather_protocol_infos(alert, sport, dport, "udp");
                         if ( ret < 0 )
                                 return -1;
                 }
@@ -183,8 +177,6 @@ static int msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert)
         uint8_t tag;
         uint32_t len;
         int i = 0, ret;
-        packet_t packet[MAX_PKTDEPTH + 1];
-        
                         
         do {    
                 ret = prelude_msg_get(pmsg, &tag, &len, &buf);
@@ -195,14 +187,16 @@ static int msg_to_packet(prelude_msg_t *pmsg, idmef_alert_t *alert)
                 
                 if ( ret == 0 ) 
                         break;
-                
+
+                packet[i].data = NULL;
                 packet[i].len = len;
                 packet[i].proto = tag;
                 packet[i].p.ip = buf;
                 
-        } while ( packet[i++].proto != p_end );
+        } while ( packet[i++].proto != p_end && i < MAX_PKTDEPTH );
         
         packet_to_idmef(alert, packet);
+        nids_packet_dump(alert, packet);
 
         return 0;
 }
@@ -260,10 +254,7 @@ static int nids_decode_run(prelude_msg_t *pmsg, idmef_message_t *idmef)
 
 static void nids_decode_free(void) 
 {
-        if ( hex_data ) {
-                free(hex_data);
-                hex_data = NULL;
-        }
+        nids_packet_free(packet);
 
         if ( shost_data ) {
                 free(shost_data);

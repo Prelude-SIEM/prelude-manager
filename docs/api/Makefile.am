@@ -6,7 +6,7 @@
 # of using the various options.
 
 # The name of the module, e.g. 'glib'.
-DOC_MODULE=prelude-report
+DOC_MODULE=prelude-manager
 
 # The top-level SGML file. Change it if you want.
 DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
@@ -52,7 +52,8 @@ GTKDOC_LD=$(LIBTOOL) --mode=link $(CC)
 # If you need to override some of the declarations, place them in this file
 # and uncomment this line.
 #DOC_OVERRIDES = $(DOC_MODULE)-overrides.txt
-DOC_OVERRIDES=
+DOC_OVERRIDES =
+
 
 
 ###########################################################################
