@@ -1,3 +1,16 @@
+2002-05-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	Fix daemon mode for Prelude Manager. Prelude-Manager should
+	fork() before thread are created.
+	
+	* src/prelude-manager.c (main): don't start the daemon here.
+
+	* src/pconfig.c (set_daemon_mode):
+	call prelude_daemonize() here.
+	
+	(pconfig_init): option for pidfile have higher priority than
+	daemon option.
+
 2002-05-06  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* docs/api/Makefile.am: included PATCH from 

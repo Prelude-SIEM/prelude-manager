@@ -176,16 +176,6 @@ int main(int argc, char **argv)
         sigaction(SIGTERM, &action, NULL);
         sigaction(SIGABRT, &action, NULL);
         sigaction(SIGQUIT, &action, NULL);
-        
-         
-        /*
-         * Start prelude as a daemon if asked.
-         */
-        if ( config.daemonize == 1 ) {
-                ret = prelude_daemonize(config.pidfile);
-                if ( ret < 0 )
-                        return -1;
-        }
 
         server_generic_start(server, nserver);
         

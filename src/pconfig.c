@@ -66,8 +66,8 @@ static int get_version(char *buf, size_t size)
 
 static int set_daemon_mode(const char *arg) 
 {
+        prelude_daemonize(config.pidfile);
         prelude_log_use_syslog();
-        config.daemonize = 1;
         return prelude_option_success;
 }
 
@@ -135,12 +135,12 @@ static int print_help(const char *arg)
 int pconfig_init(int argc, char **argv) 
 {
         int ret;
+        prelude_option_t *opt;
         
 	/* Default */
 	config.addr = "unix";
 	config.port = 5554;
         config.admin_server_port = 5555;
-	config.daemonize = 0;
         config.pidfile = NULL;
 
         prelude_option_add(NULL, CLI_HOOK, 'h', "help",
@@ -151,16 +151,14 @@ int pconfig_init(int argc, char **argv)
 
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'd', "daemon",
                            "Run in daemon mode", no_argument, set_daemon_mode, NULL);
-
-#if 0
-        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'c', "create-account",
-                           "Create an account to be used by this sensor", no_argument,
-                           create_account, NULL);
-#endif
         
-        prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'P', "pidfile",
-                           "Write Prelude PID to pidfile", required_argument, set_pidfile, NULL);
-
+        opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'P', "pidfile",
+                                 "Write Prelude PID to pidfile", required_argument, set_pidfile, NULL);
+        /*
+         * we want this option to be processed before -d.
+         */
+        prelude_option_set_priority(opt, option_run_first);
+        
         prelude_option_add(NULL, CLI_HOOK|CFG_HOOK, 'r', "relay-manager",
                            "List of address:port pair where sensors messages should be relayed",
                            required_argument, set_relay_manager, NULL);

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2000 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -29,8 +29,7 @@ struct report_config {
         
         char *admin_server_addr;
 	unsigned int admin_server_port;
-        
-	int daemonize;
+    
         const char *pidfile;
         int use_ssl;
 }; 

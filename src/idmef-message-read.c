@@ -1342,6 +1342,7 @@ int idmef_message_read(idmef_message_t *idmef, prelude_msg_t *msg)
 
         case MSG_ALERT_TAG:
                 idmef_alert_new(idmef);
+
                 ret = alert_get(msg, idmef->message.alert);
                 if ( ret < 0 )
                         return -1;
