@@ -1,4 +1,4 @@
-DEFS=@defined@ -DPRELUDE_REPORT_CONF=\"@prelude_report_conf@\"
+DEFS=@defined@
 
 INCLUDES = -I$(top_srcdir)/libmissing -I$(top_srcdir) \
            -I$(top_srcdir)/src/include \

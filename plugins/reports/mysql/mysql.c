@@ -388,7 +388,7 @@ int plugin_init(unsigned int id)
         plugin_set_running_func(&plugin, db_run);
         plugin_set_closing_func(&plugin, db_close);
         
-        plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_REPORT_CONF);
+        plugin_config_get((plugin_generic_t *)&plugin, opts, PRELUDE_MANAGER_CONF);
         
         if ( !dbhost || !dbname || !dbuser || !dbpass )
                 return -1;
