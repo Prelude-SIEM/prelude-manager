@@ -1,3 +1,9 @@
+2004-02-06  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/reports/textmod/textmod.c (process_data): 
+	* plugins/reports/xmlmod/xmlmod.c (process_additional_data): 
+	Use the len returned by idmef_additionaldata_data_to_string().
+
 2004-02-05  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* plugins/decodes/prelude-nids/packet-decode.c (ip_dump): 

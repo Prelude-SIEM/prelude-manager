@@ -498,20 +498,22 @@ static void process_classification(idmef_classification_t *classification)
 
 static void process_data(idmef_additional_data_t *ad) 
 {
+        size_t dlen;
         const char *tmp;
         idmef_data_t *data;
         unsigned char buf[128];
-        
+
+        dlen = sizeof(buf);
         data = idmef_additional_data_get_data(ad);
         
-        tmp = idmef_additionaldata_data_to_string(ad, buf, sizeof(buf));
+        tmp = idmef_additionaldata_data_to_string(ad, buf, &dlen);
         if ( ! tmp )
                 return;
         
         if ( idmef_additional_data_get_type(ad) == byte )
                 tmp = "<FIXME: binary data>";
         
-	if ( idmef_data_get_len(data) <= 80 )
+	if ( dlen <= 80 )
                 print(0, "* %s: %s\n", 
 		      idmef_string(idmef_additional_data_get_meaning(ad)), tmp);
         else

@@ -517,11 +517,14 @@ static void process_classification(xmlNodePtr parent, idmef_classification_t *cl
 
 static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *ad) 
 {
+        size_t dlen;
         xmlNodePtr new;
         const char *tmp;
         unsigned char buf[128];
+
+        dlen = sizeof(buf);
         
-	tmp = idmef_additionaldata_data_to_string(ad, buf, sizeof(buf));
+	tmp = idmef_additionaldata_data_to_string(ad, buf, &dlen);
 	if ( ! tmp )
 		return;
 
