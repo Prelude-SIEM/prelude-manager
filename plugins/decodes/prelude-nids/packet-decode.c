@@ -620,45 +620,17 @@ static int udp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
 
 static int data_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *pkt) 
 {
-        int ret;
-        char tmp[256];
         idmef_data_t *data;
-        idmef_additional_data_t *pdata = NULL;
-        
-        if ( pkt->len ) {
-                pdata = idmef_additional_data_new();
-                if ( ! pdata ) 
-                        return -1;
-                
-                data = idmef_data_new_ref(pkt->p.data, pkt->len);
-                if ( ! data ) {
-                        idmef_additional_data_destroy(pdata);
-                        return -1;
-                }
 
-                idmef_string_set_constant(idmef_additional_data_new_meaning(pdata), "Packet Payload");
-                
-                idmef_additional_data_set_data(pdata, data);
-                idmef_additional_data_set_type(pdata, byte);
-                idmef_alert_set_additional_data(alert, pdata);
-        }
+        if ( ! pkt->len )
+                return -1;
 
-        ret = snprintf(tmp, sizeof(tmp), "size=%d bytes", pkt->len);
-        if ( ret < 0 || ret >= sizeof(tmp) ) {
-                if ( pdata )
-                        idmef_additional_data_destroy(pdata);
+        data = idmef_data_new_ref(pkt->p.data, pkt->len);
+        if ( ! data ) 
                 return -1;
-        }
-        
-        data = idmef_data_new_dup(tmp, ret + 1);
-        if ( ! data ) {
-                if ( pdata )
-                        idmef_additional_data_destroy(pdata);
-                return -1;
-        }
         
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, string);
+        idmef_additional_data_set_type(ad, byte);
         
         return 0;
 }
@@ -776,7 +748,7 @@ int nids_packet_dump(idmef_alert_t *alert, packet_t *p)
                 { "Udp header", p_udp, udp_dump, sizeof(udphdr_t)               },
                 { "Tcp options", p_tcpopts, tcpopts_dump, -1                    },
                 { "Ip options", p_ipopts, ipopts_dump, -1                       },
-                { "Payload header", p_data, data_dump, -1                       },
+                { "Packet Payload", p_data, data_dump, -1                       },
                 { NULL, },
         };
 

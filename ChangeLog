@@ -1,3 +1,9 @@
+2004-02-04  Yoann Vandoorselaere  <yoann@prelude-ids.org>
+
+	* plugins/decodes/prelude-nids/packet-decode.c (data_dump): 
+	new way of dumping packet. Don't generate an hexadecimal dump, 
+	use the raw packet data.
+
 2004-02-03  Yoann Vandoorselaere  <yoann@prelude-ids.org>
 
 	* plugins/reports/xmlmod/xmlmod.c (process_additional_data): 
