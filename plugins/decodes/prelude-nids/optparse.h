@@ -21,6 +21,6 @@
 *
 *****/
 
-int ip_optdump(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen);
-int tcp_optdump(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen);
+int ip_optdump(prelude_string_t *obuf, unsigned char *optbuf, size_t optlen);
+int tcp_optdump(prelude_string_t *obuf, unsigned char *optbuf, size_t optlen);
 

@@ -31,7 +31,7 @@
 
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
-#include <libprelude/prelude-strbuf.h>
+#include <libprelude/prelude-string.h>
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-tree-wrap.h>
 
@@ -204,30 +204,30 @@ static int ether_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_
         uint16_t t;
         const char *type;
         idmef_data_t *data;
-        prelude_strbuf_t *buf;
+        prelude_string_t *buf;
         etherhdr_t *hdr = packet->p.ether_hdr;
 
-        buf = prelude_strbuf_new();
+        buf = prelude_string_new();
         if ( ! buf )
                 return -1;
         
-        prelude_strbuf_sprintf(buf, "%s -> ", etheraddr_string(hdr->ether_shost));
+        prelude_string_sprintf(buf, "%s -> ", etheraddr_string(hdr->ether_shost));
         
         t = extract_uint16(&hdr->ether_type);
         type = switch_ethertype(t);
-        prelude_strbuf_sprintf(buf, "%s [ether_type=%s (%d)]", etheraddr_string(hdr->ether_dhost), type, t);
+        prelude_string_sprintf(buf, "%s [ether_type=%s (%d)]", etheraddr_string(hdr->ether_dhost), type, t);
 
-        data = idmef_data_new_nodup(prelude_strbuf_get_string(buf), prelude_strbuf_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
         
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
 
-        prelude_strbuf_dont_own(buf);
-        prelude_strbuf_destroy(buf);
+        prelude_string_dont_own(buf);
+        prelude_string_destroy(buf);
         
         return 0;
 }
@@ -241,7 +241,7 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         const char *ptr;
         uint16_t op, hrd;
         idmef_data_t *data;
-        prelude_strbuf_t *buf;
+        prelude_string_t *buf;
         struct in_addr tmp_addr;
         etherarphdr_t *arp = packet->p.arp_hdr;
         struct {
@@ -275,7 +275,7 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
                 { 0, NULL },
         };
 
-        buf = prelude_strbuf_new();
+        buf = prelude_string_new();
         if ( ! buf )
                 return -1;
         
@@ -290,7 +290,7 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
                 }
         }
 
-        prelude_strbuf_sprintf(buf, "type=%d(%s) ", op, (ptr) ? ptr : "unknown" );     
+        prelude_string_sprintf(buf, "type=%d(%s) ", op, (ptr) ? ptr : "unknown" );     
         
         ptr = NULL;
         for ( i = 0; f_tbl[i].name != NULL; i++ ) {
@@ -300,27 +300,27 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
                 }
         }
         
-        prelude_strbuf_sprintf(buf, "f=%d(%s) ", hrd, (ptr) ? ptr : "unknown");
+        prelude_string_sprintf(buf, "f=%d(%s) ", hrd, (ptr) ? ptr : "unknown");
 
         tmp_addr.s_addr = align_uint32(arp->arp_tpa);
-        prelude_strbuf_sprintf(buf, "tpa=%s,tha=%s,",
+        prelude_string_sprintf(buf, "tpa=%s,tha=%s,",
                                get_address(&tmp_addr), etheraddr_string(arp->arp_tha));
 
         tmp_addr.s_addr = align_uint32(arp->arp_spa);
-        prelude_strbuf_sprintf(buf, "spa=%s,sha=%s",
+        prelude_string_sprintf(buf, "spa=%s,sha=%s",
                                get_address(&tmp_addr), etheraddr_string(arp->arp_sha));
 
-        data = idmef_data_new_nodup(prelude_strbuf_get_string(buf), prelude_strbuf_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
         
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_strbuf_dont_own(buf);
-        prelude_strbuf_destroy(buf);
+        prelude_string_dont_own(buf);
+        prelude_string_destroy(buf);
         
         return 0;
 }
@@ -331,29 +331,29 @@ static int ipopts_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet
 {
         int ret;
         idmef_data_t *data;
-        prelude_strbuf_t *buf;
+        prelude_string_t *buf;
 
-        buf = prelude_strbuf_new();
+        buf = prelude_string_new();
         if ( ! buf )
                 return -1;
         
         ret = ip_optdump(buf, packet->p.opts, packet->len);
         if ( ret < 0 ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
 
-        data = idmef_data_new_nodup(prelude_strbuf_get_string(buf), prelude_strbuf_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
         
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
 
-        prelude_strbuf_dont_own(buf);
-        prelude_strbuf_destroy(buf);
+        prelude_string_dont_own(buf);
+        prelude_string_destroy(buf);
         
         return 0;
 }
@@ -365,51 +365,51 @@ static int tcpopts_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packe
 {
         int ret;
         idmef_data_t *data;
-        prelude_strbuf_t *buf;
+        prelude_string_t *buf;
 
-        buf = prelude_strbuf_new();
+        buf = prelude_string_new();
         if ( ! buf )
                 return -1;
         
         ret = tcp_optdump(buf, packet->p.opts, packet->len);
         if ( ret < 0 ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
 
-        data = idmef_data_new_nodup(prelude_strbuf_get_string(buf), prelude_strbuf_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
         
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
 
-        prelude_strbuf_dont_own(buf);
-        prelude_strbuf_destroy(buf);
+        prelude_string_dont_own(buf);
+        prelude_string_destroy(buf);
         
         return 0;
 }
 
 
 
-static int dump_ip_offset(uint16_t off, prelude_strbuf_t *buf) 
+static int dump_ip_offset(uint16_t off, prelude_string_t *buf) 
 {
         int ret;
         
-        ret = prelude_strbuf_sprintf(buf, ",frag=[");
+        ret = prelude_string_sprintf(buf, ",frag=[");
         if ( ret < 0 )
                 return -1;
         
         if ( off & IP_OFFMASK ) {
-                ret = prelude_strbuf_sprintf(buf, "offset=%d ", (off & 0x1fff) * 8);
+                ret = prelude_string_sprintf(buf, "offset=%d ", (off & 0x1fff) * 8);
                 if ( ret < 0 )
                         return -1;
         }
         
         if ( off & IP_MF ) {
-                ret = prelude_strbuf_sprintf(buf, "MF ");
+                ret = prelude_string_sprintf(buf, "MF ");
                 if ( ret < 0 )
                         return -1;
         }
@@ -417,12 +417,12 @@ static int dump_ip_offset(uint16_t off, prelude_strbuf_t *buf)
         if ( off & IP_DF ) {
                 pof_host_data.df = 1;
                 
-                ret = prelude_strbuf_sprintf(buf, "DF ");
+                ret = prelude_string_sprintf(buf, "DF ");
                 if ( ret < 0 ) 
                         return -1;
         }
                                 
-        return prelude_strbuf_sprintf(buf, "]");
+        return prelude_string_sprintf(buf, "]");
 }
 
 
@@ -432,10 +432,10 @@ static int ip_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *
         int ret;
         idmef_data_t *data;
         uint16_t off, len, id;
-        prelude_strbuf_t *buf;
+        prelude_string_t *buf;
         iphdr_t *ip = packet->p.ip;
 
-        buf = prelude_strbuf_new();
+        buf = prelude_string_new();
         if ( ! buf )
                 return -1;
         
@@ -444,8 +444,8 @@ static int ip_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *
         len = extract_uint16(&ip->ip_len);
         pof_host_data.len = IP_HL(ip) * 4;
 
-        prelude_strbuf_sprintf(buf, "%s -> ", get_address(&ip->ip_src));
-        prelude_strbuf_sprintf(buf,
+        prelude_string_sprintf(buf, "%s -> ", get_address(&ip->ip_src));
+        prelude_string_sprintf(buf,
                                "%s [hl=%d,version=%d,tos=%d,len=%d,id=%d,ttl=%d,prot=%d",
                                get_address(&ip->ip_dst), IP_HL(ip) * 4, IP_V(ip), ip->ip_tos,
                                len, id, ip->ip_ttl, ip->ip_p);
@@ -468,19 +468,19 @@ static int ip_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *
                         return -1;
         }
 
-        prelude_strbuf_sprintf(buf, "]");
+        prelude_string_sprintf(buf, "]");
 
-        data = idmef_data_new_nodup(prelude_strbuf_get_string(buf), prelude_strbuf_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
         
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_strbuf_dont_own(buf);
-        prelude_strbuf_destroy(buf);
+        prelude_string_dont_own(buf);
+        prelude_string_destroy(buf);
         
         return 0;
 }
@@ -488,34 +488,34 @@ static int ip_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *
 
 
 
-static int dump_tcp_flags(uint8_t flags, prelude_strbuf_t *buf)
+static int dump_tcp_flags(uint8_t flags, prelude_string_t *buf)
 {        
         if ( ! (flags & (TH_SYN|TH_FIN|TH_RST|TH_PSH|TH_ACK|TH_URG)) )
-                return prelude_strbuf_sprintf(buf, ".");
+                return prelude_string_sprintf(buf, ".");
              
         if (flags & TH_SYN)
-                prelude_strbuf_sprintf(buf, "SYN ");
+                prelude_string_sprintf(buf, "SYN ");
         
         if (flags & TH_FIN) 
-                prelude_strbuf_sprintf(buf, "FIN ");
+                prelude_string_sprintf(buf, "FIN ");
         
         if (flags & TH_RST)
-                prelude_strbuf_sprintf(buf, "RST ");
+                prelude_string_sprintf(buf, "RST ");
         
         if (flags & TH_PSH)
-                prelude_strbuf_sprintf(buf, "PUSH ");
+                prelude_string_sprintf(buf, "PUSH ");
         
         if (flags & TH_ACK)
-                prelude_strbuf_sprintf(buf, "ACK ");
+                prelude_string_sprintf(buf, "ACK ");
         
         if (flags & TH_URG) 
-                prelude_strbuf_sprintf(buf, "URG ");
+                prelude_string_sprintf(buf, "URG ");
         
         if (flags & TH_ECNECHO) 
-                prelude_strbuf_sprintf(buf, "ECNECHO ");
+                prelude_string_sprintf(buf, "ECNECHO ");
 
         if (flags & TH_CWR)
-                prelude_strbuf_sprintf(buf, "CWR ");
+                prelude_string_sprintf(buf, "CWR ");
         
         return 0;
 }
@@ -527,11 +527,11 @@ static int tcp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         uint32_t seq, ack;
         idmef_data_t *data;
         unsigned char flags;
-        prelude_strbuf_t *buf;
+        prelude_string_t *buf;
         tcphdr_t *tcp = packet->p.tcp;
         uint16_t urp, win, sport, dport;
 
-        buf = prelude_strbuf_new();
+        buf = prelude_string_new();
         if ( ! buf )
                 return -1;
         
@@ -544,7 +544,7 @@ static int tcp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         seq = extract_uint32(&tcp->th_seq);
         ack = extract_uint32(&tcp->th_ack);
         
-        prelude_strbuf_sprintf(buf, "%d -> %d [flags=", sport, dport);
+        prelude_string_sprintf(buf, "%d -> %d [flags=", sport, dport);
         flags = tcp->th_flags & ~(TH_ECNECHO|TH_CWR);
 
         if ( flags == TH_SYN )
@@ -555,28 +555,28 @@ static int tcp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
 
         dump_tcp_flags(tcp->th_flags, buf);
                 
-        prelude_strbuf_sprintf(buf, ",seq=%u", seq);
+        prelude_string_sprintf(buf, ",seq=%u", seq);
         
         if ( flags & TH_ACK ) 
-                prelude_strbuf_sprintf(buf, ",ack=%u", ack);
+                prelude_string_sprintf(buf, ",ack=%u", ack);
         
         if ( flags & TH_URG )
-                prelude_strbuf_sprintf(buf, ",urg=%d", urp);
+                prelude_string_sprintf(buf, ",urg=%d", urp);
 
-        prelude_strbuf_sprintf(buf, ",win=%d]", win);
+        prelude_string_sprintf(buf, ",win=%d]", win);
 
 
-        data = idmef_data_new_nodup(prelude_strbuf_get_string(buf), prelude_strbuf_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
         
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_strbuf_dont_own(buf);
-        prelude_strbuf_destroy(buf);
+        prelude_string_dont_own(buf);
+        prelude_string_destroy(buf);
         
         return 0;
 }
@@ -587,11 +587,11 @@ static int tcp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
 static int udp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *packet) 
 {
         idmef_data_t *data;
-        prelude_strbuf_t *buf;
+        prelude_string_t *buf;
         uint16_t sport, dport, len;
         udphdr_t *udp = packet->p.udp_hdr;
 
-        buf = prelude_strbuf_new();
+        buf = prelude_string_new();
         if (! buf )
                 return -1;
         
@@ -599,19 +599,19 @@ static int udp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         sport = extract_uint16(&udp->uh_sport);
         dport = extract_uint16(&udp->uh_dport);
         
-        prelude_strbuf_sprintf(buf, "%d -> %d [len=%d]", sport, dport, len);
+        prelude_string_sprintf(buf, "%d -> %d [len=%d]", sport, dport, len);
 
-        data = idmef_data_new_nodup(prelude_strbuf_get_string(buf), prelude_strbuf_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
 
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_strbuf_dont_own(buf);
-        prelude_strbuf_destroy(buf);
+        prelude_string_dont_own(buf);
+        prelude_string_destroy(buf);
         
         return 0;
 }
@@ -643,7 +643,7 @@ static int igmp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
 {
         const char *type;
         idmef_data_t *data;
-        prelude_strbuf_t *buf;
+        prelude_string_t *buf;
         igmphdr_t *igmp = packet->p.igmp_hdr;
         
         switch (igmp->igmp_type) {
@@ -665,24 +665,24 @@ static int igmp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
                 break;
         }        
 
-        buf = prelude_strbuf_new();
+        buf = prelude_string_new();
         if ( ! buf )
                 return -1;
         
-        prelude_strbuf_sprintf(buf, "type=%s code=%d group=%s",
+        prelude_string_sprintf(buf, "type=%s code=%d group=%s",
                                type, igmp->igmp_code, get_address(&igmp->igmp_group));
 
-        data = idmef_data_new_nodup(prelude_strbuf_get_string(buf), prelude_strbuf_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
         
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_strbuf_dont_own(buf);
-        prelude_strbuf_destroy(buf);
+        prelude_string_dont_own(buf);
+        prelude_string_destroy(buf);
         
         return 0;
 }
@@ -694,31 +694,31 @@ static int icmp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
 {
         icmphdr_t *icmp;
         idmef_data_t *data;
-        prelude_strbuf_t *buf;
+        prelude_string_t *buf;
         
         if ( packet->len < ICMP_MINLEN ) {
                 log(LOG_ERR, "ICMP message should be at least %d bytes.\n", ICMP_MINLEN);
                 return -1;
         }
 
-        buf = prelude_strbuf_new();
+        buf = prelude_string_new();
         if ( ! buf )
                 return -1;
         
         icmp = packet->p.icmp_hdr;
-        prelude_strbuf_sprintf(buf, "type=%d code=%d", icmp->icmp_type, icmp->icmp_code);
+        prelude_string_sprintf(buf, "type=%d code=%d", icmp->icmp_type, icmp->icmp_code);
 
-        data = idmef_data_new_nodup(prelude_strbuf_get_string(buf), prelude_strbuf_get_len(buf) + 1);
+        data = idmef_data_new_nodup(prelude_string_get_string(buf), prelude_string_get_len(buf) + 1);
         if ( ! data ) {
-                prelude_strbuf_destroy(buf);
+                prelude_string_destroy(buf);
                 return -1;
         }
         
         idmef_additional_data_set_data(ad, data);
         idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
-        prelude_strbuf_dont_own(buf);
-        prelude_strbuf_destroy(buf);
+        prelude_string_dont_own(buf);
+        prelude_string_destroy(buf);
 
         return 0;
 }

@@ -30,7 +30,6 @@
 
 #include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-log.h>
-#include <libprelude/prelude-strbuf.h>
 #include <libprelude/extract.h>
 
 #include "nethdr.h"
@@ -73,31 +72,31 @@
 /*
  * Dump tcp options and their value.
  */
-static int tcp_optval(prelude_strbuf_t *obuf, unsigned char *optbuf, int opt, size_t datalen) 
+static int tcp_optval(prelude_string_t *obuf, unsigned char *optbuf, int opt, size_t datalen) 
 {
         int i;
         
         switch (opt) {
                 
         case TCPOPT_MAXSEG:
-                prelude_strbuf_sprintf(obuf, "mss %u", extract_uint16(optbuf));
+                prelude_string_sprintf(obuf, "mss %u", extract_uint16(optbuf));
                 break;
                 
         case TCPOPT_WSCALE:
-                prelude_strbuf_sprintf(obuf, "wscale %u", *optbuf);
+                prelude_string_sprintf(obuf, "wscale %u", *optbuf);
                 break;
 
         case TCPOPT_SACK_PERMITTED:
-                prelude_strbuf_sprintf(obuf, "sackOK");
+                prelude_string_sprintf(obuf, "sackOK");
                 break;
                 
         case TCPOPT_SACK:
                 if ( datalen % 8 != 0 )
-                        prelude_strbuf_sprintf(obuf, "malformed sack");
+                        prelude_string_sprintf(obuf, "malformed sack");
                 else {
                         uint32_t s, e;
 
-                        prelude_strbuf_sprintf(obuf, "sack %d", datalen / 8);
+                        prelude_string_sprintf(obuf, "sack %d", datalen / 8);
                         for ( i = 0; i < datalen; i += 8 ) {
                                 s = extract_uint32(optbuf + i);
                                 e = extract_uint32(optbuf + i + 4);
@@ -106,32 +105,32 @@ static int tcp_optval(prelude_strbuf_t *obuf, unsigned char *optbuf, int opt, si
                 break;
                                 
         case TCPOPT_ECHO:
-                prelude_strbuf_sprintf(obuf, "echo %u", extract_uint32(optbuf));
+                prelude_string_sprintf(obuf, "echo %u", extract_uint32(optbuf));
                 break;
                               
         case TCPOPT_ECHOREPLY:
-                prelude_strbuf_sprintf(obuf, "echoreply %u", extract_uint32(optbuf));
+                prelude_string_sprintf(obuf, "echoreply %u", extract_uint32(optbuf));
                 break;
 
         case TCPOPT_TIMESTAMP:
-                prelude_strbuf_sprintf(obuf, "timestamp %u %u",
+                prelude_string_sprintf(obuf, "timestamp %u %u",
                                        extract_uint32(optbuf), extract_uint32(optbuf + 4));
                 break;
                 
         case TCPOPT_CC:
-                prelude_strbuf_sprintf(obuf, "cc %u", extract_uint32(optbuf));
+                prelude_string_sprintf(obuf, "cc %u", extract_uint32(optbuf));
                 break;
 
         case TCPOPT_CCNEW:
-                prelude_strbuf_sprintf(obuf, "ccnew %u", extract_uint32(optbuf));
+                prelude_string_sprintf(obuf, "ccnew %u", extract_uint32(optbuf));
                 break;
                 
         case TCPOPT_CCECHO:
-                prelude_strbuf_sprintf(obuf, "ccecho %u", extract_uint32(optbuf));
+                prelude_string_sprintf(obuf, "ccecho %u", extract_uint32(optbuf));
                 break;
 
         default:
-                prelude_strbuf_sprintf(obuf, "opt-%d:", opt);
+                prelude_string_sprintf(obuf, "opt-%d:", opt);
                 break;
 
         }
@@ -144,57 +143,57 @@ static int tcp_optval(prelude_strbuf_t *obuf, unsigned char *optbuf, int opt, si
 /*
  * Dump Ip options and their value.
  */
-static int ip_optval(prelude_strbuf_t *obuf, unsigned char *optbuf, int opt, size_t datalen)
+static int ip_optval(prelude_string_t *obuf, unsigned char *optbuf, int opt, size_t datalen)
 {
         int optlen = datalen + 2;
 
         switch (opt) {
                 
         case IPOPT_RR:
-                prelude_strbuf_sprintf(obuf, "rr");
+                prelude_string_sprintf(obuf, "rr");
                 break;
 
         case IPOPT_EOL:
-                prelude_strbuf_sprintf(obuf, "eol");
+                prelude_string_sprintf(obuf, "eol");
                 break;
 
         case IPOPT_NOP:
-                prelude_strbuf_sprintf(obuf, "nop");
+                prelude_string_sprintf(obuf, "nop");
                 break;
                 
         case IPOPT_TIMESTAMP:
-                prelude_strbuf_sprintf(obuf, "ts");
+                prelude_string_sprintf(obuf, "ts");
                 break;
                 
         case IPOPT_SECURITY:
-                prelude_strbuf_sprintf(obuf, "security{%d}", optlen);
+                prelude_string_sprintf(obuf, "security{%d}", optlen);
                 break;
                 
         case IPOPT_LSRR:
-                prelude_strbuf_sprintf(obuf, "lsrr");
+                prelude_string_sprintf(obuf, "lsrr");
                 break;
 
         case IPOPT_LSRRE:
-                prelude_strbuf_sprintf(obuf, "lsrre");
+                prelude_string_sprintf(obuf, "lsrre");
                 break;
                 
         case IPOPT_SSRR:
-                prelude_strbuf_sprintf(obuf, "ssrr");
+                prelude_string_sprintf(obuf, "ssrr");
                 break;
 
         case IPOPT_SATID:
-                prelude_strbuf_sprintf(obuf, "satid");
+                prelude_string_sprintf(obuf, "satid");
                 break;
 
         case IPOPT_RA:
                 if (datalen != 2)
-                        prelude_strbuf_sprintf(obuf, "ra{%d}", optlen);
+                        prelude_string_sprintf(obuf, "ra{%d}", optlen);
                 else if (optbuf[0] || optbuf[1])
-                        prelude_strbuf_sprintf(obuf, "ra{%d.%d}", optbuf[0], optbuf[1]);
+                        prelude_string_sprintf(obuf, "ra{%d.%d}", optbuf[0], optbuf[1]);
                 break;
                 
         default:
-                prelude_strbuf_sprintf(obuf, "ipopt-%d{%d}", opt, optlen);
+                prelude_string_sprintf(obuf, "ipopt-%d{%d}", opt, optlen);
                 break;
         }
         
@@ -207,15 +206,15 @@ static int ip_optval(prelude_strbuf_t *obuf, unsigned char *optbuf, int opt, siz
  * Verify if the option 'opt' is one of
  * the 1 byte only option (nop || eol).
  */
-static int is_1byte_option(prelude_strbuf_t *obuf, int opt) 
+static int is_1byte_option(prelude_string_t *obuf, int opt) 
 {
         if ( opt == TCPOPT_NOP ) {
-                prelude_strbuf_sprintf(obuf, "nop");
+                prelude_string_sprintf(obuf, "nop");
                 return 0;
         }
 
         else if (opt == TCPOPT_EOL) {
-                prelude_strbuf_sprintf(obuf, "eol");
+                prelude_string_sprintf(obuf, "eol");
                 return 0;
         }
 
@@ -230,16 +229,16 @@ static int is_1byte_option(prelude_strbuf_t *obuf, int opt)
  * - verify that this option len is < than our total option len.
  * - do some bound check on our option buffer, to avoid going out of bound.
  */
-static int is_option_valid(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen, size_t totlen) 
+static int is_option_valid(prelude_string_t *obuf, unsigned char *optbuf, size_t optlen, size_t totlen) 
 {        
         if ( optlen < 2 ) {
-                prelude_strbuf_sprintf(obuf, "options is not \"nop\" or \"eol\" so option len (%d) "
+                prelude_string_sprintf(obuf, "options is not \"nop\" or \"eol\" so option len (%d) "
                                        "should be >= 2.", optlen);
                 return -1;
         }
                 
         if ( optlen > totlen ) {
-                prelude_strbuf_sprintf(obuf, "option len (%d) is > remaining total options len (%d).",
+                prelude_string_sprintf(obuf, "option len (%d) is > remaining total options len (%d).",
                                        optlen, totlen);
                 return -1;
         }
@@ -260,10 +259,10 @@ static int is_option_valid(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t
  * to contain a len byte, which mean totlen must be
  * >= 2 (1 byte for optkind, and 1 for optlen).
  */
-static int is_len_byte_ok(prelude_strbuf_t *obuf, size_t totlen) 
+static int is_len_byte_ok(prelude_string_t *obuf, size_t totlen) 
 {
         if ( totlen < 2 ) {
-                prelude_strbuf_sprintf(obuf, "not \"nop\" or \"eol\", "
+                prelude_string_sprintf(obuf, "not \"nop\" or \"eol\", "
                                        "but no space remaining for option len byte"
                                        "in option buffer.");
                 return -1;
@@ -280,8 +279,8 @@ static int is_len_byte_ok(prelude_strbuf_t *obuf, size_t totlen)
  * printing tcp or ip options, depending on the kind of header
  * theses options are from.
  */
-static int walk_options(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t totlen,
-                        int (*optval)(prelude_strbuf_t *obuf, unsigned char *optbuf, int opt, size_t optlen)) 
+static int walk_options(prelude_string_t *obuf, unsigned char *optbuf, size_t totlen,
+                        int (*optval)(prelude_string_t *obuf, unsigned char *optbuf, int opt, size_t optlen)) 
 {
         int opt, ret;
         size_t optlen, origlen = totlen;
@@ -311,7 +310,7 @@ static int walk_options(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t to
                 assert(totlen >= 0);
                 
                 if ( totlen > 0 )
-                        prelude_strbuf_sprintf(obuf, ",");
+                        prelude_string_sprintf(obuf, ",");
                 
         } while ( totlen != 0 );
 
@@ -323,10 +322,10 @@ static int walk_options(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t to
 /*
  *
  */
-int tcp_optdump(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen)
+int tcp_optdump(prelude_string_t *obuf, unsigned char *optbuf, size_t optlen)
 {
         if ( optlen > MAX_OPTS_LEN ) {
-                prelude_strbuf_sprintf(obuf, "total option len (%d) > maximum option len (%d).",
+                prelude_string_sprintf(obuf, "total option len (%d) > maximum option len (%d).",
                                        optlen, MAX_OPTS_LEN);
                 return -1;
         }
@@ -339,10 +338,10 @@ int tcp_optdump(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen)
 /*
  *
  */
-int ip_optdump(prelude_strbuf_t *obuf, unsigned char *optbuf, size_t optlen)
+int ip_optdump(prelude_string_t *obuf, unsigned char *optbuf, size_t optlen)
 {
         if ( optlen > MAX_OPTS_LEN ) {
-                prelude_strbuf_sprintf(obuf, "total option len (%d) > maximum option len (%d).",
+                prelude_string_sprintf(obuf, "total option len (%d) > maximum option len (%d).",
                                        optlen, MAX_OPTS_LEN);
                 return -1;
         }
