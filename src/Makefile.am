@@ -8,7 +8,7 @@ prelude_report_LDFLAGS = -export-dynamic
 prelude_report_SOURCES =		\
 	pconfig.c			\
 	cnx.c				\
-	prelude_report.c		\
+	prelude-report.c		\
 	report-plugins.c		\
 	server.c			\
 	report-infos.c			\
