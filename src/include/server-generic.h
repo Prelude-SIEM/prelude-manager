@@ -91,7 +91,7 @@ void server_generic_process_requests(server_generic_t *server, server_generic_cl
 
 const char *server_generic_get_addr_string(server_generic_client_t *client, char *buf, size_t size);
 
-void server_generic_log_client(server_generic_client_t *cnx, const char *fmt, ...);
+void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t priority, const char *fmt, ...);
 
 void server_generic_client_set_analyzerid(server_generic_client_t *client, uint64_t analyzerid);
 

@@ -176,7 +176,7 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
                 return 0;
         }
 
-        server_generic_log_client((server_generic_client_t *) client,
+        server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_WARN,
                                   "message does not carry a valid target: closing connection.\n");
 
         return -1;
@@ -232,7 +232,6 @@ static int request_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
                 return -1;
 
         ident = prelude_extract_uint64(&target_route[target_hop]);
-                
         if ( ident == prelude_client_profile_get_analyzerid(cp) ) {
                 prelude_msg_recycle(msg);
                 return prelude_option_process_request(manager_client, client->fd, msg);
@@ -294,7 +293,7 @@ static int handle_declare_parent_relay(sensor_fd_t *cnx)
                  */                
                 ret = prelude_connection_new(&pc, NULL);
                 if ( ret < 0 ) {
-                        server_generic_log_client((server_generic_client_t *) cnx,
+                        server_generic_log_client((server_generic_client_t *) cnx, PRELUDE_LOG_ERR,
                                                   "error creating placebo connection for %s: %s.\n",
                                                   cnx->addr, prelude_strerror(ret));
                         return -1;
@@ -311,7 +310,7 @@ static int handle_declare_parent_relay(sensor_fd_t *cnx)
         
         prelude_connection_set_state(pc, PRELUDE_CONNECTION_STATE_ESTABLISHED|prelude_connection_get_state(pc));
 
-        server_generic_log_client((server_generic_client_t *) cnx,
+        server_generic_log_client((server_generic_client_t *) cnx, PRELUDE_LOG_INFO,
                                   "client declared to be a parent relay (we relay to him).\n");
         
         return reverse_relay_set_receiver_alive(pc);
@@ -345,7 +344,8 @@ static int read_connection_type(sensor_fd_t *cnx, prelude_msg_t *msg)
         
         ret = prelude_msg_get(msg, &tag, &dlen, &buf);
         if ( ret < 0 ) {
-                server_generic_log_client((server_generic_client_t *) cnx, "error decoding message - %s: %s.\n",
+                server_generic_log_client((server_generic_client_t *) cnx, PRELUDE_LOG_WARN,
+                                          "error decoding message - %s: %s.\n",
                                           prelude_strsource(ret), prelude_strerror(ret));
                 return -1;
         }
@@ -388,7 +388,8 @@ static int read_after_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
         prelude_msg_destroy(msg);
         
         if ( ret < 0 ) {
-                server_generic_log_client((server_generic_client_t *) cnx, "error processing request.\n");
+                server_generic_log_client((server_generic_client_t *) cnx, PRELUDE_LOG_WARN,
+                                          "error processing request.\n");
                 return -1;
         }
         
@@ -407,7 +408,8 @@ static int read_prior_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
         prelude_msg_destroy(msg);
         
         if ( ret < 0 ) {
-                server_generic_log_client((server_generic_client_t *) cnx, "error registering client.\n");
+                server_generic_log_client((server_generic_client_t *) cnx,
+                                          PRELUDE_LOG_WARN, "error registering client.\n");
                 return -1;
         }
         
@@ -429,7 +431,8 @@ static int read_connection_cb(server_generic_client_t *client)
                         return 0;
 
                 if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
-                        server_generic_log_client((server_generic_client_t *) cnx, "message read error %s: %s\n",
+                        server_generic_log_client((server_generic_client_t *) cnx,
+                                                  PRELUDE_LOG_WARN, "message read error %s: %s\n",
                                                   prelude_strsource(ret), prelude_strerror(ret));
 
                 return -1;
@@ -440,7 +443,7 @@ static int read_connection_cb(server_generic_client_t *client)
         
         tag = prelude_msg_get_tag(msg);
 
-        if ( ! cnx->ident || ! cnx->capability )
+        if ( ! cnx->capability )
                 return read_prior_setup(cnx, msg, tag);
         
         return read_after_setup(cnx, msg, tag);
@@ -456,7 +459,7 @@ static int write_connection_cb(server_generic_client_t *ptr)
         sensor_fd_t *client = (sensor_fd_t *) ptr;
         
         assert(! prelude_list_is_empty(&client->write_msg_list));
-
+                
         prelude_list_for_each(&client->write_msg_list, tmp) {
                 cur = prelude_linked_object_get_object(tmp);
                 break;
@@ -561,7 +564,7 @@ int sensor_server_add_client(server_generic_t *server, prelude_connection_t *cnx
                 prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
-
+                
         cdata->addr = strdup(prelude_connection_get_peer_addr(cnx));
         if ( ! cdata->addr ) {
                 prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
@@ -580,6 +583,7 @@ int sensor_server_add_client(server_generic_t *server, prelude_connection_t *cnx
         cdata->fd = prelude_connection_get_fd(cnx);
                 
         cdata->cnx = cnx;
+        cdata->capability = PRELUDE_CONNECTION_CAPABILITY_CONNECT;
         cdata->client_type = "parent-manager";
         cdata->ident = prelude_connection_get_peer_analyzerid(cnx);
 

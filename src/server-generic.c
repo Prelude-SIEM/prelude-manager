@@ -142,7 +142,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                         return ret; /* EAGAIN happened */
                 
                 if ( ret < 0 ) {                        
-                        server_generic_log_client(client, "TLS authentication failed.\n");
+                        server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS authentication failed.\n");
                         return send_auth_result(client, PRELUDE_MSG_AUTH_FAILED);
                 }
                 
@@ -159,7 +159,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                 if ( ret <= 0 )
                         return ret;
 
-                server_generic_log_client(client, "disabled encryption on local UNIX connection.\n");
+                server_generic_log_client(client, PRELUDE_LOG_INFO, "disabled encryption on local UNIX connection.\n");
         }
 
         client->state |= SERVER_GENERIC_CLIENT_STATE_ACCEPTED;
@@ -254,7 +254,7 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
                 prelude_io_destroy(client->fd);
         }
         
-        server_generic_log_client(client, "closing connection.\n");
+        server_generic_log_client(client, PRELUDE_LOG_INFO, "closing connection.\n");
         
         free(client->addr);        
         free(client);
@@ -287,11 +287,11 @@ static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock)
 
         ret = hosts_access(&request);
         if ( ! ret ) {
-                server_generic_log_client(cdata, "tcp wrapper refused connection.\n", cdata->addr);
+                server_generic_log_client(cdata, PRELUDE_LOG_WARN, "tcp wrapper refused connection.\n", cdata->addr);
                 return -1;
         }
 
-        server_generic_log_client(cdata, "tcp wrapper accepted connection.\n");
+        server_generic_log_client(cdata, PRELUDE_LOG_INFO, "tcp wrapper accepted connection.\n");
         
         return 0;
 }
@@ -767,12 +767,12 @@ int server_generic_bind(server_generic_t *server, const char *saddr, uint16_t po
         }
 
         if ( server->sa->sa_family == AF_UNIX )
-                prelude_log(PRELUDE_LOG_INFO, "- sensors server started (listening on %s).\n",
+                prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s).\n",
                             ((struct sockaddr_un *) server->sa)->sun_path);
         else {
                 assert(in_addr = prelude_inet_sockaddr_get_inaddr(server->sa));
                 prelude_inet_ntop(server->sa->sa_family, in_addr, out, sizeof(out));
-                prelude_log(PRELUDE_LOG_INFO, "- sensors server started (listening on %s port %u).\n", out, port);
+                prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s port %u).\n", out, port);
         }
                 
 
@@ -814,7 +814,7 @@ void server_generic_process_requests(server_generic_t *server, server_generic_cl
 
 
 
-void server_generic_log_client(server_generic_client_t *cnx, const char *fmt, ...)
+void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t priority, const char *fmt, ...)
 {
         va_list ap;
         char buf[1024];
@@ -823,7 +823,7 @@ void server_generic_log_client(server_generic_client_t *cnx, const char *fmt, ..
         vsnprintf(buf, sizeof(buf), fmt, ap);
         va_end(ap);
 
-        prelude_log(PRELUDE_LOG_WARN, "[%s %s:0x%" PRIx64 "]: %s",
+        prelude_log(priority, "[%s %s:0x%" PRIx64 "]: %s",
                     cnx->addr, cnx->client_type, cnx->ident, buf);
 }
 
