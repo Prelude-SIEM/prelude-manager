@@ -302,6 +302,25 @@ static int insert_web_service(uint64_t alert_ident, uint64_t service_ident,
 
 
 
+static int insert_portlist(uint64_t alert_ident, uint64_t parent_ident,
+                           char parent_type, idmef_string_t *portlist) 
+{
+        char *plist;
+        
+        plist = db_plugin_escape(idmef_string(portlist));
+        if ( ! plist )
+                return -1;
+        
+        db_plugin_insert("Prelude_ServicePortlist", "alert_ident, parent_type, parent_ident, portlist",
+                         "%llu, '%c', %llu, '%s'", alert_ident, parent_type, parent_ident, plist);
+
+        return 0;
+}
+
+
+
+
+
 static int insert_service(uint64_t alert_ident, uint64_t parent_ident,
                           char parent_type, idmef_service_t *service) 
 {
@@ -325,6 +344,9 @@ static int insert_service(uint64_t alert_ident, uint64_t parent_ident,
                          "%llu, '%c', %llu, '%s', '%u', '%s'", alert_ident, parent_type, parent_ident,
                          name, service->port, protocol);
 
+        if ( idmef_string(&service->portlist) )
+        	insert_portlist(alert_ident, parent_ident, parent_type, &service->portlist);
+        
         free(name);
         free(protocol);
 
