@@ -299,10 +299,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                         prelude_msg_destroy(client->msg);
                         client->msg = NULL;
                         
-                        if ( ret <= 0 )
-                                /*
-                                 * == 0 can only happen on SSL.
-                                 */
+                        if ( ret < 0 )
                                 return ret;
                 
                         return server->accept(client);
@@ -371,8 +368,10 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
 
 
 
-#ifdef HAVE_TCPD_H
+#ifdef HAVE_TCP_WRAPPERS
+
 #include <tcpd.h>
+
 int allow_severity = LOG_INFO, deny_severity = LOG_NOTICE;
 
 
@@ -398,6 +397,7 @@ static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock)
         
         return 0;
 }
+
 #endif
 
 
@@ -414,7 +414,7 @@ static int setup_client_socket(server_generic_t *server,
 {
         int ret;
         
-#ifdef HAVE_TCPD_H
+#ifdef HAVE_TCP_WRAPPERS
         ret = tcpd_auth(cdata, client);
         if ( ret < 0 )
                 return -1;

@@ -314,64 +314,54 @@ dnl **************************************************
 dnl * TCP WRAPPER CHECK                              *
 dnl **************************************************
 
-AC_MSG_CHECKING(whether to use TCP wrappers)
-LIBWRAP_PATH=
 
-for I in $LDFLAGS $LIBS -L/usr/lib -L/usr/local/lib; do
-        case "$I" in
-        -L*)
-        THEFILE="`echo $I | sed -e 's,^-L,,'`"
-        if test -f $THEFILE/libwrap.a; then
-                LIBWRAP_PATH="$THEFILE"
-		LIBWRAP="$THEFILE/libwrap.a"
-                echo "Found in $LIBWRAP_PATH" 1>&5
-                break
-        fi
-               esac
-done
+AC_CHECK_HEADER(tcpd.h, have_tcpd_header=yes)
 
-if test -n "$LIBWRAP"; then
-         AC_MSG_RESULT(yes)
-else
-         AC_MSG_RESULT(no)
+if test x$have_tcpd_header = xyes; then 
+
+	AC_MSG_CHECKING(whether to use TCP wrappers)
+
+	for tcpd_lib_path in /usr/lib /usr/local/lib; do
+        
+		if test -f $tcpd_lib_path/libwrap.a; then
+			libwrap="$tcpd_lib_path/libwrap.a"
+			break
+		fi
+	done
+
+	if test -n "$libwrap"; then
+         	AC_MSG_RESULT(yes)
+	else
+         	AC_MSG_RESULT(no)
+	fi
+
+
+	AC_CHECK_LIB(nsl, yp_get_default_domain, libnsl="-lnsl")
+
+	AC_MSG_CHECKING(whether -lwrap require -lnsl)
+	tcpd_ldflags="-L$tcpd_lib_path $libwrap"
+
+     	LIBS="$LIBS $tcpd_ldflags"
+     	AC_TRY_LINK([extern int hosts_access; int allow_severity, deny_severity;], 
+		    [return hosts_access;], [have_tcp_wrapper=yes libnsl=""], [LIBS="$LIBS $libnsl"
+     
+	            AC_TRY_LINK([extern int hosts_access; int allow_severity, deny_severity;], 
+		    		[return hosts_access;], have_tcp_wrapper=yes)
+		    ])
+
+	if test -n "$libnsl"; then
+		 AC_MSG_RESULT(yes)
+	else
+         	 AC_MSG_RESULT(no)
+	fi
+
+	LIBWRAP_LIBS="$LIBS"
+
+	if test x$have_tcp_wrapper = xyes; then 
+		AC_DEFINE(HAVE_TCP_WRAPPERS)
+		AC_SUBST(LIBWRAP_LIBS)		
+	fi
 fi
-
-dnl END tcp wrapper check
-
-AC_CHECK_LIB(nsl, yp_get_default_domain, LIBNSL="-lnsl")
-
-AC_MSG_CHECKING(whether -lwrap require -lnsl)
-     ORIG_LIBS="$LIBS"
-     LIBS="$LIBS $LIBWRAP"
- 
-     AC_TRY_LINK([
-     extern int hosts_access;
-     int allow_severity, deny_severity;
-     ], [return hosts_access;], ,[
- 
- 	LIBS="$LIBS $LIBWRAP $LIBNSL"
-     AC_TRY_LINK([
-     extern int hosts_access;
-     int allow_severity, deny_severity;
-     ], [return hosts_access;], LIBWRAP_LIBS="$LIBWRAP $LIBNSL",
-     LIBWRAP_PATH="")
-     LIBS="$ORIG_LIBS"
-     ])
-
-if test -n "$LIBWRAP_LIBS"; 
- then		
- 	AC_MSG_RESULT(yes)
- else	
- 	AC_MSG_RESULT(no)
- 	LIBWRAP_LIBS="$LIBWRAP"
-fi
-
-if test -n "$LIBWRAP_LIBS"; then
-	AC_CHECK_HEADER(tcpd.h, tcpd_header=yes)
-fi
-
-LIBS="$ORIG_LIBS"
-
 
 
 dnl Checks for header files.

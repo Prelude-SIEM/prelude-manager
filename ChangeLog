@@ -1,5 +1,12 @@
 2002-05-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* configure.in: 
+	* src/server-generic.c:
+	correct TCP wrappers check.
+	
+	(authenticate_client): call accept() callback when handle_authentication
+	return value is 0.
+	
 	* src/server-generic.c (handle_plaintext_authentication): 
 	don't set is_authenticated to 1 if sending authentication result
 	failed. This could lead to a possible SIGSEGV.
