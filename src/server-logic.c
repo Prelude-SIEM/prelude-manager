@@ -321,6 +321,8 @@ static void *child_reader(void *ptr)
 
         dprint("killing thread %ld on exit request.\n", set->thread);
         pthread_exit(NULL);
+
+        return NULL; /* not needed, but avoid a warning. */
 }
 
 
