@@ -274,7 +274,7 @@ static int accept_connection_cb(server_generic_client_t *ptr)
         sensor_fd_t *client = (sensor_fd_t *) ptr;
 
         /*
-         * set the analyzer id to -1, because at this timer,
+         * set the analyzer id to -1, because at this time,
          * the analyzer (or relay manager) didn't declared it's ID.
          * and in case of admin request, we don't want to think it's
          * a relay Manager.

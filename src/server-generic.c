@@ -197,10 +197,17 @@ static int handle_plaintext_authentication(prelude_msg_t *msg, server_generic_cl
                 return -1;
         }
 
-        client->is_authenticated = 1;
         log(LOG_INFO, "[%s] - plaintext authentication succeed.\n", client->addr);
+
+        ret = send_plaintext_authentication_result(client->fd, PRELUDE_MSG_AUTH_SUCCEED);
+        if ( ret < 0 ) {
+                log(LOG_ERR, "error sending authentication result.\n");
+                return -1;
+        }
         
-        return send_plaintext_authentication_result(client->fd, PRELUDE_MSG_AUTH_SUCCEED);
+        client->is_authenticated = 1;
+        
+        return 0;
 }
 
 
@@ -351,7 +358,7 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
         
         prelude_io_close(client->fd);
         prelude_io_destroy(client->fd);
-
+        
         if ( client->is_authenticated )
                 server->close(client);
 

@@ -1,5 +1,11 @@
 2002-05-13  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/server-generic.c (handle_plaintext_authentication): 
+	don't set is_authenticated to 1 if sending authentication result
+	failed. This could lead to a possible SIGSEGV.
+
+	* src/sensor-server.c (accept_connection_cb): correct typo.
+
 	* src/server-logic.c (handle_fd_event): 
 	handle POLLIN before POLLHUP. The two bits may be set 
 	in the revents field, and we want to proceed the available data.
