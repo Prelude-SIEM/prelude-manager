@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Vandoorselaere Yoann <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Vandoorselaere Yoann <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -83,7 +83,7 @@ static char *db_escape(const char *str)
 /*
  * insert the given values into the given db table.
  */
-static int db_insert(char *table, char *fields, char *values)
+static int db_insert(const char *table, const char *fields, const char *values)
 {
         PGresult *ret;
         char query[8192];
