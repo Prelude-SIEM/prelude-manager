@@ -38,13 +38,7 @@
 #include <libpreludedb/preludedb-sql.h>
 #include <libpreludedb/preludedb-error.h>
 #include <libpreludedb/preludedb-path-selection.h>
-#include <libpreludedb/db.h>
 #include <libpreludedb/preludedb.h>
-
-
-#include <libpreludedb/db.h>
-#include <libpreludedb/preludedb.h>
-
 
 #include "libmissing.h"
 #include "report.h"
