@@ -35,6 +35,16 @@
 #include "idmef-util.h"
 #include "idmef-db-output.h"
 
+#ifdef DEBUG
+
+/*
+ * for an unknow reason, we don't see warning about
+ * invalid fmt arguments when using db_plugin_insert().
+ */
+#define db_plugin_insert(tbl, field, fmt, args...) \
+        printf(fmt, args); db_plugin_insert(tbl, field, fmt, args)
+
+#endif
 
 static int insert_file(uint64_t alert_ident, uint64_t parent_ident, char parent_type, idmef_file_t *file);
 
@@ -69,7 +79,7 @@ static int insert_address(uint64_t alert_ident, uint64_t parent_ident,
         db_plugin_insert("Prelude_Address", "alert_ident, parent_type, parent_ident, "
                           "category, vlan_name, vlan_num, address, netmask",
                           "%llu, '%c', %llu, '%s', '%s', '%d', '%s', '%s'",
-                          alert_ident, parent_type, parent_ident, category, vlan_name, addr->vlan_num, address, netmask);
+                         alert_ident, parent_type, parent_ident, category, vlan_name, addr->vlan_num, address, netmask);
         
         free(address);
         free(netmask);
@@ -242,7 +252,7 @@ static int insert_snmp_service(uint64_t alert_ident, uint64_t service_ident,
         }
         
         db_plugin_insert("Prelude_SnmpService", "alert_ident, parent_type, parent_ident, service_ident, oid, community, command",
-                         "%llu, '%c', %llu, %llu, '%s', '%u', '%s'", alert_ident, parent_type, parent_ident, service_ident,
+                         "%llu, '%c', %llu, %llu, '%s', '%s', '%s'", alert_ident, parent_type, parent_ident, service_ident,
                          oid, community, command);
 
         free(oid);
@@ -280,7 +290,7 @@ static int insert_web_service(uint64_t alert_ident, uint64_t service_ident,
         }
         
         db_plugin_insert("Prelude_WebService", "alert_ident, parent_type, parent_ident, service_ident, url, cgi, http_method",
-                         "%llu, '%c', %llu, %llu, '%s', '%u', '%s'", alert_ident, parent_type, parent_ident, service_ident,
+                         "%llu, '%c', %llu, %llu, '%s', '%s', '%s'", alert_ident, parent_type, parent_ident, service_ident,
                          url, cgi, method);
 
         free(url);
@@ -428,8 +438,8 @@ static int insert_file(uint64_t alert_ident, uint64_t target_ident,
         idmef_get_timestamp(file->access_time, atime, sizeof(atime));
         
         db_plugin_insert("Prelude_File", "alert_ident, target_ident, ident, category, name, path, "
-                         "create_time, modify_time, access_time, data_size, disk_size", "%llu, %c, %llu, %llu, "
-                         "'%s', '%s', '%s', '%s', '%s', '%s', %d, %d", alert_ident, target_ident,
+                         "create_time, modify_time, access_time, data_size, disk_size", "%llu, %llu, %llu, '%s', "
+                         "'%s', '%s', '%s', '%s', '%s', '%d', %d", alert_ident, target_ident,
                          file->ident, category, name, path, ctime, mtime, atime, file->data_size, file->disk_size);
 
         free(name);
