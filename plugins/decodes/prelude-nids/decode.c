@@ -104,25 +104,34 @@ static int gather_protocol_infos(idmef_alert_t *alert, uint16_t sport, uint16_t 
         if ( ! list_empty(&alert->source_list) ) {
                                
                 source = list_entry(alert->source_list.prev, idmef_source_t, list);
-                ptr = getservbyport(sport, proto);
-                sport_data = (ptr) ? strdup(ptr->s_name) : NULL;
 
                 idmef_source_service_new(source);
-                idmef_string(&source->service->name) = sport_data;
-                idmef_string(&source->service->protocol) = proto;
 
+                ptr = getservbyport(htons(sport), proto);
+                sport_data = (ptr) ? strdup(ptr->s_name) : NULL;
+
+                if ( sport_data ) 
+                        idmef_string_set(&source->service->name, sport_data);
+                
+                idmef_string_set(&source->service->protocol, proto);
                 source->service->port = sport;
         }
 
         if ( ! list_empty(&alert->target_list) ) {
                 
                 target = list_entry(alert->target_list.prev, idmef_target_t, list);
-                ptr = getservbyport(dport, proto);
-                
+
                 idmef_target_service_new(target);
+                
+                ptr = getservbyport(htons(dport), proto);                
+                dport_data = (ptr) ? strdup(ptr->s_name) : NULL;
+
+                if ( dport_data )
+                        idmef_string_set(&target->service->name, dport_data);
+                
+                idmef_string_set(&target->service->protocol, proto);
                 target->service->port = dport;
-                idmef_string(&target->service->protocol) = proto;
-                idmef_string(&target->service->name) = dport_data = (ptr) ? strdup(ptr->s_name) : NULL;
+                
         }
 
         return 0;

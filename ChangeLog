@@ -1,3 +1,17 @@
+2002-04-09  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* plugins/decodes/prelude-nids/packet-decode.c: 
+	snprintf return the len not including ending  \0, so
+	idmef string len should be set to returned len + 1.
+	(#0000015)
+	
+	* plugins/decodes/prelude-nids/decode.c (gather_protocol_infos): 
+	use idmef_string_set to set sport / dport service name.
+	(#0000015)
+	
+	Additionally, getservbyport have to be called with port in 
+	
+
 2002-04-08  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* prelude-manager.conf.in: 
