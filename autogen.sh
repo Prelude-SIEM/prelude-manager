@@ -1,6 +1,6 @@
-libtoolize -c --force
 aclocal
-autoheader
-automake --gnu -a -c
 autoconf
+autoheader
+libtoolize -c --force
+automake --gnu -a -c
 #./configure
