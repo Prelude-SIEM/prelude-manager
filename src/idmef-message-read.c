@@ -519,6 +519,10 @@ static int analyzer_get(prelude_msg_t *msg, idmef_analyzer_t *analyzer)
 
         switch (tag) {
 
+        case MSG_ANALYZER_ID:
+                extract_int(uint64, buf, len, analyzer->analyzerid);
+                break;
+                
         case MSG_ANALYZER_MANUFACTURER:
                 extract_idmef_string(buf, len, analyzer->manufacturer);
                 break;

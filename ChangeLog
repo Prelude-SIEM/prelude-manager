@@ -1,5 +1,8 @@
 2002-01-26  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/idmef-message-read.c (analyzer_get): 
+	read analyzer ident.
+
 	* plugins/reports/textmod/textmod.c (process_analyzer): 
 	print ostype and osversion if available.
 
