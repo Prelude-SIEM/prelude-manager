@@ -1,5 +1,10 @@
 2001-08-28  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/ssl.c: pass a config_t as argument to ssl_read_config().
+
+	* src/ssl-register-client.c (ssl_register_client): 
+	take a config_t argument.
+
 	* src/prelude-report.c (main): 
 	call the decode_plugins init function.
 

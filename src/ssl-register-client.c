@@ -200,12 +200,12 @@ static int wait_certificate(int sd,
 
 
 
-int ssl_register_client(void)
+int ssl_register_client(config_t *cfg)
 {
         int sock;
         des_key_schedule skey1, skey2;
         
-	ssl_read_config(PRELUDE_REPORT_CONF);
+	ssl_read_config(cfg);
 
         if (des_generate_2key(&skey1, &skey2, 1) != 0) {
 		fprintf(stderr, "Problem making one shot password\n");

@@ -31,6 +31,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#include <libprelude/common.h>
 #include <libprelude/config-engine.h>
 #include <libprelude/ssl-gencrypto.h>
 #include <libprelude/ssl-config.h>
@@ -126,12 +127,20 @@ void ssl_close_session(void)
  */
 int ssl_init_server(void)
 {
+        int n;
+        config_t *cfg;
 	SSL_METHOD *method;
-	const char *filename;
-	int n;
+        const char *filename;
 
-        ssl_read_config(PRELUDE_REPORT_CONF);
-	
+        cfg = config_open(PRELUDE_REPORT_CONF);
+        if ( ! cfg ) {
+                log(LOG_ERR, "couldn't open %s.\n", PRELUDE_REPORT_CONF);
+                return -1;
+                
+        ssl_read_config(cfg);
+
+        config_close(cfg);
+        
 	/*
          * Initialize OpenSSL.
          */
@@ -198,12 +207,12 @@ extern struct report_config config;
  *
  * Returns: 0 on success, -1 on error.
  */
-int ssl_create_certificate(void)
+int ssl_create_certificate(config_t *cfg)
 {
         X509 *x509ss;
         const char *filename;
         
-        ssl_read_config(PRELUDE_REPORT_CONF);
+        ssl_read_config(cfg);
 
         printf("\nBuilding report private key...\n");
 

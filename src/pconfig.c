@@ -255,7 +255,7 @@ int pconfig_init(int argc, char **argv) {
                         return -1;
                 }
                 
-                exit(ssl_register_client());
+                exit(ssl_register_client(cfg));
         }
 #endif
         
