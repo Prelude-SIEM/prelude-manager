@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2001, 2002, 2003, 2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -55,6 +55,12 @@
 #include "pconfig.h"
 #include "relaying.h"
 #include "idmef-message-scheduler.h"
+
+
+#define ROUND_ROBBIN_HIGH 5
+#define ROUND_ROBBIN_MID  3
+#define ROUND_ROBBIN_LOW  2
+
 
 #define MAX_MESSAGE_IN_MEMORY 200
 
@@ -296,9 +302,8 @@ static idmef_message_t *read_idmef_message(prelude_msg_t *msg)
 
 static int process_message(prelude_msg_t *msg) 
 {
-        int ret;
-        int relay_filter_available = 0;
         idmef_message_t *idmef = NULL;
+        int relay_filter_available = 0;
         
         relay_filter_available = filter_plugins_available(FILTER_CATEGORY_RELAYING);
         if ( relay_filter_available < 0 )
@@ -339,6 +344,57 @@ static int process_message(prelude_msg_t *msg)
 
 
 
+static prelude_msg_t *get_first_message_in_queue(void)
+{
+        prelude_msg_t *msg;
+
+        msg = get_high_priority_message();
+        if ( msg )
+                return msg;
+
+        msg = get_mid_priority_message();
+        if ( msg )
+                return msg;
+
+        return get_low_priority_message();
+}
+
+
+
+
+static void read_message_scheduled(void)
+{
+        int ret;
+        uint32_t msg_count = 0;
+        prelude_msg_t *msg = NULL;
+
+        while ( 1 ) {
+
+                msg = NULL;
+                
+                if ( msg_count < ROUND_ROBBIN_HIGH ) 
+                        msg = get_high_priority_message();
+                
+                else if ( msg_count < (ROUND_ROBBIN_HIGH + ROUND_ROBBIN_MID) )
+                        msg = get_mid_priority_message();
+                
+                else
+                        msg = get_low_priority_message();
+                
+                if ( ! msg && !(msg = get_first_message_in_queue()) )
+                        break;
+                
+                ret = process_message(msg);
+                
+                /*
+                 * FIXME: need a way to close connection on invalid message.
+                 */
+                msg_count = (msg_count + 1) % (ROUND_ROBBIN_HIGH + ROUND_ROBBIN_MID + ROUND_ROBBIN_LOW);
+        }
+}
+
+
+
 
 /*
  * This is the function responssible for handling queued message.
@@ -347,7 +403,6 @@ static void *message_reader(void *arg)
 {
         int ret;
         sigset_t set;
-        prelude_msg_t *msg;
         
         sigfillset(&set);
         
@@ -358,22 +413,8 @@ static void *message_reader(void *arg)
         }
         
         while ( 1 ) {
-                msg = get_high_priority_message();
-                if ( ! msg )
-                        msg = get_mid_priority_message();
-                
-                if ( ! msg )
-                        msg = get_low_priority_message();
-
-                if ( ! msg ) {                        
-                        wait_for_message();
-                        continue;
-                }
-                
-                ret = process_message(msg);
-                /*
-                 * FIXME: need a way to close connection on invalid message.
-                 */
+                read_message_scheduled();
+                wait_for_message();
         }
 }
 
