@@ -280,8 +280,9 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
                 log(LOG_INFO, "closing connection on UNIX socket.\n");
         else {
                 log(LOG_INFO, "closing connection with %s.\n", client->addr);
-                free(client->addr);
         }
+
+        free(client->addr);
         
         prelude_io_close(client->fd);
         prelude_io_destroy(client->fd);
@@ -397,7 +398,7 @@ static int wait_connection(server_generic_t *server)
 
                 if ( server->unix_srvr ) {
                         client = accept(server->sock, NULL, NULL);
-                        cdata->addr = strdup("Unix");
+                        cdata->addr = strdup("unix");
                 } else {
                         client = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
                         cdata->addr = strdup(inet_ntoa(addr.sin_addr));
