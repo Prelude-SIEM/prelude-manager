@@ -206,8 +206,7 @@ static int handle_authentication_method(prelude_io_t *fd, char *pass)
         prelude_msg_status_t status;
 
         do {
-                status = prelude_msg_read(&msg, fd);
-                
+                status = prelude_msg_read(&msg, fd);       
         } while ( status == prelude_msg_unfinished );
 
         if ( status != prelude_msg_finished ) {
