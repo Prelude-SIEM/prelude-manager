@@ -206,10 +206,15 @@ static int handle_connection(prelude_msg_t *msg, server_generic_client_t *client
                 
         case PRELUDE_MSG_AUTH_PLAINTEXT:
                 ret = handle_plaintext_connection(msg, client->addr);
-                break;              
+                break;
+
+        default:
+                log(LOG_INFO, "Invalid authentication tag (%d).\n", tag);
+                return -1;
         }
 
-        return handle_connection(msg, client);
+
+        return ret;
 }
 
 
