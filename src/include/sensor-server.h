@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2001, 2002, 2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -24,7 +24,7 @@
 #ifndef _MANAGER_SENSOR_SERVER_H
 #define _MANAGER_SENSOR_SERVER_H
 
-void sensor_server_close(server_generic_t *server);
+void sensor_server_stop(server_generic_t *server);
 
 server_generic_t *sensor_server_new(const char *addr, uint16_t port);
 

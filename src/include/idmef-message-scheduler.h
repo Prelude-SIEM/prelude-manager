@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2001, 2002, 2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -24,8 +24,13 @@
 #ifndef _MANAGER_IDMEF_MESSAGE_SCHEDULER_H
 #define _MANAGER_IDMEF_MESSAGE_SCHEDULER_H
 
+typedef struct idmef_queue idmef_queue_t;
+
 int idmef_message_scheduler_init(void);
 void idmef_message_scheduler_exit(void);
-void idmef_message_schedule(prelude_msg_t *msg);
+void idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg);
+
+idmef_queue_t *idmef_message_scheduler_queue_new(void);
+void idmef_message_scheduler_queue_destroy(idmef_queue_t *queue);
 
 #endif /* _MANAGER_IDMEF_MESSAGE_SCHEDULER_H */

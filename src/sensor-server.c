@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002, 2004 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -51,6 +51,9 @@
 typedef struct {
         SERVER_GENERIC_OBJECT;
         struct list_head list;
+
+        idmef_queue_t *queue;
+
         pthread_mutex_t *list_mutex;
         prelude_msg_t *options_list;
 } sensor_fd_t;
@@ -495,7 +498,7 @@ static int read_connection_cb(server_generic_client_t *client)
         switch ( tag ) {
                 
         case PRELUDE_MSG_IDMEF:
-                idmef_message_schedule(msg);
+                idmef_message_schedule(cnx->queue, msg);
                 return 0;
 
         case PRELUDE_MSG_ID:
@@ -567,13 +570,21 @@ static void close_connection_cb(server_generic_client_t *ptr)
          */
         if ( cnx->msg )
                 prelude_msg_destroy(cnx->msg);
+
+        idmef_message_scheduler_queue_destroy(cnx->queue);
 }
 
 
 
 
 static int accept_connection_cb(server_generic_client_t *ptr) 
-{        
+{
+        sensor_fd_t *cnx = (sensor_fd_t *) ptr;
+        
+        cnx->queue = idmef_message_scheduler_queue_new();
+        if ( ! cnx->queue )
+                return -1;
+        
         return 0;
 }
 
@@ -602,9 +613,9 @@ server_generic_t *sensor_server_new(const char *addr, uint16_t port)
 
 
 
-void sensor_server_close(server_generic_t *server) 
+void sensor_server_stop(server_generic_t *server) 
 {
-        server_generic_close(server);
+        server_generic_stop(server);
 }
 
 

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1999,2000, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 1999-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -36,6 +36,7 @@
 #include <sys/poll.h>
 #include <assert.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include <libprelude/common.h>
 #include <libprelude/prelude-log.h>
@@ -66,7 +67,6 @@ struct server_generic {
         size_t sa_len;
         struct sockaddr *sa;
         
-        
         size_t clientlen;
         struct server_logic *logic;
         server_generic_read_func_t *read;
@@ -80,6 +80,9 @@ struct server_generic_client {
         SERVER_GENERIC_OBJECT;
 };
 
+
+
+static volatile sig_atomic_t continue_processing = 1;
 
 
 
@@ -584,7 +587,7 @@ static int wait_connection(server_generic_t **server, size_t nserver)
                 pfd[i].fd = server[i]->sock;
         } 
         
-        while ( 1 ) {
+        while ( continue_processing ) {
 
                 active_fd = poll(pfd, nserver, -1);                
                 if ( active_fd < 0 )
@@ -597,6 +600,8 @@ static int wait_connection(server_generic_t **server, size_t nserver)
                         }
                 }
         }
+
+        return 0;
 }
 
 
@@ -826,7 +831,7 @@ server_generic_t *server_generic_new(const char *saddr, uint16_t port,
         server->accept = acceptf;
         server->close = closef;
         server->clientlen = clientlen;
-
+        
         ret = resolve_addr(server, saddr, port);
         if ( ret < 0 ) {
                 log(LOG_ERR, "couldn't resolve %s.\n", saddr);
@@ -892,6 +897,14 @@ int server_generic_add_client(server_generic_t *server, prelude_client_t *client
 void server_generic_start(server_generic_t **server, size_t nserver) 
 {
         wait_connection(server, nserver);
+}
+
+
+
+
+void server_generic_stop(server_generic_t *server)
+{
+        continue_processing = 0;
 }
 
 

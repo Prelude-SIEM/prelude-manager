@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2000, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2000-2004 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -86,6 +86,8 @@ int server_generic_add_client(server_generic_t *server, prelude_client_t *client
 void server_generic_start(server_generic_t **server, size_t nserver);
 
 void server_generic_close(server_generic_t *server);
+
+void server_generic_stop(server_generic_t *server);
 
 #endif /* _MANAGER_SERVER_GENERIC_H */
 

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998,1999,2000, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 1998-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -70,17 +70,7 @@ static void cleanup(int sig)
         /*
          * stop the sensor server.
          */
-        sensor_server_close(sensor_server);
-        
-        /*
-         * close the scheduler.
-         */
-        idmef_message_scheduler_exit();
-
-        if ( config.pidfile )
-                unlink(config.pidfile);
-        
-        exit(0);
+        sensor_server_stop(sensor_server);
 }
 
 
@@ -158,6 +148,16 @@ int main(int argc, char **argv)
 
         manager_relay_init();
         server_generic_start(&sensor_server, nserver);
+        
+        /*
+         * we won't get here unless a signal is caught.
+         */
+        server_generic_close(sensor_server);
+
+        idmef_message_scheduler_exit();
+
+        if ( config.pidfile )
+                unlink(config.pidfile);
         
 	exit(0);	
 }
