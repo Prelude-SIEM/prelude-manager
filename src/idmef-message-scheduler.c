@@ -47,6 +47,7 @@
 
 #include "plugin-decode.h"
 #include "plugin-report.h"
+#include "plugin-filter.h"
 #include "plugin-db.h"
 #include "pconfig.h"
 #include "idmef-message-read.h"
@@ -224,43 +225,74 @@ static prelude_msg_t *get_high_priority_message(void)
 
 
 
-static int process_message(prelude_msg_t *msg) 
+
+static idmef_message_t *read_idmef_message(prelude_msg_t *msg) 
 {
         int ret;
         idmef_message_t *idmef;
-        
-        manager_relay_msg_if_needed(msg);
-
-        if ( db_plugins_available() < 0 && report_plugins_available() < 0 ) {
-                /*
-                 * We don't need to process the message here, we are probably
-                 * only a relay manager.
-                 */
-                prelude_msg_destroy(msg);
-                return 0;
-        }
         
         /*
          * never return NULL.
          */
         idmef = idmef_message_new();
-
-        ret = idmef_message_read(idmef, msg);        
+        
+        ret = idmef_message_read(idmef, msg);
         if ( ret < 0 ) {                
                 log(LOG_ERR, "error reading IDMEF message.\n");
-
+                
                 idmef_message_free(idmef);
                 decode_plugins_free_data();
-                prelude_msg_destroy(msg);
+                
+                return NULL;
+        }
 
-                return -1;
+        return idmef;
+}
+
+
+
+
+static int process_message(prelude_msg_t *msg) 
+{
+        idmef_message_t *idmef = NULL;
+        int relay_filter_available = 0;
+        
+        relay_filter_available = filter_plugins_available(FILTER_CATEGORY_RELAYING);
+        if ( relay_filter_available < 0 )
+                manager_relay_msg_if_needed(msg);
+        
+        if ( db_plugins_available() < 0 && report_plugins_available() < 0 && relay_filter_available < 0 ) {
+                /*
+                 * we are probably a simple relaying manager.
+                 */
+                prelude_msg_destroy(msg);
+                return 0;
         }
         
+        idmef = read_idmef_message(msg);
+        if ( ! idmef ) {
+                prelude_msg_destroy(msg);
+                return -1;
+        }
+
+        if ( relay_filter_available && filter_plugins_run_by_category(idmef, FILTER_CATEGORY_RELAYING) == 0 )
+                manager_relay_msg_if_needed(msg);
+
+        /*
+         * run db reporting plugin.
+         */
         db_plugins_run(idmef);
+
+        /*
+         * run simple reporting plugin.
+         */
         report_plugins_run(idmef);
+
+        /*
+         * free data.
+         */
         decode_plugins_free_data();
         idmef_message_free(idmef);
-
         prelude_msg_destroy(msg);
         
         return 0;

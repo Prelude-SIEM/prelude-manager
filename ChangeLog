@@ -1,3 +1,28 @@
+2002-06-18  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* src/report-plugins.c (report_plugins_run): 
+	call filter plugins on reporting plugins category, and
+	drop if a plugin filter the alert. Same for per plugin
+	filter.
+
+	* src/prelude-manager.c (main): 
+	call filter_plugins_init().
+
+	* src/idmef-message-scheduler.c (process_message): 
+	call relaying filter, don't relay if message is filtered.
+
+	* src/idmef-db-output.c (idmef_db_output): 
+	call filter of category database. return if we are filtered.
+
+	* src/filter-plugins.c: 
+	allow filter plugins to hook to a plugin. API cleanup.
+	Make it possible to associate private plugin data with
+	a filter entry.
+
+	* plugins/Makefile.am (SUBDIRS): add filters.
+
+	* configure.in: define filter_plugins stuff
+
 2002-06-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/include/plugin-filter.h: 

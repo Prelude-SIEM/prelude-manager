@@ -40,7 +40,48 @@
 #include "plugin-filter.h"
 
 
-static struct list_head filter_plugins_list[FILTER_CATEGORY_END];
+typedef struct {
+        struct list_head list;
+        
+        void *private_data;
+        plugin_container_t *filter;
+        plugin_generic_t *filtered_plugin;
+
+} filter_plugin_entry_t;
+
+
+
+static struct list_head filter_category_list[FILTER_CATEGORY_END];
+
+
+
+static int add_filter_entry(plugin_container_t *filter, filter_category_t cat, plugin_generic_t *filtered_plugin, void *data) 
+{
+        filter_plugin_entry_t *new;
+
+        new = malloc(sizeof(*new));
+        if ( ! new ) {
+                log(LOG_ERR, "memory exhausted.\n");
+                return -1;
+        }
+
+        new->filter = filter;
+        new->private_data = data;
+        new->filtered_plugin = filtered_plugin;
+        
+        list_add_tail(&new->list, &filter_category_list[cat]);
+
+        if ( filtered_plugin )
+                log(LOG_INFO, "- Subscribing %s to filtering plugins with plugin hook %s.\n",
+                    filter->plugin->name, filtered_plugin->name);
+        else
+                log(LOG_INFO, "- Subscribing %s to filtering plugins with category hook %d.\n",
+                    filter->plugin->name, cat);
+        
+        return 0;
+}
+
+
 
 
 /*
@@ -48,15 +89,15 @@ static struct list_head filter_plugins_list[FILTER_CATEGORY_END];
  */
 static int subscribe(plugin_container_t *pc) 
 {
-        filter_category_t *cat;
+        filter_entry_t *entry;
         plugin_filter_t *filter = (plugin_filter_t *) pc->plugin;
 
-        for ( cat = filter->category; *cat != FILTER_CATEGORY_END; cat++ ) {
-
-                assert(*cat < FILTER_CATEGORY_END);
+        for ( entry = filter->category; entry->category != FILTER_CATEGORY_END; entry++ ) {
                 
-                log(LOG_INFO, "- Subscribing %s to filtering plugins with hook %d.\n", filter->name, *cat);
-                plugin_add(pc, &filter_plugins_list[*cat], NULL);
+                if ( entry->plugin )
+                        add_filter_entry(pc, FILTER_CATEGORY_PLUGIN, entry->plugin, entry->private_data);
+                else
+                        add_filter_entry(pc, entry->category, NULL, entry->private_data);
         }
 
         return 0;
@@ -71,20 +112,41 @@ static void unsubscribe(plugin_container_t *pc)
 
 
 
-int filter_plugins_run(const idmef_message_t *msg, filter_category_t cat) 
+
+int filter_plugins_run_by_category(const idmef_message_t *msg, filter_category_t cat) 
 {
         int ret;
         struct list_head *tmp;
-        plugin_container_t *pc;
-
-        if ( cat > FILTER_CATEGORY_END )
-                ;
+        filter_plugin_entry_t *entry;
         
+        list_for_each(tmp, &filter_category_list[cat]) {
+                entry = list_entry(tmp, filter_plugin_entry_t, list);
                 
-        list_for_each(tmp, &filter_plugins_list[cat]) {
-                pc = list_entry(tmp, plugin_container_t, ext_list);
+                plugin_run_with_return_value(entry->filter, plugin_filter_t, run, ret, msg, entry->private_data);
+                if ( ret < 0 )
+                        return -1;
+        }
+
+        return 0;
+}
+
+
+
+
+int filter_plugins_run_by_plugin(const idmef_message_t *msg, plugin_generic_t *plugin) 
+{
+        int ret;
+        struct list_head *tmp;
+        filter_plugin_entry_t *entry;
+        
+        list_for_each(tmp, &filter_category_list[FILTER_CATEGORY_PLUGIN]) {
                 
-                plugin_run_with_return_value(pc, plugin_filter_t, run, ret, msg);
+                entry = list_entry(tmp, filter_plugin_entry_t, list);
+
+                if ( entry->filtered_plugin != plugin )
+                        continue;
+                
+                plugin_run_with_return_value(entry->filter, plugin_filter_t, run, ret, msg, entry->private_data);
                 if ( ret < 0 )
                         return -1;
         }
@@ -104,13 +166,14 @@ int filter_plugins_init(const char *dirname, int argc, char **argv)
         int ret, i;
         
         for (i = 0; i < FILTER_CATEGORY_END; i++ )
-                INIT_LIST_HEAD(&filter_plugins_list[i]);
+                INIT_LIST_HEAD(&filter_category_list[i]);
         
 	ret = access(dirname, F_OK);        
         if ( ret < 0 ) {
 		if ( errno == ENOENT )
 			return 0;
-		log(LOG_ERR, "can't access %s.\n", dirname);
+
+                log(LOG_ERR, "can't access %s.\n", dirname);
 		return -1;
 	}
         
@@ -131,4 +194,9 @@ int filter_plugins_init(const char *dirname, int argc, char **argv)
 
 
 
+
+int filter_plugins_available(filter_category_t cat) 
+{
+        return list_empty(&filter_category_list[cat]) ? -1 : 0;
+}
 

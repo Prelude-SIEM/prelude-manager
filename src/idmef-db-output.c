@@ -32,6 +32,7 @@
 #include <libprelude/idmef-tree-func.h>
 
 #include "plugin-db.h"
+#include "plugin-filter.h"
 #include "idmef-util.h"
 #include "idmef-db-output.h"
 
@@ -1221,7 +1222,15 @@ static int insert_heartbeat(idmef_heartbeat_t *heartbeat)
 
 int idmef_db_output(idmef_message_t *msg) 
 {
-        int ret = -1;
+        int ret;
+
+        ret = filter_plugins_run_by_category(msg, FILTER_CATEGORY_DATABASE);
+        if ( ret < 0 ) {
+                log(LOG_DEBUG, "database output filtered\n");
+                return 0;
+        }
+
+        ret = -1;
         
         switch (msg->type) {
 

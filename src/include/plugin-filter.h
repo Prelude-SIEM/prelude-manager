@@ -30,19 +30,36 @@
 #include <libprelude/idmef-tree.h>
 #include <libprelude/idmef-tree-func.h>
 
+
 typedef enum {
         FILTER_CATEGORY_REPORTING = 0,
         FILTER_CATEGORY_DATABASE  = 1, /* soon to go with reporting thought libpreludedb */
-        FILTER_CATEGORY_PLUGIN    = 2,
-        FILTER_CATEGORY_END       = 3, /* should be the latest, do not remove */
+        FILTER_CATEGORY_RELAYING  = 2,
+        FILTER_CATEGORY_PLUGIN    = 3,
+        FILTER_CATEGORY_END       = 4, /* should be the latest, do not remove */
 } filter_category_t;
 
 
 
 typedef struct {
+        /*
+         * What category/plugin should this entry be hooked at.
+         */
+        filter_category_t category;
+        plugin_generic_t *plugin;
+        
+        /*
+         * private data associated with an entry.
+         */
+        void *private_data;
+} filter_entry_t;
+
+
+
+typedef struct {
         PLUGIN_GENERIC;
-        filter_category_t *category;
-        int (*run)(const idmef_message_t *message);
+        filter_entry_t *category;
+        int (*run)(const idmef_message_t *message, void *data);
 } plugin_filter_t;
 
 
@@ -56,9 +73,13 @@ typedef struct {
 #define plugin_set_closing_func(p, f) plugin_close_func(p) = (f)
 
 
+int filter_plugins_available(filter_category_t type);
+
 int filter_plugins_init(const char *dirname, int argc, char **argv);
 
-int filter_plugins_run(const idmef_message_t *message, filter_category_t category);
+int filter_plugins_run_by_category(const idmef_message_t *msg, filter_category_t cat);
+
+int filter_plugins_run_by_plugin(const idmef_message_t *message, plugin_generic_t *plugin);
 
 plugin_generic_t *plugin_init(int argc, char **argv);
 

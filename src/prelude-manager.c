@@ -47,6 +47,7 @@
 #include "pconfig.h"
 #include "plugin-decode.h"
 #include "plugin-report.h"
+#include "plugin-filter.h"
 #include "plugin-db.h"
 #include "idmef-util.h"
 #include "idmef-message-scheduler.h"
@@ -154,6 +155,14 @@ int main(int argc, char **argv)
         }
         log(LOG_INFO, "- Initialized %d decoding plugins.\n", ret);
 
+
+        ret = filter_plugins_init(FILTER_PLUGIN_DIR, argc, argv);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "error initializing filtering plugins.\n");
+                return -1;
+        }
+        log(LOG_INFO, "- Initialized %d filtering plugins.\n", ret);
+        
 
         ret = pconfig_init(argc, argv);
         if ( ret < 0 )

@@ -37,6 +37,7 @@
 #include <libprelude/plugin-common-prv.h>
 
 #include "plugin-report.h"
+#include "plugin-filter.h"
 
 
 static LIST_HEAD(report_plugins_list);
@@ -66,11 +67,25 @@ static void unsubscribe(plugin_container_t *pc)
  */
 void report_plugins_run(const idmef_message_t *msg)
 {
+        int ret;
         struct list_head *tmp;
         plugin_container_t *pc;
 
+        ret = filter_plugins_run_by_category(msg, FILTER_CATEGORY_REPORTING);
+        if ( ret < 0 ) {
+                log(LOG_INFO, "reporting filtered.\n");
+                return;
+        }
+        
         list_for_each(tmp, &report_plugins_list) {
                 pc = list_entry(tmp, plugin_container_t, ext_list);
+
+                ret = filter_plugins_run_by_plugin(msg, pc->plugin);
+                if ( ret < 0 ) {
+                        log(LOG_INFO, "reporting filtered for %s.\n", pc->plugin->name);
+                        continue;
+                }
+                
                 plugin_run(pc, plugin_report_t, run, msg);
         }
 }

@@ -19,6 +19,7 @@ include_HEADERS = 			\
 		db.h			\
 		plugin-decode.h		\
 		plugin-report.h		\
+		plugin-filter.h		\
 		plugin-util.h		\
 		report.h		\
 		idmef-util.h		\

@@ -377,6 +377,7 @@ prelude_manager_conf=$configdir/prelude-manager.conf
 plugindir=$libdir/prelude-manager
 report_plugin_dir=$plugindir/reports/
 decode_plugin_dir=$plugindir/decodes/
+filter_plugin_dir=$plugindir/filters/
 db_plugin_dir=$plugindir/db/
 manager_fifo_dir=$localstatedir/spool/prelude-manager
 
@@ -389,6 +390,7 @@ AC_SUBST(localstatedir)
 AC_SUBST(prelude_manager_conf)
 AC_SUBST(report_plugin_dir)
 AC_SUBST(decode_plugin_dir)
+AC_SUBST(filter_plugin_dir)
 AC_SUBST(db_plugin_dir)
 AC_SUBST(LIBWRAP_LIBS)
 AC_SUBST(manager_fifo_dir)
@@ -421,6 +423,9 @@ plugins/db/pgsql/Makefile
 
 plugins/decodes/Makefile
 plugins/decodes/prelude-nids/Makefile
+
+plugins/filters/Makefile
+#plugins/filters/skeleton/Makefile
 
 plugins/reports/Makefile
 plugins/reports/debug/Makefile
