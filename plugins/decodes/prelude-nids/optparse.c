@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <sys/types.h>
 #include <inttypes.h>
 #include <netinet/in.h>
 

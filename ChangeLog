@@ -1,3 +1,12 @@
+2002-08-01  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* configure.in: bump version number to 0.8.1.
+
+	* plugins/decodes/prelude-nids/optparse.c: 
+	include sys/types.h, fix from 
+	Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl> 
+	so that it compile on FreeBSD - STABLE.
+
 2002-07-30  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* configure.in: update version number to 0.8.0. 
