@@ -26,9 +26,9 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include <libprelude/prelude-inttypes.h>
 #include "packet.h"
 
-#include <libprelude/prelude-inttypes.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/extract.h>
 #include <libprelude/prelude-strbuf.h>
