@@ -502,6 +502,8 @@ static int write_connection_cb(server_generic_client_t *client)
                 if ( server_generic_client_get_state(client) & SERVER_GENERIC_CLIENT_STATE_FLUSHING )
                         ret = reverse_relay_set_receiver_alive(sclient->rrr, client);
         }
+
+        pthread_mutex_unlock(&sclient->mutex);
         
         return ret;
 }
