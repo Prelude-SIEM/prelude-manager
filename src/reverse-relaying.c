@@ -41,8 +41,8 @@ typedef struct {
 } reverse_relay_t;
 
 
-static reverse_relay_t receiver;
-static reverse_relay_t initiator;
+static reverse_relay_t receiver = { PTHREAD_MUTEX_INITIALIZER, NULL};
+static reverse_relay_t initiator = { PTHREAD_MUTEX_INITIALIZER, NULL};
 
 extern server_generic_t *sensor_server;
 extern prelude_client_t *manager_client;
@@ -84,7 +84,7 @@ int reverse_relay_set_receiver_alive(prelude_connection_t *cnx)
 
 
 
-int reverse_relay_set_dead(prelude_connection_t *cnx, prelude_connection_capability_t capability) 
+int reverse_relay_set_dead(prelude_connection_t *cnx)
 {
         int ret = -1;
         reverse_relay_t *ptr = prelude_connection_get_data(cnx);
@@ -109,7 +109,7 @@ int reverse_relay_add_receiver(prelude_connection_t *cnx)
         pthread_mutex_lock(&receiver.mutex);
 
         if ( ! receiver.pool ) {
-                ret = prelude_connection_pool_new(&receiver.pool, cp, PRELUDE_CONNECTION_CAPABILITY_NONE);
+                ret = prelude_connection_pool_new(&receiver.pool, cp, 0);
                 if ( ! receiver.pool ) {
                         prelude_perror(ret, "error creating connection pool");
                         return -1;
@@ -202,7 +202,7 @@ int reverse_relay_create_initiator(const char *arg)
         
         cp = prelude_client_get_profile(manager_client);
         
-        ret = prelude_connection_pool_new(&initiator.pool, cp, PRELUDE_CONNECTION_CAPABILITY_RECV_IDMEF);
+        ret = prelude_connection_pool_new(&initiator.pool, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_READ);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error creating reverse relay");
                 return ret;
@@ -225,20 +225,6 @@ int reverse_relay_create_initiator(const char *arg)
                 prelude_connection_pool_destroy(initiator.pool);
                 return ret;
         }
-        
-        return 0;
-}
-
-
-
-
-int reverse_relay_init(void)
-{
-        receiver.pool = NULL;
-        pthread_mutex_init(&receiver.mutex, NULL);
-
-        initiator.pool = NULL;
-        pthread_mutex_init(&initiator.mutex, NULL);
 
         return 0;
 }

@@ -60,7 +60,7 @@ server_generic_t *sensor_server = NULL;
 static size_t nserver = 0;
 static char **global_argv;
 static volatile sig_atomic_t got_sighup = 0;
-static const char *cfgfile = PRELUDE_MANAGER_CONF;
+
 
 
 /*
@@ -155,10 +155,7 @@ static int fill_analyzer_infos(void)
 
 static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
 {
-        idmef_heartbeat_t *hb = idmef_message_get_heartbeat(idmef);
-        prelude_ident_t *ident = prelude_client_get_unique_ident(client);
-        
-        idmef_message_process(client, idmef);
+        idmef_message_process(idmef);
 }
 
 
@@ -209,24 +206,34 @@ int main(int argc, char **argv)
         }
         prelude_log(PRELUDE_LOG_INFO, "- Initialized %d filtering plugins.\n", ret);
         
-        reverse_relay_init();
         sensor_server = sensor_server_new();
         
-        ret = manager_options_init(manager_root_optlist, manager_root_optlist);
+        ret = manager_options_init(manager_root_optlist, &argc, argv);
         if ( ret < 0 )
-                exit(1);
-        
-        ret = prelude_client_new(&manager_client, 0, DEFAULT_ANALYZER_NAME, PRELUDE_MANAGER_CONF);
+                return -1;
+
+        ret = prelude_client_new(&manager_client, DEFAULT_ANALYZER_NAME, config.config_file);
         if ( ret < 0 ) {
-                prelude_perror(ret, "error creating prelude-client object");
-                
-                if ( prelude_client_is_setup_needed(ret) )
-                        prelude_client_print_setup_error(manager_client);
-                
+                prelude_perror(ret, "error creating prelude-client object");                
                 return -1;
         }
         
-        ret = prelude_option_read(manager_root_optlist, &cfgfile, &argc, argv, &err, manager_client);
+        fill_analyzer_infos();
+        prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
+        prelude_client_set_flags(manager_client,  prelude_client_get_flags(manager_client) | PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
+        prelude_client_set_flags(manager_client, prelude_client_get_flags(manager_client) & ~PRELUDE_CLIENT_FLAGS_CONNECT);
+
+        ret = prelude_client_init(manager_client);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "error starting prelude-client");
+                
+                if ( prelude_client_is_setup_needed(ret) )
+                        prelude_client_print_setup_error(manager_client);
+
+                return ret;
+        }
+        
+        ret = prelude_option_read(manager_root_optlist, &config.config_file, &argc, argv, &err, manager_client);
         if ( ret < 0 ) {
                 if ( err )
                         prelude_log(PRELUDE_LOG_WARN, "error parsing options: %s.\n", prelude_string_get_string(err));
@@ -236,23 +243,18 @@ int main(int argc, char **argv)
                 
                 return -1;
         }
-        
-        fill_analyzer_infos();        
-        prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
-        
-        ret = prelude_client_start(manager_client);
-        if ( ret < 0 ) {
-                prelude_perror(ret, "error starting prelude-client");
-                return -1;
-        }
                 
-        ret = idmef_message_scheduler_init(manager_client);
+        ret = idmef_message_scheduler_init();
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "couldn't initialize alert scheduler.\n");
                 return -1;
         }
         
-        prelude_client_set_flags(manager_client, PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
+        ret = prelude_client_start(manager_client);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "error starting prelude-client");                
+                return -1;
+        }
 
         /*
          * start server

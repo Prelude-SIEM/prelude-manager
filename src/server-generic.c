@@ -141,10 +141,8 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                 if ( ret == 0 )
                         return ret; /* EAGAIN happened */
                 
-                if ( ret < 0 ) {                        
-                        server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS authentication failed.\n");
+                if ( ret < 0 )
                         return send_auth_result(client, PRELUDE_MSG_AUTH_FAILED);
-                }
                 
                 client->state |= SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED;
                 
@@ -255,7 +253,8 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
         }
         
         server_generic_log_client(client, PRELUDE_LOG_INFO, "closing connection.\n");
-        
+
+        free(client->permission_string);
         free(client->addr);        
         free(client);
         
@@ -290,8 +289,6 @@ static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock)
                 server_generic_log_client(cdata, PRELUDE_LOG_WARN, "tcp wrapper refused connection.\n", cdata->addr);
                 return -1;
         }
-
-        server_generic_log_client(cdata, PRELUDE_LOG_INFO, "tcp wrapper accepted connection.\n");
         
         return 0;
 }
@@ -407,8 +404,6 @@ static int handle_connection(server_generic_t *server)
                 prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
-
-        cdata->client_type = "unknown";
 
         client = accept_connection(server, cdata);                
         if ( client < 0 ) {
@@ -822,28 +817,9 @@ void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t prior
         va_start(ap, fmt);
         vsnprintf(buf, sizeof(buf), fmt, ap);
         va_end(ap);
-
-        prelude_log(priority, "[%s %s:0x%" PRIx64 "]: %s",
-                    cnx->addr, cnx->client_type, cnx->ident, buf);
-}
-
-
-
-
-const char *server_generic_get_addr_string(server_generic_client_t *client, char *buf, size_t size)
-{
-        int ret;
-
-        *buf = 0;
         
-        ret = snprintf(buf, size, "%s", client->addr);
-        if ( ret < 0 || ret >= size )
-                return buf;
-
-        if ( client->ident )
-                snprintf(buf + ret, size - ret, " %s:0x%" PRIx64, client->client_type, client->ident);        
-        
-        return buf;
+        prelude_log(priority, "[%s 0x%" PRIx64 " %s]: %s",
+                    cnx->addr, cnx->ident, cnx->permission_string, buf);
 }
 
 
@@ -851,4 +827,32 @@ const char *server_generic_get_addr_string(server_generic_client_t *client, char
 void server_generic_client_set_analyzerid(server_generic_client_t *client, uint64_t analyzerid)
 {
         client->ident = analyzerid;
+}
+
+
+
+int server_generic_client_set_permission(server_generic_client_t *client, prelude_connection_permission_t permission)
+{
+        int ret;
+        prelude_string_t *out;
+
+        ret = prelude_string_new(&out);
+        if ( ret < 0 )
+                return ret;
+
+        ret = prelude_connection_permission_to_string(permission, out);
+        if ( ret < 0 ) {
+                prelude_string_destroy(out);
+                return ret;
+        }
+
+        ret = prelude_string_get_string_released(out, &client->permission_string);
+        if ( ret < 0 ) {
+                prelude_string_destroy(out);
+                return ret;
+        }
+        
+        client->permission = permission;
+
+        return 0;
 }

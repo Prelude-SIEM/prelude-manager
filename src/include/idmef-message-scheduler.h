@@ -26,12 +26,12 @@
 
 typedef struct idmef_queue idmef_queue_t;
 
-int idmef_message_scheduler_init(prelude_client_t *client);
+int idmef_message_scheduler_init(void);
 void idmef_message_scheduler_exit(void);
 
 int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg);
 
-void idmef_message_process(prelude_client_t *client, idmef_message_t *idmef);
+void idmef_message_process(idmef_message_t *idmef);
 
 idmef_queue_t *idmef_message_scheduler_queue_new(void);
 void idmef_message_scheduler_queue_destroy(idmef_queue_t *queue);

@@ -38,13 +38,12 @@
 
 
 manager_config_t config;
-static const char *config_file = PRELUDE_MANAGER_CONF;
 
 
 
 static int set_conf_file(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
-{       
-        config_file = strdup(optarg);
+{
+        config.config_file = strdup(optarg);
         return 0;
 }
 
@@ -155,18 +154,29 @@ static int print_help(prelude_option_t *opt, const char *arg, prelude_string_t *
 
 
 
-int manager_options_init(prelude_option_t *manager_root_optlist, void *rootopt) 
+int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv) 
 {
+        int ret;
+        prelude_string_t *err;
         prelude_option_t *opt;
+        prelude_option_t *init_first;
+        prelude_option_warning_t old_warnings;
         
         /* Default */
         config.addr = NULL;
         config.port = 5554;
         config.pidfile = NULL;
         config.dh_regenerate = 24 * 60 * 60;
+        config.config_file = PRELUDE_MANAGER_CONF;
+
+        prelude_option_new_root(&init_first);
         
-        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI, 'h', "help",
+        prelude_option_add(init_first, NULL, PRELUDE_OPTION_TYPE_CLI, 'h', "help",
                            "Print this help", PRELUDE_OPTION_ARGUMENT_NONE, print_help, NULL);
+        
+        prelude_option_add(init_first, NULL, PRELUDE_OPTION_TYPE_CLI, 0, "config",
+                           "Configuration file to use", PRELUDE_OPTION_ARGUMENT_REQUIRED,
+                           set_conf_file, NULL);
         
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI, 'v', "version",
                            "Print version number", PRELUDE_OPTION_ARGUMENT_NONE, print_version, NULL);
@@ -187,9 +197,6 @@ int manager_options_init(prelude_option_t *manager_root_optlist, void *rootopt)
          */
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
         
-        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI, 'c', "config",
-                           "Configuration file to use", PRELUDE_OPTION_ARGUMENT_REQUIRED,
-                           set_conf_file, NULL);
 
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-parameters-regenerate",
                            "How often to regenerate the Diffie Hellman parameters (in hours)",
@@ -212,6 +219,10 @@ int manager_options_init(prelude_option_t *manager_root_optlist, void *rootopt)
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_report_plugin_failover, NULL);
         
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
-
-        return 0;
+        
+        prelude_option_set_warnings(0, &old_warnings);
+        ret = prelude_option_read(init_first, NULL, argc, argv, &err, NULL);
+        prelude_option_set_warnings(old_warnings, NULL);
+                
+        return ret;
 }

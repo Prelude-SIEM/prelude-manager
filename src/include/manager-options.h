@@ -24,13 +24,14 @@
 #ifndef _MANAGER_PCONFIG_H
 #define _MANAGER_PCONFIG_H
 
-int manager_options_init(prelude_option_t *manager_root_optlist, void *data);
+int manager_options_init(prelude_option_t *manager_root_optlist, int *argc, char **argv);
 
 typedef struct manager_config {
         char *addr;
         unsigned int port;
         const char *pidfile;
-
+        const char *config_file;
+        
         int dh_bits;
         int dh_regenerate;
 } manager_config_t;

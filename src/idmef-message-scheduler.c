@@ -263,7 +263,7 @@ static int process_message(prelude_msg_t *msg)
          * idmef_message_destroy() will consequently do this for us.
          */
         idmef_message_set_pmsg(idmef, msg);
-        idmef_message_process(NULL, idmef);
+        idmef_message_process(idmef);
 
         idmef_message_destroy(idmef);
                 
@@ -726,7 +726,7 @@ void idmef_message_scheduler_queue_destroy(idmef_queue_t *queue)
 
 
 
-int idmef_message_scheduler_init(prelude_client_t *client) 
+int idmef_message_scheduler_init(void) 
 {
         char buf[256];
         int ret, i, continue_check = 1;
@@ -794,7 +794,7 @@ void idmef_message_scheduler_exit(void)
 
 
 
-void idmef_message_process(prelude_client_t *client, idmef_message_t *idmef)
+void idmef_message_process(idmef_message_t *idmef)
 {
         prelude_bool_t relay_filter_available = 0;
         

@@ -24,7 +24,6 @@
 #ifndef _MANAGER_SERVER_GENERIC_H
 #define _MANAGER_SERVER_GENERIC_H
 
-
 #include <libprelude/prelude-inttypes.h>
 
 
@@ -40,8 +39,9 @@
         int state;                   \
         char *addr;                  \
         uint16_t port;               \
-        char *client_type;           \
-        uint64_t ident              
+        uint64_t ident;              \
+        char *permission_string;     \
+        prelude_connection_permission_t permission
 
 
 typedef struct server_generic server_generic_t;
@@ -89,11 +89,11 @@ void server_generic_stop(server_generic_t *server);
 
 void server_generic_process_requests(server_generic_t *server, server_generic_client_t *client);
 
-const char *server_generic_get_addr_string(server_generic_client_t *client, char *buf, size_t size);
-
 void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t priority, const char *fmt, ...);
 
 void server_generic_client_set_analyzerid(server_generic_client_t *client, uint64_t analyzerid);
+
+int server_generic_client_set_permission(server_generic_client_t *client, prelude_connection_permission_t permission);
 
 #endif /* _MANAGER_SERVER_GENERIC_H */
 

@@ -288,8 +288,8 @@ static int handle_gnutls_error(gnutls_session session, server_generic_client_t *
                 last_alert = gnutls_alert_get(session);
                 server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS alert: %s.\n", gnutls_alert_get_name(last_alert));
         }
-
-        server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS handshake failed: %s.\n", gnutls_strerror(ret));
+        
+        server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS error: %s.\n", gnutls_strerror(ret));
         
         return -1;
 }
@@ -305,19 +305,19 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
 	ret = gnutls_certificate_verify_peers(session);
 	if ( ret < 0 ) {
                 server_generic_log_client(client, pri, "TLS certificate error: %s.\n", gnutls_strerror(ret));
-                return -1;
+                return ret;
         }
 
 	if ( ret == GNUTLS_E_NO_CERTIFICATE_FOUND ) {
 		server_generic_log_client(client, pri, "TLS authentication error: client did not send any certificate.\n");
                 gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_UNOBTAINABLE);
-                return -1;
+                return ret;
 	}
 
         if ( ret & GNUTLS_CERT_SIGNER_NOT_FOUND) {
 		server_generic_log_client(client, pri, "TLS authentication error: client certificate issuer is unknown.\n");
                 gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_UNKNOWN_CA);
-                return -1;
+                return ret;
         }
         
         if ( ret & GNUTLS_CERT_INVALID ) {
@@ -345,7 +345,8 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
 
 
 
-static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnutls_session session, uint64_t *analyzerid)
+static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnutls_session session,
+                                           uint64_t *analyzerid, prelude_connection_permission_t *permission)
 {
         char buf[1024];
         gnutls_x509_crt cert;
@@ -355,32 +356,50 @@ static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnut
         
         cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
         if ( ! cert_list || cert_list_size != 1 ) {
-                server_generic_log_client(client, PRELUDE_LOG_WARN, "invalid number of peer certificate: %d.\n", cert_list_size);
+                server_generic_log_client(client, PRELUDE_LOG_WARN, "invalid number of peer certificate: %d.\n",
+                                          cert_list_size);
                 return -1;
         }
         
         ret = gnutls_x509_crt_init(&cert);
         if ( ret < 0 ) {
-                server_generic_log_client(client, PRELUDE_LOG_ERR, "error initializing tls certificate: %s.\n", gnutls_strerror(ret));
+                server_generic_log_client(client, PRELUDE_LOG_ERR, "error initializing tls certificate: %s.\n",
+                                          gnutls_strerror(ret));
                 return -1;
         }
         
         ret = gnutls_x509_crt_import(cert, &cert_list[0], GNUTLS_X509_FMT_DER);
         if ( ret < 0) {
-                server_generic_log_client(client, PRELUDE_LOG_ERR, "error importing certificate: %s.\n", gnutls_strerror(ret));
+                server_generic_log_client(client, PRELUDE_LOG_ERR, "error importing certificate: %s.\n",
+                                          gnutls_strerror(ret));
                 goto err;
         }
 
-        ret = gnutls_x509_crt_get_dn(cert, buf, &size);
+        ret = gnutls_x509_crt_get_dn_by_oid(cert, GNUTLS_OID_X520_DN_QUALIFIER, 0, 0, buf, &size);
         if ( ret < 0 ) {
-                server_generic_log_client(client, PRELUDE_LOG_WARN, "error getting certificate DN: %s.\n", gnutls_strerror(ret));
+                server_generic_log_client(client, PRELUDE_LOG_WARN, "error getting certificate DN: %s.\n",
+                                          gnutls_strerror(ret));
                 goto err;
         }
-
-        ret = sscanf(buf, "CN=%" PRIu64, analyzerid);
+        
+        ret = sscanf(buf, "%" PRIu64, analyzerid);
         if ( ret != 1 ) {
                 ret = -1;
                 server_generic_log_client(client, PRELUDE_LOG_WARN, "error parsing certificate DN.\n");
+                goto err;
+        }
+
+        ret = gnutls_x509_crt_get_dn_by_oid(cert, GNUTLS_OID_X520_COMMON_NAME, 0, 0, buf, &size);
+        if ( ret < 0 ) {
+                server_generic_log_client(client, PRELUDE_LOG_WARN, "error getting certificate permission: %s.\n",
+                                          gnutls_strerror(ret));
+                goto err;
+        }
+        
+        ret = sscanf(buf, "%d", (int *) permission);
+        if ( ret != 1 ) {
+                ret = -1;
+                server_generic_log_client(client, PRELUDE_LOG_WARN, "error parsing certificate permission.\n");
                 goto err;
         }
 
@@ -398,6 +417,7 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
         uint64_t analyzerid;
         gnutls_session session;
         int fd = prelude_io_get_fd(pio);
+        prelude_connection_permission_t permission;
         
         /*
          * check if we already have a TLS descriptor
@@ -430,12 +450,17 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
         if ( ret < 0 ) 
                 return -1;
 
-        ret = certificate_get_peer_analyzerid(client, session, &analyzerid);
+        ret = certificate_get_peer_analyzerid(client, session, &analyzerid, &permission);
+        if ( ret < 0 )
+                return -1;
+
+        ret = server_generic_client_set_permission(client, permission);
         if ( ret < 0 )
                 return -1;
         
         server_generic_client_set_analyzerid(client, analyzerid);
-        server_generic_log_client(client, PRELUDE_LOG_INFO, "TLS authentication succeed: client certificate is trusted.\n");
+        server_generic_log_client(client, PRELUDE_LOG_INFO,
+                                  "TLS authentication succeed: client certificate is trusted.\n");
         
         return 1;
 }
