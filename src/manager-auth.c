@@ -181,7 +181,7 @@ int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_
         
         if ( ret < 0 )          
                 return handle_gnutls_error(session, client, ret);
-        
+
         gnutls_deinit(session);
         prelude_io_set_sys_io(pio, prelude_io_get_fd(pio));
 
@@ -207,8 +207,10 @@ int manager_auth_init(prelude_client_t *client)
                 log(LOG_ERR, "couldn't find generated-key-size parameter in cfgfile.\n");
                 return -1;
         }
-
+        
         dh_bits = atoi(ptr);
+
+        free(ptr);
         config_close(cfg);
         
         gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
