@@ -196,9 +196,11 @@ static void dump_idmef_list_##type##_func(const char *list_name, const struct li
 static plugin_report_t plugin;
 
 static int enabled = 0;
+static int silent = 0;
 static int verbose = 0;
 static int aggresive = 0;
 static int wide_format = 0;
+static int total_alerts = 0;
 static char prefix[1024];
 static int prefix_len = 0;
 static LIST_HEAD(concat_list);
@@ -986,10 +988,16 @@ create_list_func(idmef_userid_t, dump_idmef_userid_func);
 
 
 static void handle_alert(const idmef_message_t *msg) 
-{	
-	printf("----------------------------------------------------\n");
-	dump_idmef_message_ptr(msg);
-	concat_cleanup();
+{
+	total_alerts++;
+	
+	if (silent) {
+		printf("alert received, count = %d\n", total_alerts);
+	} else {	
+		printf("----------------------------------------------------\n");
+		dump_idmef_message_ptr(msg);
+		concat_cleanup();
+	}
 }
 
 
@@ -1005,6 +1013,13 @@ static void cleanup(void)
 static int make_verbose(const char *optarg)
 {
 	verbose = 1;
+        return prelude_option_success;
+}
+
+
+static int make_silent(const char *optarg)
+{
+	silent = 1;
         return prelude_option_success;
 }
 
@@ -1066,6 +1081,11 @@ plugin_generic_t *plugin_init(int argc, char **argv)
         opt = prelude_option_add(NULL, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 0, "debug",
                                  "Option for the debug plugin", no_argument,
                                  set_debug_state, get_debug_state);
+
+        prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 's', "silent",
+                           "Be silent, only output confirmation of receiving alert", no_argument,
+                           make_silent, NULL);
+
         
         prelude_option_add(opt, CLI_HOOK|CFG_HOOK|WIDE_HOOK, 'v', "verbose",
                            "Be verbose, print value of each element", no_argument,
