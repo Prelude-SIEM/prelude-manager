@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001 Yoann Vandoorselaere <yoann@mandrakesoft.com>
+* Copyright (C) 2001, 2002 Yoann Vandoorselaere <yoann@mandrakesoft.com>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -58,7 +58,7 @@ static prelude_ident_t *analyzer_ident;
 static pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
-static int option_list_to_xml(prelude_msg_t *msg) 
+static int option_list_to_xml(sensor_fd_t *cnx, prelude_msg_t *msg) 
 {
         int ret;
         void *buf;
@@ -77,46 +77,46 @@ static int option_list_to_xml(prelude_msg_t *msg)
         switch (tag) {
                 
         case PRELUDE_OPTION_START:
-                printf("option start\n");
-                ret = option_list_to_xml(msg);
-                if ( ret < 0 )
-                        return -1;
+                //printf("option start\n");
                 break;
                 
         case PRELUDE_OPTION_NAME:
-                printf("option name = %s\n", (char *) buf);
+                //printf("option name = %s\n", (char *) buf);
                 break;
 
         case PRELUDE_OPTION_DESC:
-                printf("option desc = %s\n", (char *) buf);
+                //printf("option desc = %s\n", (char *) buf);
                 break;
 
         case PRELUDE_OPTION_HAS_ARG:
-                printf("option has_arg = %d\n", * (uint8_t *) buf);
+                //printf("option has_arg = %d\n", * (uint8_t *) buf);
                 break;
 
         case PRELUDE_OPTION_HELP:
-                printf("option help = %s\n", (char *) buf);
+                //printf("option help = %s\n", (char *) buf);
                 break;
 
         case PRELUDE_OPTION_INPUT_VALIDATION:
-                printf("option input regex = %s\n", (char *) buf);
+                //printf("option input regex = %s\n", (char *) buf);
                 break;
 
         case PRELUDE_OPTION_INPUT_TYPE:
-                printf("option input type = %d\n", * (uint8_t *) buf);
+                //printf("option input type = %d\n", * (uint8_t *) buf);
                 break;
                 
         case PRELUDE_OPTION_END:
-                printf("end option.\n");
+                //printf("end option.\n");
                 return 0;
                 
         default:
-                log(LOG_ERR, "Unknow option tag %d.\n", tag);
-                return -1;
+                /*
+                 * for compatibility purpose, don't return an error on unknow tag.
+                 */
+                log(LOG_INFO, "[%s] - unknow option tag %d.\n", cnx->addr, tag);
+                return 0;
         }
 
-        return option_list_to_xml(msg);
+        return option_list_to_xml(cnx, msg);
 }
 
 
@@ -146,7 +146,7 @@ static int handle_request_ident(sensor_fd_t *cnx)
         prelude_msg_write(msg, cnx->fd);
         prelude_msg_destroy(msg);
 
-        log(LOG_INFO, "- Allocated ident %llu on sensor request.\n", cnx->analyzerid);
+        log(LOG_INFO, "[%s] - allocated ident %llu on sensor request.\n", cnx->addr, cnx->analyzerid);
         
         return 0;
 }
@@ -159,7 +159,7 @@ static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen)
         int ret;
         
         ret = extract_uint64(&cnx->analyzerid, buf, blen);
-        log(LOG_INFO, "- Sensor declared ident %llu.\n", cnx->analyzerid);
+        log(LOG_INFO, "[%s] - sensor declared ident %llu.\n", cnx->addr, cnx->analyzerid);
         return ret;
 }
 
@@ -176,7 +176,7 @@ static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg)
 
         ret = prelude_msg_get(msg, &tag, &dlen, &buf);
         if ( ret < 0 ) {
-                log(LOG_ERR, "error decoding message.\n");
+                log(LOG_INFO, "[%s] - error decoding message.\n", cnx->addr);
                 return -1;
         }
 
@@ -194,11 +194,12 @@ static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg)
                 break;
                 
         default:
-                log(LOG_ERR, "Unknow ID tag: %d.\n", tag);
+                log(LOG_INFO, "[%s] - unknow ID tag: %d.\n", cnx->addr, tag);
                 ret = -1;
+                break;
         }
         
-        return 0;
+        return ret;
 }
 
 
@@ -241,20 +242,21 @@ static int read_connection_cb(server_generic_client_t *client)
 
         case PRELUDE_MSG_ID:
                 ret = read_ident_message(cnx, msg);
-                prelude_msg_destroy(msg);
                 break;
                 
         case PRELUDE_MSG_OPTION_LIST:
-                ret = option_list_to_xml(msg);
-                prelude_msg_destroy(msg);
+                log(LOG_INFO, "[%s] - FIXME: (%s) message to XML translation here.\n", cnx->addr, __FUNCTION__);
+                ret = option_list_to_xml(cnx, msg);
                 break;
 
         default:
-                log(LOG_ERR, "Unknow message id %d\n", prelude_msg_get_tag(cnx->msg));
-                prelude_msg_destroy(msg);
-                return 0;
+                log(LOG_INFO, "[%s] - unknow message id %d\n", cnx->addr, prelude_msg_get_tag(cnx->msg));
+                ret = 0;
+                break;
         }
-                
+
+        prelude_msg_destroy(msg);
+        
         return ret;
 }
 

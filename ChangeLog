@@ -1,9 +1,20 @@
 2002-01-16  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
+	* src/sensor-server.c: 
+	(option_list_to_xml): return 0 on error for protocol compatibility
+	purpose.
+
+	* src/server-generic.c: print cleaner information. 
+
 	* src/server-logic.c: 
 	much work... Correct several race condition, redid part of 
 	the code, fix fd leak. I couldn't reproduce a race here, but if 
 	someone with an SMP machine could test it would be even better.
+
+	(server_logic_process_requests): Add the first set connection before
+	creating the set thread, as we don't notify the connection arrival
+	in this case (first set connection). This avoid a race where the 
+	connection is added *after* the created thread started polling.
 
 2002-01-14  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
