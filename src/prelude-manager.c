@@ -147,6 +147,8 @@ static int fill_analyzer_infos(void)
         if ( ret < 0 )
                 return ret;
         idmef_analyzer_set_manufacturer(local, str);
+
+        return 0;
 }
 
 
