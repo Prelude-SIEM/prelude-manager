@@ -20,7 +20,7 @@ AC_C_BIGENDIAN
 AC_SUBST(CFLAGS)
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
-COMMON_LIBS=""
+
 
 if test "x$prefix" = "xNONE"; then
 	prefix="/usr/local"
@@ -43,18 +43,23 @@ AC_PATH_GENERIC(libprelude, 0.4.1, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
 
 
-
 dnl **************************************************
-dnl * Check for the Posix Thread library             *
+dnl * Check for OpenSSL.                             *
 dnl **************************************************
 
-AC_CHECK_LIB(pthread, pthread_create, pthrlib="yes")
-if test x$pthrlib = xyes; then
-	COMMON_LIBS="$COMMON_LIBS -lpthread"
-else
-	AC_CHECK_LIB(c_r, pthread_create, COMMON_LIBS="$COMMON_LIBS -lc_r")
+AC_CHECK_HEADER(openssl/ssl.h, openssl_header=yes)
+
+AC_ARG_ENABLE(openssl, [  --enable-openssl Use OpenSSL to communicate with Report Server [default=auto]], \
+	      enable_openssl="$enableval", enable_openssl=auto)
+
+if test x$enable_openssl = xauto ; then
+	if test x$openssl_header = xyes; then
+		AC_DEFINE(HAVE_SSL)
+    		enable_openssl=yes
+  	else
+    		enable_openssl=no
+  	fi
 fi
-
 
 dnl ***************************************************
 dnl * Check for the MySQL library (MySQL plugin       *
@@ -124,73 +129,6 @@ AC_ARG_ENABLE(profiling, [  --enable-profiling Enable Gprof profiling - with thr
 if test x$enable_profiling = xyes ; then
 	CFLAGS="$CFLAGS -pg"
 	AC_DEFINE(ENABLE_PROFILING)
-fi
-
-
-
-dnl **************************************************
-dnl * Check for networking function                  *
-dnl **************************************************
-
-AC_CHECK_LIB(c, inet_ntoa, libc_inet_ntoa=yes)
-if test x$libc_inet_ntoa != xyes; then
-	AC_CHECK_LIB(nsl, inet_ntoa, COMMON_LIBS="$COMMON_LIBS -lnsl")
-fi
-
-AC_CHECK_LIB(c, socket, libc_socket=yes)
-if test x$libc_socket != xyes; then
-	AC_CHECK_LIB(socket, socket, COMMON_LIBS="$COMMON_LIBS -lsocket")
-fi
-
-AC_CHECK_LIB(c, inet_aton, libc_inet_aton=yes)
-if test x$libc_inet_aton != xyes; then
-	AC_CHECK_LIB(resolv, inet_aton, COMMON_LIBS="$COMMON_LIBS -lresolv")
-fi
-
-
-dnl **************************************************
-dnl * Check for getopt_long                          *
-dnl **************************************************
-
-AC_CHECK_HEADER(getopt.h, getopt_long_hdr=yes)
-AC_CHECK_LIB(c, getopt_long, getopt_long_func=yes)
-
-if test x$getopt_long_hdr = xyes && test x$getopt_long_func = xyes; then
-	AC_DEFINE(HAVE_GETOPT_LONG)
-fi
-
-
-
-dnl **************************************************
-dnl * Check for demand loading of shared lib library *
-dnl **************************************************
-AC_CHECK_LIB(dl, dlopen, COMMON_LIBS="$COMMON_LIBS -ldl")
-
-
-dnl **************************************************
-dnl * Check for crypt library                        *
-dnl **************************************************
-
-AC_CHECK_LIB(crypt, crypt, COMMON_LIBS="$COMMON_LIBS -lcrypt")
-
-
-
-dnl **************************************************
-dnl * Check for OpenSSL.                             *
-dnl **************************************************
-
-AC_CHECK_HEADER(openssl/ssl.h, openssl_header=yes)
-AC_ARG_ENABLE(openssl, [  --enable-openssl  Use OpenSSL to communicate with Report Server [default=auto]], \
-	      enable_openssl="$enableval", enable_openssl=auto)
-
-if test x$enable_openssl = xauto ; then
-	if test x$openssl_header = xyes; then
-		COMMON_LIBS="$COMMON_LIBS -lssl -lcrypto"
-		AC_DEFINE(HAVE_SSL)
-    		enable_openssl=yes
-  	else
-    		enable_openssl=no
-  	fi
 fi
 
 
@@ -327,8 +265,7 @@ AC_SUBST(report_plugin_dir)
 AC_SUBST(decode_plugin_dir)
 AC_SUBST(db_plugin_dir)
 AC_SUBST(LIBWRAP_LIBS)
-AC_SUBST(COMMON_LIBS)
-AC_SUBST(PRELUDE_LIBS)
+
 
 CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
 -Wbad-function-cast -Wcast-qual -Wcast-align -Wnested-externs -DREENTRANT"
@@ -370,7 +307,4 @@ dnl plugins/xmlmod/Makefile
 
 echo
 echo "*** Dumping configuration ***"
-echo "    - Use OpenSSL       : $enable_openssl"
-echo "    - MySQL plugin      : $enable_mysql"
-echo "    - PostgreSQL plugin : $enable_pgsql"
 echo "    - Enable profiling  : $enable_profiling"
