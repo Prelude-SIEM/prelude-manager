@@ -1,3 +1,11 @@
+2002-04-17  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* plugins/reports/debug/debug.c: 
+	comment unused.
+
+	* configure.in (CFLAGS): 
+	remove -Wstrict-prototype until OpenSSL header are corrected.
+
 2002-04-12  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* plugins/decodes/prelude-nids/packet-decode.c (icmp_dump): 

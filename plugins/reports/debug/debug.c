@@ -968,9 +968,8 @@ static void dump_idmef_message_func(const char *name, const idmef_message_t *msg
 
 
 
-
+/* create_list_func(idmef_string_item_t, dump_idmef_string_item_func); */
 create_list_func(idmef_address_t, dump_idmef_address_func);
-create_list_func(idmef_string_item_t, dump_idmef_string_item_func);
 create_list_func(idmef_process_env_t, dump_idmef_string_item_func);
 create_list_func(idmef_process_arg_t, dump_idmef_string_item_func);
 create_list_func(idmef_file_access_t, dump_idmef_file_access_func);
