@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998 - 2000, 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 1998 - 2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -27,7 +27,11 @@
 
 typedef struct {
         PLUGIN_GENERIC;
-        void (*run)(const idmef_message_t *message);
+
+        int state;
+        const char *bkpfile;
+        
+        void (*run)(idmef_message_t *message);
         void (*close)(void);
 } plugin_report_t;
 
@@ -45,7 +49,7 @@ int report_plugins_available(void);
 
 int report_plugins_init(const char *dirname, int argc, char **argv);
 
-void report_plugins_run(const idmef_message_t *message);
+void report_plugins_run(idmef_message_t *message);
 
 void report_plugins_close(void);
 

@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998 - 2000, 2002 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 1998-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -66,7 +66,7 @@ static void unsubscribe(plugin_container_t *pc)
 /*
  * Start all plugins of kind 'list'.
  */
-void report_plugins_run(const idmef_message_t *msg)
+void report_plugins_run(idmef_message_t *msg)
 {
         int ret;
         struct list_head *tmp;

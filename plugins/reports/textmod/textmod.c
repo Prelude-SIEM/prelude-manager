@@ -269,11 +269,12 @@ static void process_service(int depth, idmef_service_t *service)
                 print(0, " protocol=%s", idmef_string(idmef_service_get_protocol(service)));
         
         switch ( idmef_service_get_type(service) ) {
-        case web_service:
+
+        case IDMEF_SERVICE_TYPE_WEB:
                 process_web_service(idmef_service_get_web(service));
                 break;
 
-        case snmp_service:
+        case IDMEF_SERVICE_TYPE_SNMP:
                 process_snmp_service(idmef_service_get_snmp(service));
                 break;
 
@@ -386,8 +387,7 @@ static void process_file(int depth, idmef_file_t *file)
         print(depth, "File %s: ",
 	      idmef_file_category_to_string(idmef_file_get_category(file)));
 
-        if ( idmef_string(idmef_file_get_fstype(file)) )
-                print(0, " fstype=%s", idmef_string(idmef_file_get_fstype(file)));
+        print(0, " fstype=%s", idmef_file_fstype_to_string(idmef_file_get_fstype(file)));
 
         if ( idmef_string(idmef_file_get_name(file)) )
                 print(0, " name=%s", idmef_string(idmef_file_get_name(file)));
@@ -510,7 +510,7 @@ static void process_data(idmef_additional_data_t *ad)
         if ( ! tmp )
                 return;
         
-        if ( idmef_additional_data_get_type(ad) == byte )
+        if ( idmef_additional_data_get_type(ad) == IDMEF_ADDITIONAL_DATA_TYPE_BYTE )
                 tmp = "<FIXME: binary data>";
         
 	if ( dlen <= 80 )
@@ -552,7 +552,7 @@ static void process_confidence(idmef_confidence_t *confidence)
         print(0, "* Confidence rating: %s\n",
 	      idmef_confidence_rating_to_string(idmef_confidence_get_rating(confidence)));
 
-        if ( idmef_confidence_get_rating(confidence) == numeric )
+        if ( idmef_confidence_get_rating(confidence) == IDMEF_CONFIDENCE_RATING_NUMERIC )
                 print(0, "* Confidence value: %f\n", idmef_confidence_get_confidence(confidence));
 }
 
@@ -687,15 +687,15 @@ static void process_heartbeat(idmef_heartbeat_t *heartbeat)
 
 
 
-static void process_message(const idmef_message_t *message) 
+static void process_message(idmef_message_t *message) 
 {
         switch ( idmef_message_get_type(message) ) {
 
-        case idmef_alert_message:
+        case IDMEF_MESSAGE_TYPE_ALERT:
                 process_alert(idmef_message_get_alert(message));
                 break;
 
-        case idmef_heartbeat_message:
+        case IDMEF_MESSAGE_TYPE_HEARTBEAT:
                 process_heartbeat(idmef_message_get_heartbeat(message));
                 break;
 

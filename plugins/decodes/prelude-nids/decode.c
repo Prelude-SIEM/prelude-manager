@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002, 2003 Yoann Vandoorselaere <yoann@prelude-ids.org>
+* Copyright (C) 2001-2004 Yoann Vandoorselaere <yoann@prelude-ids.org>
 * All Rights Reserved
 *
 * This file is part of the Prelude program.
@@ -68,7 +68,7 @@ static idmef_node_t *create_node(const char *addr_string)
                 return NULL;
         }
 
-        idmef_address_set_category(addr, ipv4_addr);
+        idmef_address_set_category(addr, IDMEF_ADDRESS_CATEGORY_IPV4_ADDR);
         idmef_string_set_dup(idmef_address_new_address(addr), addr_string);
                 
         return node;

@@ -226,7 +226,7 @@ static int ether_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_
         }
         
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, string);
+        idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
 
         prelude_strbuf_dont_own(buf);
         prelude_strbuf_destroy(buf);
@@ -316,7 +316,7 @@ static int arp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         }
         
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, string);
+        idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
         prelude_strbuf_dont_own(buf);
         prelude_strbuf_destroy(buf);
@@ -349,7 +349,7 @@ static int ipopts_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet
         }
         
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, string);
+        idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
 
         prelude_strbuf_dont_own(buf);
         prelude_strbuf_destroy(buf);
@@ -383,7 +383,7 @@ static int tcpopts_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packe
         }
         
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, string);
+        idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
 
         prelude_strbuf_dont_own(buf);
         prelude_strbuf_destroy(buf);
@@ -476,7 +476,7 @@ static int ip_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t *
         }
         
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, string);
+        idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
         prelude_strbuf_dont_own(buf);
         prelude_strbuf_destroy(buf);
@@ -572,7 +572,7 @@ static int tcp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         }
         
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, string);
+        idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
         prelude_strbuf_dont_own(buf);
         prelude_strbuf_destroy(buf);
@@ -607,7 +607,7 @@ static int udp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t 
         }
 
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, string);
+        idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
         prelude_strbuf_dont_own(buf);
         prelude_strbuf_destroy(buf);
@@ -630,7 +630,7 @@ static int data_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
                 return -1;
         
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, byte);
+        idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_BYTE);
         
         return 0;
 }
@@ -678,7 +678,7 @@ static int igmp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
         }
         
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, string);
+        idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
         prelude_strbuf_dont_own(buf);
         prelude_strbuf_destroy(buf);
@@ -714,7 +714,7 @@ static int icmp_dump(idmef_alert_t *alert, idmef_additional_data_t *ad, packet_t
         }
         
         idmef_additional_data_set_data(ad, data);
-        idmef_additional_data_set_type(ad, string);
+        idmef_additional_data_set_type(ad, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         
         prelude_strbuf_dont_own(buf);
         prelude_strbuf_destroy(buf);
@@ -776,8 +776,8 @@ int nids_packet_dump(idmef_alert_t *alert, packet_t *p)
                                 return -1;
                         }
 
-                        idmef_additional_data_set_type(data, string);
                         idmef_additional_data_set_meaning(data, meaning);
+                        idmef_additional_data_set_type(data, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
                         
                         ret = tbl[j].func(alert, data, &p[i]);
                         if ( ret < 0 ) {

@@ -302,11 +302,11 @@ static void process_service(xmlNodePtr parent, idmef_service_t *service)
 
         switch ( idmef_service_get_type(service) ) {
 
-        case snmp_service:
+        case IDMEF_SERVICE_TYPE_SNMP:
                 process_snmp_service(new, idmef_service_get_snmp(service));
                 break;
 
-        case web_service:
+        case IDMEF_SERVICE_TYPE_WEB:
                 process_web_service(new, idmef_service_get_web(service));
                 break;
 
@@ -414,7 +414,7 @@ static void process_file(xmlNodePtr parent, idmef_file_t *file)
         idmef_attr_string(new, "category",
 			  idmef_file_category_to_string(idmef_file_get_category(file)));
         idmef_attr_string(new, "fstype",
-			  idmef_string(idmef_file_get_fstype(file)));
+			  idmef_file_fstype_to_string(idmef_file_get_fstype(file)));
 
         idmef_content_string(new, "name",
 			     idmef_string(idmef_file_get_name(file)));
@@ -528,7 +528,7 @@ static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *
 	if ( ! tmp )
 		return;
 
-        if ( idmef_additional_data_get_type(ad) == byte )
+        if ( idmef_additional_data_get_type(ad) == IDMEF_ADDITIONAL_DATA_TYPE_BYTE )
                 tmp = "<FIXME: binary data>";
         
         new = xmlNewChild(parent, NULL, "AdditionalData", tmp);
@@ -574,7 +574,7 @@ static void process_confidence(xmlNodePtr parent, idmef_confidence_t *confidence
         if ( ! confidence )
                 return;
 
-        if ( idmef_confidence_get_rating(confidence) == numeric ) {
+        if ( idmef_confidence_get_rating(confidence) == IDMEF_CONFIDENCE_RATING_NUMERIC ) {
                 snprintf(buf, sizeof(buf), "%f", idmef_confidence_get_confidence(confidence));
                 new = xmlNewChild(parent, NULL, "Confidence", buf);
         } else
@@ -757,11 +757,11 @@ static void process_message(idmef_message_t *message)
                  
         switch ( idmef_message_get_type(message) ) {
 
-        case idmef_alert_message:
+        case IDMEF_MESSAGE_TYPE_ALERT:
                 process_alert(root, idmef_message_get_alert(message));
                 break;
 
-        case idmef_heartbeat_message:
+        case IDMEF_MESSAGE_TYPE_HEARTBEAT:
                 process_heartbeat(root, idmef_message_get_heartbeat(message));
                 break;
 

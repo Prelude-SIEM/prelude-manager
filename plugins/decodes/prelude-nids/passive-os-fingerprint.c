@@ -87,7 +87,7 @@ void passive_os_fingerprint_dump(idmef_alert_t *alert, pof_host_data_t *pof)
          */
         assert(ret > 0 && ret < sizeof(fingerprint));
 
-        idmef_additional_data_set_type(data, string);
+        idmef_additional_data_set_type(data, IDMEF_ADDITIONAL_DATA_TYPE_STRING);
         idmef_data_set_ref(idmef_additional_data_new_data(data), fingerprint, ret + 1);
         idmef_string_set_constant(idmef_additional_data_new_meaning(data), "Passive OS Fingerprint");
 }
