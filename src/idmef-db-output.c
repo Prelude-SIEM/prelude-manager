@@ -479,11 +479,16 @@ static int insert_file(uint64_t alert_ident, uint64_t target_ident,
                 free(name);
                 return -1;
         }
-        
-        idmef_get_db_timestamp(file->create_time, ctime, sizeof(ctime));
-        idmef_get_db_timestamp(file->modify_time, mtime, sizeof(mtime));
-        idmef_get_db_timestamp(file->access_time, atime, sizeof(atime));
-        
+
+        if ( file->create_time )
+                idmef_get_db_timestamp(file->create_time, ctime, sizeof(ctime));
+
+        if ( file->modify_time )
+                idmef_get_db_timestamp(file->modify_time, mtime, sizeof(mtime));
+
+        if ( file->access_time )
+                idmef_get_db_timestamp(file->access_time, atime, sizeof(atime));
+                
         db_plugin_insert("Prelude_File", "alert_ident, target_ident, ident, category, name, path, "
                          "create_time, modify_time, access_time, data_size, disk_size", "%llu, %llu, %llu, '%s', "
                          "'%s', '%s', '%s', '%s', '%s', '%d', %d", alert_ident, target_ident,
