@@ -1,3 +1,8 @@
+2002-05-29  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
+
+	* docs/api/Makefile.am: workaround a possible
+	build breakage if gtkdoc isn't present.
+
 2002-05-24  Yoann Vandoorselaere  <yoann@mandrakesoft.com>
 
 	* src/server-generic.c (setup_client_socket): 
