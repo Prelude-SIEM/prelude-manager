@@ -115,7 +115,8 @@ int reverse_relay_add_receiver(prelude_connection_t *cnx)
                         return -1;
                 }
                 
-                prelude_connection_pool_set_flags(receiver.pool, ~PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
+                prelude_connection_pool_set_flags(receiver.pool, ~(PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT|
+                                                                   PRELUDE_CONNECTION_POOL_FLAGS_GLOBAL_FAILOVER));
                 prelude_connection_pool_init(receiver.pool);
         }
 
