@@ -40,7 +40,6 @@
 #include <libprelude/prelude-list.h>
 #include <libprelude/prelude-linked-object.h>
 #include <libprelude/idmef.h>
-#include <libprelude/idmef-message.h>
 #include <libprelude/idmef-message-id.h>
 #include <libprelude/extract.h>
 #include <libprelude/threads.h>
