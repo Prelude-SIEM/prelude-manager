@@ -203,7 +203,7 @@ int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_cl
         new->analyzerid = analyzerid;
         
         prelude_client_profile_get_backup_dirname(prelude_client_get_profile(manager_client), buf, sizeof(buf));
-        snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "/%llu", analyzerid);
+        snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "/%" PRIu64, analyzerid);
         
         ret = prelude_failover_new(&new->failover, buf);
         if ( ret < 0 ) {
