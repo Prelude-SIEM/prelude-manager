@@ -270,24 +270,6 @@ static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
 
 
 
-
-static int handle_declare_ident(sensor_fd_t *cnx, void *buf, uint32_t blen) 
-{
-        int ret;
-
-        ret = prelude_extract_uint64_safe(&cnx->ident, buf, blen);
-        if ( ret < 0 )
-                return -1;
-        
-        server_generic_log_client((server_generic_client_t *) cnx,
-                                  "declared ident 0x%" PRIx64 ".\n", cnx->ident);
-                
-        return 0;
-}
-
-
-
-
 static int handle_declare_parent_relay(sensor_fd_t *cnx) 
 {
         int ret;
@@ -324,7 +306,7 @@ static int handle_declare_parent_relay(sensor_fd_t *cnx)
                 
                 ret = reverse_relay_add_receiver(pc);
                 if ( ret < 0 )
-                        return ret;
+                        return -1;
         }
         
         prelude_connection_set_state(pc, PRELUDE_CONNECTION_STATE_ESTABLISHED|prelude_connection_get_state(pc));
@@ -374,12 +356,12 @@ static int read_connection_type(sensor_fd_t *cnx, prelude_msg_t *msg)
                 
                 ret = handle_declare_parent_relay(cnx);
                 if ( ret < 0 )
-                        return ret;
+                        return -1;
         }
         
         ret = handle_declare_client(cnx);
         if ( ret < 0 )
-                return ret;
+                return -1;
         
         return 0;
 }
@@ -387,44 +369,15 @@ static int read_connection_type(sensor_fd_t *cnx, prelude_msg_t *msg)
 
 
 
-static int read_ident_message(sensor_fd_t *cnx, prelude_msg_t *msg) 
-{
-        int ret;        
-        void *buf;
-        uint8_t tag;
-        uint32_t dlen;
-
-        ret = prelude_msg_get(msg, &tag, &dlen, &buf);
-        if ( ret < 0 ) {
-                server_generic_log_client((server_generic_client_t *) cnx,
-                                          "error decoding message - %s:%s.\n",
-                                          prelude_strsource(ret), prelude_strerror(ret));
-                return -1;
-        }
-        
-        switch (tag) {
-                
-        case PRELUDE_MSG_ID_DECLARE:
-                ret = handle_declare_ident(cnx, buf, dlen);
-                break;
-                
-        default:
-                server_generic_log_client((server_generic_client_t *) cnx, "unknow ID tag: %d.\n", tag);
-                ret = -1;
-                break;
-        }
-        
-        return ret;
-}
-
-
-
 static int read_after_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
 {
         int ret = -1;
         
-        if ( tag == PRELUDE_MSG_IDMEF )
+        if ( tag == PRELUDE_MSG_IDMEF ) {
                 ret = idmef_message_schedule(cnx->queue, msg);
+                if ( ret == 0 )
+                        return 0;
+        }
         
         else if ( tag == PRELUDE_MSG_OPTION_REQUEST )
                 ret = request_sensor_option(cnx, msg);
@@ -432,12 +385,11 @@ static int read_after_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
         else if ( tag == PRELUDE_MSG_OPTION_REPLY )
                 ret = reply_sensor_option(cnx, msg);
         
-        if ( tag != PRELUDE_MSG_IDMEF || ret < 0 )
-                prelude_msg_destroy(msg);
+        prelude_msg_destroy(msg);
         
         if ( ret < 0 ) {
                 server_generic_log_client((server_generic_client_t *) cnx, "error processing request.\n");
-                return ret;
+                return -1;
         }
         
         return read_connection_cb((server_generic_client_t *) cnx);
@@ -448,10 +400,7 @@ static int read_after_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
 static int read_prior_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
 {
         int ret = -1;
-
-        if ( ! cnx->ident && tag == PRELUDE_MSG_ID )
-                ret = read_ident_message(cnx, msg);
-        
+                
         if ( ! cnx->capability && tag == PRELUDE_MSG_CONNECTION_CAPABILITY )
                 ret = read_connection_type(cnx, msg);
             
@@ -459,7 +408,7 @@ static int read_prior_setup(sensor_fd_t *cnx, prelude_msg_t *msg, uint8_t tag)
         
         if ( ret < 0 ) {
                 server_generic_log_client((server_generic_client_t *) cnx, "error registering client.\n");
-                return ret;
+                return -1;
         }
         
         return read_connection_cb((server_generic_client_t *) cnx);
@@ -474,7 +423,7 @@ static int read_connection_cb(server_generic_client_t *client)
         prelude_msg_t *msg;
         sensor_fd_t *cnx = (sensor_fd_t *) client;
         
-        ret = prelude_msg_read(&cnx->msg, cnx->fd);        
+        ret = prelude_msg_read(&cnx->msg, cnx->fd);
         if ( ret < 0 ) {
 		if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
                         return 0;
@@ -531,14 +480,18 @@ static int write_connection_cb(server_generic_client_t *ptr)
 
 
 
-static void close_connection_cb(server_generic_client_t *ptr) 
+static int close_connection_cb(server_generic_client_t *ptr) 
 {
+        int ret;
         sensor_fd_t *cnx = (sensor_fd_t *) ptr;
         
         if ( cnx->cnx ) {
                 cnx->fd = NULL;
-                prelude_connection_close(cnx->cnx);
                 reverse_relay_set_dead(cnx->cnx, cnx->capability);
+                
+                ret = prelude_connection_close(cnx->cnx);
+                if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
+                        return -1;
         }
         
         if ( ! prelude_list_is_empty(&cnx->list) ) {
@@ -557,6 +510,8 @@ static void close_connection_cb(server_generic_client_t *ptr)
 
         if ( cnx->queue )
                 idmef_message_scheduler_queue_destroy(cnx->queue);
+
+        return 0;
 }
 
 
