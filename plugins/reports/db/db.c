@@ -157,9 +157,8 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 		ret = preludedb_sql_enable_query_logging(sql, plugin->log);
 		if ( ret < 0 ) {
 			preludedb_sql_destroy(sql);
-			prelude_log(PRELUDE_LOG_WARN,
-				    "could not enable queries logging with log file '%s': %s\n",
-				    plugin->log, preludedb_strerror(ret));
+                        prelude_string_sprintf(out, "could not enable queries logging with log file '%s': %s\n",
+                                               plugin->log, preludedb_strerror(ret));
 			return ret;
 		}
 	}
