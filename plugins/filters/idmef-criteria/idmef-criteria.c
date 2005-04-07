@@ -204,8 +204,6 @@ static void filter_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
                 manager_filter_destroy_hook(plugin->hook);
         
         free(plugin);
-
-        return 0;
 }
 
 
