@@ -237,7 +237,7 @@ int main(int argc, char **argv)
         ret = prelude_option_read(manager_root_optlist, &config.config_file, &argc, argv, &err, manager_client);        
         if ( ret < 0 ) {
                 if ( err )
-                        prelude_log(PRELUDE_LOG_WARN, "error parsing options: %s.\n", prelude_string_get_string(err));
+                        prelude_log(PRELUDE_LOG_WARN, "Option error: %s.\n", prelude_string_get_string(err));
 
                 else if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
                         prelude_perror(ret, "error processing prelude-manager options");
