@@ -157,6 +157,7 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
         void *buf;
         uint8_t tag;
         uint32_t len;
+        uint64_t ident;
         uint32_t hop, tmp, target_len = 0;
 
         *target_ptr = NULL;
@@ -165,8 +166,8 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
 
                 if ( tag == PRELUDE_MSG_OPTION_TARGET_ID ) {
                                                 
-                        if ( (len % sizeof(uint64_t)) != 0 || len < 2 * sizeof(uint64_t) )
-                                return -1;
+                        if ( *target_ptr || (len % sizeof(uint64_t)) != 0 || len < 2 * sizeof(uint64_t) )
+                                break;
                         
                         target_len = len;
                         *target_ptr = buf;
@@ -176,12 +177,22 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
                         continue;
 
                 if ( ! *target_ptr )
-                        return -1;
+                        break;
                         
                 ret = prelude_extract_uint32_safe(&hop, buf, len);
                 if ( ret < 0 )
                         break;
+                
+                if ( hop == 0 )
+                        break;
 
+                ident = prelude_extract_uint64(&(*target_ptr)[direction == PRELUDE_MSG_OPTION_REQUEST ? hop - 1 : hop + 1]);
+                if ( ident != client->ident ) {
+                        server_generic_log_client((server_generic_client_t *) client,
+                                                  PRELUDE_LOG_WARN, "client attempt to mask source identifier.\n");
+                        return -1;
+                }
+                
                 hop = (direction == PRELUDE_MSG_OPTION_REQUEST) ? hop + 1 : hop - 1;
                                 
                 if ( hop == (target_len / sizeof(uint64_t)) ) {                        
@@ -207,7 +218,8 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
 
 
 
-static int send_unreachable_message(server_generic_client_t *client, uint64_t *ident_list, uint32_t hop, const char *error, size_t size)
+static int send_unreachable_message(server_generic_client_t *client, uint64_t *ident_list,
+                                    uint32_t hop, const char *error, size_t size)
 {
         ssize_t ret;
         prelude_msg_t *msg;
@@ -233,6 +245,41 @@ static int send_unreachable_message(server_generic_client_t *client, uint64_t *i
 }
 
 
+
+static int process_request_cb(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg) 
+{
+        return write_client(prelude_msgbuf_get_data(msgbuf), msg);
+}
+
+
+
+static int process_option_request(prelude_client_t *dst, sensor_fd_t *src, prelude_msg_t *msg)
+{
+        int ret;
+        prelude_msgbuf_t *buf;
+
+        ret = prelude_msgbuf_new(&buf);
+        if ( ret < 0 )
+                return ret;
+
+        prelude_msgbuf_set_data(buf, src);
+        prelude_msgbuf_set_callback(buf, process_request_cb);
+        prelude_msgbuf_set_flags(buf, PRELUDE_MSGBUF_FLAGS_ASYNC);
+
+        /*
+         * Stop report plugin processing for safety.
+         */
+        idmef_message_scheduler_stop_processing();
+        ret = prelude_option_process_request(dst, msg, buf);
+        idmef_message_scheduler_start_processing();
+        
+        prelude_msgbuf_destroy(buf);
+
+        return ret;
+}
+
+
+
 static int request_sensor_option(server_generic_client_t *client, prelude_msg_t *msg) 
 {
         int ret;
@@ -244,7 +291,7 @@ static int request_sensor_option(server_generic_client_t *client, prelude_msg_t 
         
         ret = get_msg_target_ident(sclient, msg, &target_route,
                                    &target_hop, PRELUDE_MSG_OPTION_REQUEST);
-        if ( ret < 0 )
+        if ( ret < 0 ) 
                 return -1;
         
         /*
@@ -255,27 +302,27 @@ static int request_sensor_option(server_generic_client_t *client, prelude_msg_t 
          */
         if ( (! (sclient->permission & PRELUDE_CONNECTION_PERMISSION_ADMIN_WRITE) && ! sclient->we_connected) ||
              (! (sclient->permission & PRELUDE_CONNECTION_PERMISSION_ADMIN_READ ) &&   sclient->we_connected) ) {
-
                 server_generic_log_client(client, PRELUDE_LOG_WARN, "insufficient credentials to emit admin request.\n");
                 send_unreachable_message(client, target_route, target_hop, TARGET_PROHIBITED, sizeof(TARGET_PROHIBITED));
+                prelude_msg_destroy(msg);
                 return 0;
         }
-        
+                
         ident = prelude_extract_uint64(&target_route[target_hop]);
         if ( ident == prelude_client_profile_get_analyzerid(cp) ) {
                 prelude_msg_recycle(msg);
-                return prelude_option_process_request(manager_client, sclient->fd, msg);
+                return process_option_request(manager_client, sclient, msg);
         }
         
         ret = forward_message_to_analyzerid(sclient, ident, msg);
         if ( ret == -1 ) {
-                prelude_msg_destroy(msg);
                 send_unreachable_message(client, target_route, target_hop, TARGET_UNREACHABLE, sizeof(TARGET_UNREACHABLE));
+                prelude_msg_destroy(msg);
         }
         
         if ( ret == -2 ) {
-                prelude_msg_destroy(msg);
                 send_unreachable_message(client, target_route, target_hop, TARGET_PROHIBITED, sizeof(TARGET_PROHIBITED));
+                prelude_msg_destroy(msg);
         }
         
         return 0;
@@ -290,9 +337,9 @@ static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         uint64_t *target_route, ident;
         
         ret = get_msg_target_ident(client, msg, &target_route, &target_hop, PRELUDE_MSG_OPTION_REPLY);
-        if ( ret < 0 ) 
+        if ( ret < 0 )
                 return -1;
-
+        
         ident = prelude_extract_uint64(&target_route[target_hop]);
                 
         /*
@@ -375,10 +422,10 @@ static int handle_msg(sensor_fd_t *client, prelude_msg_t *msg, uint8_t tag)
         
         else if ( tag == PRELUDE_MSG_OPTION_REQUEST )
                 ret = request_sensor_option((server_generic_client_t *) client, msg);
-
+        
         else if ( tag == PRELUDE_MSG_OPTION_REPLY )
                 ret = reply_sensor_option(client, msg);
-
+        
         else {
                 /* unknown message, ignore silently for backward compatibility */
                 prelude_msg_destroy(msg);
@@ -386,6 +433,7 @@ static int handle_msg(sensor_fd_t *client, prelude_msg_t *msg, uint8_t tag)
         }
         
         if ( ret < 0 ) {
+                prelude_msg_destroy(msg);
                 server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_WARN,
                                           "error processing request.\n");
                 return -1;

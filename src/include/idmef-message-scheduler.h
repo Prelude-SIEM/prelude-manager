@@ -34,6 +34,12 @@ int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg);
 void idmef_message_process(idmef_message_t *idmef);
 
 idmef_queue_t *idmef_message_scheduler_queue_new(void);
+
 void idmef_message_scheduler_queue_destroy(idmef_queue_t *queue);
+
+
+void idmef_message_scheduler_stop_processing(void);
+
+void idmef_message_scheduler_start_processing(void);
 
 #endif /* _MANAGER_IDMEF_MESSAGE_SCHEDULER_H */

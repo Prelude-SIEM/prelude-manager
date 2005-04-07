@@ -107,7 +107,7 @@ static pthread_mutex_t queue_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 static unsigned int input_available = 0;
 static pthread_cond_t input_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t input_mutex = PTHREAD_MUTEX_INITIALIZER;
-
+static pthread_mutex_t process_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 /*
@@ -796,21 +796,39 @@ void idmef_message_scheduler_exit(void)
 
 void idmef_message_process(idmef_message_t *idmef)
 {
+        int ret = 0;
         prelude_bool_t relay_filter_available = 0;
-        
-        relay_filter_available = filter_plugins_available(MANAGER_FILTER_CATEGORY_REVERSE_RELAYING);
-        if ( relay_filter_available < 0 )
-                reverse_relay_send_receiver(idmef);
 
-        else if ( filter_plugins_run_by_category(idmef, MANAGER_FILTER_CATEGORY_REVERSE_RELAYING) == 0 )
-                reverse_relay_send_receiver(idmef);
-        
+        pthread_mutex_lock(&process_mutex);
+
         /*
          * run simple reporting plugin.
          */
         report_plugins_run(idmef);
+        
+        relay_filter_available = filter_plugins_available(MANAGER_FILTER_CATEGORY_REVERSE_RELAYING);
+        if ( relay_filter_available >= 0 )
+                ret = filter_plugins_run_by_category(idmef, MANAGER_FILTER_CATEGORY_REVERSE_RELAYING);
+
+        pthread_mutex_unlock(&process_mutex);
+
+        if ( ret == 0 )
+                reverse_relay_send_receiver(idmef);
 }
 
+
+
+void idmef_message_scheduler_stop_processing(void)
+{
+        pthread_mutex_lock(&process_mutex);
+}
+
+
+
+void idmef_message_scheduler_start_processing(void)
+{
+        pthread_mutex_unlock(&process_mutex);
+}
 
 
 
