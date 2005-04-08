@@ -48,7 +48,7 @@
 
 
 #define MANAGER_MODEL "Prelude Manager"
-#define MANAGER_CLASS "Manager"
+#define MANAGER_CLASS "Concentrator"
 #define MANAGER_MANUFACTURER "http://www.prelude-ids.com"
 #define DEFAULT_ANALYZER_NAME "prelude-manager"
 
