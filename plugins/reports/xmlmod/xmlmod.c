@@ -221,8 +221,8 @@ static void process_node(xmlNodePtr parent, idmef_node_t *node)
         
         idmef_attr_string(new, "ident", idmef_node_get_ident(node));
         idmef_attr_enum(new, "category", idmef_node_get_category(node), idmef_node_category_to_string);
-        idmef_content_string(new, "name", idmef_node_get_name(node));
         idmef_content_string(new, "location", idmef_node_get_location(node));
+        idmef_content_string(new, "name", idmef_node_get_name(node));
 
 	address = NULL;
 	while ( (address = idmef_node_get_next_address(node, address)) )
@@ -357,11 +357,11 @@ static void process_service(xmlNodePtr parent, idmef_service_t *service)
                 return;
 
         idmef_attr_string(new, "ident", idmef_service_get_ident(service));
-	idmef_content_generic_optional(new, "ip_version", "%" PRELUDE_PRIu8, idmef_service_get_ip_version(service));
+	idmef_attr_generic_optional(new, "ip_version", "%" PRELUDE_PRIu8, idmef_service_get_ip_version(service));
         idmef_content_string(new, "name", idmef_service_get_name(service));
         idmef_content_generic_optional(new, "port", "%" PRELUDE_PRIu16, idmef_service_get_port(service));
-	idmef_content_generic_optional(new, "iana_protocol_number", "%" PRELUDE_PRIu8, idmef_service_get_iana_protocol_number(service));
-	idmef_content_string(new, "iana_protocol_name", idmef_service_get_iana_protocol_name(service));
+	idmef_attr_generic_optional(new, "iana_protocol_number", "%" PRELUDE_PRIu8, idmef_service_get_iana_protocol_number(service));
+	idmef_attr_string(new, "iana_protocol_name", idmef_service_get_iana_protocol_name(service));
         idmef_content_string(new, "portlist", idmef_service_get_portlist(service));
         idmef_content_string(new, "protocol", idmef_service_get_protocol(service));
 
@@ -749,9 +749,7 @@ static void process_alert(xmlNodePtr root, idmef_alert_t *alert)
         process_time(new, "CreateTime", idmef_alert_get_create_time(alert));
         process_time(new, "DetectTime", idmef_alert_get_detect_time(alert));
         process_time(new, "AnalyzerTime", idmef_alert_get_analyzer_time(alert));
-
-        process_assessment(new, idmef_alert_get_assessment(alert));
-
+        
 	source = NULL;
 	while ( (source = idmef_alert_get_next_source(alert, source)) )
                 process_source(new, source);
@@ -759,8 +757,9 @@ static void process_alert(xmlNodePtr root, idmef_alert_t *alert)
 	target = NULL;
 	while ( (target = idmef_alert_get_next_target(alert, target)) )
                 process_target(new, target);
-        
+
         process_classification(new, idmef_alert_get_classification(alert));
+        process_assessment(new, idmef_alert_get_assessment(alert));
 
 	additional_data = NULL;
 	while ( (additional_data = idmef_alert_get_next_additional_data(alert, additional_data)) )
@@ -979,8 +978,16 @@ static int set_dtd_check(prelude_option_t *option, const char *arg, prelude_stri
 static int enable_formatting(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-        
-        plugin->format = ! plugin->format;
+
+        if ( ! arg )
+                plugin->format = ! plugin->format;
+
+        else {
+                if ( strcasecmp(arg, "true") == 0 )
+                        plugin->format = TRUE;
+                else
+                        plugin->format = FALSE;
+        }
         
         return 0;
 }
@@ -1001,8 +1008,15 @@ static int get_formatting(prelude_option_t *opt, prelude_string_t *out, void *co
 static int disable_buffering(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-        
-        plugin->no_buffering = ! plugin->no_buffering;
+
+        if ( ! arg )
+                plugin->no_buffering = ! plugin->no_buffering;        
+        else {
+                if ( strcasecmp(arg, "true") == 0 )
+                        plugin->no_buffering = TRUE;
+                else
+                        plugin->no_buffering = FALSE;
+        }
         
         return 0;
 }
@@ -1036,13 +1050,13 @@ int xmlmod_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
                 return ret;
         
         ret = prelude_option_add(opt, NULL, hook, 'f', "format", "Format XML output so that it is readable",
-                                 PRELUDE_OPTION_ARGUMENT_NONE, enable_formatting, get_formatting);
+                                 PRELUDE_OPTION_ARGUMENT_OPTIONAL, enable_formatting, get_formatting);
         if ( ret < 0 )
                 return ret;
         
         ret = prelude_option_add(opt, NULL, hook, 'd', "disable-buffering",
                                  "Disable output file buffering to prevent truncated tags",
-                                 PRELUDE_OPTION_ARGUMENT_NONE, disable_buffering, NULL);
+                                 PRELUDE_OPTION_ARGUMENT_OPTIONAL, disable_buffering, NULL);
         if ( ret < 0 )
                 return ret;
         
