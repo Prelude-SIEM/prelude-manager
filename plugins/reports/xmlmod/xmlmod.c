@@ -807,7 +807,7 @@ static void validate_dtd(xmlmod_plugin_t *plugin, xmlDoc *doc)
         memset(&validation_context, 0, sizeof(validation_context));
         
         validation_context.doc = doc;
-        validation_context.userData = (void *) stderr;
+        validation_context.userData = (void *) plugin->fd->context;
         validation_context.error = (xmlValidityErrorFunc) fprintf;
         validation_context.warning = (xmlValidityWarningFunc) fprintf;
         
@@ -891,7 +891,6 @@ static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
                 prelude_string_sprintf(out, "no logfile specified");
                 return -1;
         }
-
         
         if ( strcmp(plugin->logfile, "stdout") == 0 )
                 fd = stdout;
@@ -910,16 +909,9 @@ static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
                         prelude_log(PRELUDE_LOG_ERR, "error opening %s for writing.\n", plugin->logfile);
         }
         
-        plugin->fd = xmlAllocOutputBuffer(NULL);
-        if ( ! plugin->fd ) {
-                prelude_string_sprintf(out, "error creating an XML output buffer");
-                fclose(fd);
-                return -1;
-        }
-        
         plugin->fd->context = fd;
         plugin->fd->writecallback = file_write;
-        plugin->fd->closecallback = NULL;  /* No close callback */
+        plugin->fd->closecallback = NULL; /* No close callback */
 
         return 0;
 }
@@ -929,7 +921,7 @@ static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 static void xmlmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
-
+        
         if ( plugin->fd )
                 xmlOutputBufferClose(plugin->fd);
         
@@ -950,6 +942,14 @@ static int xmlmod_activate(prelude_option_t *opt, const char *arg, prelude_strin
         if ( ! new )
                 return prelude_error_from_errno(errno);
 
+        
+        new->fd = xmlAllocOutputBuffer(NULL);
+        if ( ! new->fd ) {
+                prelude_string_sprintf(err, "error creating an XML output buffer");
+                free(new);
+                return -1;
+        }
+        
         prelude_plugin_instance_set_plugin_data(context, new);
         
         return 0;
@@ -960,11 +960,14 @@ static int xmlmod_activate(prelude_option_t *opt, const char *arg, prelude_strin
 static int set_dtd_check(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-        
-        if ( ! arg )
-                arg = IDMEF_DTD;
+
+        if ( plugin->idmef_dtd && arg && strcasecmp(arg, "false") == 0 ) {
+                xmlFreeDtd(plugin->idmef_dtd);
+                plugin->idmef_dtd = NULL;
+                return 0;
+        }
                 
-        plugin->idmef_dtd = xmlParseDTD(NULL, arg);
+        plugin->idmef_dtd = xmlParseDTD(NULL, IDMEF_DTD);
         if ( ! plugin->idmef_dtd ) {
                 prelude_string_sprintf(err, "error loading IDMEF DTD '%s'", arg);
                 return -1;
@@ -978,14 +981,15 @@ static int set_dtd_check(prelude_option_t *option, const char *arg, prelude_stri
 static int enable_formatting(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-
+        
         if ( ! arg )
                 plugin->format = ! plugin->format;
 
         else {
                 if ( strcasecmp(arg, "true") == 0 )
                         plugin->format = TRUE;
-                else
+
+                else if ( strcasecmp(arg, "false") == 0 )
                         plugin->format = FALSE;
         }
         
@@ -1026,7 +1030,7 @@ static int disable_buffering(prelude_option_t *option, const char *arg, prelude_
 int xmlmod_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt) 
 {
         int ret;
-	prelude_option_t *opt;
+	prelude_option_t *opt, *cur;
         static manager_report_plugin_t xmlmod_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
@@ -1044,15 +1048,17 @@ int xmlmod_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
         if ( ret < 0 )
                 return ret;
         
-        ret = prelude_option_add(opt, NULL, hook, 'v', "validate", "Validate IDMEF XML output against DTD",
+        ret = prelude_option_add(opt, &cur, hook, 'v', "validate", "Validate IDMEF XML output against DTD",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, set_dtd_check, NULL);
         if ( ret < 0 )
                 return ret;
+        prelude_option_set_input_type(cur, PRELUDE_OPTION_INPUT_TYPE_BOOLEAN);
         
-        ret = prelude_option_add(opt, NULL, hook, 'f', "format", "Format XML output so that it is readable",
+        ret = prelude_option_add(opt, &cur, hook, 'f', "format", "Format XML output so that it is readable",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, enable_formatting, get_formatting);
         if ( ret < 0 )
                 return ret;
+        prelude_option_set_input_type(cur, PRELUDE_OPTION_INPUT_TYPE_BOOLEAN);
         
         ret = prelude_option_add(opt, NULL, hook, 'd', "disable-buffering",
                                  "Disable output file buffering to prevent truncated tags",
