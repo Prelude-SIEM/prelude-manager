@@ -3,12 +3,12 @@
 <!-- ***************************************************************
  *******************************************************************
  *** Intrusion Detection Message Exchange Format (IDMEF) XML DTD ***
- ***                Version 0.5, 16 November 2001                ***
+ ***                Version 1.0, 10 December 2004                ***
  ***                                                             ***
  *** The use and extension of the IDMEF XML DTD are described in ***
  *** RFC XXXX, "Intrusion Detection Message Exchange Format Data ***
  *** Model and Extensible Markup Language (XML) Document Type    ***
- *** Definition," D. Curry and H. Debar.                         ***
+ *** Definition," D. Curry, H. Debar, B. Feinstein.             ***
  *******************************************************************
  *************************************************************** -->
 
@@ -19,31 +19,31 @@
  =============================================================== -->
 
 <!--
- | Attributes of the IDMEF element.  In general, the fixed values of
+ | Attributes of the IDMEF element. In general, the fixed values of
  | these attributes will change each time a new version of the DTD
  | is released.
  -->
 <!ENTITY % attlist.idmef                "
-    version             CDATA                   #FIXED    '0.5'
+    version             CDATA                   #FIXED    '1.0'
   ">
 
 <!--
- | Attributes of all elements.  These are the "XML" attributes that
- | every element should have.  Space handling, language, and name
+ | Attributes of all elements. These are the "XML" attributes that
+ | every element should have. Space handling, language, and name
  | space.
  -->
 <!ENTITY % attlist.global               "
     xmlns:idmef         CDATA                   #FIXED
-        'urn:iana:xml:ns:idmef'
+        'http://iana.org/idmef'
     xmlns               CDATA                   #FIXED
-        'urn:iana:xml:ns:idmef'
+        'http://iana.org/idmef'
     xml:space           (default | preserve)    'default'
     xml:lang            NMTOKEN                 #IMPLIED
   ">
 
 <!-- ===============================================================
  ===================================================================
- === SECTION 2. Attribute value declarations.  Enumerated values for
+ === SECTION 2. Attribute value declarations. Enumerated values for
  ===            many of the element-specific attribute lists.
  ===================================================================
  =============================================================== -->
@@ -69,7 +69,7 @@
  -->
 <!ENTITY % attvals.adtype               "
     ( boolean | byte | character | date-time | integer | ntpstamp |
-      portlist | real | string | xml )
+      portlist | real | string | byte-string | xml )
   ">
 
 <!--
@@ -85,6 +85,10 @@
 <!ENTITY % attvals.filecat              "
     ( current | original )
   ">
+
+<!ENTITY % attvals.fileperm "( noAccess | read | write | execute | 
+  search | delete | executeAs | changePermissions | 
+  takeOwnership)" >
 
 <!--
  | Values for the Id.type attribute.
@@ -110,6 +114,14 @@
   ">
 
 <!--
+ | Values for the Checksum.algorithm attribute
+ -->
+<!ENTITY % attvals.checksumalgos        "
+      ( MD4 | MD5 | SHA1 | SHA2-256 | SHA2-384 | SHA2-512 | CRC-32 | 
+        Haval | Tiger | Gost )
+  ">
+
+<!--
  | Values for the Node.category attribute.
  -->
 <!ENTITY % attvals.nodecat              "
@@ -118,10 +130,11 @@
   ">
 
 <!--
- | Values for the Classification.origin attribute.
+ | Values for the Reference.origin attribute.
  -->
 <!ENTITY % attvals.origin               "
-    ( unknown | bugtraqid | cve | vendor-specific )
+    ( unknown | vendor-specific | user-specific | bugtraqid | cve | 
+      osvdb )
   ">
 
 <!--
@@ -135,7 +148,7 @@
  | Values for the Impact.severity attribute.
  -->
 <!ENTITY % attvals.severity             "
-    ( low | medium | high )
+    ( info | low | medium | high )
   ">
 
 <!--
@@ -155,7 +168,7 @@
 
 <!-- ===============================================================
  ===================================================================
- === SECTION 3. Top-level element declarations.  The IDMEF-Message
+ === SECTION 3. Top-level element declarations. The IDMEF-Message
  ===            element and the types of messages it can include.
  ===================================================================
  =============================================================== -->
@@ -169,20 +182,21 @@
   >
 
 <!ELEMENT Alert                         (
-    Analyzer, CreateTime, DetectTime?, AnalyzerTime?, Source*,
-    Target*, Classification+, Assessment?, (ToolAlert |
+    Analyzer, CreateTime, DetectTime?, AnalyzerTime?,
+    Source*, Target*, Classification, Assessment?, (ToolAlert |
     OverflowAlert | CorrelationAlert)?, AdditionalData*
   )>
 <!ATTLIST Alert
-    ident               CDATA                   '0'
+    messageid           CDATA                   '0'
     %attlist.global;
   >
 
 <!ELEMENT Heartbeat                     (
-    Analyzer, CreateTime, AnalyzerTime?, AdditionalData*
+    Analyzer, CreateTime, HeartbeatInterval?, AnalyzerTime?, 
+    AdditionalData*
   )>
 <!ATTLIST Heartbeat
-    ident               CDATA                   '0'
+    messageid           CDATA                   '0'
     %attlist.global;
   >
 
@@ -216,7 +230,7 @@
 
 <!-- ===============================================================
  ===================================================================
- === SECTION 5.  The AdditionalData element.  This element allows an
+ === SECTION 5. The AdditionalData element. This element allows an
  ===             alert to include additional information that cannot
  ===             be encoded elsewhere in the data model.
  ===================================================================
@@ -238,10 +252,11 @@
  =============================================================== -->
 
 <!ELEMENT Analyzer                      (
-    Node?, Process?
+    Node?, Process?, Analyzer?
   )>
 <!ATTLIST Analyzer
     analyzerid          CDATA                   '0'
+    name                CDATA                   #IMPLIED
     manufacturer        CDATA                   #IMPLIED
     model               CDATA                   #IMPLIED
     version             CDATA                   #IMPLIED
@@ -262,7 +277,7 @@
   >
 
 <!ELEMENT Target                        (
-    Node?, User?, Process?, Service?, FileList?
+    Node?, User?, Process?, Service?, File*
   )>
 <!ATTLIST Target
     ident               CDATA                   '0'
@@ -297,35 +312,44 @@
   >
 
 <!ELEMENT Classification                (
-    name, url
+    Reference*
   )>
 <!ATTLIST Classification
+    ident               CDATA                   '0'
+    text                CDATA                   #REQUIRED
+  >
+
+<!ELEMENT Reference                (
+    name, url
+  )>
+<!ATTLIST Reference
     origin              %attvals.origin;        'unknown'
-    %attlist.global;
+    meaning             CDATA                   #IMPLIED
   >
 
 <!ELEMENT File                          (
     name, path, create-time?, modify-time?, access-time?,
-    data-size?, disk-size?, FileAccess*, Linkage*, Inode?
+    data-size?, disk-size?, FileAccess*, Linkage*, Inode?,
+    Checksum*
   )>
 <!ATTLIST File
     ident               CDATA                   '0'
     category            %attvals.filecat;       #REQUIRED
-    fstype              CDATA                   #REQUIRED
+    fstype              CDATA                   #IMPLIED
+    file-type           CDATA                   #IMPLIED
     %attlist.global;
   >
+
+<!ELEMENT Permission EMPTY >
+<!ATTLIST Permission
+    perms               %attvals.fileperm;      #REQUIRED
+    %attlist.global;
+>
 
 <!ELEMENT FileAccess                    (
-    UserId, permission+
+    UserId, Permission+
   )>
 <!ATTLIST FileAccess
-    %attlist.global;
-  >
-
-<!ELEMENT FileList                      (
-    File+
-  )>
-<!ATTLIST FileList
     %attlist.global;
   >
 
@@ -342,6 +366,14 @@
   )>
 <!ATTLIST Linkage
     category            %attvals.linkcat;       #REQUIRED
+    %attlist.global;
+  >
+
+<!ELEMENT Checksum                      (
+    value, key?
+  )>
+<!ATTLIST Checksum
+    algorithm           %attvals.checksumalgos; #REQUIRED
     %attlist.global;
   >
 
@@ -363,16 +395,20 @@
   >
 
 <!ELEMENT Service                       (
-    ((name | port | (name, port)) | portlist), protocol?,
+    (((name, port?) | (port, name?)) | portlist), protocol?,
     SNMPService?, WebService?
   )>
 <!ATTLIST Service
-    ident               CDATA                   '0'
+    ident                CDATA                   '0'
+ip_version           CDATA                   #IMPLIED
+iana_protocol_number CDATA                  #IMPLIED
+iana_protocol_name   CDATA                  #IMPLIED
     %attlist.global;
   >
 
 <!ELEMENT SNMPService                   (
-    oid?, community?, command?
+    oid?, (community | (securityName, contextName,
+    contextEngineID))?, command?
   )>
 <!ATTLIST SNMPService
     %attlist.global;
@@ -388,11 +424,12 @@
   >
 
 <!ELEMENT UserId                        (
-    name | number | (name, number)
+    (name, number?) | (number, name?)
   )>
 <!ATTLIST UserId
     ident               CDATA                   '0'
     type                %attvals.idtype;        'original-user'
+    tty                 CDATA                   #IMPLIED
     %attlist.global;
   >
 
@@ -410,7 +447,7 @@
  ===================================================================
  =============================================================== -->
 
-<!ELEMENT Action     (#PCDATA | EMPTY)* >
+<!ELEMENT Action              (#PCDATA) >
 <!ATTLIST Action
     category            %attvals.actioncat;     'other'
     %attlist.global;
@@ -422,7 +459,7 @@
     %attlist.global;
   >
 
-<!ELEMENT Confidence (#PCDATA | EMPTY)* >
+<!ELEMENT Confidence          (#PCDATA) >
 <!ATTLIST Confidence
     rating              %attvals.rating;        'numeric'
     %attlist.global;
@@ -441,7 +478,7 @@
 
   >
 
-<!ELEMENT Impact     (#PCDATA | EMPTY)* >
+<!ELEMENT Impact              (#PCDATA) >
 <!ATTLIST Impact
     severity            %attvals.severity;      #IMPLIED
     completion          %attvals.completion;    #IMPLIED
@@ -458,7 +495,7 @@
 <!-- ===============================================================
  ===================================================================
  === SECTION 9. Simple elements with no sub-elements and no special
- ===            attributes.
+ === attributes.
  ===================================================================
  =============================================================== -->
 
@@ -621,3 +658,10 @@
 <!ATTLIST url
     %attlist.global;
   >
+
+<!ELEMENT HeartbeatInterval   (#PCDATA) >
+<!ATTLIST HeartbeatInterval
+    %attlist.global;
+  >
+
+<!-- End of IDMEF DTD -->
