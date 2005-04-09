@@ -804,6 +804,8 @@ static void process_heartbeat(xmlNodePtr idmefmsg, idmef_heartbeat_t *heartbeat)
 static void validate_dtd(xmlmod_plugin_t *plugin, xmlDoc *doc) 
 {
         xmlValidCtxt validation_context;
+
+        memset(&validation_context, 0, sizeof(validation_context));
         
         validation_context.doc = doc;
         validation_context.userData = (void *) stderr;
