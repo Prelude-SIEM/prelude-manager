@@ -1,3 +1,22 @@
+* 2005-04-09, prelude-manager-0.9.0-rc2:
+	
+	- Xmlmod fixes.
+	
+	- Change analyzer class from "Manager" to "Concentrator"
+
+	- Better database plugin error reporting.
+
+	- Fix an error when starting the database plugin from command line.
+
+	- Safe filter plugin destroy hook.
+
+	- Relaying plugin now provide a destroy hook.
+
+	- Fix IRIX & OpenBSD compilation.
+
+	- Direct GnuTLS CFLAGS handling.
+	
+
 * 2005-03-29, prelude-manager-0.9.0-rc1:
 
 	Note: due to several years of work and the habit of working with the 
