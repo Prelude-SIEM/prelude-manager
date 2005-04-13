@@ -884,11 +884,11 @@ int server_generic_client_set_permission(server_generic_client_t *client, prelud
         }
 
         ret = prelude_string_get_string_released(out, &client->permission_string);
-        if ( ret < 0 ) {
-                prelude_string_destroy(out);
-                return ret;
-        }
+        prelude_string_destroy(out);
         
+        if ( ret < 0 )
+                return ret;
+
         client->permission = permission;
 
         return 0;
