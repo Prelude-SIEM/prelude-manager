@@ -404,6 +404,35 @@ static int handle_declare_client(sensor_fd_t *cnx)
 
 
 
+static int handle_capability(sensor_fd_t *cnx, prelude_msg_t *msg)
+{
+        int ret;
+        void *nul;
+        uint32_t len;
+        prelude_connection_permission_t permission;
+        
+        prelude_msg_get(msg, (uint8_t *) &permission, &len, &nul);
+        
+        if ( permission & PRELUDE_CONNECTION_PERMISSION_IDMEF_READ ) {
+                
+                if ( ! (cnx->permission & PRELUDE_CONNECTION_PERMISSION_IDMEF_READ) ) {
+                        server_generic_log_client((server_generic_client_t *) cnx, PRELUDE_LOG_WARN,
+                                                  "insufficient credentials to read IDMEF message: closing connection.\n");
+                        return -1;
+                }
+                
+                ret = handle_declare_receiver(cnx);
+                if ( ret < 0 )
+                        return ret;
+        }
+
+        prelude_msg_destroy(msg);
+
+        return 0;
+}
+
+
+
 static int handle_msg(sensor_fd_t *client, prelude_msg_t *msg, uint8_t tag)
 {
         int ret;
@@ -431,6 +460,9 @@ static int handle_msg(sensor_fd_t *client, prelude_msg_t *msg, uint8_t tag)
         
         else if ( tag == PRELUDE_MSG_OPTION_REPLY )
                 ret = reply_sensor_option(client, msg);
+
+        else if ( tag == PRELUDE_MSG_CONNECTION_CAPABILITY )
+                ret = handle_capability(client, msg);
         
         else {
                 /* unknown message, ignore silently for backward compatibility */
@@ -574,20 +606,7 @@ static int accept_connection_cb(server_generic_client_t *ptr)
         
         prelude_list_init(&fd->list);
         prelude_list_init(&fd->write_msg_list);
-
-        if ( fd->permission & PRELUDE_CONNECTION_PERMISSION_IDMEF_READ ) {
-
-                if ( ! (fd->permission & PRELUDE_CONNECTION_PERMISSION_IDMEF_READ) ) {
-                        server_generic_log_client((server_generic_client_t *) ptr, PRELUDE_LOG_WARN,
-                                                  "insufficient credentials to read IDMEF message: closing connection.\n");
-                        return -1;
-                }
                 
-                ret = handle_declare_receiver(fd);                
-                if ( ret < 0 )
-                        return -1;
-        }
-        
         ret = handle_declare_client(fd);
         if ( ret < 0 )
                 return -1;
