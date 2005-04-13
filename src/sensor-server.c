@@ -248,7 +248,13 @@ static int send_unreachable_message(server_generic_client_t *client, uint64_t *i
 
 static int process_request_cb(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg) 
 {
-        return write_client(prelude_msgbuf_get_data(msgbuf), msg);
+        int ret;
+        
+        ret = write_client(prelude_msgbuf_get_data(msgbuf), msg);
+        if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
+                return 0; /* message is queued */
+
+        return ret;
 }
 
 
