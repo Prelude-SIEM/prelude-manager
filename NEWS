@@ -1,3 +1,12 @@
+* 2005-04-17, prelude-manager-0.9.0-rc3:
+
+	- Don't declare the client to be a reader until we get to the capability message.
+	  This way, if the user get permission wrong (applying more permission than needed),
+	  only client hardwired permission apply.
+
+	- Fix memory leak.
+
+
 * 2005-04-09, prelude-manager-0.9.0-rc2:
 	
 	- Xmlmod fixes.
