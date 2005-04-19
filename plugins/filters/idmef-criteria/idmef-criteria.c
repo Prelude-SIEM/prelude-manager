@@ -39,6 +39,8 @@ static manager_filter_plugin_t filter_plugin;
 
 typedef struct {
         idmef_criteria_t *criteria;
+
+        char *hook_str;
         manager_filter_hook_t *hook;
 } filter_plugin_t;
 
@@ -57,6 +59,16 @@ static int process_message(idmef_message_t *msg, void *priv)
                 prelude_perror(ret, "error matching criteria");
         
 	return (ret > 0) ? 0 : -1;
+}
+
+
+static int get_filter_hook(prelude_option_t *opt, prelude_string_t *out, void *context)
+{
+        filter_plugin_t *plugin;
+        
+        plugin = prelude_plugin_instance_get_plugin_data(context);
+
+        return prelude_string_set_ref(out, plugin->hook_str);
 }
 
 
@@ -80,9 +92,9 @@ static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_st
         
         for ( i = 0; tbl[i].hook != NULL; i++ ) {
                 ret = strcasecmp(optarg, tbl[i].hook);
-                if ( ret == 0 ) {
+                if ( ret == 0 ) {                        
                         manager_filter_new_hook(&plugin->hook, context, tbl[i].cat, NULL, plugin);
-                        return 0;
+                        goto success;
                 }
         }
 
@@ -99,6 +111,14 @@ static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_st
         }
 
         manager_filter_new_hook(&plugin->hook, context, MANAGER_FILTER_CATEGORY_PLUGIN, ptr, plugin);
+
+ success:
+        if ( plugin->hook_str )
+                free(plugin->hook_str);
+        
+        plugin->hook_str = strdup(optarg);
+        if ( ! plugin->hook_str )
+                return -1;
         
         return 0;
 }
@@ -113,11 +133,11 @@ static int add_criteria(filter_plugin_t *plugin, const char *criteria)
         ret = idmef_criteria_new_from_string(&new, criteria);
         if ( ret < 0 ) 
                 return ret;
+
+        if ( plugin->criteria )
+                idmef_criteria_destroy(plugin->criteria);
         
-        if ( ! plugin->criteria )
-                plugin->criteria = new;
-        else
-                idmef_criteria_or_criteria(plugin->criteria, new);
+        plugin->criteria = new;
 
         return 0;
 }
@@ -181,7 +201,7 @@ static int filter_activate(prelude_option_t *opt, const char *optarg, prelude_st
 {
         filter_plugin_t *new;
         
-        new = malloc(sizeof(*new));
+        new = calloc(1, sizeof(*new));
         if ( ! new )
                 return prelude_error_from_errno(errno);
         
@@ -202,6 +222,9 @@ static void filter_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
         if ( plugin->hook )
                 manager_filter_destroy_hook(plugin->hook);
+
+        if ( plugin->hook_str )
+                free(plugin->hook_str);
         
         free(plugin);
 }
@@ -234,7 +257,7 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *roo
         ret = prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
                                  |PRELUDE_OPTION_TYPE_WIDE, 'h', "hook",
                                  "Where the filter should be hooked (reporting|reverse-relaying|plugin name)",
-                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, set_filter_hook, NULL);
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, set_filter_hook, get_filter_hook);
         if ( ret < 0 )
                 return ret;
         
