@@ -136,7 +136,7 @@ static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzeri
                      (! (target->permission & PRELUDE_CONNECTION_PERMISSION_ADMIN_READ ) && ! target->we_connected) ) {
                         ret = -2;
                         server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_WARN,
-                                                  "recipient credentials forbids admin request.\n");
+                                                  "%" PRIu64 " credentials forbids admin request.\n", target->ident);
                         goto out;
                 }
         }
@@ -182,11 +182,15 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
                 ret = prelude_extract_uint32_safe(&hop, buf, len);
                 if ( ret < 0 )
                         break;
-                
+		
                 if ( hop == 0 )
                         break;
 
-                ident = prelude_extract_uint64(&(*target_ptr)[direction == PRELUDE_MSG_OPTION_REQUEST ? hop - 1 : hop + 1]);
+		ret = (direction == PRELUDE_MSG_OPTION_REQUEST) ? hop - 1 : hop + 1;
+		if ( ret < 0 || ret >= (target_len / sizeof(uint64_t)) )
+			break;
+		
+                ident = prelude_extract_uint64(&(*target_ptr)[ret]);
                 if ( ident != client->ident ) {
                         server_generic_log_client((server_generic_client_t *) client,
                                                   PRELUDE_LOG_WARN, "client attempt to mask source identifier.\n");
@@ -194,6 +198,8 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
                 }
                 
                 hop = (direction == PRELUDE_MSG_OPTION_REQUEST) ? hop + 1 : hop - 1;
+		if ( ret < 0 || ret >= (target_len / sizeof(uint64_t)) )
+			break;
                                 
                 if ( hop == (target_len / sizeof(uint64_t)) ) {                        
                         *hop_ptr = (hop - 1);
@@ -224,12 +230,6 @@ static int send_unreachable_message(server_generic_client_t *client, uint64_t *i
         ssize_t ret;
         prelude_msg_t *msg;
 
-        /*
-         * cancel the hop increment done previously.
-         * this function is only supposed to be called for failed request (not failed reply).
-         */
-        hop--;
-        
         ret = prelude_msg_new(&msg, 3,
                               size +
                               sizeof(uint32_t) +
@@ -239,6 +239,13 @@ static int send_unreachable_message(server_generic_client_t *client, uint64_t *i
 
         prelude_msg_set(msg, PRELUDE_MSG_OPTION_ERROR, size, error);
         prelude_msg_set(msg, PRELUDE_MSG_OPTION_TARGET_ID, hop * sizeof(uint64_t), ident_list);
+
+        /*
+	 * cancel the hop increment done previously, and position on target.
+	 * this function is only supposed to be called for failed request (not failed reply).
+	 */
+
+	hop -= 2;
         prelude_msg_set(msg, PRELUDE_MSG_OPTION_HOP, sizeof(hop), &hop);
 
         return sensor_server_write_client(client, msg);
@@ -409,9 +416,9 @@ static int handle_capability(sensor_fd_t *cnx, prelude_msg_t *msg)
         int ret;
         void *nul;
         uint32_t len;
-        prelude_connection_permission_t permission;
+        uint8_t permission;
         
-        prelude_msg_get(msg, (uint8_t *) &permission, &len, &nul);
+        prelude_msg_get(msg, &permission, &len, &nul);
         
         if ( permission & PRELUDE_CONNECTION_PERMISSION_IDMEF_READ ) {
                 
