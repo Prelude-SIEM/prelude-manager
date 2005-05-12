@@ -79,7 +79,7 @@ static int dh_check_elapsed(void)
                 if ( errno == ENOENT )
                         return -1;
                 
-                prelude_log(PRELUDE_LOG_ERR, "could not state %s.\n", DH_FILENAME);
+                prelude_log(PRELUDE_LOG_ERR, "could not stat %s: %s.\n", DH_FILENAME, strerror(errno));
                 return -1;
         }
 
@@ -102,7 +102,7 @@ static int dh_params_load(gnutls_dh_params dh, unsigned int req_bits)
         fd = fopen(DH_FILENAME, "r");
         if ( ! fd ) {
                 if ( errno != ENOENT )
-                        prelude_log(PRELUDE_LOG_ERR, "could not open %s for reading.\n", DH_FILENAME);
+                        prelude_log(PRELUDE_LOG_ERR, "could not open %s for reading: %s.\n", DH_FILENAME, strerror(errno));
 
                 return -1;
         }
