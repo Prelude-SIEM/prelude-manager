@@ -183,9 +183,10 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
                            "Print version number", PRELUDE_OPTION_ARGUMENT_NONE, print_version, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
         
-        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'd',
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'd',
                            "daemon", "Run in daemon mode", PRELUDE_OPTION_ARGUMENT_NONE, set_daemon_mode, NULL);
-
+        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
+        
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 'D', "debug-level",
                            "Run in debug mode", PRELUDE_OPTION_ARGUMENT_OPTIONAL, set_debug_mode, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
@@ -197,7 +198,7 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         /*
          * we want this option to be processed before -d.
          */
-        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
+        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
         
 
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-parameters-regenerate",
