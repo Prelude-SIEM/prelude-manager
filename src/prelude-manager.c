@@ -190,21 +190,21 @@ int main(int argc, char **argv)
                 prelude_log(PRELUDE_LOG_WARN, "error initializing reporting plugins.\n");
                 return -1;
         }
-        prelude_log(PRELUDE_LOG_INFO, "- Initialized %d reporting plugins.\n", ret);
+        prelude_log(PRELUDE_LOG_DEBUG, "- Initialized %d reporting plugins.\n", ret);
 
         ret = decode_plugins_init(DECODE_PLUGIN_DIR, manager_root_optlist);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_WARN, "error initializing decoding plugins.\n");
                 return -1;
         }
-        prelude_log(PRELUDE_LOG_INFO, "- Initialized %d decoding plugins.\n", ret);
+        prelude_log(PRELUDE_LOG_DEBUG, "- Initialized %d decoding plugins.\n", ret);
 
         ret = filter_plugins_init(FILTER_PLUGIN_DIR, manager_root_optlist);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_WARN, "error initializing filtering plugins.\n");
                 return -1;
         }
-        prelude_log(PRELUDE_LOG_INFO, "- Initialized %d filtering plugins.\n", ret);
+        prelude_log(PRELUDE_LOG_DEBUG, "- Initialized %d filtering plugins.\n", ret);
         
         sensor_server = sensor_server_new();
         
@@ -221,7 +221,6 @@ int main(int argc, char **argv)
         fill_analyzer_infos();
         prelude_client_set_heartbeat_cb(manager_client, heartbeat_cb);
         prelude_client_set_flags(manager_client, prelude_client_get_flags(manager_client) & ~PRELUDE_CLIENT_FLAGS_CONNECT);
-        prelude_client_set_flags(manager_client, prelude_client_get_flags(manager_client) | PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
         prelude_client_set_config_filename(manager_client, config.config_file);
         
         ret = prelude_client_init(manager_client);
