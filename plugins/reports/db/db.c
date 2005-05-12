@@ -157,7 +157,7 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 		ret = preludedb_sql_enable_query_logging(sql, plugin->log);
 		if ( ret < 0 ) {
 			preludedb_sql_destroy(sql);
-                        prelude_string_sprintf(out, "could not enable queries logging with log file '%s': %s\n",
+                        prelude_string_sprintf(out, "could not enable queries logging with log file '%s': %s",
                                                plugin->log, preludedb_strerror(ret));
 			return ret;
 		}
@@ -166,7 +166,7 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         ret = preludedb_new(&db, sql, NULL, errbuf, sizeof(errbuf));
 	if ( ret < 0 ) {
 		preludedb_sql_destroy(sql);
-                prelude_string_sprintf(out, "could not initialize libpreludedb: %s.\n", errbuf);
+                prelude_string_sprintf(out, "could not initialize libpreludedb: %s", errbuf);
 		return ret;
 	}
 
