@@ -491,13 +491,13 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
         
         ret = bind(sock, addr, alen);
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't bind to socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "could not bind socket: %s.\n", strerror(errno));
                 return -1;
         }
         
         ret = listen(sock, 10);
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't listen on socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "could not listen on socket: %s.\n", strerror(errno));
                 return -1;
         }
         
@@ -556,7 +556,7 @@ static int unix_server_start(server_generic_t *server)
         
         server->sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if ( server->sock < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't create socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "error creating UNIX socket: %s.\n", strerror(errno));
 		return -1;
 	}
         
@@ -578,7 +578,7 @@ static int unix_server_start(server_generic_t *server)
          */
         ret = chmod(sa->sun_path, S_IRWXU|S_IRWXG|S_IRWXO);
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't set permission for UNIX socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "could not set permission on UNIX socket: %s.\n", strerror(errno));
                 return -1;
         }
         
@@ -598,19 +598,19 @@ static int inet_server_start(server_generic_t *server,
         
         server->sock = socket(server->sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
         if ( server->sock < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't create socket.\n");
+                prelude_log(PRELUDE_LOG_ERR, "could not create socket: %s.\n", strerror(errno));
                 return -1;
         }
         
         ret = setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't set SO_REUSEADDR socket option.\n");
+                prelude_log(PRELUDE_LOG_ERR, "could not set SO_REUSEADDR socket option: %s.\n", strerror(errno));
                 goto err;
         }
 
         ret = setsockopt(server->sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(int));
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't set SO_KEEPALIVE socket option.\n");
+                prelude_log(PRELUDE_LOG_ERR, "could not set SO_KEEPALIVE socket option: %s.\n", strerror(errno));
                 goto err;
         }
         
