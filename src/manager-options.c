@@ -51,7 +51,7 @@ static int set_conf_file(prelude_option_t *opt, const char *optarg, prelude_stri
 static int print_version(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         fprintf(stderr, "prelude-manager %s\n", VERSION);
-        return prelude_error(PRELUDE_ERROR_EOF);
+        exit(0);
 }
 
 
@@ -179,9 +179,10 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
                            set_conf_file, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
         
-        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI, 'v', "version",
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 'v', "version",
                            "Print version number", PRELUDE_OPTION_ARGUMENT_NONE, print_version, NULL);
-
+        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
+        
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'd',
                            "daemon", "Run in daemon mode", PRELUDE_OPTION_ARGUMENT_NONE, set_daemon_mode, NULL);
 
