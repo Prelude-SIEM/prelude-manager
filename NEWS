@@ -1,3 +1,18 @@
+* 2005-05-13, prelude-manager-0.9.0-rc4:
+
+	- Make filter option handling more consistant.
+
+	- Fix recursive analyzer routing, endianess issue.
+
+	- Error return triggered by option beautification.
+
+	- More detailed error messages.
+
+	- Option priority re-ordering.
+
+	- Decrease verbosity level.
+
+
 * 2005-04-17, prelude-manager-0.9.0-rc3:
 
 	- Don't declare the client to be a reader until we get to the capability message.
