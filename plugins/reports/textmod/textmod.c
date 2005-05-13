@@ -329,11 +329,11 @@ static void process_service(textmod_plugin_t *plugin, int depth, idmef_service_t
 
         ip_v = idmef_service_get_ip_version(service);
         if ( ip_v )
-                print(plugin, 0, " ip_version=%hhu", *ip_v);
+                print(plugin, 0, " ip_version=%u", (unsigned int) *ip_v);
 
         iana_protocol_number = idmef_service_get_iana_protocol_number(service);
         if ( iana_protocol_number )
-                print(plugin, 0, " iana_protocol_number=%hhu", *iana_protocol_number);
+                print(plugin, 0, " iana_protocol_number=%u", (unsigned int) *iana_protocol_number);
 
 	print_string(plugin, 0, " iana_protocol_name=%s", idmef_service_get_iana_protocol_name(service));
         
