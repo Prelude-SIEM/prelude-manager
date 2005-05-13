@@ -31,16 +31,17 @@
 
 #include "config.h"
 
-#include <alloca.h>
 #include "getaddrinfo.h"
 #include "gettext.h"
+#include "inet_ntop.h"
 #include "minmax.h"
-#include <poll.h>
 #include "snprintf.h"
-#include <stdbool.h>
 #include "vasnprintf.h"
 #include "vsnprintf.h"
 #include "xsize.h"
-#include "inet_ntop.h"
+#include <alloca.h>
+#include <poll.h>
+#include <stdbool.h>
+#include <string.h>
 
 #endif /* _PRELUDE_MANAGER_LIBMISSING_H */
