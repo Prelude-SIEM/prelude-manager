@@ -136,7 +136,7 @@ static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzeri
                      (! (target->permission & PRELUDE_CONNECTION_PERMISSION_ADMIN_READ ) && ! target->we_connected) ) {
                         ret = -2;
                         server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_WARN,
-                                                  "%" PRIu64 " credentials forbids admin request.\n", target->ident);
+                                                  "%" PRELUDE_PRIu64 " credentials forbids admin request.\n", target->ident);
                         goto out;
                 }
         }
