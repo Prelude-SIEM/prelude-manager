@@ -632,10 +632,8 @@ static prelude_bool_t is_unix_addr(const char **out, const char *addr, unsigned 
         int ret;
         const char *ptr;
 
-        if ( ! addr ) {
-                *out = prelude_connection_get_default_socket_filename();
-                return TRUE;
-        }
+        if ( ! addr )
+                return FALSE;
         
         ret = strncmp(addr, "unix", 4);
         if ( ret != 0 )
