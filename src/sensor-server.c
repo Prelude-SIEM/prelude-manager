@@ -324,7 +324,9 @@ static int request_sensor_option(server_generic_client_t *client, prelude_msg_t 
         ident = prelude_extract_uint64(&target_route[target_hop]);
         if ( ident == prelude_client_profile_get_analyzerid(cp) ) {
                 prelude_msg_recycle(msg);
-                return process_option_request(manager_client, sclient, msg);
+                ret = process_option_request(manager_client, sclient, msg);
+                prelude_msg_destroy(msg);
+                return ret;
         }
         
         ret = forward_message_to_analyzerid(sclient, ident, msg);
