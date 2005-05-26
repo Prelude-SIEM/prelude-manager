@@ -44,6 +44,9 @@
 #include "prelude-manager.h"
 
 
+#define DEFAULT_DATABASE_TYPE "mysql"
+
+
 int db_LTX_prelude_plugin_version(void);
 int db_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt);
 
@@ -113,6 +116,9 @@ static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
         if ( plugin->port )
                 free(plugin->port);
 
+        if ( plugin->log )
+                free(plugin->log);
+        
 	preludedb_destroy(plugin->db);
 	free(plugin);
 }
@@ -121,13 +127,13 @@ static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
 static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
-        db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
+        int ret;
         preludedb_t *db;
         preludedb_sql_t *sql;
 	preludedb_sql_settings_t *settings;
-        int ret;
 	char errbuf[PRELUDEDB_ERRBUF_SIZE];
-
+        db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
+        
 	ret = preludedb_sql_settings_new(&settings);
 	if ( ret < 0 )
 		return ret;
@@ -188,7 +194,7 @@ static int db_activate(prelude_option_t *opt, const char *optarg, prelude_string
         if ( ! new )
                 return prelude_error_from_errno(errno);
 
-	new->type = strdup("mysql");
+	new->type = strdup(DEFAULT_DATABASE_TYPE);
 	if ( ! new->type ) {
 		free(new);
 		return prelude_error_from_errno(errno);
