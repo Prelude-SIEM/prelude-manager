@@ -1,3 +1,12 @@
+* 2005-05-26, prelude-manager-0.9.0-rc5:
+
+	- Fix leak on local configuration message.
+	
+	- Default to listening on localhost instead of UNIX domain socket.
+
+	- Fix compilation problem on system lacking PRIu64 definition.
+
+
 * 2005-05-13, prelude-manager-0.9.0-rc4:
 
 	- Make filter option handling more consistant.
