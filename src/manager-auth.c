@@ -425,6 +425,7 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
          */
         session = prelude_io_get_fdptr(pio);
         if ( ! session ) {
+                union { int fd; void *ptr; } data;
                 const int kx_prio[] = { GNUTLS_KX_DHE_RSA, 0 };
                 
                 ret = gnutls_init(&session, GNUTLS_SERVER);
@@ -434,8 +435,9 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
                 
                 gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, cred);
                 gnutls_certificate_server_set_request(session, GNUTLS_CERT_REQUEST);
-                
-                gnutls_transport_set_ptr(session, (gnutls_transport_ptr) fd);
+
+                data.fd = fd;
+                gnutls_transport_set_ptr(session, data.ptr);
                 prelude_io_set_tls_io(pio, session);
         }
         
