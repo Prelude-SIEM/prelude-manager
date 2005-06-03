@@ -21,6 +21,7 @@ AC_DEFUN([gl_INIT],
   dnl you must add AM_GNU_GETTEXT([external]) or similar to configure.ac.
   gl_INET_NTOP
   gl_FUNC_MEMSET
+  gl_MINMAX
   gl_FUNC_POLL
   gl_C_RESTRICT
   gl_FUNC_SNPRINTF
