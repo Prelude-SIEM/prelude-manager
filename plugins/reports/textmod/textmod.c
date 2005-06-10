@@ -185,7 +185,7 @@ static void process_node(textmod_plugin_t *plugin, int depth, idmef_node_t *node
 
 static void process_user_id(textmod_plugin_t *plugin, int depth, idmef_user_id_t *user_id) 
 {
-        int32_t *number;
+        uint32_t *number;
         
         if ( ! user_id )
                 return;
