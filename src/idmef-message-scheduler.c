@@ -606,8 +606,8 @@ static int flush_orphan_fifo(const char *filename)
         
         ret = stat(filename, &st);
         if ( ret < 0 ) {
-                if ( errno != ENOENT )
-                        prelude_log(PRELUDE_LOG_ERR, "couldn't stats %s.\n", filename);
+		if ( errno != ENOENT ) 
+                        prelude_log(PRELUDE_LOG_ERR, "could not stats %s: %s.\n", filename, strerror(errno));
 
                 return -1;
         }
