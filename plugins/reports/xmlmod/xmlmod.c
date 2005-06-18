@@ -60,33 +60,33 @@ static int file_write(void *context, const char *buf, int len)
 
 
 
-#define idmef_attr_generic_optional(node, attr, fmt, ptr) \
-do {                                                      \
-        char buf[512];                                    \
-        if ( ptr ) {                                      \
-               snprintf(buf, sizeof(buf), fmt, *ptr);     \
-               xmlSetProp(node, attr, buf);               \
-        }                                                 \
+#define idmef_attr_generic_optional(node, attr, fmt, ptr)                       \
+do {                                                                            \
+        char buf[512];                                                          \
+        if ( ptr ) {                                                            \
+               snprintf(buf, sizeof(buf), fmt, *ptr);                           \
+               xmlSetProp(node, (const xmlChar *) attr, (const xmlChar *) buf); \
+        }                                                                       \
 } while (0)
 
 
-#define idmef_attr_generic(node, attr, fmt, value) \
-do { \
-        char buf[512]; \
-        if ( value ) { \
-               snprintf(buf, sizeof(buf), fmt, value); \
-               xmlSetProp(node, attr, buf); \
-        } \
+#define idmef_attr_generic(node, attr, fmt, value)                              \
+do {                                                                            \
+        char buf[512];                                                          \
+        if ( value ) {                                                          \
+               snprintf(buf, sizeof(buf), fmt, value);                          \
+               xmlSetProp(node, (const xmlChar *) attr, (const xmlChar *) buf); \
+        }                                                                       \
 } while (0) 
 
 
-#define idmef_content_generic_optional(node, tag, fmt, ptr) \
-do { \
-        char buf[512]; \
-        if ( ptr ) { \
-               snprintf(buf, sizeof(buf), fmt, *ptr); \
-               xmlNewChild(node, NULL, tag, buf); \
-        } \
+#define idmef_content_generic_optional(node, tag, fmt, ptr)                               \
+do {                                                                                      \
+        char buf[512];                                                                    \
+        if ( ptr ) {                                                                      \
+               snprintf(buf, sizeof(buf), fmt, *ptr);                                     \
+               xmlNewTextChild(node, NULL, (const xmlChar *) tag, (const xmlChar *) buf); \
+        }                                                                                 \
 } while (0)
 
 
@@ -100,7 +100,7 @@ static void idmef_content_string(xmlNodePtr node, const char *tag, prelude_strin
 
 	content = prelude_string_get_string(string);
 
-        xmlNewChild(node, NULL, tag, content ? content : "");
+        xmlNewTextChild(node, NULL, (const xmlChar *) tag, (const xmlChar *) (content ? content : ""));
 }
 
 
@@ -114,14 +114,14 @@ static void idmef_attr_string(xmlNodePtr node, const char *attr, prelude_string_
 
 	content = prelude_string_get_string(string);
 
-        xmlSetProp(node, attr, content ? content : "");
+        xmlSetProp(node, (const xmlChar *) attr, (const xmlChar *) (content ? content : ""));
 }
 
 
 
 static void _idmef_attr_enum(xmlNodePtr node, const char *attr, int value, const char *(*convert)(int))
 {
-	xmlSetProp(node, attr, convert(value));
+	xmlSetProp(node, (const xmlChar *) attr, (const xmlChar *) convert(value));
 }
 
 #define idmef_attr_enum(node, attr, value, convert) \
@@ -163,7 +163,7 @@ static void process_time(xmlNodePtr parent, const char *type, idmef_time_t *time
                 return;
         }
         
-        new = xmlNewChild(parent, NULL, type, prelude_string_get_string(out));
+        new = xmlNewTextChild(parent, NULL, (const xmlChar *) type, (const xmlChar *) prelude_string_get_string(out));
         if ( ! new ) {
                 prelude_string_destroy(out);
                 return;
@@ -177,7 +177,7 @@ static void process_time(xmlNodePtr parent, const char *type, idmef_time_t *time
                 return;
         }
         
-        xmlSetProp(new, "ntpstamp", prelude_string_get_string(out));
+        xmlSetProp(new, (const xmlChar *) "ntpstamp", (const xmlChar *) prelude_string_get_string(out));
         prelude_string_destroy(out);
 }
 
@@ -190,7 +190,7 @@ static void process_address(xmlNodePtr parent, idmef_address_t *address)
         if ( ! address )
                 return;
         
-        new = xmlNewChild(parent, NULL, "Address", NULL);
+        new = xmlNewTextChild(parent, NULL, (const xmlChar *) "Address", NULL);
         if ( ! new )
                 return;
 
@@ -215,7 +215,7 @@ static void process_node(xmlNodePtr parent, idmef_node_t *node)
         if ( ! node )
                 return;
 
-        new = xmlNewChild(parent, NULL, "Node", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Node", NULL);
         if ( ! new )
                 return;
         
@@ -238,7 +238,7 @@ static void process_user_id(xmlNodePtr parent, idmef_user_id_t *user_id)
         if ( ! user_id )
                 return;
         
-        new = xmlNewChild(parent, NULL, "UserId", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "UserId", NULL);
         if ( ! new )
                 return;
 
@@ -258,7 +258,7 @@ static void process_user(xmlNodePtr parent, idmef_user_t *user)
         if ( ! user )
                 return;
 
-        new = xmlNewChild(parent, NULL, "User", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "User", NULL);
         if ( ! new )
                 return;
 
@@ -281,7 +281,7 @@ static void process_process(xmlNodePtr parent, idmef_process_t *process)
         if ( ! process )
                 return;
 
-        new = xmlNewChild(parent, NULL, "Process", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Process", NULL);
         if ( ! new )
                 return;
 
@@ -292,11 +292,11 @@ static void process_process(xmlNodePtr parent, idmef_process_t *process)
 
 	string = NULL;
 	while ( (string = idmef_process_get_next_arg(process, string)) )
-		xmlNewChild(new, NULL, "arg", prelude_string_get_string(string));
+		xmlNewTextChild(new, NULL, (const xmlChar *) "arg", (const xmlChar *) prelude_string_get_string(string));
 
 	string = NULL;
 	while ( (string = idmef_process_get_next_env(process, string)) )
-		xmlNewChild(new, NULL, "env", prelude_string_get_string(string));
+		xmlNewTextChild(new, NULL, (const xmlChar *) "env", (const xmlChar *) prelude_string_get_string(string));
 }
 
 
@@ -309,7 +309,7 @@ static void process_snmp_service(xmlNodePtr parent, idmef_snmp_service_t *snmp)
         if ( ! snmp )
                 return;
 
-        new = xmlNewChild(parent, NULL, "SNMPService", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "SNMPService", NULL);
         if ( ! new )
                 return;
 
@@ -332,7 +332,7 @@ static void process_web_service(xmlNodePtr parent, idmef_web_service_t *web)
         if ( ! web )
                 return;
 
-        new = xmlNewChild(parent, NULL, "WebService", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "WebService", NULL);
 
         idmef_content_string(new, "url", idmef_web_service_get_url(web));
         idmef_content_string(new, "cgi", idmef_web_service_get_cgi(web));
@@ -340,7 +340,7 @@ static void process_web_service(xmlNodePtr parent, idmef_web_service_t *web)
 
 	arg = NULL;
 	while ( (arg = idmef_web_service_get_next_arg(web, arg)) )
-		xmlNewChild(new, NULL, "arg", prelude_string_get_string(arg));
+		xmlNewTextChild(new, NULL, (const xmlChar *) "arg", (const xmlChar *) prelude_string_get_string(arg));
 }
 
 
@@ -352,7 +352,7 @@ static void process_service(xmlNodePtr parent, idmef_service_t *service)
         if ( ! service )
                 return;
 
-        new = xmlNewChild(parent, NULL, "Service", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Service", NULL);
         if ( ! new )
                 return;
 
@@ -389,7 +389,7 @@ static void process_source(xmlNodePtr parent, idmef_source_t *source)
         if ( ! source )
                 return;
         
-        new = xmlNewChild(parent, NULL, "Source", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Source", NULL);
         if ( ! new )
                 return;
         
@@ -413,7 +413,7 @@ static void process_file_access(xmlNodePtr parent, idmef_file_access_t *file_acc
         if ( ! file_access )
                 return;
         
-	new = xmlNewChild(parent, NULL, "FileAccess", NULL);
+	new = xmlNewChild(parent, NULL, (const xmlChar *) "FileAccess", NULL);
 	if ( ! new )
 		return;
 
@@ -421,7 +421,7 @@ static void process_file_access(xmlNodePtr parent, idmef_file_access_t *file_acc
 
 	permission = NULL;
 	while ( (permission = idmef_file_access_get_next_permission(file_access, permission)) )
-		xmlNewChild(new, NULL, "permission", prelude_string_get_string(permission));
+		xmlNewTextChild(new, NULL, (const xmlChar *) "permission", (const xmlChar *) prelude_string_get_string(permission));
 }
 
 
@@ -433,7 +433,7 @@ static void process_file_linkage(xmlNodePtr parent, idmef_linkage_t *linkage)
         if ( ! linkage )
                 return;
         
-	new = xmlNewChild(parent, NULL, "Linkage", NULL);
+	new = xmlNewChild(parent, NULL, (const xmlChar *) "Linkage", NULL);
 	if ( ! new )
 		return;
 
@@ -454,7 +454,7 @@ static void process_inode(xmlNodePtr parent, idmef_inode_t *inode)
         if ( ! inode )
                 return;
 
-        new = xmlNewChild(parent, NULL, "Inode", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Inode", NULL);
         if ( ! new )
                 return;
 
@@ -479,7 +479,7 @@ static void process_file(xmlNodePtr parent, idmef_file_t *file)
         if ( ! file )
                 return;
         
-        new = xmlNewChild(parent, NULL, "File", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "File", NULL);
         if ( ! new )
                 return;
 
@@ -516,7 +516,7 @@ static void process_target(xmlNodePtr parent, idmef_target_t *target)
         if ( ! target )
                 return;
         
-        new = xmlNewChild(parent, NULL, "Target", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Target", NULL);
         if ( ! new )
                 return;
 
@@ -540,7 +540,7 @@ static xmlNodePtr process_analyzer(xmlNodePtr parent, idmef_analyzer_t *analyzer
 {
         xmlNodePtr new;
 
-        new = xmlNewChild(parent, NULL, "Analyzer", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Analyzer", NULL);
         if ( ! new )
                 return NULL;
         
@@ -565,7 +565,7 @@ static void process_reference(xmlNodePtr parent, idmef_reference_t *reference)
 {
         xmlNodePtr new;
         
-        new = xmlNewChild(parent, NULL, "Reference", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Reference", NULL);
         if ( ! new )
                 return;
 
@@ -586,7 +586,7 @@ static void process_classification(xmlNodePtr parent, idmef_classification_t *cl
         if ( ! classification )
                 return;
         
-        new = xmlNewChild(parent, NULL, "Classification", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Classification", NULL);
         if ( ! new )
                 return;
 
@@ -622,7 +622,7 @@ static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *
 		return;
         }
         
-        new = xmlNewChild(parent, NULL, "AdditionalData", prelude_string_get_string(out));
+        new = xmlNewTextChild(parent, NULL, (const xmlChar *) "AdditionalData", (const xmlChar *) prelude_string_get_string(out));
         prelude_string_destroy(out);
         if ( ! new )
                 return;
@@ -641,8 +641,8 @@ static void process_impact(xmlNodePtr parent, idmef_impact_t *impact)
         if ( ! impact )
                 return;
 
-        new = xmlNewChild(parent, NULL, "Impact",
-			  prelude_string_get_string(idmef_impact_get_description(impact)));
+        new = xmlNewTextChild(parent, NULL, (const xmlChar *) "Impact",
+			  (const xmlChar *) prelude_string_get_string(idmef_impact_get_description(impact)));
         if ( ! new )
                 return;
 
@@ -665,9 +665,9 @@ static void process_confidence(xmlNodePtr parent, idmef_confidence_t *confidence
 
         if ( idmef_confidence_get_rating(confidence) == IDMEF_CONFIDENCE_RATING_NUMERIC ) {
                 snprintf(buf, sizeof(buf), "%f", idmef_confidence_get_confidence(confidence));
-                new = xmlNewChild(parent, NULL, "Confidence", buf);
+                new = xmlNewChild(parent, NULL, (const xmlChar *) "Confidence", (const xmlChar *) buf);
         } else
-                new = xmlNewChild(parent, NULL, "Confidence", NULL);
+                new = xmlNewChild(parent, NULL, (const xmlChar *) "Confidence", NULL);
 
         if ( ! new )
                 return;
@@ -681,15 +681,17 @@ static void process_confidence(xmlNodePtr parent, idmef_confidence_t *confidence
 static void process_action(xmlNodePtr parent, idmef_action_t *action) 
 {
         xmlNodePtr new;
-
+        prelude_string_t *str;
+        
         if ( ! action )
                 return;
 
-	if ( idmef_action_get_description(action) )
-		new = xmlNewChild(parent, NULL, "Action",
-				  prelude_string_get_string(idmef_action_get_description(action)));
+        str = idmef_action_get_description(action);
+	if ( str )
+		new = xmlNewTextChild(parent, NULL, (const xmlChar *) "Action",
+                                      (const xmlChar *) prelude_string_get_string(str));
 	else
-		new = xmlNewChild(parent, NULL, "Action", NULL);
+		new = xmlNewChild(parent, NULL, (const xmlChar *) "Action", NULL);
 	
         if ( ! new )
                 return;
@@ -708,7 +710,7 @@ static void process_assessment(xmlNodePtr parent, idmef_assessment_t *assessment
         if ( ! assessment )
                 return;
 
-        new = xmlNewChild(parent, NULL, "Assessment", NULL);
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Assessment", NULL);
         if ( ! new )
                 return;
 
@@ -736,7 +738,7 @@ static void process_alert(xmlNodePtr root, idmef_alert_t *alert)
         if ( ! alert )
                 return;
         
-        new = xmlNewChild(root, NULL, "Alert", NULL);
+        new = xmlNewChild(root, NULL, (const xmlChar *) "Alert", NULL);
         if ( ! new )
                 return;
         
@@ -779,7 +781,7 @@ static void process_heartbeat(xmlNodePtr idmefmsg, idmef_heartbeat_t *heartbeat)
         if ( ! heartbeat )
                 return;
         
-        hb = xmlNewChild(idmefmsg, NULL, "Heartbeat", NULL);
+        hb = xmlNewChild(idmefmsg, NULL, (const xmlChar *) "Heartbeat", NULL);
         if ( ! hb )
                 return;
 
@@ -843,13 +845,13 @@ static int xmlmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
         xmlDoc *document;
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
-        document = xmlNewDoc("1.0");
+        document = xmlNewDoc((const xmlChar *) "1.0");
         if ( ! document ) {
                 prelude_log(PRELUDE_LOG_ERR, "error creating XML document.\n");
                 return -1;
         }
         
-        root = xmlNewDocNode(document, NULL, "IDMEF-Message", NULL);
+        root = xmlNewDocNode(document, NULL, (const xmlChar *) "IDMEF-Message", NULL);
         if ( ! root ) {
                 xmlFreeDoc(document);
                 return -1;
@@ -967,7 +969,7 @@ static int set_dtd_check(prelude_option_t *option, const char *arg, prelude_stri
                 return 0;
         }
                 
-        plugin->idmef_dtd = xmlParseDTD(NULL, IDMEF_DTD);
+        plugin->idmef_dtd = xmlParseDTD(NULL, (const xmlChar *) IDMEF_DTD);
         if ( ! plugin->idmef_dtd ) {
                 prelude_string_sprintf(err, "error loading IDMEF DTD '%s'", arg);
                 return -1;
