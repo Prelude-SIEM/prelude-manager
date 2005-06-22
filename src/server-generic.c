@@ -455,7 +455,8 @@ static int handle_connection(server_generic_t *server)
  */
 static int wait_connection(server_generic_t **server, size_t nserver)
 {
-        int i, active_fd;
+        size_t i;
+        int active_fd;
         struct pollfd pfd[nserver];
         
         for ( i = 0; i < nserver; i++ ) {                
@@ -591,8 +592,7 @@ static int unix_server_start(server_generic_t *server)
 /*
  *
  */
-static int inet_server_start(server_generic_t *server,
-                             const char *saddr, struct sockaddr *addr, socklen_t addrlen) 
+static int inet_server_start(server_generic_t *server, struct sockaddr *addr, socklen_t addrlen) 
 {
         int ret, on = 1;
         
@@ -627,7 +627,7 @@ static int inet_server_start(server_generic_t *server,
 
 
 
-static prelude_bool_t is_unix_addr(const char **out, const char *addr, unsigned int port)
+static prelude_bool_t is_unix_addr(const char **out, const char *addr)
 {
         int ret;
         const char *ptr;
@@ -678,7 +678,7 @@ static int resolve_addr(server_generic_t *server, const char *addr, unsigned int
         const char *unixpath = NULL;
         int ret, ai_family, ai_addrlen;
         
-        if ( is_unix_addr(&unixpath, addr, port) ) {
+        if ( is_unix_addr(&unixpath, addr) ) {
                 ai_family = AF_UNIX;
                 ai_addrlen = sizeof(struct sockaddr_un);
         }
@@ -763,7 +763,7 @@ int server_generic_bind(server_generic_t *server, const char *saddr, unsigned in
         if ( server->sa->sa_family == AF_UNIX )
                 ret = unix_server_start(server);
         else 
-                ret = inet_server_start(server, saddr, server->sa, server->slen);
+                ret = inet_server_start(server, server->sa, server->slen);
         
         if ( ret < 0 ) {
                 server_logic_stop(server->logic);

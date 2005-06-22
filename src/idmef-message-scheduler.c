@@ -290,7 +290,7 @@ static void queue_destroy(idmef_queue_t *queue)
 
 
 
-static prelude_msg_t *get_message(idmef_queue_t *queue, message_queue_t *mqueue) 
+static prelude_msg_t *get_message(message_queue_t *mqueue) 
 {
         prelude_msg_t *msg = NULL;
                 
@@ -331,15 +331,15 @@ static prelude_msg_t *get_first_message_in_queue(idmef_queue_t *queue)
 {
         prelude_msg_t *msg;
         
-        msg = get_message(queue, &queue->high);
+        msg = get_message(&queue->high);
         if ( msg )
                 return msg;
 
-        msg = get_message(queue, &queue->mid);
+        msg = get_message(&queue->mid);
         if ( msg )
                 return msg;
 
-        return get_message(queue, &queue->low);
+        return get_message(&queue->low);
 }
 
 
@@ -358,13 +358,13 @@ static void read_message_scheduled(idmef_queue_t *queue)
                 pthread_mutex_lock(&queue->mutex);
                 
                 if ( msg_count < ROUND_ROBBIN_HIGH ) 
-                        msg = get_message(queue, &queue->high);
+                        msg = get_message(&queue->high);
                 
                 else if ( msg_count < (ROUND_ROBBIN_HIGH + ROUND_ROBBIN_MID) )
-                        msg = get_message(queue, &queue->mid);
+                        msg = get_message(&queue->mid);
                 
                 else 
-                        msg = get_message(queue, &queue->low);
+                        msg = get_message(&queue->low);
                 
                 if ( ! msg && !(msg = get_first_message_in_queue(queue)) ) {
                         pthread_mutex_unlock(&queue->mutex);
@@ -807,7 +807,7 @@ void idmef_message_process(idmef_message_t *idmef)
         report_plugins_run(idmef);
         
         relay_filter_available = filter_plugins_available(MANAGER_FILTER_CATEGORY_REVERSE_RELAYING);
-        if ( relay_filter_available >= 0 )
+        if ( relay_filter_available )
                 ret = filter_plugins_run_by_category(idmef, MANAGER_FILTER_CATEGORY_REVERSE_RELAYING);
 
         pthread_mutex_unlock(&process_mutex);
