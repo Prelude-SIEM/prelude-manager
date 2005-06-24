@@ -512,14 +512,41 @@ int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
 
         prelude_client_profile_get_tls_key_filename(cp, keyfile, sizeof(keyfile));
         prelude_client_profile_get_tls_server_keycert_filename(cp, certfile, sizeof(certfile));
-
-        gnutls_certificate_set_x509_key_file(cred, certfile, keyfile, GNUTLS_X509_FMT_PEM);
+	
+	ret = access(certfile, R_OK);
+	if ( ret < 0 ) {
+		prelude_log(PRELUDE_LOG_ERR, "could not open %s for reading.\n", certfile);
+		return prelude_error_from_errno(errno);
+	}
+	
+	ret = access(keyfile, R_OK);
+	if ( ret < 0 ) {
+		prelude_log(PRELUDE_LOG_ERR, "could not open %s for reading.\n", keyfile);
+		return prelude_error_from_errno(errno);
+	}
+	
+        ret = gnutls_certificate_set_x509_key_file(cred, certfile, keyfile, GNUTLS_X509_FMT_PEM);
+	if ( ret < 0 ) {
+		prelude_log(PRELUDE_LOG_ERR, "%s: %s\n", keyfile, gnutls_strerror(ret));
+		return -1;
+	}
 
         prelude_client_profile_get_tls_server_ca_cert_filename(cp, certfile, sizeof(certfile));
-        gnutls_certificate_set_x509_trust_file(cred, certfile, GNUTLS_X509_FMT_PEM);
-        
-        gnutls_dh_params_init(&cur_dh_params);
 
+	ret = gnutls_certificate_set_x509_trust_file(cred, certfile, GNUTLS_X509_FMT_PEM);
+	if ( ret < 0 ) {
+		prelude_log(PRELUDE_LOG_ERR, "%s: %s\n", certfile, gnutls_strerror(ret));
+		return -1;
+	}
+
+        gnutls_dh_params_init(&cur_dh_params);
+	
+	ret = access(MANAGER_RUN_DIR, R_OK|W_OK);
+	if ( ret < 0 ) {
+		prelude_log(PRELUDE_LOG_ERR, "could not open %s for reading/writing.\n", MANAGER_RUN_DIR);
+		return prelude_error_from_errno(errno);
+	}	
+	
         ret = dh_check_elapsed();
                 
         if ( ret != -1 && dh_params_load(cur_dh_params, dh_bits) == 0 )
