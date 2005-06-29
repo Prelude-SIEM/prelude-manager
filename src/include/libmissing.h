@@ -36,6 +36,10 @@
 #include "inet_ntop.h"
 #include "minmax.h"
 #include "snprintf.h"
+#include "strcase.h"
+#include "strdup.h"
+#include "strftime.h"
+#include "time_r.h"
 #include "vasnprintf.h"
 #include "vsnprintf.h"
 #include "xsize.h"
@@ -43,5 +47,7 @@
 #include <poll.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/time.h>
+#include <time.h>
 
 #endif /* _PRELUDE_MANAGER_LIBMISSING_H */
