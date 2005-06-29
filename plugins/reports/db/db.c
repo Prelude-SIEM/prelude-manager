@@ -22,6 +22,8 @@
 *
 *****/
 
+#include "libmissing.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -40,7 +42,6 @@
 #include <libpreludedb/preludedb-path-selection.h>
 #include <libpreludedb/preludedb.h>
 
-#include "libmissing.h"
 #include "prelude-manager.h"
 
 

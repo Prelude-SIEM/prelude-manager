@@ -22,13 +22,13 @@
 *****/
 
 #include "config.h"
+#include "libmissing.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 
-#include "libmissing.h"
 #include "prelude-manager.h"
 
 
@@ -92,9 +92,10 @@ static void print_string(textmod_plugin_t *plugin, int depth, const char *format
 
 static void process_time(textmod_plugin_t *plugin, const char *type, idmef_time_t *time) 
 {
+        int ret;
 	time_t t;
 	struct tm tm;
-	int ret, len = 0;
+        size_t len = 0;
         char time_human[64];
         prelude_string_t *ntpstamp;
         
@@ -103,28 +104,24 @@ static void process_time(textmod_plugin_t *plugin, const char *type, idmef_time_
         
 	t = idmef_time_get_sec(time);
 
-	if ( ! localtime_r( (const time_t *) &t, &tm) ) {
+	if ( ! localtime_r(&t, &tm) ) {
                 prelude_log(PRELUDE_LOG_ERR, "error converting timestamp to local time.\n");
                 return;
         }
 
-        len += ret = strftime(time_human, sizeof (time_human), "%Y-%m-%d %H:%M:%S", &tm);
-        if ( ret == 0 ) {
+        len = strftime(time_human, sizeof(time_human), "%Y-%m-%d %H:%M:%S", &tm);
+        if ( len == 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "error converting UTC time to string.\n");
                 return;
         }
-
-        len += ret = snprintf(time_human + len, sizeof (time_human) - len,
-			      ".%03u", idmef_time_get_usec(time) / 1000);
-        if ( ret < 0 || len >= sizeof (time_human) )
-                return;
-
-        len += ret = strftime(time_human + len, sizeof (time_human) - len, "%z", &tm);
-        if ( ret == 0 ) {
+        
+        len += ret = snprintf(time_human + len, sizeof(time_human) - len, ".%u%+.2d:%.2d",
+                              idmef_time_get_usec(time), idmef_time_get_gmt_offset(time) / 3600,
+                              idmef_time_get_gmt_offset(time) % 3600 / 60);
+        if ( ret < 0 || len >= sizeof(time_human) ) {
                 prelude_log(PRELUDE_LOG_ERR, "error converting UTC time to string.\n");
                 return;
         }
-
         
         ret = prelude_string_new(&ntpstamp);
         if ( ret < 0 ) {
