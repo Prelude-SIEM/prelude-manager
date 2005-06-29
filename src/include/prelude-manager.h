@@ -59,7 +59,7 @@ typedef enum {
         MANAGER_FILTER_CATEGORY_REPORTING         = 0,
         MANAGER_FILTER_CATEGORY_REVERSE_RELAYING  = 1,
         MANAGER_FILTER_CATEGORY_PLUGIN            = 2,
-        MANAGER_FILTER_CATEGORY_END               = 3, /* should be the latest, do not remove */
+        MANAGER_FILTER_CATEGORY_END               = 3  /* should be the latest, do not remove */
 } manager_filter_category_t;
 
 
