@@ -21,6 +21,9 @@
 *
 *****/
 
+#include "config.h"
+#include "libmissing.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,7 +41,6 @@
 #include <libprelude/prelude-timer.h>
 #include <libprelude/prelude-failover.h>
 
-#include "libmissing.h"
 #include "prelude-manager.h"
 #include "report-plugins.h"
 #include "filter-plugins.h"

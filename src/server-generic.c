@@ -21,6 +21,9 @@
 *
 *****/
 
+#include "config.h"
+#include "libmissing.h"
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -49,8 +52,6 @@
 
 #include <gnutls/gnutls.h>
 
-#include "config.h"
-#include "libmissing.h"
 #include "manager-auth.h"
 #include "server-logic.h"
 #include "server-generic.h"
