@@ -1,3 +1,4 @@
+ACLOCAL_AMFLAGS = -I m4 -I libmissing/m4
 SUBDIRS = libmissing plugins src
 
 EXTRA_DIST = prelude-manager.conf config.h 				\
