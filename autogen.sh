@@ -1,6 +1,3 @@
-aclocal -I m4 -I libmissing/m4
-autoconf
-autoheader
-libtoolize -c --force
-automake --gnu -a -c
-#./configure
+autoreconf --install --force
+echo
+echo "You can now run \"./configure --enable-developer-mode\" and \"make\""
