@@ -1,27 +1,27 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(src)
-AC_PREREQ(2.53)
-AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(prelude-manager, 0.9.0-rc5)
+AC_INIT
+AC_PREREQ(2.50)
+AC_CANONICAL_TARGET([])
+AM_INIT_AUTOMAKE(prelude-manager, 0.9.0-rc6)
 AM_CONFIG_HEADER(config.h)
 AM_DISABLE_STATIC
 
 AM_MAINTAINER_MODE
 
-AC_LIBTOOL_DLOPEN
-AM_PROG_LIBTOOL
-
 dnl Checks for programs.
-AC_PROG_CC
 AC_PROG_CPP
+AC_PROG_CC
 gl_EARLY
+
 
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_C_INLINE
 AC_C_BIGENDIAN
 AC_SYS_LARGEFILE
+AC_LIBTOOL_DLOPEN
+AM_PROG_LIBTOOL
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
@@ -287,7 +287,7 @@ fi
 AC_SUBST(CFLAGS)
 
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
 
 Makefile 
 
@@ -312,6 +312,7 @@ plugins/reports/textmod/Makefile
 plugins/reports/xmlmod/Makefile
 
 ])
+AC_OUTPUT
 
 echo
 echo "*** Dumping configuration ***"

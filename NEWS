@@ -1,3 +1,19 @@
+* 2005-07-01, prelude-manager-0.9.0-rc6:
+
+	- Correct textmod printing of microseconds.
+
+	- Check permission on startup and refuse to start if there
+	  is a problem. Should prevent some users mistake.
+
+	- Fix problem with Xmlmod handling of text data (was creating
+	  problem in case they contained the & character).
+
+	- More detailed error messages.
+
+	- GCC4 warnings fixes & 64bits platform warnings fixes. 
+	  More C89 compliance.
+
+
 * 2005-05-26, prelude-manager-0.9.0-rc5:
 
 	- Fix leak on local configuration message.
