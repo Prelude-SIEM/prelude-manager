@@ -21,6 +21,8 @@
 *
 *****/
 
+#include "libmissing.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/poll.h>
@@ -35,7 +37,6 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
 
-#include "libmissing.h"
 #include "server-logic.h"
 
 
