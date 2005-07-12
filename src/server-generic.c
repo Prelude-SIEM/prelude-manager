@@ -334,6 +334,12 @@ static int setup_client_socket(server_generic_t *server,
                 prelude_log(PRELUDE_LOG_ERR, "couldn't set non blocking mode for client.\n");
                 return -1;
         }
+        
+        ret = fcntl(client, F_SETFD, FD_CLOEXEC);
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "could not set close-on-exec flag.\n");
+                return -1;
+        }
 
         ret = prelude_io_new(&cdata->fd);
         if ( ret < 0 ) 
@@ -352,8 +358,8 @@ static int setup_client_socket(server_generic_t *server,
 
 static int accept_connection(server_generic_t *server, server_generic_client_t *cdata) 
 {
+        int sock;
         socklen_t addrlen;
-        int sock, ret, flags = FD_CLOEXEC;
         
 #ifndef HAVE_IPV6
         struct sockaddr_in addr;
@@ -368,14 +374,7 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
                 prelude_log(PRELUDE_LOG_ERR, "accept error: %s.\n", strerror(errno));
                 return -1;
         }
-        
-        ret = fcntl(sock, F_SETFD, &flags);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not set close-on-exec flag.\n");
-                close(sock);
-                return -1;
-        }
-        
+                
         if ( server->sa->sa_family == AF_UNIX )
                 cdata->addr = strdup(((struct sockaddr_un *) server->sa)->sun_path);
         else {
