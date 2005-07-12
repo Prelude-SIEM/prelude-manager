@@ -353,7 +353,7 @@ static int setup_client_socket(server_generic_t *server,
 static int accept_connection(server_generic_t *server, server_generic_client_t *cdata) 
 {
         socklen_t addrlen;
-        int sock, ret, on = 1;
+        int sock, ret, flags = FD_CLOEXEC;
         
 #ifndef HAVE_IPV6
         struct sockaddr_in addr;
@@ -365,11 +365,11 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
         
         sock = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
         if ( sock < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "accept returned an error.\n");
+                prelude_log(PRELUDE_LOG_ERR, "accept error: %s.\n", strerror(errno));
                 return -1;
         }
-
-        ret = fcntl(sock, F_SETFD, &on);
+        
+        ret = fcntl(sock, F_SETFD, &flags);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "could not set close-on-exec flag.\n");
                 close(sock);
