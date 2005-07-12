@@ -331,13 +331,13 @@ static int setup_client_socket(server_generic_t *server,
          */
         ret = fcntl(client, F_SETFL, O_NONBLOCK);
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't set non blocking mode for client.\n");
+                prelude_log(PRELUDE_LOG_ERR, "could not set non blocking mode for client: %s.\n", strerror(errno));
                 return -1;
         }
         
         ret = fcntl(client, F_SETFD, FD_CLOEXEC);
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not set close-on-exec flag.\n");
+                prelude_log(PRELUDE_LOG_ERR, "could not set close-on-exec flag: %s.\n", strerror(errno));
                 return -1;
         }
 
