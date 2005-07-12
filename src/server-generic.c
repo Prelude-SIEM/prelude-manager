@@ -352,9 +352,9 @@ static int setup_client_socket(server_generic_t *server,
 
 static int accept_connection(server_generic_t *server, server_generic_client_t *cdata) 
 {
-        int sock;
         socklen_t addrlen;
-
+        int sock, ret, on = 1;
+        
 #ifndef HAVE_IPV6
         struct sockaddr_in addr;
 #else
@@ -369,6 +369,13 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
                 return -1;
         }
 
+        ret = fcntl(sock, F_SETFD, &on);
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "could not set close-on-exec flag.\n");
+                close(sock);
+                return -1;
+        }
+        
         if ( server->sa->sa_family == AF_UNIX )
                 cdata->addr = strdup(((struct sockaddr_un *) server->sa)->sun_path);
         else {
