@@ -62,27 +62,30 @@ typedef struct {
         prelude_bool_t we_connected;
         prelude_list_t write_msg_list;
         reverse_relay_receiver_t *rrr;
+
+        uint32_t instance_id;
 } sensor_fd_t;
 
 
 
 extern prelude_client_t *manager_client;
 
+static uint32_t instance_id = 0;
 static PRELUDE_LIST(sensors_cnx_list);
 static pthread_mutex_t sensors_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 
 
-static sensor_fd_t *search_client(prelude_list_t *head, uint64_t analyzerid) 
+static sensor_fd_t *search_client(prelude_list_t *head, uint64_t analyzerid, uint32_t instance_id) 
 {
         sensor_fd_t *client;
         prelude_list_t *tmp;
 
         prelude_list_for_each(head, tmp) {
                 client = prelude_list_entry(tmp, sensor_fd_t, list);
-
-                if ( client->ident == analyzerid )
+                
+                if ( client->ident == analyzerid && (! instance_id || instance_id == client->instance_id) )
                         return client;
         }
 
@@ -111,14 +114,17 @@ static int write_client(sensor_fd_t *dst, prelude_msg_t *msg)
 
         
 
-static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzerid, prelude_msg_t *msg) 
+static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzerid, uint32_t instance_no, prelude_msg_t *msg)
 {
         int ret = 0;
+        uint8_t tag;
         sensor_fd_t *target;
         
         pthread_mutex_lock(&sensors_list_mutex);
 
-        target = search_client(&sensors_cnx_list, analyzerid);
+        tag = prelude_msg_get_tag(msg);
+        
+        target = search_client(&sensors_cnx_list, analyzerid, (tag == PRELUDE_MSG_OPTION_REPLY) ? instance_no : 0);
         if ( ! target ) {
                 pthread_mutex_unlock(&sensors_list_mutex);
                 return -1;
@@ -153,8 +159,9 @@ static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzeri
 
 
 
+
 static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
-                                uint64_t **target_ptr, uint32_t *hop_ptr, int direction)
+                                uint64_t **target_ptr, uint32_t *hop_ptr, uint32_t **instance_ptr, int direction)
 {
         int ret;
         void *buf;
@@ -164,9 +171,17 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
         uint32_t hop, tmp, target_len = 0;
 
         *target_ptr = NULL;
+        *instance_ptr = NULL;
         
         while ( prelude_msg_get(msg, &tag, &len, &buf) == 0 ) {
 
+                if ( tag == PRELUDE_MSG_OPTION_TARGET_INSTANCE_ID ) {
+                        if ( len != sizeof(uint32_t) )
+                                return -1;
+                        
+                        *instance_ptr = buf;
+                }
+                
                 if ( tag == PRELUDE_MSG_OPTION_TARGET_ID ) {
                                                 
                         if ( *target_ptr || (len % sizeof(uint64_t)) != 0 || len < 2 * sizeof(uint64_t) )
@@ -179,7 +194,7 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
                 if ( tag != PRELUDE_MSG_OPTION_HOP )
                         continue;
 
-                if ( ! *target_ptr )
+                if ( ! *target_ptr || ! *instance_ptr )
                         break;
                         
                 ret = prelude_extract_uint32_safe(&hop, buf, len);
@@ -300,13 +315,13 @@ static int request_sensor_option(server_generic_client_t *client, prelude_msg_t 
 {
         int ret;
         uint64_t ident;
-        uint32_t target_hop;
         uint64_t *target_route;
+        uint32_t target_hop, *instance_id;
         sensor_fd_t *sclient = (sensor_fd_t *) client;
         prelude_client_profile_t *cp = prelude_client_get_profile(manager_client);
         
         ret = get_msg_target_ident(sclient, msg, &target_route,
-                                   &target_hop, PRELUDE_MSG_OPTION_REQUEST);
+                                   &target_hop, &instance_id, PRELUDE_MSG_OPTION_REQUEST);
         if ( ret < 0 ) 
                 return -1;
         
@@ -331,8 +346,10 @@ static int request_sensor_option(server_generic_client_t *client, prelude_msg_t 
                 prelude_msg_destroy(msg);
                 return ret;
         }
+
+        *instance_id = htonl(sclient->instance_id);
         
-        ret = forward_message_to_analyzerid(sclient, ident, msg);
+        ret = forward_message_to_analyzerid(sclient, ident, 0, msg);
         if ( ret == -1 ) {
                 send_unreachable_message(client, target_route, target_hop, TARGET_UNREACHABLE, sizeof(TARGET_UNREACHABLE));
                 prelude_msg_destroy(msg);
@@ -351,10 +368,10 @@ static int request_sensor_option(server_generic_client_t *client, prelude_msg_t 
 static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg) 
 {
         int ret;
-        uint32_t target_hop;
         uint64_t *target_route, ident;
+        uint32_t target_hop, *instance_no;
         
-        ret = get_msg_target_ident(client, msg, &target_route, &target_hop, PRELUDE_MSG_OPTION_REPLY);
+        ret = get_msg_target_ident(client, msg, &target_route, &target_hop, &instance_no, PRELUDE_MSG_OPTION_REPLY);
         if ( ret < 0 )
                 return -1;
         
@@ -363,7 +380,7 @@ static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         /*
          * The one replying the option doesn't care about client presence or not.
          */
-        ret = forward_message_to_analyzerid(client, ident, msg);
+        ret = forward_message_to_analyzerid(client, ident, ntohl(*instance_no), msg);
         if ( ret < 0 )
                 prelude_msg_destroy(msg);
         
@@ -408,7 +425,10 @@ static int handle_declare_client(sensor_fd_t *cnx)
                 return -1;
         
         pthread_mutex_lock(&sensors_list_mutex);
+        
+        cnx->instance_id = (instance_id == 0) ? ++instance_id : instance_id++;
         prelude_list_add_tail(&sensors_cnx_list, &cnx->list);
+
         pthread_mutex_unlock(&sensors_list_mutex);
         
         return 0;
@@ -614,8 +634,7 @@ static int accept_connection_cb(server_generic_client_t *ptr)
         int ret;
         sensor_fd_t *fd = (sensor_fd_t *) ptr;
         
-        fd->we_connected = FALSE;
-        
+        fd->we_connected = FALSE;        
         prelude_list_init(&fd->list);
         prelude_list_init(&fd->write_msg_list);
                 
