@@ -524,15 +524,27 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
 static int is_unix_socket_already_used(int sock, struct sockaddr_un *sa, int addrlen) 
 {
         int ret;
-        
-        ret = access(sa->sun_path, F_OK);
+        struct stat st;
+
+        /*
+         * Minor check for operating system where bind() will incorrectly follow symlink.
+         * Note that there is a race condition between the stat() and the bind call.
+         */
+        ret = stat(sa->sun_path, &st);
         if ( ret < 0 )
-                return 0;
+                return FALSE;
+
+        if ( ! S_ISSOCK(st.st_mode) ) {
+                prelude_log(PRELUDE_LOG_WARN, "%s already exist and is not an UNIX socket: please check.\n",
+                            sa->sun_path);
+                return -1;
+        }
         
         ret = connect(sock, (struct sockaddr *) sa, addrlen);
         if ( ret == 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "Prelude Manager UNIX socket is already used. Exiting.\n");
-                return 1;
+                prelude_log(PRELUDE_LOG_WARN, "%s UNIX socket is already in use. Exiting.\n",
+                            sa->sun_path);
+                return TRUE;
         }
         
         /*
