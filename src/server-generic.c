@@ -334,19 +334,9 @@ static int setup_client_socket(server_generic_t *server,
                 prelude_log(PRELUDE_LOG_ERR, "could not set non blocking mode for client: %s.\n", strerror(errno));
                 return -1;
         }
-
-        ret = fcntl(client, F_GETFD);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not get socket flag: %s.\n", strerror(errno));
-                return -1;
-        }
         
-        ret = fcntl(client, F_SETFD, ret | FD_CLOEXEC);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not set close-on-exec flag: %s.\n", strerror(errno));
-                return -1;
-        }
-
+        fcntl(client, F_SETFD, fcntl(client, F_GETFD) | FD_CLOEXEC);
+        
         ret = prelude_io_new(&cdata->fd);
         if ( ret < 0 ) 
                 return -1;
@@ -784,18 +774,8 @@ int server_generic_bind(server_generic_t *server, const char *saddr, unsigned in
                 free(server);
                 return -1;
         }
-
-        ret = fcntl(server->sock, F_GETFD);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not get socket flags: %s.\n", strerror(errno));
-                return -1;
-        }
-        
-        ret = fcntl(server->sock, F_SETFD, ret | FD_CLOEXEC);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not set close-on-exec flags: %s.\n", strerror(errno));
-                return -1;
-        }
+                
+        fcntl(server->sock, F_SETFD, fcntl(server->sock, F_GETFD) | FD_CLOEXEC);
         
         if ( server->sa->sa_family == AF_UNIX )
                 prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s).\n",
