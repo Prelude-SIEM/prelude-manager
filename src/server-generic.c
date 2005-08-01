@@ -334,8 +334,14 @@ static int setup_client_socket(server_generic_t *server,
                 prelude_log(PRELUDE_LOG_ERR, "could not set non blocking mode for client: %s.\n", strerror(errno));
                 return -1;
         }
+
+        ret = fcntl(client, F_GETFD);
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "could not get socket flag: %s.\n", strerror(errno));
+                return -1;
+        }
         
-        ret = fcntl(client, F_SETFD, FD_CLOEXEC);
+        ret = fcntl(client, F_SETFD, ret | FD_CLOEXEC);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "could not set close-on-exec flag: %s.\n", strerror(errno));
                 return -1;
@@ -567,7 +573,7 @@ static int unix_server_start(server_generic_t *server)
                 prelude_log(PRELUDE_LOG_ERR, "error creating UNIX socket: %s.\n", strerror(errno));
 		return -1;
 	}
-        
+
         ret = is_unix_socket_already_used(server->sock, sa, server->slen);
         if ( ret == 1 || ret < 0  ) {
                 close(server->sock);
@@ -666,7 +672,7 @@ static int do_getaddrinfo(struct addrinfo **ai, const char *addr, unsigned int p
         hints.ai_family = PF_UNSPEC;
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
-
+                
         ret = getaddrinfo(addr, service, &hints, ai);
         if ( ret != 0 ) {
                 prelude_log(PRELUDE_LOG_WARN, "could not resolve %s: %s.\n",
@@ -779,6 +785,18 @@ int server_generic_bind(server_generic_t *server, const char *saddr, unsigned in
                 return -1;
         }
 
+        ret = fcntl(server->sock, F_GETFD);
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "could not get socket flags: %s.\n", strerror(errno));
+                return -1;
+        }
+        
+        ret = fcntl(server->sock, F_SETFD, ret | FD_CLOEXEC);
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "could not set close-on-exec flags: %s.\n", strerror(errno));
+                return -1;
+        }
+        
         if ( server->sa->sa_family == AF_UNIX )
                 prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s).\n",
                             ((struct sockaddr_un *) server->sa)->sun_path);
