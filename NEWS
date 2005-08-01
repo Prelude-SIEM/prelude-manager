@@ -1,3 +1,12 @@
+* 2005-08-01, prelude-manager-0.9.0-rc7:
+
+	- Allocate an unique instance ID per connecting analyzer. Allow 
+	  to make the difference between two parallel connection from the
+	  same analyzer.
+
+	- FD_CLOEXEC on opened fd: Fix file descriptor leak on SIGHUP.
+
+
 * 2005-07-01, prelude-manager-0.9.0-rc6:
 
 	- Correct textmod printing of microseconds.
