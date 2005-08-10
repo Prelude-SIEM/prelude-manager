@@ -264,7 +264,7 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *roo
         if ( ret < 0 )
                 return ret;
         
-        prelude_plugin_set_name(&filter_plugin, "Filter");
+        prelude_plugin_set_name(&filter_plugin, "IDMEF-Criteria");
         prelude_plugin_set_destroy_func(&filter_plugin, filter_destroy);
         manager_filter_plugin_set_running_func(&filter_plugin, process_message);
 
