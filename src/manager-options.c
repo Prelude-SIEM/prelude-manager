@@ -164,7 +164,7 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         
         /* Default */
         config.addr = NULL;
-        config.port = 5554;
+        config.port = 4690;
         config.pidfile = NULL;
         config.dh_regenerate = 24 * 60 * 60;
         config.config_file = PRELUDE_MANAGER_CONF;
