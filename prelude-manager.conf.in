@@ -23,6 +23,13 @@ include = @LIBPRELUDE_CONFIG_PREFIX@/default/global.conf
 listen = 127.0.0.1
 
 
+# Sets the user/group ID as which prelude-manager will run.
+# In order to use this option, prelude-manager must be run initially as root
+#
+# user = prelude
+# group = prelude
+
+
 # Number of bits of the prime used in the Diffie Hellman key exchange. 
 # Note that the bits value should be one of 768, 1024, 2048, 3072 or 4096. 
 # The default is 1024.

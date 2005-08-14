@@ -28,6 +28,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include <libprelude/prelude.h>
 #include <libprelude/daemonize.h>
@@ -147,6 +150,69 @@ static int set_dh_regenerate(prelude_option_t *opt, const char *arg, prelude_str
 
 
 
+static int set_user(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
+{
+        int ret;
+        uid_t uid;
+        const char *p;
+        struct passwd *pw;
+
+        for ( p = optarg; isdigit(*p); p++ );
+        
+        if ( *p == 0 )
+                uid = atoi(optarg);
+        else {
+                pw = getpwnam(optarg);
+                if ( ! pw ) {
+                        prelude_log(PRELUDE_LOG_ERR, "could not lookup user '%s'.\n", optarg);
+                        return -1;
+                }
+
+                uid = pw->pw_uid;
+        }
+
+        ret = setuid(uid);
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "change to UID %d failed: %s.\n", (int) uid, strerror(errno));
+                return ret;
+        }
+        
+        return 0;
+}
+
+
+static int set_group(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
+{
+        int ret;
+        uid_t gid;
+        const char *p;
+        struct group *grp;
+        
+        for ( p = optarg; isdigit(*p); p++ );
+
+        if ( *p == 0 )
+                gid = atoi(optarg);
+        else {
+                grp = getgrnam(optarg);
+                if ( ! grp ) {
+                        prelude_log(PRELUDE_LOG_ERR, "could not lookup group '%s'.\n", optarg);
+                        return -1;
+                }
+
+                gid = grp->gr_gid;
+        }
+        
+        ret = setgid(gid);
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "change to GID %d failed: %s.\n", (int) gid, strerror(errno));
+                return ret;
+        }
+        
+        return 0;
+}
+
+
+
 static int print_help(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
         prelude_option_print(NULL, PRELUDE_OPTION_TYPE_CLI, 25, stderr);
@@ -179,7 +245,7 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
                            "Configuration file to use", PRELUDE_OPTION_ARGUMENT_REQUIRED,
                            set_conf_file, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
-        
+
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 'v', "version",
                            "Print version number", PRELUDE_OPTION_ARGUMENT_NONE, print_version, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
@@ -200,8 +266,14 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
          * we want this option to be processed before -d.
          */
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
-        
 
+        
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "user",
+                           "Set the user ID used by prelude-manager", PRELUDE_OPTION_ARGUMENT_REQUIRED, set_user, NULL);
+
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "group",
+                           "Set the group ID used by prelude-manager", PRELUDE_OPTION_ARGUMENT_REQUIRED, set_group, NULL);
+        
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-parameters-regenerate",
                            "How often to regenerate the Diffie Hellman parameters (in hours)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_dh_regenerate, NULL);
