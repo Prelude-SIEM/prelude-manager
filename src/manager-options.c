@@ -249,14 +249,14 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 'v', "version",
                            "Print version number", PRELUDE_OPTION_ARGUMENT_NONE, print_version, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
+
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 'D', "debug-level",
+                           "Run in debug mode", PRELUDE_OPTION_ARGUMENT_OPTIONAL, set_debug_mode, NULL);
+        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
         
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'd',
                            "daemon", "Run in daemon mode", PRELUDE_OPTION_ARGUMENT_NONE, set_daemon_mode, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
-        
-        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 'D', "debug-level",
-                           "Run in debug mode", PRELUDE_OPTION_ARGUMENT_OPTIONAL, set_debug_mode, NULL);
-        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
         
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'P',
                            "pidfile", "Write Prelude PID to pidfile", PRELUDE_OPTION_ARGUMENT_REQUIRED,
@@ -270,9 +270,10 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "user",
                            "Set the user ID used by prelude-manager", PRELUDE_OPTION_ARGUMENT_REQUIRED, set_user, NULL);
-
-        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "group",
+        
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CFG, 0, "group",
                            "Set the group ID used by prelude-manager", PRELUDE_OPTION_ARGUMENT_REQUIRED, set_group, NULL);
+        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
         
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-parameters-regenerate",
                            "How often to regenerate the Diffie Hellman parameters (in hours)",
