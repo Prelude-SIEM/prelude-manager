@@ -67,7 +67,12 @@ static volatile sig_atomic_t got_sighup = 0;
  * all function called here should be signal safe.
  */
 static void handle_signal(int sig) 
-{        
+{
+        /*
+         * re-establish signal handler.
+         */
+        signal(sig, handle_signal);
+        
         prelude_log(PRELUDE_LOG_INFO, "Caught signal %d.\n", sig);
 
         /*
@@ -80,7 +85,16 @@ static void handle_signal(int sig)
 
 static void handle_sighup(int signo)
 {
-        handle_signal(signo);
+        /*
+         * re-establish signal handler.
+         */
+        signal(signo, handle_sighup);
+
+        /*
+         * stop the sensor server.
+         */
+        sensor_server_stop(sensor_server);
+        
         got_sighup = 1;
 }
 
