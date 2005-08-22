@@ -564,13 +564,13 @@ static int init_file_output(const char *filename, file_output_t *out)
         
         wfd = open(filename, O_WRONLY|O_APPEND|O_CREAT, S_IRUSR|S_IWUSR);
         if ( wfd < 0 ) {
-                prelude_perror(wfd, "couldn't open %s in append mode", filename);
+                prelude_log(PRELUDE_LOG_ERR, "couldn't open %s in append mode: %s.\n", filename, strerror(errno));
                 return -1;
         }
         
         rfd = open(filename, O_RDONLY);
         if ( rfd < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't open %s for reading.\n", filename);
+                prelude_log(PRELUDE_LOG_ERR, "couldn't open %s for reading: %s.\n", filename, strerror(errno));
                 close(wfd);
                 return -1;
         }
