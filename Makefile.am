@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I m4 -I libmissing/m4
 SUBDIRS = libmissing plugins src
 
 EXTRA_DIST = prelude-manager.conf config.h 				\
-             AUTHORS COPYING INSTALL NEWS README ChangeLog
+             AUTHORS COPYING HACKING.README INSTALL NEWS README 
 
 install-data-local:
 	$(INSTALL) -d -m 700 $(DESTDIR)$(configdir);
