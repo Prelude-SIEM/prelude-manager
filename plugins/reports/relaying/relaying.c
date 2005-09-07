@@ -107,7 +107,8 @@ static int relaying_set_manager(prelude_option_t *opt, const char *optarg, prelu
                 if ( ! plugin->conn_pool )
                         return ret;
 
-                prelude_connection_pool_set_flags(plugin->conn_pool, PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
+                prelude_connection_pool_set_flags(plugin->conn_pool, prelude_connection_pool_get_flags(plugin->conn_pool)
+                                                  | PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
                 prelude_client_set_flags(manager_client, prelude_client_get_flags(manager_client) | PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
         }
                 
