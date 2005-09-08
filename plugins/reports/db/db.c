@@ -57,7 +57,7 @@ int db_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt);
 
 typedef struct {
         char *type;
-	char *log;
+        char *log;
         char *host;
         char *port;
         char *name;
@@ -81,14 +81,14 @@ PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, pass)
 static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 {
         db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
-	char errbuf[PRELUDEDB_ERRBUF_SIZE];
+        char errbuf[PRELUDEDB_ERRBUF_SIZE];
         int ret;
 
         ret = preludedb_insert_message(plugin->db, message);
-	if ( ret < 0 )
-		prelude_log(PRELUDE_LOG_WARN,
-			    "could not insert message into database: %s.\n",
-			    preludedb_get_error(plugin->db, ret, errbuf, sizeof(errbuf)));
+        if ( ret < 0 )
+                prelude_log(PRELUDE_LOG_WARN,
+                            "could not insert message into database: %s.\n",
+                            preludedb_get_error(plugin->db, ret, errbuf, sizeof(errbuf)));
 
         return ret;
 }
@@ -102,7 +102,7 @@ static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
         if ( plugin->type )
                 free(plugin->type);
 
-	if ( plugin->host )
+        if ( plugin->host )
                 free(plugin->host);
 
         if ( plugin->name )
@@ -120,8 +120,8 @@ static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
         if ( plugin->log )
                 free(plugin->log);
         
-	preludedb_destroy(plugin->db);
-	free(plugin);
+        preludedb_destroy(plugin->db);
+        free(plugin);
 }
 
 
@@ -131,28 +131,28 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         int ret;
         preludedb_t *db;
         preludedb_sql_t *sql;
-	preludedb_sql_settings_t *settings;
-	char errbuf[PRELUDEDB_ERRBUF_SIZE];
+        preludedb_sql_settings_t *settings;
+        char errbuf[PRELUDEDB_ERRBUF_SIZE];
         db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
-	ret = preludedb_sql_settings_new(&settings);        
-	if ( ret < 0 )
-		return ret;
+        ret = preludedb_sql_settings_new(&settings);        
+        if ( ret < 0 )
+                return ret;
 
-	if ( plugin->host )
-		preludedb_sql_settings_set_host(settings, plugin->host);
+        if ( plugin->host )
+                preludedb_sql_settings_set_host(settings, plugin->host);
 
-	if ( plugin->port )
-		preludedb_sql_settings_set_port(settings, plugin->port);
+        if ( plugin->port )
+                preludedb_sql_settings_set_port(settings, plugin->port);
 
-	if ( plugin->user )
-		preludedb_sql_settings_set_user(settings, plugin->user);
+        if ( plugin->user )
+                preludedb_sql_settings_set_user(settings, plugin->user);
 
-	if ( plugin->pass )
-		preludedb_sql_settings_set_pass(settings, plugin->pass);
+        if ( plugin->pass )
+                preludedb_sql_settings_set_pass(settings, plugin->pass);
 
-	if ( plugin->name )
-		preludedb_sql_settings_set_name(settings, plugin->name);
+        if ( plugin->name )
+                preludedb_sql_settings_set_name(settings, plugin->name);
 
         ret = preludedb_sql_new(&sql, plugin->type, settings);
         if ( ret < 0 ) {
