@@ -21,6 +21,9 @@
 *
 *****/
 
+#include "config.h"
+#include "libmissing.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -44,7 +47,6 @@
 #include "idmef-message-scheduler.h"
 #include "reverse-relaying.h"
 #include "manager-auth.h"
-#include "config.h"
 
 
 #define MANAGER_MODEL "Prelude Manager"

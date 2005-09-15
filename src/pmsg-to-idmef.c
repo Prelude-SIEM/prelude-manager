@@ -21,6 +21,9 @@
 *
 *****/
 
+#include "config.h"
+#include "libmissing.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -37,7 +40,6 @@
 
 #include "decode-plugins.h"
 #include "pmsg-to-idmef.h"
-#include "config.h"
 
 
 extern prelude_client_t *manager_client;

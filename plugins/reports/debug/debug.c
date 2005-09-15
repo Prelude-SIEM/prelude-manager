@@ -21,6 +21,9 @@
 *
 *****/
 
+#include "config.h"
+#include "libmissing.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -33,7 +36,6 @@
 #include <libprelude/idmef.h>
 #include <libprelude/idmef-message-print.h>
 
-#include "config.h"
 #include "prelude-manager.h"
 
 

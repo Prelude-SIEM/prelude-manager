@@ -134,7 +134,7 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         preludedb_sql_settings_t *settings;
         char errbuf[PRELUDEDB_ERRBUF_SIZE];
         db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
-        
+                
         ret = preludedb_sql_settings_new(&settings);        
         if ( ret < 0 )
                 return ret;
@@ -218,8 +218,10 @@ int db_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
         
         ret = preludedb_init();
-	if ( ret < 0 )
-		return ret;
+	if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "error initializing libpreludedb: %s", preludedb_strerror(ret));
+                return ret;
+        }
         
         ret = prelude_option_add(rootopt, &opt, hook, 0, "db", "Options for the libpreludedb plugin",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, db_activate, NULL);

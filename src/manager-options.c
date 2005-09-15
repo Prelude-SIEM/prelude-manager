@@ -157,7 +157,7 @@ static int set_user(prelude_option_t *opt, const char *optarg, prelude_string_t 
         const char *p;
         struct passwd *pw;
 
-        for ( p = optarg; isdigit(*p); p++ );
+        for ( p = optarg; isdigit((int) *p); p++ );
         
         if ( *p == 0 )
                 uid = atoi(optarg);
@@ -188,7 +188,7 @@ static int set_group(prelude_option_t *opt, const char *optarg, prelude_string_t
         const char *p;
         struct group *grp;
         
-        for ( p = optarg; isdigit(*p); p++ );
+        for ( p = optarg; isdigit((int) *p); p++ );
 
         if ( *p == 0 )
                 gid = atoi(optarg);
