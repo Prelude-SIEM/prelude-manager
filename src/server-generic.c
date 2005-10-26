@@ -354,8 +354,8 @@ static int setup_client_socket(server_generic_t *server,
 
 static int accept_connection(server_generic_t *server, server_generic_client_t *cdata) 
 {
-        int sock;
         socklen_t addrlen;
+        int ret, sock, on = 1;
         
 #ifndef HAVE_IPV6
         struct sockaddr_in addr;
@@ -370,7 +370,11 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
                 prelude_log(PRELUDE_LOG_ERR, "accept error: %s.\n", strerror(errno));
                 return -1;
         }
-                
+        
+        ret = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(int));
+        if ( ret < 0 )
+                prelude_log(PRELUDE_LOG_ERR, "could not set SO_KEEPALIVE socket option: %s.\n", strerror(errno));
+
         if ( server->sa->sa_family == AF_UNIX )
                 cdata->addr = strdup(((struct sockaddr_un *) server->sa)->sun_path);
         else {
@@ -620,12 +624,6 @@ static int inet_server_start(server_generic_t *server, struct sockaddr *addr, so
         ret = setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "could not set SO_REUSEADDR socket option: %s.\n", strerror(errno));
-                goto err;
-        }
-
-        ret = setsockopt(server->sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(int));
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not set SO_KEEPALIVE socket option: %s.\n", strerror(errno));
                 goto err;
         }
         
