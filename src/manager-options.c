@@ -36,12 +36,19 @@
 #include <libprelude/daemonize.h>
 #include <libprelude/prelude-log.h>
 
+#include "server-generic.h"
+#include "sensor-server.h"
 #include "manager-options.h"
 #include "report-plugins.h"
 #include "reverse-relaying.h"
 
 
+#define DEFAULT_MANAGER_ADDR "0.0.0.0"
+#define DEFAULT_MANAGER_PORT 4690
+
+
 manager_config_t config;
+extern prelude_client_t *manager_client;
 
 
 
@@ -97,27 +104,44 @@ static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_str
 
 
 
+static int add_server(const char *addr, unsigned int port)
+{
+        int ret;
+        
+        config.nserver++;
+
+        config.server = _prelude_realloc(config.server, sizeof(*config.server) * config.nserver);        
+        if ( ! config.server )
+                return -1;
+        
+        config.server[config.nserver - 1] = sensor_server_new();
+        if ( ! config.server[config.nserver - 1] )
+                return -1;
+        
+        ret = server_generic_bind((server_generic_t *) config.server[config.nserver - 1], addr, port);
+        if ( ret < 0 )
+                fprintf(stderr, "Error initializing prelude-manager server on %s:%u.\n", addr, port);
+        
+        return ret;
+}
+
+
 
 static int set_listen_address(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
-        char *ptr = strdup(arg);
-        
-        config.addr = ptr;
-
-        /*
-         * if the address string start with unix, then don't try to
-         * read the port number since a path can follow unix after the ':' separator.
-         */
-        if ( strncmp(ptr, "unix", 4) == 0 )
-                return 0;
-        
-        ptr = strrchr(ptr, ':');
-        if ( ptr ) {
-                *ptr = '\0';
-                config.port = atoi(ptr + 1);
+        char *ptr;
+        unsigned int port = 4690;
+                
+        if ( strncmp(arg, "unix", 4) != 0 ) {
+                
+                ptr = strrchr(arg, ':');
+                if ( ptr ) {
+                        *ptr = '\0';
+                        port = atoi(ptr + 1);
+                }
         }
-        
-        return 0;
+
+        return add_server(arg, port);
 }
 
 
@@ -229,8 +253,8 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         prelude_option_warning_t old_warnings;
         
         /* Default */
-        config.addr = NULL;
-        config.port = 4690;
+        config.nserver = 0;
+        config.server = NULL;
         config.pidfile = NULL;
         config.dh_regenerate = 24 * 60 * 60;
         config.config_file = PRELUDE_MANAGER_CONF;
@@ -316,5 +340,29 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         
         prelude_option_set_warnings(old_warnings, NULL);
         
+        return ret;
+}
+
+
+
+int manager_options_read(prelude_option_t *manager_root_optlist, int *argc, char **argv)
+{
+        int ret;
+        prelude_string_t *err;
+        
+        ret = prelude_option_read(manager_root_optlist, &config.config_file, argc, argv, &err, manager_client);        
+        if ( ret < 0 ) {
+                if ( err )
+                        prelude_log(PRELUDE_LOG_WARN, "Option error: %s.\n", prelude_string_get_string(err));
+
+                else if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
+                        prelude_perror(ret, "error processing prelude-manager options");
+                
+                return -1;
+        }
+        
+        if ( config.nserver == 0 )
+                ret = add_server(DEFAULT_MANAGER_ADDR, DEFAULT_MANAGER_PORT);
+
         return ret;
 }

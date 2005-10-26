@@ -39,6 +39,7 @@
 #include "server-logic.h"
 #include "server-generic.h"
 #include "sensor-server.h"
+#include "manager-options.h"
 
 
 #define MESSAGE_FLUSH_MAX 100
@@ -68,7 +69,7 @@ static prelude_msgbuf_t *msgbuf;
 static pthread_mutex_t receiver_mutex = PTHREAD_MUTEX_INITIALIZER;
 static reverse_relay_t initiator = { PTHREAD_MUTEX_INITIALIZER, NULL};
 
-extern server_generic_t *sensor_server;
+extern manager_config_t config;
 extern prelude_client_t *manager_client;
 
 
@@ -83,7 +84,7 @@ static int connection_event_cb(prelude_connection_pool_t *pool,
         
         prelude_connection_set_data(cnx, &initiator);
         
-        ret = sensor_server_add_client(sensor_server, cnx);
+        ret = sensor_server_add_client(config.server[0], cnx);
         if ( ret < 0 )
                 prelude_log(PRELUDE_LOG_WARN, "error adding new client to reverse relay list.\n");
 

@@ -57,9 +57,7 @@
 extern manager_config_t config;
 
 prelude_client_t *manager_client;
-server_generic_t *sensor_server = NULL;
 
-static size_t nserver = 0;
 static char **global_argv;
 static volatile sig_atomic_t got_sighup = 0;
 
@@ -70,6 +68,8 @@ static volatile sig_atomic_t got_sighup = 0;
  */
 static void handle_signal(int sig) 
 {
+        size_t i;
+        
         /*
          * re-establish signal handler.
          */
@@ -80,13 +80,16 @@ static void handle_signal(int sig)
         /*
          * stop the sensor server.
          */
-        sensor_server_stop(sensor_server);
+        for ( i = 0; i < config.nserver; i++ )
+                sensor_server_stop(config.server[i]);
 }
 
 
 
 static void handle_sighup(int signo)
 {
+        size_t i;
+        
         /*
          * re-establish signal handler.
          */
@@ -95,30 +98,11 @@ static void handle_sighup(int signo)
         /*
          * stop the sensor server.
          */
-        sensor_server_stop(sensor_server);
+        for ( i = 0; i < config.nserver; i++ )
+                sensor_server_stop(config.server[i]);
         
         got_sighup = 1;
 }
-
-
-
-static void init_manager_server(void) 
-{
-        int ret;
-        
-        nserver++;
-        
-        ret = manager_auth_init(manager_client, config.dh_bits, config.dh_regenerate);
-	if ( ret < 0 )
-                exit(1);
-        
-        ret = server_generic_bind((server_generic_t *) sensor_server, config.addr, config.port);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "Error initializing prelude-manager server.\n");
-                exit(1);
-        }
-}
-
 
 
 
@@ -179,7 +163,7 @@ static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
 int main(int argc, char **argv)
 {
         int ret;
-        prelude_string_t *err;
+        size_t i;
         struct sigaction action;
         prelude_option_t *manager_root_optlist;
         
@@ -222,7 +206,6 @@ int main(int argc, char **argv)
         }
         prelude_log(PRELUDE_LOG_DEBUG, "- Initialized %d filtering plugins.\n", ret);
         
-        sensor_server = sensor_server_new();
         
         ret = manager_options_init(manager_root_optlist, &argc, argv);
         if ( ret < 0 )
@@ -248,18 +231,11 @@ int main(int argc, char **argv)
 
                 return ret;
         }
-        
-        ret = prelude_option_read(manager_root_optlist, &config.config_file, &argc, argv, &err, manager_client);        
-        if ( ret < 0 ) {
-                if ( err )
-                        prelude_log(PRELUDE_LOG_WARN, "Option error: %s.\n", prelude_string_get_string(err));
 
-                else if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
-                        prelude_perror(ret, "error processing prelude-manager options");
-                
+        ret = manager_options_read(manager_root_optlist, &argc, argv);
+        if ( ret < 0 )
                 return -1;
-        }
-                
+        
         ret = prelude_client_start(manager_client);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error starting prelude-client");                
@@ -284,7 +260,9 @@ int main(int argc, char **argv)
         /*
          * start server
          */
-        init_manager_server();
+        ret = manager_auth_init(manager_client, config.dh_bits, config.dh_regenerate);
+	if ( ret < 0 )
+                return -1;
         
         /*
          * setup signal handling
@@ -302,13 +280,14 @@ int main(int argc, char **argv)
         action.sa_handler = handle_sighup;
         sigaction(SIGHUP, &action, NULL);
         
-        server_generic_start(&sensor_server, nserver);
+        server_generic_start(config.server, config.nserver);
         
                 
         /*
          * we won't get here unless a signal is caught.
          */
-        server_generic_close(sensor_server);
+        for ( i = 0; i < config.nserver; i++ ) 
+                server_generic_close(config.server[i]);
         
         idmef_message_scheduler_exit();
 

@@ -24,16 +24,22 @@
 #ifndef _MANAGER_PCONFIG_H
 #define _MANAGER_PCONFIG_H
 
+#include "server-generic.h"
+
 int manager_options_init(prelude_option_t *manager_root_optlist, int *argc, char **argv);
 
+int manager_options_read(prelude_option_t *manager_root_optlist, int *argc, char **argv);
+
 typedef struct manager_config {
-        char *addr;
-        unsigned int port;
+
         const char *pidfile;
         const char *config_file;
         
         int dh_bits;
         int dh_regenerate;
+
+        size_t nserver;
+        server_generic_t **server;
 } manager_config_t;
 
 #endif /* _MANAGER_PCONFIG_H */
