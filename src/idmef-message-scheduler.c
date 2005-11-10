@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <pthread.h>
 #include <signal.h>
+#include <dirent.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <netinet/in.h> /* required by common.h */
@@ -184,7 +185,7 @@ static int clear_fifo(file_output_t *out)
                 
         ret = ftruncate(prelude_io_get_fd(out->wfd), 0);
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "error truncating fifo to 0.\n");
+                prelude_log(PRELUDE_LOG_ERR, "error truncating fifo: %s.\n", strerror(errno));
                 return -1;
         }
 
@@ -667,6 +668,7 @@ idmef_queue_t *idmef_message_scheduler_queue_new(void)
 {
         int ret;
         char buf[256];
+        unsigned int id;
         idmef_queue_t *queue;
         
         queue = calloc(1, sizeof(*queue));
@@ -674,27 +676,31 @@ idmef_queue_t *idmef_message_scheduler_queue_new(void)
                 prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return NULL;
         }
-        
+
         prelude_list_init(&queue->high.message_list);
         prelude_list_init(&queue->mid.message_list);
         prelude_list_init(&queue->low.message_list);
 
-        snprintf(buf, sizeof(buf), "%s.%u", HIGH_PRIORITY_MESSAGE_FILENAME, global_id);        
+        pthread_mutex_lock(&queue_list_mutex);
+        id = global_id++;
+        pthread_mutex_unlock(&queue_list_mutex);
+        
+        snprintf(buf, sizeof(buf), HIGH_PRIORITY_MESSAGE_FILENAME ".%u", id);        
         ret = init_file_output(buf, &queue->high.disk_message_list);
         if ( ret < 0 ) {
                 free(queue);
                 return NULL;
         }
-        
-        snprintf(buf, sizeof(buf), "%s.%u", MID_PRIORITY_MESSAGE_FILENAME, global_id);        
+
+        snprintf(buf, sizeof(buf), MID_PRIORITY_MESSAGE_FILENAME ".%u", id);
         ret = init_file_output(buf, &queue->mid.disk_message_list);
         if ( ret < 0 ) {
                 destroy_file_output(&queue->high.disk_message_list);
                 free(queue);
                 return NULL;
         }
-        
-        snprintf(buf, sizeof(buf), "%s.%u", LOW_PRIORITY_MESSAGE_FILENAME, global_id);        
+
+        snprintf(buf, sizeof(buf), LOW_PRIORITY_MESSAGE_FILENAME ".%u", id);
         ret = init_file_output(buf, &queue->low.disk_message_list);
         if ( ret < 0 ) {
                 destroy_file_output(&queue->high.disk_message_list);
@@ -704,11 +710,9 @@ idmef_queue_t *idmef_message_scheduler_queue_new(void)
         }
         
         pthread_mutex_init(&queue->mutex, NULL);
-        pthread_mutex_lock(&queue_list_mutex);
-        
-        global_id++;
-        prelude_list_add_tail(&message_queue, &queue->list);
 
+        pthread_mutex_lock(&queue_list_mutex);
+        prelude_list_add_tail(&message_queue, &queue->list);
         pthread_mutex_unlock(&queue_list_mutex);
         
         return queue;
@@ -728,33 +732,31 @@ void idmef_message_scheduler_queue_destroy(idmef_queue_t *queue)
 
 int idmef_message_scheduler_init(void) 
 {
-        char buf[256];
-        int ret, i, continue_check = 1;
-                
-        /*
-         * this code recover orphaned fifo in case of a prelude-manager crash.
-         */
-        for ( i = 0; continue_check != 0; i++ ) {
-                continue_check = 0;
-                
-                snprintf(buf, sizeof(buf), "%s.%d", HIGH_PRIORITY_MESSAGE_FILENAME, i);
-                ret = flush_orphan_fifo(buf);
-                if ( ret == 0 )
-                        continue_check = 1;
-                
-                snprintf(buf, sizeof(buf), "%s.%d", MID_PRIORITY_MESSAGE_FILENAME, i);
-
-                ret = flush_orphan_fifo(buf);
-                if ( ret == 0 )
-                        continue_check = 1;
-                
-                snprintf(buf, sizeof(buf), "%s.%d", LOW_PRIORITY_MESSAGE_FILENAME, i);
-
-                ret = flush_orphan_fifo(buf);
-                if ( ret == 0 )
-                        continue_check = 1;
+        int ret;
+        DIR *dir;
+        struct dirent *de;
+        char filename[PATH_MAX];
+        
+        dir = opendir(MANAGER_FIFO_DIR);
+        if ( ! dir ) {
+                prelude_log(PRELUDE_LOG_ERR, "could not open %s: %s.\n", MANAGER_FIFO_DIR, strerror(errno));
+                return -1;
         }
 
+        while ( (de = readdir(dir)) ) {
+
+                if ( de->d_name[0] == '.' )
+                        continue;
+
+                snprintf(filename, sizeof(filename), MANAGER_FIFO_DIR "/%s", de->d_name);
+                
+                ret = flush_orphan_fifo(filename);
+                if ( ret != 0 )
+                        break;
+        }
+
+        closedir(dir);
+        
         ret = pthread_create(&thread, NULL, &message_reader, NULL);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "couldn't create message processing thread.\n");
