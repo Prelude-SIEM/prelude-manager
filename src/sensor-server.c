@@ -70,8 +70,8 @@ typedef struct {
 
 extern prelude_client_t *manager_client;
 
-static uint32_t instance_id = 0;
 static PRELUDE_LIST(sensors_cnx_list);
+static uint32_t global_instance_id = 0;
 static pthread_mutex_t sensors_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -124,7 +124,7 @@ static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzeri
 
         tag = prelude_msg_get_tag(msg);
         
-        target = search_client(&sensors_cnx_list, analyzerid, (tag == PRELUDE_MSG_OPTION_REPLY) ? instance_no : 0);
+        target = search_client(&sensors_cnx_list, analyzerid, instance_no);
         if ( ! target ) {
                 pthread_mutex_unlock(&sensors_list_mutex);
                 return -1;
@@ -380,7 +380,7 @@ static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         /*
          * The one replying the option doesn't care about client presence or not.
          */
-        ret = forward_message_to_analyzerid(client, ident, ntohl(*instance_no), msg);
+        ret = forward_message_to_analyzerid(client, ident, prelude_extract_uint32(instance_no), msg);
         if ( ret < 0 )
                 prelude_msg_destroy(msg);
         
@@ -426,7 +426,7 @@ static int handle_declare_client(sensor_fd_t *cnx)
         
         pthread_mutex_lock(&sensors_list_mutex);
         
-        cnx->instance_id = (instance_id == 0) ? ++instance_id : instance_id++;
+        cnx->instance_id = ++global_instance_id;
         prelude_list_add_tail(&sensors_cnx_list, &cnx->list);
 
         pthread_mutex_unlock(&sensors_list_mutex);
