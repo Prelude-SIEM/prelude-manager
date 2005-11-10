@@ -34,10 +34,22 @@
 #include "getaddrinfo.h"
 #include "gettext.h"
 #include "inet_ntop.h"
+
+#if HAVE_WCHAR_H && HAVE_WCTYPE_H
+# include "mbchar.h"
+#endif
+
+#if HAVE_MBRTOWC
+# include "mbuiter.h"
+#endif
+
 #include "minmax.h"
+#include "pathmax.h"
+#include "size_max.h"
 #include "snprintf.h"
 #include "strcase.h"
 #include "strdup.h"
+#include "strnlen1.h"
 #include "time_r.h"
 #include "vasnprintf.h"
 #include "vsnprintf.h"
@@ -46,5 +58,6 @@
 #include <poll.h>
 #include <stdbool.h>
 #include <string.h>
+
 
 #endif /* _PRELUDE_MANAGER_LIBMISSING_H */

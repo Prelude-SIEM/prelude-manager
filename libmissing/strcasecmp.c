@@ -4,16 +4,16 @@
    based on earlier glibc code.
 
    This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   it under the terms of the GNU Lesser General Public License as published by
+   the Free Software Foundation; either version 2.1, or (at your option)
    any later version.
 
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+   GNU Lesser General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
+   You should have received a copy of the GNU Lesser General Public License
    along with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
@@ -25,6 +25,7 @@
 #include "strcase.h"
 
 #include <ctype.h>
+#include <limits.h>
 
 #if HAVE_MBRTOWC
 # include "mbuiter.h"
@@ -93,6 +94,12 @@ strcasecmp (const char *s1, const char *s2)
 	}
       while (c1 == c2);
 
-      return c1 - c2;
+      if (UCHAR_MAX <= INT_MAX)
+	return c1 - c2;
+      else
+	/* On machines where 'char' and 'int' are types of the same size, the
+	   difference of two 'unsigned char' values - including the sign bit -
+	   doesn't fit in an 'int'.  */
+	return (c1 > c2 ? 1 : c1 < c2 ? -1 : 0);
     }
 }
