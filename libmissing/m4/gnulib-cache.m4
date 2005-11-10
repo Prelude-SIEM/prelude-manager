@@ -21,7 +21,7 @@ gl_MODULES([getaddrinfo inet_ntop memset pathmax poll snprintf strcase strdup ti
 gl_AVOID([])
 gl_SOURCE_BASE([libmissing])
 gl_M4_BASE([libmissing/m4])
-gl_TESTS_BASE([libmissing/tests])
+gl_TESTS_BASE([tests])
 gl_LIB([libmissing])
 gl_LGPL
 gl_LIBTOOL
