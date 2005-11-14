@@ -1,3 +1,15 @@
+* 2005-11-14, prelude-manager-0.9.1:
+
+	- Ability to listen on multiple IP address.
+
+	- Fix possible race condition with per-sensor queue creation.
+
+	- Fix orphaned disk queues that could remain un-flushed in case 
+	  of incorrect Manager shutdown.
+
+	- Cleanup.
+
+
 * 2005-09-20, prelude-manager-0.9.0:
 
 	- 0.9.0 final.
