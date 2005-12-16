@@ -59,6 +59,7 @@ typedef struct {
         char *type;
         char *log;
         char *host;
+        char *file;
         char *port;
         char *name;
         char *user;
@@ -75,6 +76,7 @@ PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, port)
 PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, name)
 PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, user)
 PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, pass)
+PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, file)
 
 
 
@@ -105,6 +107,9 @@ static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
         if ( plugin->host )
                 free(plugin->host);
 
+        if ( plugin->file )
+                free(plugin->file);
+        
         if ( plugin->name )
                 free(plugin->name);
 
@@ -142,6 +147,9 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         if ( plugin->host )
                 preludedb_sql_settings_set_host(settings, plugin->host);
 
+        if ( plugin->file )
+                preludedb_sql_settings_set_file(settings, plugin->file);
+        
         if ( plugin->port )
                 preludedb_sql_settings_set_port(settings, plugin->port);
 
@@ -244,6 +252,12 @@ int db_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
 	ret = prelude_option_add(opt, NULL, hook, 'h', PRELUDEDB_SQL_SETTING_HOST,
                                  "The host where the database server is running (in case of client/server database)",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED,  db_set_host, db_get_host);
+        if ( ret < 0 )
+                return ret;
+
+        ret = prelude_option_add(opt, NULL, hook, 'f', PRELUDEDB_SQL_SETTING_FILE,
+                                 "The file where the database is stored (in case of file based database)",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED,  db_set_file, db_get_file);
         if ( ret < 0 )
                 return ret;
         
