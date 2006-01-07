@@ -22,6 +22,7 @@
 *****/
 
 #include "config.h"
+#include "libmissing.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -301,32 +302,39 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
 {
 	int ret;
         time_t now;
+        unsigned int status;
         prelude_log_t pri = PRELUDE_LOG_WARN;
         
-	ret = gnutls_certificate_verify_peers(session);
+	ret = gnutls_certificate_verify_peers2(session, &status);
 	if ( ret < 0 ) {
-                server_generic_log_client(client, pri, "TLS certificate error: %s.\n", gnutls_strerror(ret));
+                server_generic_log_client(client, pri, "error verifying certificate: %s.\n", gnutls_strerror(ret));
                 return ret;
         }
 
-	if ( ret == GNUTLS_E_NO_CERTIFICATE_FOUND ) {
+	if ( status == GNUTLS_E_NO_CERTIFICATE_FOUND ) {
 		server_generic_log_client(client, pri, "TLS authentication error: client did not send any certificate.\n");
                 gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_UNOBTAINABLE);
-                return ret;
+                return -1;
 	}
 
-        if ( ret & GNUTLS_CERT_SIGNER_NOT_FOUND) {
+        if ( status & GNUTLS_CERT_SIGNER_NOT_FOUND) {
 		server_generic_log_client(client, pri, "TLS authentication error: client certificate issuer is unknown.\n");
                 gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_UNKNOWN_CA);
-                return ret;
+                return -1;
         }
         
-        if ( ret & GNUTLS_CERT_INVALID ) {
+        if ( status & GNUTLS_CERT_REVOKED ) {
+                server_generic_log_client(client, pri, "TLS authentication error: client certificate is revoked.\n");
+                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_REVOKED);
+                return -1;
+        }
+        
+        if ( status & GNUTLS_CERT_INVALID ) {
                 server_generic_log_client(client, pri, "TLS authentication error: client certificate is NOT trusted.\n");
                 gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_UNKNOWN);
                 return -1;
         }
-
+        
         now = time(NULL);
         
         if ( gnutls_certificate_activation_time_peers(session) > now ) {
@@ -496,7 +504,7 @@ int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_
 int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
 {
         int ret;
-        char keyfile[256], certfile[256];
+        char keyfile[PATH_MAX], certfile[PATH_MAX], crlfile[PATH_MAX];
         prelude_client_profile_t *cp = prelude_client_get_profile(client);
 
         if ( ! dh_bits )
@@ -539,6 +547,15 @@ int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
 		return -1;
 	}
 
+        prelude_client_profile_get_tls_server_crl_filename(cp, crlfile, sizeof(crlfile));
+        if ( access(crlfile, R_OK) == 0 ) {
+                ret = gnutls_certificate_set_x509_crl_file(cred, crlfile, GNUTLS_X509_FMT_PEM);
+                if ( ret < 0 ) {
+                        prelude_log(PRELUDE_LOG_ERR, "%s: %s\n", crlfile, gnutls_strerror(ret));
+                        return -1;
+                }
+        }
+        
         gnutls_dh_params_init(&cur_dh_params);
 	
 	ret = access(MANAGER_RUN_DIR, R_OK|W_OK);
