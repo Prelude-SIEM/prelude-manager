@@ -208,10 +208,10 @@ static int set_user(prelude_option_t *opt, const char *optarg, prelude_string_t 
 static int set_group(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
 {
         int ret;
-        uid_t gid;
+        gid_t gid;
         const char *p;
         struct group *grp;
-        
+
         for ( p = optarg; isdigit((int) *p); p++ );
 
         if ( *p == 0 )
@@ -225,13 +225,19 @@ static int set_group(prelude_option_t *opt, const char *optarg, prelude_string_t
 
                 gid = grp->gr_gid;
         }
-        
+
         ret = setgid(gid);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "change to GID %d failed: %s.\n", (int) gid, strerror(errno));
                 return ret;
         }
-        
+
+        ret = setgroups(1, &gid);
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "removal of ancillary groups failed: %s.\n", strerror(errno));
+                return ret;
+        }
+
         return 0;
 }
 
