@@ -330,16 +330,14 @@ static int setup_client_socket(server_generic_t *server,
          * set client socket non blocking.
          */
         ret = fcntl(client, F_SETFL, O_NONBLOCK);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not set non blocking mode for client: %s.\n", strerror(errno));
-                return -1;
-        }
+        if ( ret < 0 )
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set non blocking mode for client: %s");
         
         fcntl(client, F_SETFD, fcntl(client, F_GETFD) | FD_CLOEXEC);
         
         ret = prelude_io_new(&cdata->fd);
         if ( ret < 0 ) 
-                return -1;
+                return ret;
 
         prelude_io_set_sys_io(cdata->fd, client);
                
@@ -498,17 +496,13 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
         int ret;
         
         ret = bind(sock, addr, alen);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not bind socket: %s.\n", strerror(errno));
-                return -1;
-        }
+        if ( ret < 0 )
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not bind socket: %s", strerror(errno));
         
         ret = listen(sock, 10);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not listen on socket: %s.\n", strerror(errno));
-                return -1;
-        }
-        
+        if ( ret < 0 )
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could no listen on socket: %s", strerror(errno));
+                
         return 0;
 }
 
@@ -616,14 +610,12 @@ static int inet_server_start(server_generic_t *server, struct sockaddr *addr, so
         int ret, on = 1;
         
         server->sock = socket(server->sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
-        if ( server->sock < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not create socket: %s.\n", strerror(errno));
-                return -1;
-        }
+        if ( server->sock < 0 )
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "error creating socket: %s", strerror(errno));
         
         ret = setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not set SO_REUSEADDR socket option: %s.\n", strerror(errno));
+                ret = prelude_error_verbose(PRELUDE_ERROR_GENERIC, "error setting SO_REUSEADDR: %s", strerror(errno));
                 goto err;
         }
         
@@ -635,7 +627,7 @@ static int inet_server_start(server_generic_t *server, struct sockaddr *addr, so
 
  err:
         close(server->sock);
-        return -1;
+        return ret;
 }
 
 
@@ -674,13 +666,11 @@ static int do_getaddrinfo(struct addrinfo **ai, const char *addr, unsigned int p
         hints.ai_protocol = IPPROTO_TCP;
                 
         ret = getaddrinfo(addr, service, &hints, ai);
-        if ( ret != 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "could not resolve %s: %s.\n",
-                            addr, (ret == EAI_SYSTEM) ? strerror(errno) : gai_strerror(ret));
-                return -1;
-        }
-
-        return 0;
+        if ( ret != 0 )
+                ret = prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not resolve '%s': %s",
+                                            addr, (ret == EAI_SYSTEM) ? strerror(errno) : gai_strerror(ret));
+                
+        return ret;
 }
 
 
@@ -699,7 +689,7 @@ static int resolve_addr(server_generic_t *server, const char *addr, unsigned int
         else {
                 ret = do_getaddrinfo(&ai, addr, port);
                 if ( ret < 0 )
-                        return -1;
+                        return ret;
 
                 ai_family = ai->ai_family;
                 ai_addrlen = ai->ai_addrlen;
@@ -707,9 +697,8 @@ static int resolve_addr(server_generic_t *server, const char *addr, unsigned int
 
         server->sa = malloc(ai_addrlen);
         if ( ! server->sa ) {
-                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 freeaddrinfo(ai);
-                return -1;
+                return prelude_error_from_errno(errno);
         }
 
         server->slen = ai_addrlen;
@@ -782,7 +771,7 @@ int server_generic_bind(server_generic_t *server, const char *saddr, unsigned in
                 server_logic_stop(server->logic);
                 free(server->sa);
                 free(server);
-                return -1;
+                return ret;
         }
                 
         fcntl(server->sock, F_SETFD, fcntl(server->sock, F_GETFD) | FD_CLOEXEC);
