@@ -96,14 +96,6 @@ static int set_pidfile(prelude_option_t *opt, const char *arg, prelude_string_t 
 
 
 
-
-static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
-{
-        return reverse_relay_create_initiator(arg);
-}
-
-
-
 static int add_server(const char *addr, unsigned int port)
 {
         int ret;
@@ -120,10 +112,26 @@ static int add_server(const char *addr, unsigned int port)
         
         ret = server_generic_bind((server_generic_t *) config.server[config.nserver - 1], addr, port);
         if ( ret < 0 )
-                fprintf(stderr, "Error initializing prelude-manager server on %s:%u.\n", addr, port);
+                prelude_perror(ret, "error initializing server on %s:%u", addr, port);
         
         return ret;
 }
+
+
+
+static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+{
+        int ret;
+        
+        if ( config.nserver == 0 ) {
+                ret = add_server(DEFAULT_MANAGER_ADDR, DEFAULT_MANAGER_PORT);
+                if ( ret < 0 )
+                        return ret;
+        }
+        
+        return reverse_relay_create_initiator(arg);
+}
+
 
 
 
@@ -313,9 +321,14 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
                            "Size of the Diffie Hellman prime (768, 1024, 2048, 3072 or 4096)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_dh_bits, NULL);
         
-        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'c', "child-managers",
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'c', "child-managers",
                            "List of managers address:port pair where messages should be gathered from",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_reverse_relay, NULL);
+        /*
+         * necessary since the reverse relay need to be setup only once one
+         * server object has been created.
+         */
+        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
         
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'l', "listen", 
                            "Address the sensors server should listen on (addr:port)",
