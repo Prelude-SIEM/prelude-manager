@@ -149,27 +149,47 @@ static int add_criteria(filter_plugin_t *plugin, const char *criteria)
 
 static int read_criteria_from_filename(filter_plugin_t *plugin, const char *filename, prelude_string_t *err)
 {
+        int ret;
         FILE *fd;
-        int ret = 0;
-        char buf[1024];
+        prelude_string_t *out;
         unsigned int line = 0;
+        idmef_criteria_t *new, *criteria = NULL;
         
         fd = fopen(filename, "r");
         if ( ! fd ) {
                 prelude_string_sprintf(err, "error opening '%s' for reading: %s (%d)", filename, strerror(errno), errno);
                 return -1;
         }
-
-        while ( prelude_read_multiline(fd, &line, buf, sizeof(buf)) == 0 ) {
-
-                ret = add_criteria(plugin, buf);
+        
+        ret = prelude_string_new(&out);
+        if ( ret < 0 )
+                return ret;
+        
+        while ( prelude_read_multiline2(fd, &line, out) == 0 ) {
+                
+                ret = idmef_criteria_new_from_string(&new, prelude_string_get_string(out));
                 if ( ret < 0 ) {
                         prelude_string_sprintf(err, "%s:%u: %s", filename, line, prelude_strerror(ret));
+
+                        if ( criteria ) idmef_criteria_destroy(criteria);
+                        criteria = NULL;
+
                         break;
                 }
-        }
 
+                if ( criteria )
+                        idmef_criteria_or_criteria(criteria, new);
+                else
+                        criteria = new;
+        }
+        
+        prelude_string_destroy(out);
         fclose(fd);
+
+        if ( plugin->criteria )
+                idmef_criteria_destroy(plugin->criteria);
+
+        plugin->criteria = criteria;
 
         return ret;
 }
