@@ -297,10 +297,8 @@ int reverse_relay_create_initiator(const char *arg)
         cp = prelude_client_get_profile(manager_client);
         
         ret = prelude_connection_pool_new(&initiator.pool, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_READ);
-        if ( ret < 0 ) {
-                prelude_perror(ret, "error creating reverse relay");
+        if ( ret < 0 )
                 return ret;
-        }
         
         prelude_connection_pool_set_flags(initiator.pool, PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
         prelude_connection_pool_set_event_handler(initiator.pool, PRELUDE_CONNECTION_POOL_EVENT_DEAD |
@@ -308,14 +306,12 @@ int reverse_relay_create_initiator(const char *arg)
         
         ret = prelude_connection_pool_set_connection_string(initiator.pool, arg);
         if ( ret < 0 ) {
-                prelude_perror(ret, "error setting reverse relay connection string");
                 prelude_connection_pool_destroy(initiator.pool);
                 return ret;
         }
 
         ret = prelude_connection_pool_init(initiator.pool);
         if ( ret < 0 ) {
-                prelude_perror(ret, "error initializing reverse relay");
                 prelude_connection_pool_destroy(initiator.pool);
                 return ret;
         }
