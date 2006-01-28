@@ -32,6 +32,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <assert.h>
+#include <gnutls/gnutls.h>
 
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
@@ -527,8 +528,7 @@ static int read_connection_cb(server_generic_client_t *client)
 
                 if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
                         server_generic_log_client((server_generic_client_t *) cnx,
-                                                  PRELUDE_LOG_WARN, "message read error %s: %s\n",
-                                                  prelude_strsource(ret), prelude_strerror(ret));
+                                                  PRELUDE_LOG_WARN, "%s.\n", prelude_strerror(ret));
 
                 return -1;
         }
@@ -580,6 +580,35 @@ static int write_connection_cb(server_generic_client_t *client)
 
 
 
+static int do_close_cnx(server_generic_client_t *ptr, sensor_fd_t *cnx)
+{
+        int ret;
+        void *fd_ptr;
+        prelude_error_code_t code;
+        
+         do {
+                 ret = prelude_connection_close(cnx->cnx);
+                 if ( ret == 0 )
+                         break;
+
+                 code = prelude_error_get_code(ret);
+                 if ( code == PRELUDE_ERROR_EAGAIN ) {
+                         
+                         fd_ptr = prelude_io_get_fdptr(prelude_connection_get_fd(cnx->cnx));
+                         if ( fd_ptr && gnutls_record_get_direction(fd_ptr) == 1 )
+                                 server_logic_notify_write_enable((server_logic_client_t *) ptr);
+                         
+                         return -1;
+                 }
+
+                 server_generic_log_client(ptr, PRELUDE_LOG_WARN, "%s.\n", prelude_strerror(ret));
+                 
+         } while ( ret < 0 && ! prelude_io_is_error_fatal(prelude_connection_get_fd(cnx->cnx), ret));
+
+         return 0;
+}
+
+
 
 static int close_connection_cb(server_generic_client_t *ptr) 
 {
@@ -590,13 +619,13 @@ static int close_connection_cb(server_generic_client_t *ptr)
         
         if ( cnx->rrr )
                 reverse_relay_set_receiver_dead(cnx->rrr);
-        
+                
         else if ( cnx->cnx ) {
                 cnx->fd = NULL;
                 reverse_relay_set_initiator_dead(cnx->cnx);
-                
-                ret = prelude_connection_close(cnx->cnx);
-                if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
+
+                ret = do_close_cnx(ptr, cnx);
+                if ( ret < 0 )
                         return -1;
         }
         

@@ -222,6 +222,34 @@ static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
 
 
 
+static int do_close_fd(server_generic_client_t *client)
+{
+        int ret;
+        void *fd_ptr;
+        prelude_error_code_t code;
+        
+        do {
+                ret = prelude_io_close(client->fd);                
+                if ( ret == 0 )
+                        break;
+
+                code = prelude_error_get_code(ret);
+                if ( code == PRELUDE_ERROR_EAGAIN ) {
+                        fd_ptr = prelude_io_get_fdptr(client->fd);
+                        if ( fd_ptr && gnutls_record_get_direction(fd_ptr) == 1 )
+                                server_logic_notify_write_enable((server_logic_client_t *) client);
+                        
+                        return -1;
+                }
+                        
+                server_generic_log_client(client, PRELUDE_LOG_WARN, "%s.\n", prelude_strerror(ret));
+                
+        } while ( ret < 0 && ! prelude_io_is_error_fatal(client->fd, ret));
+
+        return 0;
+}
+
+
 /*
  * callback called by server-logic when a connection should be closed.
  * if the authentication process succeed for this connection, call
@@ -249,15 +277,9 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
          * that they can take control over the connection FD.
          */
         if ( client->fd ) {
-                
-                ret = prelude_io_close(client->fd);
-                if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
-
-                        if ( server->sa->sa_family != AF_UNIX && gnutls_record_get_direction(prelude_io_get_fdptr(client->fd)) == 1 )
-                                server_logic_notify_write_enable(ptr);
-                        
+                ret = do_close_fd(client);
+                if ( ret < 0 )
                         return -1;
-                }
                 
                 prelude_io_destroy(client->fd);
         }
