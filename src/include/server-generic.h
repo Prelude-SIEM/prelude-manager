@@ -24,6 +24,7 @@
 #ifndef _MANAGER_SERVER_GENERIC_H
 #define _MANAGER_SERVER_GENERIC_H
 
+#include <gnutls/gnutls.h>
 #include <libprelude/prelude-inttypes.h>
 
 
@@ -43,7 +44,8 @@
         uint64_t ident;              \
         char *permission_string;     \
         pthread_mutex_t mutex;       \
-        prelude_connection_permission_t permission
+        prelude_connection_permission_t permission; \
+        gnutls_alert_description alert
 
 
 typedef struct server_generic server_generic_t;

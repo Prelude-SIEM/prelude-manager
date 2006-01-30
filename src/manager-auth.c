@@ -273,32 +273,43 @@ static int get_params(gnutls_session session, gnutls_params_type type, gnutls_pa
 
 
 
-static int handle_gnutls_error(gnutls_session session, server_generic_client_t *client, int ret)
+static int handle_gnutls_error(prelude_io_t *pio, gnutls_session session, server_generic_client_t *client, int ret)
 {
-        int last_alert;
+        const char *alert;
         
-        if ( ret == GNUTLS_E_AGAIN ) {
-                
-                ret = gnutls_record_get_direction(session);
-                if ( ret == 1 ) 
+        if ( ret == GNUTLS_E_AGAIN ) {                
+                if ( gnutls_record_get_direction(session) == 1 )
                         server_logic_notify_write_enable((server_logic_client_t *) client);
                 
                 return 0;
         }
+
+        else if ( ret == GNUTLS_E_INTERRUPTED )
+                return 1;
         
-        if ( ret == GNUTLS_E_WARNING_ALERT_RECEIVED || ret == GNUTLS_E_FATAL_ALERT_RECEIVED ) {
-                last_alert = gnutls_alert_get(session);
-                server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS alert: %s.\n", gnutls_alert_get_name(last_alert));
+        else if ( ret == GNUTLS_E_WARNING_ALERT_RECEIVED ) {
+                alert = gnutls_alert_get_name(gnutls_alert_get(session));
+                server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS alert from client: %s.\n", alert);
+                return 1;
         }
-        
-        server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS error: %s.\n", gnutls_strerror(ret));
+
+        else if ( ret == GNUTLS_E_FATAL_ALERT_RECEIVED ) {
+                alert = gnutls_alert_get_name(gnutls_alert_get(session));
+                server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS fatal alert from client: %s.\n", alert);
+        }
+
+        else
+                server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS error: %s.\n", gnutls_strerror(ret));
+
+        gnutls_deinit(session);
+        prelude_io_set_sys_io(pio, prelude_io_get_fd(pio));
         
         return -1;
 }
 
 
 
-static int verify_certificate(server_generic_client_t *client, gnutls_session session)
+static int verify_certificate(server_generic_client_t *client, gnutls_session session, gnutls_alert_description *alert)
 {
 	int ret;
         time_t now;
@@ -310,42 +321,44 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
                 server_generic_log_client(client, pri, "error verifying certificate: %s.\n", gnutls_strerror(ret));
                 return ret;
         }
-
-	if ( status == GNUTLS_E_NO_CERTIFICATE_FOUND ) {
-		server_generic_log_client(client, pri, "TLS authentication error: client did not send any certificate.\n");
-                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_UNOBTAINABLE);
-                return -1;
-	}
-
+        
         if ( status & GNUTLS_CERT_SIGNER_NOT_FOUND) {
-		server_generic_log_client(client, pri, "TLS authentication error: client certificate issuer is unknown.\n");
-                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_UNKNOWN_CA);
+                *alert = GNUTLS_A_UNKNOWN_CA;
+                server_generic_log_client(client, pri, "TLS authentication error: client certificate issuer is unknown.\n");
                 return -1;
         }
         
-        if ( status & GNUTLS_CERT_REVOKED ) {
+        else if ( status & GNUTLS_CERT_REVOKED ) {
+                *alert = GNUTLS_A_CERTIFICATE_REVOKED;
                 server_generic_log_client(client, pri, "TLS authentication error: client certificate is revoked.\n");
-                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_REVOKED);
                 return -1;
         }
         
-        if ( status & GNUTLS_CERT_INVALID ) {
+        else if ( status & GNUTLS_CERT_INVALID ) {
+                *alert = GNUTLS_A_CERTIFICATE_UNKNOWN;
                 server_generic_log_client(client, pri, "TLS authentication error: client certificate is NOT trusted.\n");
-                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_UNKNOWN);
                 return -1;
         }
-        
+
+#ifdef GNUTLS_CERT_INSECURE_ALGORITHM
+        else if ( status & GNUTLS_CERT_INSECURE_ALGORITHM ) {
+                *alert = GNUTLS_A_INSUFFICIENT_SECURITY;
+                server_generic_log_client(client, pri, "TLS authentication error: client use insecure algorithm");
+                return -1;
+        }
+#endif
+
         now = time(NULL);
         
         if ( gnutls_certificate_activation_time_peers(session) > now ) {
+                *alert = GNUTLS_A_BAD_CERTIFICATE;
                 server_generic_log_client(client, pri, "TLS authentication error: client certificate not yet activated.\n");
-                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_BAD_CERTIFICATE);
                 return -1;
         }        
 
         if ( gnutls_certificate_expiration_time_peers(session) < now ) {
+                *alert = GNUTLS_A_CERTIFICATE_EXPIRED;
                 server_generic_log_client(client, pri, "TLS authentication error: client certificate expired.\n");
-                gnutls_alert_send(session, GNUTLS_AL_FATAL, GNUTLS_A_CERTIFICATE_EXPIRED);
                 return -1;
         }
                 
@@ -420,7 +433,7 @@ static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnut
 
 
 
-int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
+int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnutls_alert_description *alert)
 {
         int ret;
         uint64_t analyzerid;
@@ -452,19 +465,24 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
         
         do {
                 ret = gnutls_handshake(session);
-        } while ( ret < 0 && ret == GNUTLS_E_INTERRUPTED );
-
-        if ( ret < 0 )
-                return handle_gnutls_error(session, client, ret);
+                if ( ret == 0 )
+                        ret = 1;
+                
+        } while ( ret < 0 && (ret = handle_gnutls_error(pio, session, client, ret)) == 1 );
         
-        ret = verify_certificate(client, session);
+        if ( ret <= 0 )
+                return ret;
+        
+        ret = verify_certificate(client, session, alert);
         if ( ret < 0 ) 
                 return -1;
 
         ret = certificate_get_peer_analyzerid(client, session, &analyzerid, &permission);
-        if ( ret < 0 )
+        if ( ret < 0 ) {
+                *alert = GNUTLS_A_BAD_CERTIFICATE;
                 return -1;
-
+        }
+        
         ret = server_generic_client_set_permission(client, permission);
         if ( ret < 0 )
                 return -1;
@@ -481,22 +499,25 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio)
 
 int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_t *pio)
 {
-        int ret;
+        int ret = 1;
         gnutls_session session;
         
         session = prelude_io_get_fdptr(pio);
-        
+
         do {
                 ret = gnutls_bye(session, GNUTLS_SHUT_RDWR);
-        } while ( ret < 0 && ret == GNUTLS_E_INTERRUPTED );
-        
-        if ( ret < 0 )          
-                return handle_gnutls_error(session, client, ret);
+                if ( ret == 0 )
+                        ret = 1;
+                
+        } while ( ret < 0 && (ret = handle_gnutls_error(pio, session, client, ret)) == 1 );
 
+        if ( ret <= 0 )
+                return ret;
+        
         gnutls_deinit(session);
         prelude_io_set_sys_io(pio, prelude_io_get_fd(pio));
-
-        return 1;
+        
+        return ret;
 }
 
 

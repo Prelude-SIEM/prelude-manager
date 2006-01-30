@@ -91,7 +91,7 @@ static int send_auth_result(server_generic_client_t *client, int result)
         int ret;
         uint64_t nident;
         prelude_client_profile_t *cp;
-        
+
         if ( ! client->msg ) {
                 ret = prelude_msg_new(&client->msg, 1, sizeof(uint64_t), PRELUDE_MSG_AUTH, 0);
                 if ( ret < 0 )
@@ -123,6 +123,27 @@ static int send_auth_result(server_generic_client_t *client, int result)
 
 
 
+static int send_queued_alert(server_generic_client_t *client)
+{
+        int ret;
+
+        do {
+                ret = gnutls_alert_send(prelude_io_get_fdptr(client->fd), GNUTLS_AL_FATAL, client->alert);
+        } while ( ret < 0 && ret == GNUTLS_E_INTERRUPTED );
+                
+        if ( ret == GNUTLS_E_AGAIN ) {
+                server_logic_notify_write_enable((server_logic_client_t *) client);
+                return 0;
+        }
+
+        client->alert = 0;
+        gnutls_deinit(prelude_io_get_fdptr(client->fd));
+        prelude_io_set_sys_io(client->fd, prelude_io_get_fd(client->fd));
+
+        return 1;
+}
+
+
 
 /*
  * Read the message sent by the Prelude Manager client.
@@ -134,15 +155,19 @@ static int send_auth_result(server_generic_client_t *client, int result)
 static int authenticate_client(server_generic_t *server, server_generic_client_t *client) 
 {
         int ret;
-        
-        if ( ! client->msg && ! (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ) {
 
-                ret = manager_auth_client(client, client->fd);                
+        if ( ! client->msg && ! client->alert && ! (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ) {
+                ret = manager_auth_client(client, client->fd, &client->alert);                
                 if ( ret == 0 )
                         return ret; /* EAGAIN happened */
                 
-                if ( ret < 0 )
-                        return send_auth_result(client, PRELUDE_MSG_AUTH_FAILED);
+                if ( ret < 0 ) {
+                        ret = send_queued_alert(client);
+                        if ( ret != 1 )
+                                return ret;
+                        
+                        return -1;
+                }
                 
                 client->state |= SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED;
                 
@@ -151,6 +176,12 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                         return ret;
         }
 
+        else if ( client->alert ) {
+                ret = send_queued_alert(client);
+                if ( ret != 1 )
+                        return ret;
+        }
+        
         else if ( client->msg ) {
                 ret = send_auth_result(client, -1);
                 if ( ret != 1 )
@@ -260,7 +291,7 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
         int ret;
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
-
+        
         client->state |= SERVER_GENERIC_CLIENT_STATE_CLOSING;
         
         if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED && ! (client->state & SERVER_GENERIC_CLIENT_STATE_CLOSED) ) {
