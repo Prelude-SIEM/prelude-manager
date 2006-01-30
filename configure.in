@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT
 AC_PREREQ(2.50)
 AC_CANONICAL_TARGET([])
-AM_INIT_AUTOMAKE(prelude-manager, 0.9.1)
+AM_INIT_AUTOMAKE(prelude-manager, 0.9.2)
 AM_CONFIG_HEADER(config.h)
 AM_DISABLE_STATIC
 
@@ -57,7 +57,7 @@ dnl **************************************************
 dnl * Check for libprelude                           *
 dnl **************************************************
 
-AM_PATH_LIBPRELUDE(0.9.0, ,
+AM_PATH_LIBPRELUDE(0.9.4, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
 
 defined="$defined $LIBPRELUDE_PTHREAD_CFLAGS -DPRELUDE_CONFIG_DIR=\\\"$LIBPRELUDE_CONFIG_PREFIX\\\""
@@ -111,7 +111,7 @@ dnl **************************************************
 dnl * Check for libpreludedb                         *
 dnl **************************************************
 
-AM_PATH_LIBPRELUDEDB(0.9.0, enable_libpreludedb=yes, enable_libpreludedb=no)
+AM_PATH_LIBPRELUDEDB(0.9.3, enable_libpreludedb=yes, enable_libpreludedb=no)
 AM_CONDITIONAL(HAVE_LIBPRELUDEDB, test x$enable_libpreludedb = xyes)
 AC_SUBST(HAVE_LIBPRELUDEDB)
 

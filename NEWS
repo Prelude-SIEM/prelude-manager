@@ -1,3 +1,24 @@
+* 2006-01-30, prelude-manager-0.9.2:
+
+	- Allow "file" configuration settings to be set from the
+	  database plugin, to handle file based database (SQLite).
+
+	- prelude-manager has been updated to check the loaded revocation 
+	  list, if available. This was needed since the recent prelude-adduser
+	  addition allowing to create analyzer revocation list.
+
+	- Remove line size limitation on specified IDMEF-criteria.
+
+	- Remove all ancillary groups as well as setgid-ing.
+
+	- Fix idmef-criteria-filter option conflict.
+
+	- Fix a possible crash if no listen address is specified, but a 
+	  reverse relay is used. 
+
+	- Much better error reporting.
+
+
 * 2005-11-14, prelude-manager-0.9.1:
 
 	- Ability to listen on multiple IP address.
