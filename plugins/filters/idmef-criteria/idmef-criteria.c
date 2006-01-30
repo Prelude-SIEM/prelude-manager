@@ -278,7 +278,7 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *roo
                 return ret;
         
         ret = prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
-                                 |PRELUDE_OPTION_TYPE_WIDE, 'h', "hook",
+                                 |PRELUDE_OPTION_TYPE_WIDE, 0, "hook",
                                  "Where the filter should be hooked (reporting|reverse-relaying|plugin name)",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED, set_filter_hook, get_filter_hook);
         if ( ret < 0 )
