@@ -84,7 +84,10 @@ static int recover_from_failover(prelude_plugin_instance_t *pi, plugin_failover_
         
         do {
                 size = prelude_failover_get_saved_msg(pf->failover, &msg);
-                if ( size <= 0 )
+                if ( size < 0 )
+                        prelude_perror(ret, "could not retrieve saved message");
+                
+                if ( size == 0 )
                         break;
                 
                 *totsize += size;
