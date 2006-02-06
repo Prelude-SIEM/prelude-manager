@@ -162,9 +162,11 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                         return ret; /* EAGAIN happened */
                 
                 if ( ret < 0 ) {
-                        ret = send_queued_alert(client);
-                        if ( ret != 1 )
-                                return ret;
+                        if ( client->alert ) {
+                                ret = send_queued_alert(client);
+                                if ( ret != 1 )
+                                        return ret;
+                        }
                         
                         return -1;
                 }
@@ -316,7 +318,7 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
         }
         
         server_generic_log_client(client, PRELUDE_LOG_INFO, "closing connection.\n");
-
+        
         free(client->permission_string);
         free(client->addr);        
         free(client);
