@@ -131,8 +131,10 @@ int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_gener
                 }
                 pthread_mutex_unlock(&rrr->mutex);
                 
-                if ( size < 0 )
+                if ( size < 0 ) {
+                        prelude_perror(ret, "could not retrieve saved message from disk");
                         return -1;
+                }
 
                 rrr->count++;
                 
@@ -258,7 +260,10 @@ static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
         }
 
         pthread_mutex_unlock(&item->mutex);
-        prelude_failover_save_msg(item->failover, msg);
+        ret = prelude_failover_save_msg(item->failover, msg);
+        if ( ret < 0 )
+                prelude_perror(ret, "could not save message to disk");
+        
         prelude_msg_destroy(msg);
         
         return 0;
@@ -272,8 +277,8 @@ void reverse_relay_send_receiver(idmef_message_t *idmef)
         reverse_relay_receiver_t *item;
 
         /*
-         * FIXME: this is dirty since we are re-encoding
-         * the IDMEF message once time per receiver.
+         * FIXME: this is dirty since we are encoding
+         * the IDMEF message once per receiver.
          *
          * Implement a better scheme where we create an intermediate
          * "linking" object, which share a refcount, a message, and
