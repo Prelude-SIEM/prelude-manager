@@ -355,7 +355,7 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
 
         ret = prelude_option_read(init_first, &config.config_file, argc, argv, &err, NULL);        
         if ( ret < 0 && prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
-                prelude_perror(ret, "error processing options");
+                prelude_perror(ret, "error processing prelude-manager options");
         
         prelude_option_set_warnings(old_warnings, NULL);
         
