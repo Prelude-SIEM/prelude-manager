@@ -523,12 +523,14 @@ static int read_connection_cb(server_generic_client_t *client)
         
         ret = prelude_msg_read(&cnx->msg, cnx->fd);
         if ( ret < 0 ) {
-		if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
+                prelude_error_code_t code = prelude_error_get_code(ret);
+                
+		if ( code == PRELUDE_ERROR_EAGAIN )
                         return 0;
 
-                server_generic_log_client((server_generic_client_t *) cnx,
-                                          PRELUDE_LOG_WARN, "%s.\n", prelude_strerror(ret));
-
+                if ( code != PRELUDE_ERROR_EOF )
+                        server_generic_log_client((server_generic_client_t *) cnx, PRELUDE_LOG_WARN, "x%s.\n", prelude_strerror(ret));
+                
                 return -1;
         }
 
