@@ -79,7 +79,6 @@ PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, pass)
 PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, file)
 
 
-
 static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 {
         db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
@@ -169,8 +168,10 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
                 return ret;
         }
 
-	if ( plugin->log ) {
-		ret = preludedb_sql_enable_query_logging(sql, plugin->log);
+        if ( ! plugin->log )
+                preludedb_sql_disable_query_logging(sql);
+        else {
+                ret = preludedb_sql_enable_query_logging(sql, (strcmp(plugin->log, "-") == 0) ? NULL : plugin->log);
                 if ( ret < 0 ) {
 			preludedb_sql_destroy(sql);
                         prelude_string_sprintf(out, "could not enable queries logging with log file '%s': %s",
@@ -245,7 +246,7 @@ int db_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
         
 	ret = prelude_option_add(opt, NULL, hook, 'l', "log",
                                  "Log all queries in a file, should be only used for debugging purpose",
-                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, db_set_log, db_get_log);
+                                 PRELUDE_OPTION_ARGUMENT_OPTIONAL, db_set_log, db_get_log);
         if ( ret < 0 )
                 return ret;
         
