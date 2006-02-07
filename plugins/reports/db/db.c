@@ -81,15 +81,12 @@ PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(db, db_plugin_t, file)
 
 static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 {
-        db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
-        char errbuf[PRELUDEDB_ERRBUF_SIZE];
         int ret;
+        db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 
         ret = preludedb_insert_message(plugin->db, message);
         if ( ret < 0 )
-                prelude_log(PRELUDE_LOG_WARN,
-                            "could not insert message into database: %s.\n",
-                            preludedb_get_error(plugin->db, ret, errbuf, sizeof(errbuf)));
+                prelude_log(PRELUDE_LOG_WARN, "could not insert message into database: %s.\n", preludedb_strerror(ret));
 
         return ret;
 }
@@ -136,7 +133,6 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         preludedb_t *db;
         preludedb_sql_t *sql;
         preludedb_sql_settings_t *settings;
-        char errbuf[PRELUDEDB_ERRBUF_SIZE];
         db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
                 
         ret = preludedb_sql_settings_new(&settings);        
@@ -180,10 +176,10 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 		}
 	}
 
-        ret = preludedb_new(&db, sql, NULL, errbuf, sizeof(errbuf));
+        ret = preludedb_new(&db, sql, NULL, NULL, 0);
         if ( ret < 0 ) {
 		preludedb_sql_destroy(sql);
-                prelude_string_sprintf(out, "could not initialize libpreludedb: %s", errbuf);
+                prelude_string_sprintf(out, "could not initialize libpreludedb: %s", preludedb_strerror(ret));
 		return ret;
 	}
 
