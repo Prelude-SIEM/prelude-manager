@@ -132,7 +132,7 @@ int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_gener
                 pthread_mutex_unlock(&rrr->mutex);
                 
                 if ( size < 0 ) {
-                        prelude_perror(ret, "could not retrieve saved message from disk");
+                        prelude_perror((prelude_error_t) size, "could not retrieve saved message from disk");
                         return -1;
                 }
 
