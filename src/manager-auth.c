@@ -254,20 +254,19 @@ static int get_params(gnutls_session session, gnutls_params_type type, gnutls_pa
         }
         
         pthread_mutex_lock(&dh_regen_mutex);
-        
         ret = gnutls_dh_params_cpy(cpy, cur_dh_params);
+        pthread_mutex_unlock(&dh_regen_mutex);
+        
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_WARN, "could not copy dh params for sessions: %s.\n", gnutls_strerror(ret));
                 gnutls_dh_params_deinit(cpy);
                 return -1;
         }
-
-        pthread_mutex_unlock(&dh_regen_mutex);
         
         st->deinit = 1;
         st->type = type;
         st->params.dh = cpy;
-        
+
         return 0;
 }
 
