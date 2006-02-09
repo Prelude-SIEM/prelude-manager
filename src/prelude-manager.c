@@ -224,11 +224,7 @@ int main(int argc, char **argv)
         
         ret = prelude_client_init(manager_client);
         if ( ret < 0 ) {
-                prelude_perror(ret, "error starting prelude-client");
-                
-                if ( prelude_client_is_setup_needed(ret) )
-                        prelude_client_print_setup_error(manager_client);
-
+                prelude_perror(ret, "error initializing prelude-client");
                 return ret;
         }
 
