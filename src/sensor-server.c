@@ -529,7 +529,7 @@ static int read_connection_cb(server_generic_client_t *client)
                         return 0;
 
                 if ( code != PRELUDE_ERROR_EOF )
-                        server_generic_log_client((server_generic_client_t *) cnx, PRELUDE_LOG_WARN, "x%s.\n", prelude_strerror(ret));
+                        server_generic_log_client((server_generic_client_t *) cnx, PRELUDE_LOG_WARN, "%s.\n", prelude_strerror(ret));
                 
                 return -1;
         }
