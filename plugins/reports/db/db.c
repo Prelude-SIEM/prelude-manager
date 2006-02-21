@@ -120,8 +120,10 @@ static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
         if ( plugin->log )
                 free(plugin->log);
-        
-        preludedb_destroy(plugin->db);
+
+        if ( plugin->db )
+                preludedb_destroy(plugin->db);
+
         free(plugin);
 }
 
@@ -134,7 +136,7 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         preludedb_sql_t *sql;
         preludedb_sql_settings_t *settings;
         db_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
-                
+        
         ret = preludedb_sql_settings_new(&settings);        
         if ( ret < 0 )
                 return ret;
@@ -196,7 +198,7 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 static int db_activate(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
 {
         db_plugin_t *new;
-
+        
         new = calloc(1, sizeof(*new));
         if ( ! new )
                 return prelude_error_from_errno(errno);
