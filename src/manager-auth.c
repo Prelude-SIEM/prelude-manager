@@ -272,8 +272,10 @@ static int get_params(gnutls_session session, gnutls_params_type type, gnutls_pa
 
 
 
-static int handle_gnutls_error(prelude_io_t *pio, gnutls_session session, server_generic_client_t *client, int ret)
+static int handle_gnutls_error(prelude_io_t *pio, gnutls_session session, server_generic_client_t *client, int ret,
+                               gnutls_alert_description *alert_desc)
 {
+        int level;
         const char *alert;
         
         if ( ret == GNUTLS_E_AGAIN ) {                
@@ -297,11 +299,11 @@ static int handle_gnutls_error(prelude_io_t *pio, gnutls_session session, server
                 server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS fatal alert from client: %s.\n", alert);
         }
 
-        else
+        else {
                 server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS error: %s.\n", gnutls_strerror(ret));
-
-        gnutls_deinit(session);
-        prelude_io_set_sys_io(pio, prelude_io_get_fd(pio));
+                if ( alert_desc && (ret = gnutls_error_to_alert(ret, &level)) > 0 )
+                        *alert_desc = (gnutls_alert_description) ret;
+        }
         
         return -1;
 }
@@ -463,11 +465,11 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnut
         }
         
         do {
-                ret = gnutls_handshake(session);
+                ret = gnutls_handshake(session);                
                 if ( ret == 0 )
                         ret = 1;
                 
-        } while ( ret < 0 && (ret = handle_gnutls_error(pio, session, client, ret)) == 1 );
+        } while ( ret < 0 && (ret = handle_gnutls_error(pio, session, client, ret, alert)) == 1 );
         
         if ( ret <= 0 )
                 return ret;
@@ -498,7 +500,7 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnut
 
 int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_t *pio)
 {
-        int ret = 1;
+        int ret;
         gnutls_session session;
         
         session = prelude_io_get_fdptr(pio);
@@ -508,7 +510,7 @@ int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_
                 if ( ret == 0 )
                         ret = 1;
                 
-        } while ( ret < 0 && (ret = handle_gnutls_error(pio, session, client, ret)) == 1 );
+        } while ( ret < 0 && (ret = handle_gnutls_error(pio, session, client, ret, NULL)) == 1 );
 
         if ( ret <= 0 )
                 return ret;
