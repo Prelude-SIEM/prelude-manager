@@ -824,15 +824,15 @@ static int textmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         textmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
         if ( ! plugin->logfile ) {
-                prelude_string_sprintf(out, "no logfile specified");
-                return -1;
+                plugin->logfile = strdup("-");
+                if ( ! plugin->logfile )
+                        return prelude_error_from_errno(errno);
+                
+                fd = stdout;
         }
         
-        if ( strcmp(plugin->logfile, "stdout") == 0 )
+        else if ( strcmp(plugin->logfile, "-") == 0 )
                 fd = stdout;
-
-        else if ( strcmp(plugin->logfile, "stderr") == 0 )
-                fd = stderr;
         
         else {
                 fd = fopen(plugin->logfile, "a+");
@@ -870,7 +870,7 @@ static void textmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err
 {
         textmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 
-        if ( plugin->fd && plugin->fd != stderr )
+        if ( plugin->fd && plugin->fd != stdout )
                 fclose(plugin->fd);
 
         if ( plugin->logfile )

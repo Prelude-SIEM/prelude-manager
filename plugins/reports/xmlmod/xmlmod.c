@@ -890,15 +890,15 @@ static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
         if ( ! plugin->logfile ) {
-                prelude_string_sprintf(out, "no logfile specified");
-                return -1;
+                plugin->logfile = strdup("-");
+                if ( ! plugin->logfile )
+                        return prelude_error_from_errno(errno);
+                
+                fd = stdout;
         }
         
-        if ( strcmp(plugin->logfile, "stdout") == 0 )
+        else if ( strcmp(plugin->logfile, "-") == 0 )
                 fd = stdout;
-
-        else if ( strcmp(plugin->logfile, "stderr") == 0 )
-                fd = stderr;
         
         else if ( ! (fd = fopen(plugin->logfile, "a+")) ) {
                 prelude_string_sprintf(out, "error opening %s for writing", plugin->logfile);
@@ -924,7 +924,7 @@ static void xmlmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
-        if ( plugin->fd )
+        if ( plugin->fd && plugin->fd->context != stdout )
                 xmlOutputBufferClose(plugin->fd);
         
         if ( plugin->logfile )
@@ -943,7 +943,6 @@ static int xmlmod_activate(prelude_option_t *opt, const char *arg, prelude_strin
         new = calloc(1, sizeof(*new));
         if ( ! new )
                 return prelude_error_from_errno(errno);
-
         
         new->fd = xmlAllocOutputBuffer(NULL);
         if ( ! new->fd ) {
@@ -1064,7 +1063,7 @@ int xmlmod_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
         
         ret = prelude_option_add(opt, NULL, hook, 'd', "disable-buffering",
                                  "Disable output file buffering to prevent truncated tags",
-                                 PRELUDE_OPTION_ARGUMENT_OPTIONAL, disable_buffering, NULL);
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, disable_buffering, NULL);
         if ( ret < 0 )
                 return ret;
         
