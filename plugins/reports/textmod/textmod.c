@@ -837,7 +837,7 @@ static int textmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
         else {
                 fd = fopen(plugin->logfile, "a+");
                 if ( ! fd ) {
-                        prelude_string_sprintf(out, "error opening %s in append mode", plugin->logfile);
+                        prelude_string_sprintf(out, "error opening '%s' in append mode", plugin->logfile);
                         return -1;
                 }
         }
