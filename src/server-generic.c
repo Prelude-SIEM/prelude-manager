@@ -772,6 +772,28 @@ static int resolve_addr(server_generic_t *server, const char *addr, unsigned int
 
 
 
+static int sg_bind_common(server_generic_t *server, unsigned int port)
+{
+        char out[128];
+        void *in_addr;
+        
+        fcntl(server->sock, F_SETFD, fcntl(server->sock, F_GETFD) | FD_CLOEXEC);
+        
+        if ( server->sa->sa_family == AF_UNIX )
+                prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s).\n",
+                            ((struct sockaddr_un *) server->sa)->sun_path);
+        else {
+                in_addr = prelude_sockaddr_get_inaddr(server->sa);
+                assert(in_addr);
+                
+                inet_ntop(server->sa->sa_family, in_addr, out, sizeof(out));
+                prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s port %u).\n", out, port);
+        }
+
+        return 0;
+}
+
+
 
 /*
  *
@@ -807,11 +829,32 @@ server_generic_t *server_generic_new(size_t clientlen, server_generic_accept_fun
 
 
 
+int server_generic_bind_numeric(server_generic_t *server, struct sockaddr *sa, socklen_t len, unsigned int port)
+{
+        int ret;
+
+        server->sa = malloc(len);
+        if ( ! server->sa )
+                return prelude_error_from_errno(errno);
+
+        server->slen = len;
+        memcpy(server->sa, sa, len);
+        
+        ret = inet_server_start(server, server->sa, server->slen);
+        if ( ret < 0 ) {
+                server_logic_stop(server->logic);
+                free(server->sa);
+                return ret;
+        }
+
+        return sg_bind_common(server, port);
+}
+
+
+
 int server_generic_bind(server_generic_t *server, const char *saddr, unsigned int port)
 {
         int ret;
-        char out[128];
-        void *in_addr;
         
         ret = resolve_addr(server, saddr, port);
         if ( ret < 0 )
@@ -825,25 +868,10 @@ int server_generic_bind(server_generic_t *server, const char *saddr, unsigned in
         if ( ret < 0 ) {
                 server_logic_stop(server->logic);
                 free(server->sa);
-                free(server);
                 return ret;
         }
-                
-        fcntl(server->sock, F_SETFD, fcntl(server->sock, F_GETFD) | FD_CLOEXEC);
-        
-        if ( server->sa->sa_family == AF_UNIX )
-                prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s).\n",
-                            ((struct sockaddr_un *) server->sa)->sun_path);
-        else {
-                in_addr = prelude_sockaddr_get_inaddr(server->sa);
-                assert(in_addr);
-                
-                inet_ntop(server->sa->sa_family, in_addr, out, sizeof(out));
-                prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s port %u).\n", out, port);
-        }
-                
 
-        return 0;
+        return sg_bind_common(server, port);
 }
 
 

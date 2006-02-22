@@ -85,6 +85,8 @@ server_generic_t *server_generic_new(size_t serverlen,
 
 int server_generic_bind(server_generic_t *server, const char *addr, unsigned int port);
 
+int server_generic_bind_numeric(server_generic_t *server, struct sockaddr *sa, socklen_t len, unsigned int port);
+
 void server_generic_start(server_generic_t **server, size_t nserver);
 
 void server_generic_close(server_generic_t *server);

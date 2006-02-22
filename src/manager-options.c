@@ -96,24 +96,74 @@ static int set_pidfile(prelude_option_t *opt, const char *arg, prelude_string_t 
 
 
 
-static int add_server(const char *addr, unsigned int port)
+static server_generic_t *add_server(void)
 {
-        int ret;
-        
         config.nserver++;
 
         config.server = _prelude_realloc(config.server, sizeof(*config.server) * config.nserver);        
         if ( ! config.server )
-                return -1;
+                return NULL;
         
         config.server[config.nserver - 1] = sensor_server_new();
         if ( ! config.server[config.nserver - 1] )
+                return NULL;
+
+        return config.server[config.nserver - 1];
+}
+
+
+static int add_server_default(void)
+{
+        int ret;
+        char buf[128];
+        server_generic_t *server;
+        struct addrinfo *ai, *ai_start, hints;
+
+        memset(&hints, 0, sizeof(hints));
+        
+        hints.ai_flags = AI_PASSIVE;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+        hints.ai_family = PF_UNSPEC;
+        
+#ifdef AI_ADDRCONFIG
+        /*
+         * Only look up addresses using address types for which a local
+         * interface is configured.
+         */
+        hints.ai_flags |= AI_ADDRCONFIG;
+#endif
+        
+        snprintf(buf, sizeof(buf), "%u", DEFAULT_MANAGER_PORT);
+                
+        ret = getaddrinfo(NULL, buf, &hints, &ai);
+        if ( ret != 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "error getting default machine address: %s.\n", 
+                            (ret == EAI_SYSTEM) ? strerror(errno) : gai_strerror(ret));
                 return -1;
+        }
         
-        ret = server_generic_bind((server_generic_t *) config.server[config.nserver - 1], addr, port);
-        if ( ret < 0 )
-                prelude_perror(ret, "error initializing server on %s:%u", addr, port);
+        for ( ai_start = ai; ai != NULL; ai = ai->ai_next ) {
+                if ( ! inet_ntop(ai->ai_family, prelude_sockaddr_get_inaddr(ai->ai_addr), buf, sizeof(buf)) ) {
+                        prelude_log(PRELUDE_LOG_ERR, "address to string translation failed: %s.\n", strerror(errno));
+                        break;
+                }
+
+                server = add_server();
+                if ( ! server )
+                        break;
+                
+                ret = server_generic_bind_numeric(server, ai->ai_addr, ai->ai_addrlen, DEFAULT_MANAGER_PORT);
+                if ( ret < 0 ) {
+                        char buf[128];
+                        inet_ntop(ai->ai_family, prelude_sockaddr_get_inaddr(ai->ai_addr), buf, sizeof(buf));
+                        prelude_perror(ret, "error initializing server on %s:%u", buf, DEFAULT_MANAGER_PORT);
+                        break;
+                }
+        }
         
+        freeaddrinfo(ai_start);
+
         return ret;
 }
 
@@ -124,7 +174,7 @@ static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_str
         int ret;
         
         if ( config.nserver == 0 ) {
-                ret = add_server(DEFAULT_MANAGER_ADDR, DEFAULT_MANAGER_PORT);
+                ret = add_server_default();
                 if ( ret < 0 )
                         return ret;
         }
@@ -137,8 +187,10 @@ static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_str
 
 static int set_listen_address(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
 {
+        int ret;
         char *ptr;
-        unsigned int port = 4690;
+        server_generic_t *server;
+        unsigned int port = DEFAULT_MANAGER_PORT;
                 
         if ( strncmp(arg, "unix", 4) != 0 ) {
                 
@@ -149,7 +201,15 @@ static int set_listen_address(prelude_option_t *opt, const char *arg, prelude_st
                 }
         }
 
-        return add_server(arg, port);
+        server = add_server();
+        if ( ! server )
+                return -1;
+        
+        ret = server_generic_bind(server, arg, port);
+        if ( ret < 0 )
+                prelude_perror(ret, "error initializing server on %s:%u", arg, port);
+        
+        return ret;
 }
 
 
@@ -381,7 +441,7 @@ int manager_options_read(prelude_option_t *manager_root_optlist, int *argc, char
         }
         
         if ( config.nserver == 0 )
-                ret = add_server(DEFAULT_MANAGER_ADDR, DEFAULT_MANAGER_PORT);
-
+                ret = add_server_default();
+        
         return ret;
 }
