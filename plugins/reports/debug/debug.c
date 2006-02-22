@@ -50,6 +50,7 @@ typedef struct {
 
 
 typedef struct {
+        char *logfile;
         prelude_io_t *fd;
         prelude_list_t path_list;
 } debug_plugin_t;
@@ -156,22 +157,15 @@ static int debug_set_object(prelude_option_t *option, const char *arg, prelude_s
 
 
 
-static int debug_set_fd(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
+static int debug_set_logfile(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         FILE *fd;
         debug_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-
-        fd = prelude_io_get_fdptr(plugin->fd);
-        if ( fd != stderr && fd != stdout )
-                fclose(fd);
-        
-        if ( strcmp(arg, "stderr") == 0 )
-                fd = stderr;
-        
-        else if ( strcmp(arg, "stdout") == 0 )
+                
+        if ( strcmp(arg, "-") == 0 )                
                 fd = stdout;
 
-        else {
+        else {                
                 fd = fopen(arg, "a+");
                 if ( ! fd ) {
                         prelude_string_sprintf(err, "error opening %s for writing: %s", arg, strerror(errno));
@@ -179,9 +173,29 @@ static int debug_set_fd(prelude_option_t *option, const char *arg, prelude_strin
                 }
         }
         
-        prelude_io_set_file_io(plugin->fd, fd);
+        plugin->logfile = strdup(arg);
+        if ( ! plugin->logfile ) {
+                if ( fd != stdout )
+                        fclose(fd);
 
+                return prelude_error_from_errno(errno);
+        }
+        
+        if ( prelude_io_get_fdptr(plugin->fd) != stdout )
+                fclose(prelude_io_get_fdptr(plugin->fd));
+        
+        prelude_io_set_file_io(plugin->fd, fd);
+        
         return 0;
+}
+
+
+
+static int debug_get_logfile(prelude_option_t *opt, prelude_string_t *out, void *context)
+{
+        debug_plugin_t *plugin;
+        plugin = prelude_plugin_instance_get_plugin_data(context);
+        return prelude_string_set_ref(out, plugin->logfile);
 }
 
 
@@ -194,12 +208,18 @@ static int debug_new(prelude_option_t *opt, const char *arg, prelude_string_t *e
         new = malloc(sizeof(*new));
         if ( ! new )
                 return prelude_error_from_errno(errno);
-
+        
         ret = prelude_io_new(&new->fd);
         if ( ret < 0 )
                 return ret;
 
-        prelude_io_set_file_io(new->fd, stderr);
+        new->logfile = strdup("-");
+        if ( ! new->logfile ) {
+                prelude_io_destroy(new->fd);
+                return prelude_error_from_errno(errno);
+        }
+        
+        prelude_io_set_file_io(new->fd, stdout);
         
         prelude_list_init(&new->path_list);
         prelude_plugin_instance_set_plugin_data(context, new);
@@ -217,7 +237,7 @@ static void debug_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
         debug_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 
         fd = prelude_io_get_fdptr(plugin->fd);
-        if ( fd != stderr && fd != stdout )
+        if ( fd != stdout )
                 prelude_io_close(plugin->fd);
         
         prelude_io_destroy(plugin->fd);
@@ -257,8 +277,8 @@ int debug_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
                 return ret;
 
         ret = prelude_option_add(opt, NULL, hook, 'l', "logfile",
-                                 "Specify output file to use (default to stderr)",
-                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, debug_set_fd, NULL);
+                                 "Specify output file to use (default to stdout)",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, debug_set_logfile, debug_get_logfile);
         if ( ret < 0 )
                 return ret;
         
