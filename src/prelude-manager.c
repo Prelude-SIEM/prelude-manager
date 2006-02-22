@@ -59,7 +59,7 @@ extern manager_config_t config;
 prelude_client_t *manager_client;
 
 static char **global_argv;
-static volatile sig_atomic_t got_sighup = 0;
+static volatile sig_atomic_t got_signal = 0;
 
 
 
@@ -71,37 +71,12 @@ static void handle_signal(int sig)
         size_t i;
         
         /*
-         * re-establish signal handler.
-         */
-        signal(sig, handle_signal);
-        
-        prelude_log(PRELUDE_LOG_INFO, "Caught signal %d.\n", sig);
-
-        /*
          * stop the sensor server.
          */
         for ( i = 0; i < config.nserver; i++ )
                 sensor_server_stop(config.server[i]);
-}
 
-
-
-static void handle_sighup(int signo)
-{
-        size_t i;
-        
-        /*
-         * re-establish signal handler.
-         */
-        signal(signo, handle_sighup);
-
-        /*
-         * stop the sensor server.
-         */
-        for ( i = 0; i < config.nserver; i++ )
-                sensor_server_stop(config.server[i]);
-        
-        got_sighup = 1;
+        got_signal = sig;
 }
 
 
@@ -163,7 +138,6 @@ static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
 int main(int argc, char **argv)
 {
         int ret;
-        size_t i;
         struct sigaction action;
         prelude_option_t *manager_root_optlist;
         
@@ -174,8 +148,12 @@ int main(int argc, char **argv)
         
         /*
          * make sure we ignore sighup until acceptable.
-         */
+         */        
+#ifdef SA_INTERRUPT
+        action.sa_flags = SA_INTERRUPT;
+#else
         action.sa_flags = 0;
+#endif
         action.sa_handler = SIG_IGN;
         sigemptyset(&action.sa_mask);
         sigaction(SIGHUP, &action, NULL);
@@ -263,31 +241,27 @@ int main(int argc, char **argv)
         /*
          * setup signal handling
          */
-        action.sa_flags = 0;
-        sigemptyset(&action.sa_mask);
-        action.sa_handler = handle_signal;
+        sigaction(SIGPIPE, &action, NULL);
         
-        signal(SIGPIPE, SIG_IGN);
+        action.sa_handler = handle_signal;
         sigaction(SIGINT, &action, NULL);
         sigaction(SIGTERM, &action, NULL);
         sigaction(SIGABRT, &action, NULL);
         sigaction(SIGQUIT, &action, NULL);
-        
-        action.sa_handler = handle_sighup;
         sigaction(SIGHUP, &action, NULL);
         
         server_generic_start(config.server, config.nserver);
-        
                 
         /*
-         * we won't get here unless a signal is caught.
+         * we won't get there unless a signal is caught.
          */
-        for ( i = 0; i < config.nserver; i++ ) 
-                server_generic_close(config.server[i]);
+        if ( got_signal )
+                prelude_log(PRELUDE_LOG_WARN, "signal %d received, %s prelude-manager.\n",
+                            got_signal, (got_signal == SIGHUP) ? "will restart" : "terminating");
         
         idmef_message_scheduler_exit();
 
-        if ( got_sighup )
+        if ( got_signal == SIGHUP )
                 restart_manager();
         
         if ( config.pidfile )
