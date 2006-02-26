@@ -271,11 +271,50 @@ static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 
 
 
+static int get_issuer_analyzerid(idmef_message_t *idmef, uint64_t *analyzerid)
+{
+        idmef_alert_t *alert;
+        idmef_message_type_t type;
+        idmef_heartbeat_t *heartbeat;
+        idmef_analyzer_t *analyzer, *last = NULL;
+        
+        type = idmef_message_get_type(idmef);
+        
+        if ( type == IDMEF_MESSAGE_TYPE_ALERT ) {
+                alert = idmef_message_get_alert(idmef);
+                while ( (analyzer = idmef_alert_get_next_analyzer(alert, last)) )
+                        last = analyzer;
+        }
+
+        else if ( type == IDMEF_MESSAGE_TYPE_HEARTBEAT ) {
+                heartbeat = idmef_message_get_heartbeat(idmef);
+                while ( (analyzer = idmef_heartbeat_get_next_analyzer(heartbeat, last)) )
+                        last = analyzer;
+        }
+
+        else return -1;
+        
+        if ( last && prelude_string_get_string(idmef_analyzer_get_analyzerid(last)) )
+                *analyzerid = strtoull(prelude_string_get_string(idmef_analyzer_get_analyzerid(last)), NULL, 10);
+        else
+                *analyzerid = 0;
+        
+        return 0;
+}
+
+
+
 void reverse_relay_send_receiver(idmef_message_t *idmef) 
-{        
+{
+        int ret;
+        uint64_t analyzerid;
         prelude_list_t *iter = NULL;
         reverse_relay_receiver_t *item;
 
+        ret = get_issuer_analyzerid(idmef, &analyzerid);
+        if ( ret < 0 )
+                return;
+        
         /*
          * FIXME: this is dirty since we are encoding
          * the IDMEF message once per receiver.
@@ -285,7 +324,11 @@ void reverse_relay_send_receiver(idmef_message_t *idmef)
          * a mutex, but hold it's list member private.
          */
         while ( (item = get_next_receiver(&iter)) ) {
-                
+
+                if ( analyzerid == item->analyzerid )
+                        /* we're not an echo server, let's skip the sender */
+                        continue;
+
                 prelude_msgbuf_set_data(msgbuf, item);
                 idmef_message_write(idmef, msgbuf);
                 prelude_msgbuf_mark_end(msgbuf);                
