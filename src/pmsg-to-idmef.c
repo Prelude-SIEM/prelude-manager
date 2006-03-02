@@ -92,7 +92,7 @@ static int handle_heartbeat_msg(prelude_msg_t *msg, idmef_message_t *idmef)
                 idmef_heartbeat_set_analyzer_time(heartbeat, analyzer_time);
         }
 
-        idmef_heartbeat_set_analyzer(heartbeat, idmef_analyzer_ref(prelude_client_get_analyzer(manager_client)), 0);
+        idmef_heartbeat_set_analyzer(heartbeat, idmef_analyzer_ref(prelude_client_get_analyzer(manager_client)), IDMEF_LIST_PREPEND);
         
         return 0;
 }
@@ -122,7 +122,7 @@ static int handle_alert_msg(prelude_msg_t *msg, idmef_message_t *idmef)
                 idmef_alert_set_analyzer_time(alert, analyzer_time);
         }       
 
-        idmef_alert_set_analyzer(alert, idmef_analyzer_ref(prelude_client_get_analyzer(manager_client)), 0);
+        idmef_alert_set_analyzer(alert, idmef_analyzer_ref(prelude_client_get_analyzer(manager_client)), IDMEF_LIST_PREPEND);
         
         return 0;
 }
