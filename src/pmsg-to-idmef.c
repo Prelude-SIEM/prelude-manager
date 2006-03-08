@@ -183,8 +183,8 @@ int pmsg_to_idmef(idmef_message_t **idmef, prelude_msg_t *msg)
         }
         
         if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EOF )
-                return 0;
-
+                return decode_plugins_run(0, NULL, *idmef);
+        
         prelude_log(PRELUDE_LOG_INFO, "%s: error reading IDMEF message: %s.\n", prelude_strsource(ret), prelude_strerror(ret));
         idmef_message_destroy(*idmef);
                 
