@@ -300,6 +300,7 @@ src/include/Makefile
 plugins/Makefile
 
 plugins/decodes/Makefile
+plugins/decodes/normalize/Makefile
 
 plugins/filters/Makefile
 plugins/filters/idmef-criteria/Makefile
