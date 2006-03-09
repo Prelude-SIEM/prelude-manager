@@ -552,11 +552,12 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
         
         ret = bind(sock, addr, alen);
         if ( ret < 0 )
-                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not bind socket: %s", strerror(errno));
+                return prelude_error_verbose(prelude_error_code_from_errno(errno),
+                                             "could not bind socket: %s", strerror(errno));
         
         ret = listen(sock, 10);
         if ( ret < 0 )
-                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could no listen on socket: %s", strerror(errno));
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "listen error: %s", strerror(errno));
                 
         return 0;
 }
@@ -585,30 +586,22 @@ static int is_unix_socket_already_used(int sock, struct sockaddr_un *sa, int add
          */
         ret = stat(sa->sun_path, &st);
         if ( ret < 0 )
-                return FALSE;
+                return 0;
 
-        if ( ! S_ISSOCK(st.st_mode) ) {
-                prelude_log(PRELUDE_LOG_WARN, "%s already exist and is not an UNIX socket: please check.\n",
-                            sa->sun_path);
-                return -1;
-        }
+        if ( ! S_ISSOCK(st.st_mode) )
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "'%s' exist and is not an UNIX socket", sa->sun_path);
         
         ret = connect(sock, (struct sockaddr *) sa, addrlen);
-        if ( ret == 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "%s UNIX socket is already in use. Exiting.\n",
-                            sa->sun_path);
-                return TRUE;
-        }
+        if ( ret == 0 )
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "UNIX socket '%s' already in use", sa->sun_path);
         
         /*
          * The unix socket exist on the file system,
          * but no one use it... Delete it.
          */
         ret = unlink(sa->sun_path);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't delete UNIX socket.\n");
-                return -1;
-        }
+        if ( ret < 0 )
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not delete unused UNIX socket: %s", strerror(errno));
         
         return 0;
 }
@@ -624,21 +617,19 @@ static int unix_server_start(server_generic_t *server)
         struct sockaddr_un *sa = (struct sockaddr_un *) server->sa;
         
         server->sock = socket(AF_UNIX, SOCK_STREAM, 0);
-        if ( server->sock < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "error creating UNIX socket: %s.\n", strerror(errno));
-		return -1;
-	}
+        if ( server->sock < 0 )
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "error creating UNIX socket: %s", strerror(errno));
 
         ret = is_unix_socket_already_used(server->sock, sa, server->slen);
-        if ( ret == 1 || ret < 0  ) {
+        if ( ret < 0 ) {
                 close(server->sock);
-                return -1;
+                return ret;
         }
 
         ret = generic_server(server->sock, server->sa, server->slen);
         if ( ret < 0 ) {
                 close(server->sock);
-                return -1;
+                return ret;
         }
 
         /*
@@ -646,10 +637,8 @@ static int unix_server_start(server_generic_t *server)
          * representing our socket.
          */
         ret = chmod(sa->sun_path, S_IRWXU|S_IRWXG|S_IRWXO);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not set permission on UNIX socket: %s.\n", strerror(errno));
-                return -1;
-        }
+        if ( ret < 0 ) 
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set permission on UNIX socket: %s", strerror(errno));
         
         return 0;
 }
@@ -907,6 +896,11 @@ void server_generic_process_requests(server_generic_t *server, server_generic_cl
         server_logic_process_requests(server->logic, (server_logic_client_t *) client);
 }
 
+
+void server_generic_remove_client(server_generic_t *server, server_generic_client_t *client)
+{
+        server_logic_remove_client((server_logic_client_t *) client);
+}
 
 
 void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t priority, const char *fmt, ...)
