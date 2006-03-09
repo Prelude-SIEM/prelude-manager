@@ -101,10 +101,7 @@ static int write_client(sensor_fd_t *dst, prelude_msg_t *msg)
         
         ret = prelude_msg_write(msg, dst->fd);
         if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
-                pthread_mutex_lock(&dst->mutex);
-                prelude_linked_object_add(&dst->write_msg_list, (prelude_linked_object_t *) msg);
-                server_logic_notify_write_enable((server_logic_client_t *) dst);
-                pthread_mutex_unlock(&dst->mutex);
+                sensor_server_queue_write_client((server_generic_client_t *) dst, msg);
                 return ret;
         }
 
@@ -559,8 +556,11 @@ static int write_connection_cb(server_generic_client_t *client)
         
         pthread_mutex_unlock(&sclient->mutex);
 
-        if ( cur )
+        if ( cur ) {
                 ret = write_client(sclient, cur);
+                if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
+                        return 0;
+        }
         
         pthread_mutex_lock(&sclient->mutex);
                 
