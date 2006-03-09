@@ -51,7 +51,6 @@ manager_config_t config;
 extern prelude_client_t *manager_client;
 
 
-
 static int set_conf_file(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
 {
         config.config_file = strdup(optarg);
@@ -114,9 +113,9 @@ static server_generic_t *add_server(void)
 
 static int add_server_default(void)
 {
-        int ret;
         char buf[128];
         server_generic_t *server;
+        int ret, prev_family = AF_UNSPEC;
         struct addrinfo *ai, *ai_start, hints;
 
         memset(&hints, 0, sizeof(hints));
@@ -156,10 +155,28 @@ static int add_server_default(void)
                 ret = server_generic_bind_numeric(server, ai->ai_addr, ai->ai_addrlen, DEFAULT_MANAGER_PORT);
                 if ( ret < 0 ) {
                         char buf[128];
+
+                        /*
+                         * More information on this at:
+                         * http://lists.debian.org/debian-ipv6/2001/01/msg00031.html
+                         */   
+                        if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EADDRINUSE &&
+                             prev_family != AF_UNSPEC && ai->ai_family != prev_family ) {
+                                ret = 0;
+                                continue;
+                        }
+                        
                         inet_ntop(ai->ai_family, prelude_sockaddr_get_inaddr(ai->ai_addr), buf, sizeof(buf));
                         prelude_perror(ret, "error initializing server on %s:%u", buf, DEFAULT_MANAGER_PORT);
                         break;
                 }
+
+                prev_family = ai->ai_family;
+        }
+
+        if ( config.nserver == 0 ) {
+                prelude_log(PRELUDE_LOG_WARN, "could not find any address to listen on.\n");
+                return -1;
         }
         
         freeaddrinfo(ai_start);
@@ -176,7 +193,7 @@ static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_str
         if ( config.nserver == 0 ) {
                 ret = add_server_default();
                 if ( ret < 0 )
-                        return ret;
+                        return -1; /* avoid duplicate option error */
         }
         
         return reverse_relay_create_initiator(arg);
@@ -327,9 +344,7 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         prelude_option_warning_t old_warnings;
         
         /* Default */
-        config.nserver = 0;
-        config.server = NULL;
-        config.pidfile = NULL;
+        memset(&config, 0, sizeof(config));
         config.dh_regenerate = 24 * 60 * 60;
         config.config_file = PRELUDE_MANAGER_CONF;
 
@@ -442,6 +457,6 @@ int manager_options_read(prelude_option_t *manager_root_optlist, int *argc, char
         
         if ( config.nserver == 0 )
                 ret = add_server_default();
-        
+
         return ret;
 }
