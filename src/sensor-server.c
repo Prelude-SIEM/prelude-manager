@@ -520,7 +520,7 @@ static int read_connection_cb(server_generic_client_t *client)
                 
                 return -1;
         }
-
+        
         msg = cnx->msg;
         cnx->msg = NULL;
                 
@@ -668,7 +668,7 @@ static int accept_connection_cb(server_generic_client_t *ptr)
         if ( ret < 0 )
                 return -1;
         
-        return 0;
+        return 1; /* more data might be available, the caller shall keep reading */
 }
 
 
