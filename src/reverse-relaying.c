@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <pthread.h>
 
 #include <libprelude/prelude.h>
@@ -41,8 +42,7 @@
 #include "sensor-server.h"
 #include "manager-options.h"
 
-
-#define MESSAGE_FLUSH_MAX 100
+#include "sensor-server.h"
 
 
 typedef struct {
@@ -78,16 +78,21 @@ static int connection_event_cb(prelude_connection_pool_t *pool,
                                prelude_connection_pool_event_t event, prelude_connection_t *cnx) 
 {
         int ret;
+        server_generic_client_t *client;
         
         if ( ! (event & PRELUDE_CONNECTION_POOL_EVENT_ALIVE) )
                 return 0;
         
-        prelude_connection_set_data(cnx, &initiator);
-        
-        ret = sensor_server_add_client(config.server[0], cnx);
+        ret = fcntl(prelude_io_get_fd(prelude_connection_get_fd(cnx)), F_SETFL, O_NONBLOCK);
+        if ( ret < 0 )
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set non blocking mode for client: %s");
+
+        ret = sensor_server_add_client(config.server[0], &client, cnx);
         if ( ret < 0 )
                 prelude_log(PRELUDE_LOG_WARN, "error adding new client to reverse relay list.\n");
-
+        
+        prelude_connection_set_data(cnx, client);
+        
         return 0;
 }
 
@@ -115,47 +120,41 @@ static reverse_relay_receiver_t *get_next_receiver(prelude_list_t **iter)
 
 int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_generic_client_t *client) 
 {
-        int ret;
         ssize_t size;
+        int ret, state;
         prelude_msg_t *msg;
         prelude_failover_t *failover = rrr->failover;
 
-        do {
-                pthread_mutex_lock(&rrr->mutex);
+        pthread_mutex_lock(&rrr->mutex);
 
-                size = prelude_failover_get_saved_msg(failover, &msg);
-                if ( size == 0 ) {
-                        rrr->client = client;
-                        pthread_mutex_unlock(&rrr->mutex);
-                        break;
-                }
-                pthread_mutex_unlock(&rrr->mutex);
+        size = prelude_failover_get_saved_msg(failover, &msg);
+        if ( size == 0 )
+                rrr->client = client;
+        
+        pthread_mutex_unlock(&rrr->mutex);
                 
-                if ( size < 0 ) {
-                        prelude_perror((prelude_error_t) size, "could not retrieve saved message from disk");
-                        return -1;
-                }
+        if ( size < 0 ) {
+                prelude_perror((prelude_error_t) size, "could not retrieve saved message from disk");
+                return -1;
+        }
 
+        if ( size > 0 ) {
                 rrr->count++;
+                
+                state = server_generic_client_get_state(client);
+                if ( ! (state & SERVER_GENERIC_CLIENT_STATE_FLUSHING) )
+                        server_generic_client_set_state(client, state | SERVER_GENERIC_CLIENT_STATE_FLUSHING);
                 
                 ret = sensor_server_write_client(client, msg);
                 if ( ret < 0 ) {
-                        if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
-                                server_generic_client_set_state(client, server_generic_client_get_state(client) |
-                                                                SERVER_GENERIC_CLIENT_STATE_FLUSHING);
+                        if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
                                 return 0;
-                        }
-                                                
+                        
                         return ret;
-                }                
-                
-        } while ( (rrr->count % MESSAGE_FLUSH_MAX) != 0 );
+                }
 
-        if ( size != 0 ) {
                 server_logic_notify_write_enable((server_logic_client_t *) client);
-                server_generic_client_set_state(client, server_generic_client_get_state(client) |
-                                                SERVER_GENERIC_CLIENT_STATE_FLUSHING);
-                return 0;
+                return 1;
         }
 
         if ( rrr->count ) {
@@ -174,11 +173,11 @@ int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_gener
 int reverse_relay_set_initiator_dead(prelude_connection_t *cnx)
 {
         int ret = -1;
-        reverse_relay_t *ptr = prelude_connection_get_data(cnx);
         
-        pthread_mutex_lock(&ptr->mutex);
-        ret = prelude_connection_pool_set_connection_dead(ptr->pool, cnx);
-        pthread_mutex_unlock(&ptr->mutex);
+        pthread_mutex_lock(&initiator.mutex);
+        if ( initiator.pool )
+                ret = prelude_connection_pool_set_connection_dead(initiator.pool, cnx);
+        pthread_mutex_unlock(&initiator.mutex);
         
         return ret;
 }
@@ -254,9 +253,15 @@ static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
         pthread_mutex_lock(&item->mutex);
         
         if ( item->client ) {
-                ret = sensor_server_queue_write_client(item->client, msg);
+                /*
+                 * We cannot safely write to the gnutls session that is
+                 * shared by another thread, thus queue the message for
+                 * processing.
+                 */
+                sensor_server_queue_write_client(item->client, msg);
                 pthread_mutex_unlock(&item->mutex);
-                return ret;
+                
+                return 0;
         }
 
         pthread_mutex_unlock(&item->mutex);
@@ -331,8 +336,31 @@ void reverse_relay_send_receiver(idmef_message_t *idmef)
 
                 prelude_msgbuf_set_data(msgbuf, item);
                 idmef_message_write(idmef, msgbuf);
-                prelude_msgbuf_mark_end(msgbuf);                
+                prelude_msgbuf_mark_end(msgbuf);
         }
+}
+
+
+
+static void destroy_current_initiator(void)
+{
+        sensor_fd_t *client;
+        prelude_list_t *tmp;
+        prelude_connection_t *cnx;
+        
+        prelude_list_for_each(prelude_connection_pool_get_connection_list(initiator.pool), tmp) {
+                cnx = prelude_linked_object_get_object(tmp);
+                
+                client = prelude_connection_get_data(cnx);
+                if ( client ) {
+                        client->cnx = NULL;
+                        client->fd = NULL;
+                        server_generic_remove_client(config.server[0], (server_generic_client_t *) client);
+                }
+        }
+                
+        prelude_connection_pool_destroy(initiator.pool);
+        initiator.pool = NULL;
 }
 
 
@@ -343,10 +371,14 @@ int reverse_relay_create_initiator(const char *arg)
         prelude_client_profile_t *cp;
         
         cp = prelude_client_get_profile(manager_client);
+
+        pthread_mutex_lock(&initiator.mutex);
+        if ( initiator.pool )
+                destroy_current_initiator();
         
         ret = prelude_connection_pool_new(&initiator.pool, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_READ);
         if ( ret < 0 )
-                return ret;
+                goto out;
         
         prelude_connection_pool_set_flags(initiator.pool, PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
         prelude_connection_pool_set_event_handler(initiator.pool, PRELUDE_CONNECTION_POOL_EVENT_DEAD |
@@ -355,16 +387,19 @@ int reverse_relay_create_initiator(const char *arg)
         ret = prelude_connection_pool_set_connection_string(initiator.pool, arg);
         if ( ret < 0 ) {
                 prelude_connection_pool_destroy(initiator.pool);
-                return ret;
+                goto out;
         }
 
         ret = prelude_connection_pool_init(initiator.pool);
         if ( ret < 0 ) {
                 prelude_connection_pool_destroy(initiator.pool);
-                return ret;
+                goto out;
         }
 
-        return 0;
+ out:
+        pthread_mutex_unlock(&initiator.mutex);
+        
+        return ret;
 }
 
 
