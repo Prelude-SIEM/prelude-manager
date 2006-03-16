@@ -57,7 +57,7 @@ dnl **************************************************
 dnl * Check for libprelude                           *
 dnl **************************************************
 
-AM_PATH_LIBPRELUDE(0.9.5, ,
+AM_PATH_LIBPRELUDE(0.9.7, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
 
 defined="$defined $LIBPRELUDE_PTHREAD_CFLAGS -DPRELUDE_CONFIG_DIR=\\\"$LIBPRELUDE_CONFIG_PREFIX\\\""
