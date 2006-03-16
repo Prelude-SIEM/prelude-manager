@@ -29,7 +29,8 @@
 #define SERVER_LOGIC_CLIENT_OBJECT \
         prelude_io_t *fd;          \
         int key;                   \
-        void *set;                 
+        void *set;                 \
+        int event_flags;
 
 
 typedef struct server_logic server_logic_t;
@@ -96,6 +97,10 @@ int server_logic_remove_client(server_logic_client_t *client);
 void server_logic_notify_write_enable(server_logic_client_t *fd);
 
 void server_logic_notify_write_disable(server_logic_client_t *fd);
+
+void server_logic_notify_read_enable(server_logic_client_t *fd);
+
+void server_logic_notify_read_disable(server_logic_client_t *fd);
 
 #endif /* _MANAGER_SERVER_LOGIC_H */
 

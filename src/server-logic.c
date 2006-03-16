@@ -39,14 +39,12 @@
 
 #include "server-logic.h"
 
+#define POLL_SLEEP_MS           250
 
-#ifdef INTERUPT_DRIVEN
- #define POLL_SLEEP_MS            -1
-#else
- #define POLL_SLEEP_MS           250
- #define pthread_kill(x, y) do { } while(0)
-#endif
 
+#define LOGIC_FLAGS_WRITE    0x01
+#define LOGIC_FLAGS_READ     0x02
+#define LOGIC_FLAGS_CLOSING  0x04
 
 
 #define EMPTY_THREAD_TTL          60
@@ -84,6 +82,7 @@ typedef struct server_fd_set {
          */
         struct pollfd *pfd;
         server_logic_client_t **client;
+        prelude_bool_t rescan_pfd;
         
         /*
          * Index used to address free client data / pfd.
@@ -137,46 +136,6 @@ struct server_logic {
 
 
 
-#ifdef INTERUPT_DRIVEN
-
-static void restart_poll(int signo) 
-{
-        /*
-         * do nothing here.
-         * this is the signal handler for SIGUSR1 which we use in order to
-         * interrupt poll, for new connection notification.
-         */
-        dprint("[thread=%ld] interrupted by sig %d.\n", pthread_self(), signo);
-}
-
-
-
-static int setup_sigusr1_action(sigset_t *set) 
-{
-        int ret;        
-        struct sigaction act;
-        
-        /*
-         * We want to catch SIGUSR1, so that we know a new fd is in our set.
-         */
-        sigdelset(set, SIGUSR1);
-        
-        act.sa_flags = 0;
-        sigemptyset(&act.sa_mask);
-        act.sa_handler = restart_poll;
-
-        ret = sigaction(SIGUSR1, &act, NULL);
-        if ( ret < 0 ) 
-                prelude_log(PRELUDE_LOG_ERR, "failed to register thread handler for SIGUSR1.\n");
-
-        return ret;
-}
-
-#endif
-
-
-
-
 
 static inline void add_connection_to_tbl(server_logic_t *server, server_fd_set_t *set, server_logic_client_t *client)
 {        
@@ -197,11 +156,11 @@ static inline void add_connection_to_tbl(server_logic_t *server, server_fd_set_t
          * Setup This connection.
          */
         client->set = set;
-        set->pfd[client->key].fd = prelude_io_get_fd(client->fd);
-        set->pfd[client->key].events = POLLIN;
+        client->event_flags = LOGIC_FLAGS_READ;
         set->client[client->key] = client;
-
+        
         set->used_index++;
+        set->rescan_pfd = TRUE;
 }
 
 
@@ -281,7 +240,7 @@ static int remove_connection(server_fd_set_t *set, int cnx_key)
         server_logic_t *server = set->parent;
 
         dprint("removing connection\n");
-                
+        
         /*
          * Close the file descriptor associated with this set.
          */
@@ -304,7 +263,6 @@ static int remove_connection(server_fd_set_t *set, int cnx_key)
 
         return 0;
 }
-
 
 
 
@@ -333,12 +291,10 @@ static void add_connection(server_logic_t *server, server_fd_set_t *set, server_
 static int handle_fd_event(server_fd_set_t *set, int cnx_key) 
 {
         int ret = 0;
-        prelude_bool_t got_event = FALSE;
         
         assert(set->client[cnx_key]->key == cnx_key);
-        
-        if ( set->pfd[cnx_key].events & POLLIN && set->pfd[cnx_key].revents & POLLIN ) {                
-                got_event = TRUE;
+
+        if ( set->pfd[cnx_key].revents & POLLIN ) {
                 ret = set->parent->read(set->parent->sdata, set->client[cnx_key]);
                 dprint("thread=%ld: key=%d, fd=%d: Data available (ret=%d)\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd, ret);
         }
@@ -346,59 +302,79 @@ static int handle_fd_event(server_fd_set_t *set, int cnx_key)
         /*
          * POLLHUP and POLLOUT are mutually exclusive.
          */
-        if ( ! got_event && ret >= 0 && set->pfd[cnx_key].revents & (POLLERR|POLLHUP|POLLNVAL) ) {
-                got_event = TRUE;
+        if ( ret >= 0 && set->pfd[cnx_key].revents & (POLLERR|POLLHUP|POLLNVAL) ) {
                 dprint("thread=%ld: key=%d, fd=%d: Hanging up.\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd);
                 ret = -1; /* trigger remove_connection() */
         }
 
-        else if ( ret >= 0 && set->pfd[cnx_key].events & POLLOUT && set->pfd[cnx_key].revents & POLLOUT ) {
-                got_event = TRUE;
+        else if ( ret >= 0 && set->pfd[cnx_key].revents & POLLOUT ) {
                 dprint("thread=%ld: key=%d, fd=%d: Output possible.\n", pthread_self(), cnx_key, set->pfd[cnx_key].fd);
                 ret = set->parent->write(set->parent->sdata, set->client[cnx_key]);
         }
-
-        if ( ! got_event )
-                return -1;
-        
-        if ( ret < 0 ) {
-                if ( ret == -2 )
-                        /* callback asked to stop processing connection */
-                        return 0;
                 
-                remove_connection(set, cnx_key);
-        }
-                
-        return 0;
+        return ret;
 }
 
 
 
 static void poll_fd_set(server_fd_set_t *set) 
 {
-        int i, active_fd, ret;
-        
-        dprint("polling %d first entry.\n", set->used_index);
-                
-        active_fd = poll(set->pfd, set->used_index, POLL_SLEEP_MS);                
+        struct timeval ts, te;
+        int i, r = 0, ret, active_fd, index = set->used_index;
+        server_logic_client_t *rescan[set->parent->thread_max_fd];
+
+        dprint("polling %d entry\n", index);
+
+        active_fd = poll(set->pfd, index, POLL_SLEEP_MS);
         if ( active_fd < 0 ) {
-                if ( errno == EINTR ) 
+                if ( errno == EINTR )
                         return;
                 
-                prelude_log(PRELUDE_LOG_ERR, "error polling FDs set.\n");
+                prelude_log(PRELUDE_LOG_ERR, "error polling fd set: %s.\n", strerror(errno));
         }
-                
-        for ( i = 0; i < set->parent->thread_max_fd && active_fd > 0; i++ ) {
-                             
+        
+        gettimeofday(&ts, NULL);
+
+        /*
+         * we need to scan through the whole array to handle LOGIC_FLAGS_CLOSING
+         */
+        for ( i = 0; i < index; i++ ) {
                 /*
                  * This fd is currently ignored (-1).
-                 */
-                if ( set->pfd[i].fd < 0 )
-                        continue;
-                                                
-                ret = handle_fd_event(set, i);
-                if ( ret == 0 ) 
-                        active_fd--;
+                 */                
+                if ( set->pfd[i].fd != -1 && ! (set->client[i]->event_flags & LOGIC_FLAGS_CLOSING) ) {                        
+                        ret = handle_fd_event(set, i);                        
+                        if ( ret > 0 )
+                                rescan[r++] = set->client[i];
+                
+                        if ( ret < 0 )
+                                set->client[i]->event_flags |= LOGIC_FLAGS_CLOSING;
+                }
+                
+                if ( set->client[i]->event_flags & LOGIC_FLAGS_CLOSING ) {
+                        ret = remove_connection(set, i);
+                        if ( ret == 0 ) {
+                                index--;
+                                i--;
+                        }
+                }
+        }
+
+        while ( r && ! set->rescan_pfd ) {
+                for ( i = 0; i < r; i++ ) {
+                        ret = handle_fd_event(set, rescan[i]->key);                
+                        if ( ret < 0 ) {
+                                rescan[i]->event_flags |= LOGIC_FLAGS_CLOSING;
+                                remove_connection(set, rescan[i]->key);
+                        }
+
+                        if ( ret <= 0 )
+                                rescan[i] = rescan[--r];
+                }
+                  
+                gettimeofday(&te, NULL);                
+                if ( te.tv_sec != ts.tv_sec || (te.tv_usec - ts.tv_usec) > POLL_SLEEP_MS )
+                        break;
         }
 }
 
@@ -430,6 +406,7 @@ static void destroy_fd_set(server_logic_t *server, server_fd_set_t *set)
 
 static void *child_reader(void *ptr) 
 {
+        int i;
         time_t now;
         sigset_t s;
         server_fd_set_t *set = ptr;
@@ -438,12 +415,6 @@ static void *child_reader(void *ptr)
         pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
         sigfillset(&s);
-
-#ifdef INTERUPT_DRIVEN
-        if ( setup_sigusr1_action(&s) < 0 )
-                pthread_exit(NULL);
-#endif
-
         pthread_sigmask(SIG_SETMASK, &s, NULL);
         
         /*
@@ -467,6 +438,33 @@ static void *child_reader(void *ptr)
                                 destroy_fd_set(set->parent, set);
                                 break;
                         }
+                }
+
+                if ( set->rescan_pfd ) {
+                        dprint("Updating polled entry.\n");
+                        
+                        for ( i = 0; i < set->used_index; i++ ) {                                
+                                /*
+                                 * Update the pfd events field to include latest
+                                 * modification made (possibly from another thread) if needed.
+                                 */
+                                set->pfd[i].events = 0;
+                                
+                                if ( set->client[i]->event_flags & LOGIC_FLAGS_WRITE )
+                                        set->pfd[i].events |= POLLOUT;
+                                else
+                                        set->pfd[i].events &= ~POLLOUT;
+
+                                if ( set->client[i]->event_flags & LOGIC_FLAGS_READ )
+                                        set->pfd[i].events |= POLLIN;
+                                else
+                                        set->pfd[i].events &= ~POLLIN;
+
+                                if ( ! (set->client[i]->event_flags & LOGIC_FLAGS_CLOSING) )
+                                        set->pfd[i].fd = prelude_io_get_fd(set->client[i]->fd);
+                        }
+                        
+                        set->rescan_pfd = FALSE;
                 }
                 
                 pthread_mutex_unlock(&set->parent->mutex);
@@ -513,9 +511,10 @@ static server_fd_set_t *create_fd_set(server_logic_t *server)
         
         pthread_cond_init(&new->startup_cond, NULL);
         pthread_mutex_init(&new->startup_mutex, NULL);
-        
+
         for ( i = 0; i < server->thread_max_fd; i++ ) {
                 new->pfd[i].fd = -1;
+                new->pfd[i].revents = 0;
                 new->client[i] = NULL;
         }
 
@@ -558,6 +557,17 @@ static int start_fd_set_thread(server_logic_t *server, server_fd_set_t *set)
 }
 
 
+static void logic_modify_flags(server_logic_client_t *fd, int flags)
+{
+        server_fd_set_t *set = fd->set;
+        
+        pthread_mutex_lock(&set->parent->mutex);
+        fd->event_flags = flags;
+        set->rescan_pfd = TRUE;
+        pthread_mutex_unlock(&set->parent->mutex);
+}
+
+
 
 /*
  * server_process_requests:
@@ -592,13 +602,7 @@ int server_logic_process_requests(server_logic_t *server, server_logic_client_t 
                 add_connection(server, set, client);
 
                 pthread_mutex_unlock(&server->mutex);
-                
-                /*
-                 * Notify the thread that may be polling our set that a new connection
-                 * is arrived into the set and should be taken into account.
-                 */
-                pthread_kill(set->thread, SIGUSR1);
-                
+                                
         } else {
                 pthread_mutex_unlock(&server->mutex);
                 
@@ -680,18 +684,6 @@ void server_logic_set_max_fd_by_thread(server_logic_t *server, unsigned int max)
 
 
 
-/**
- * server_logic_remove_client:
- * @client:
- *
- */
-int server_logic_remove_client(server_logic_client_t *client) 
-{
-        return remove_connection(client->set, client->key);
-}
-
-
-
 
 /*
  * server_logic_new:
@@ -732,24 +724,49 @@ server_logic_t *server_logic_new(void *sdata, server_logic_read_t *s_read,
 
 
 
+/**
+ * server_logic_remove_client:
+ * @client:
+ *
+ */
+int server_logic_remove_client(server_logic_client_t *client) 
+{
+        if ( client->key < 0 )
+                return -1;
+        
+        logic_modify_flags(client, client->event_flags | LOGIC_FLAGS_CLOSING);
+        return 0;
+}
+
+
 
 void server_logic_notify_write_enable(server_logic_client_t *fd)
 {
-        server_fd_set_t *set = fd->set;
-        
-        set->pfd[fd->key].events |= POLLOUT;
-        pthread_kill(set->thread, SIGUSR1);
+        logic_modify_flags(fd, fd->event_flags | LOGIC_FLAGS_WRITE);
 }
  
 
 
 void server_logic_notify_write_disable(server_logic_client_t *fd)
 {
-        server_fd_set_t *set;
- 
-        if ( fd->key < 0 )
-                return;
-
-        set = fd->set;
-        set->pfd[fd->key].events &= ~POLLOUT;
+        logic_modify_flags(fd, fd->event_flags & ~LOGIC_FLAGS_WRITE);
 }
+
+
+
+void server_logic_notify_read_enable(server_logic_client_t *fd)
+{
+        logic_modify_flags(fd, fd->event_flags | LOGIC_FLAGS_READ);
+}
+
+
+
+void server_logic_notify_read_disable(server_logic_client_t *fd)
+{
+        logic_modify_flags(fd, fd->event_flags & ~LOGIC_FLAGS_READ);
+}
+
+
+
+
+
