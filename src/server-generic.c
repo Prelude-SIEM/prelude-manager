@@ -238,15 +238,11 @@ static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
         int ret = 0;
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
-        
-        if ( client->state & SERVER_GENERIC_CLIENT_STATE_CLOSING ) {
-                /* stop further processing */
-                ret = (server_logic_remove_client(ptr) == 0) ? -2 : 0;
-        }
-        
-        else if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
+
+        assert(!(client->state & SERVER_GENERIC_CLIENT_STATE_CLOSING));
+                
+        if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
                 ret = server->read(client);
-        
         else
                 ret = authenticate_client(server, client);
         
@@ -275,7 +271,7 @@ static int do_close_fd(server_generic_client_t *client)
                         return -1;
                 }
                         
-                server_generic_log_client(client, PRELUDE_LOG_WARN, "%s.\n", prelude_strerror(ret));
+                server_generic_log_client(client, PRELUDE_LOG_WARN, "connection closure error: %s.\n", prelude_strerror(ret));
                 
         } while ( ret < 0 && ! prelude_io_is_error_fatal(client->fd, ret));
 
@@ -315,9 +311,8 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
                         return -1;
                 
                 prelude_io_destroy(client->fd);
+                server_generic_log_client(client, PRELUDE_LOG_INFO, "closing connection.\n");
         }
-        
-        server_generic_log_client(client, PRELUDE_LOG_INFO, "closing connection.\n");
         
         free(client->permission_string);
         free(client->addr);        
@@ -383,7 +378,7 @@ static int setup_client_socket(server_generic_t *server,
 #endif
         /*
          * set client socket non blocking.
-         */
+         */        
         ret = fcntl(client, F_SETFL, O_NONBLOCK);
         if ( ret < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set non blocking mode for client: %s");
