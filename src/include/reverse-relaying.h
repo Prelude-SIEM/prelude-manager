@@ -21,6 +21,9 @@
 *
 *****/
 
+#ifndef _MANAGER_REVERSE_RELAYING_H
+#define _MANAGER_REVERSE_RELAYING_H
+
 #include "server-generic.h"
 
 typedef struct reverse_relay_receiver reverse_relay_receiver_t;
@@ -41,3 +44,5 @@ int reverse_relay_set_initiator_dead(prelude_connection_t *cnx);
 int reverse_relay_create_initiator(const char *arg);
 
 int reverse_relay_init(void);
+
+#endif
