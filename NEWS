@@ -1,3 +1,28 @@
+* 2006-03-17, prelude-manager-0.9.4:
+
+	- Fix reverse relaying on some architecture due to thread safety
+	  issue. 
+
+	- Server scalability improvement in case of message burst.
+
+	- Start work on a normalization plugin. Very simple for now, mostly 
+	  sanitize IDMEF Address and IDMEF Service classes. 
+
+	- When an analyzer have read and write permission to prelude-manager, 
+	  avoid acting as an echo server, don't send received message from this 
+	  analyzer to itself. 
+
+	- When no listen address is specified, try to bind all
+	  system address (both ipv4/ipv6).
+
+	- Send an alert to the peer on handshake failure, so that
+	  the peer have some information on what happened.
+
+	- Consistency work accross all plugin logfile option.
+
+	- Various bug fixes and improvements.
+
+
 * 2006-02-09, prelude-manager-0.9.3:
 
 	- Only send TLS alert if there is one queued, fix a possible crash.
