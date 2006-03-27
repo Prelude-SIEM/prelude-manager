@@ -196,7 +196,7 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
 		if ( ret < 0 || ret >= (target_len / sizeof(uint64_t)) )
 			break;
 		
-                ident = prelude_extract_uint64(&(*target_ptr)[ret]);
+                ident = prelude_extract_uint64(&(*target_ptr)[ret]);                
                 if ( ident != client->ident ) {
                         server_generic_log_client((server_generic_client_t *) client,
                                                   PRELUDE_LOG_WARN, "client attempt to mask source identifier.\n");
@@ -765,9 +765,13 @@ int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *m
 
 void sensor_server_queue_write_client(server_generic_client_t *client, prelude_msg_t *msg) 
 {
-        sensor_fd_t *fd = (sensor_fd_t *) client;
+        sensor_fd_t *dst = (sensor_fd_t *) client;
         
-        pthread_mutex_lock(&fd->mutex);
-        prelude_linked_object_add_tail(&fd->write_msg_list, (prelude_linked_object_t *) msg);
-        pthread_mutex_unlock(&fd->mutex);
+        pthread_mutex_lock(&dst->mutex);
+        
+        if ( prelude_list_is_empty(&dst->write_msg_list) )
+                server_logic_notify_write_enable((server_logic_client_t *) dst);
+        
+        prelude_linked_object_add_tail(&dst->write_msg_list, (prelude_linked_object_t *) msg);
+        pthread_mutex_unlock(&dst->mutex);
 }
