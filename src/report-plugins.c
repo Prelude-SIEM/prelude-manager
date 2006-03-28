@@ -67,7 +67,7 @@ static void get_failover_filename(prelude_plugin_instance_t *pi, char *buf, size
 {
         prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
         
-        snprintf(buf, size, MANAGER_FIFO_DIR "/%s[%s]",
+        snprintf(buf, size, MANAGER_FAILOVER_DIR "/%s[%s]",
                  plugin->name, prelude_plugin_instance_get_name(pi));
 }
 

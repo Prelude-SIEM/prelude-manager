@@ -8,6 +8,7 @@ install-data-local:
 	$(INSTALL) -d -m 700 $(DESTDIR)$(configdir);
 	$(INSTALL) -d -m 700 $(DESTDIR)$(manager_run_dir);
 	$(INSTALL) -d -m 700 $(DESTDIR)$(manager_fifo_dir);
+	$(INSTALL) -d -m 700 $(DESTDIR)$(manager_failover_dir);
 	@if test -f $(DESTDIR)$(configdir)/prelude-manager.conf; then                                                  \
 		$(INSTALL) -m 600 $(top_srcdir)/prelude-manager.conf $(DESTDIR)$(configdir)/prelude-manager.conf-dist; \
 		echo "********************************************************************************";     		\
