@@ -1,3 +1,10 @@
+* 2006-03-28, prelude-manager-0.9.4.1:
+
+	- Enable write notification on queued write (Fix reverse relaying).
+
+	- Fix IDMEF message scheduler warning when plugin failover is enabled.
+	
+
 * 2006-03-17, prelude-manager-0.9.4:
 
 	- Fix reverse relaying on some architecture due to thread safety
