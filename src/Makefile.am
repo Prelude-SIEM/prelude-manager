@@ -5,8 +5,8 @@ AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing @LIBGNUTLS_CFLAGS@
         -DREPORT_PLUGIN_DIR=\"@report_plugin_dir@\" \
         -DDECODE_PLUGIN_DIR=\"@decode_plugin_dir@\" \
         -DFILTER_PLUGIN_DIR=\"@filter_plugin_dir@\" \
-        -DMANAGER_FIFO_DIR=\"@manager_fifo_dir@\" \
-	-DMANAGER_FAILOVER_DIR=\"@manager_failover_dir@\" \
+        -DMANAGER_SCHEDULER_DIR=\"@manager_scheduler_dir@\" \
+        -DMANAGER_FAILOVER_DIR=\"@manager_failover_dir@\" \
         -DMANAGER_RUN_DIR=\"@manager_run_dir@\"
 
 bin_PROGRAMS = prelude-manager

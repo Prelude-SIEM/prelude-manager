@@ -61,9 +61,9 @@
 
 #define MAX_MESSAGE_IN_MEMORY 200
 
-#define HIGH_PRIORITY_MESSAGE_FILENAME MANAGER_FIFO_DIR "/high-priority-fifo"
-#define MID_PRIORITY_MESSAGE_FILENAME MANAGER_FIFO_DIR "/mid-priority-fifo"
-#define LOW_PRIORITY_MESSAGE_FILENAME MANAGER_FIFO_DIR "/low-priority-fifo"
+#define HIGH_PRIORITY_MESSAGE_FILENAME MANAGER_SCHEDULER_DIR "/high-priority-fifo"
+#define MID_PRIORITY_MESSAGE_FILENAME MANAGER_SCHEDULER_DIR "/mid-priority-fifo"
+#define LOW_PRIORITY_MESSAGE_FILENAME MANAGER_SCHEDULER_DIR "/low-priority-fifo"
 
 #define QUEUE_STATE_DESTROYED 0x01
 
@@ -737,9 +737,9 @@ int idmef_message_scheduler_init(void)
         struct dirent *de;
         char filename[PATH_MAX];
         
-        dir = opendir(MANAGER_FIFO_DIR);
+        dir = opendir(MANAGER_SCHEDULER_DIR);
         if ( ! dir ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not open %s: %s.\n", MANAGER_FIFO_DIR, strerror(errno));
+                prelude_log(PRELUDE_LOG_ERR, "could not open %s: %s.\n", MANAGER_SCHEDULER_DIR, strerror(errno));
                 return -1;
         }
 
@@ -748,7 +748,7 @@ int idmef_message_scheduler_init(void)
                 if ( de->d_name[0] == '.' )
                         continue;
 
-                snprintf(filename, sizeof(filename), MANAGER_FIFO_DIR "/%s", de->d_name);
+                snprintf(filename, sizeof(filename), MANAGER_SCHEDULER_DIR "/%s", de->d_name);
                 
                 ret = flush_orphan_fifo(filename);
                 if ( ret != 0 )
