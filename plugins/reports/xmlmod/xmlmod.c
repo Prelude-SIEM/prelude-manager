@@ -121,7 +121,8 @@ static void idmef_attr_string(xmlNodePtr node, const char *attr, prelude_string_
 
 static void _idmef_attr_enum(xmlNodePtr node, const char *attr, int value, const char *(*convert)(int))
 {
-	xmlSetProp(node, (const xmlChar *) attr, (const xmlChar *) convert(value));
+        const char *content = convert(value);
+	xmlSetProp(node, (const xmlChar *) attr, (const xmlChar *) content ? content : "");
 }
 
 #define idmef_attr_enum(node, attr, value, convert) \
@@ -647,7 +648,6 @@ static void process_impact(xmlNodePtr parent, idmef_impact_t *impact)
                 return;
 
 	idmef_attr_enum_optional(new, "severity", idmef_impact_get_severity(impact), idmef_impact_severity_to_string);
-
 	idmef_attr_enum_optional(new, "completion", idmef_impact_get_completion(impact), idmef_impact_completion_to_string);
         
         idmef_attr_enum(new, "type", idmef_impact_get_type(impact), idmef_impact_type_to_string);
