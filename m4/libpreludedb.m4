@@ -14,8 +14,8 @@ AC_DEFUN([AM_PATH_LIBPRELUDEDB],
 [dnl
 dnl Get the cflags and libraries from the libpreludedb-config script
 dnl
-AC_ARG_WITH(libpreludedb-prefix,
-          [  --with-libpreludedb-prefix=PFX   Prefix where libpreludedb is installed (optional)],
+AC_ARG_WITH(libpreludedb-prefix, AC_HELP_STRING(--with-libpreludedb-prefix=PFX, 
+		                                Prefix where libpreludedb is installed (optional)),
           libpreludedb_config_prefix="$withval", libpreludedb_config_prefix="")
 
   if test x$libpreludedb_config_prefix != x ; then

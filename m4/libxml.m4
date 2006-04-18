@@ -11,13 +11,13 @@ dnl Test for XML, and define XML_CPPFLAGS and XML_LIBS
 dnl
 AC_DEFUN([AM_PATH_XML2],[ 
 AC_ARG_WITH(xml-prefix,
-            [  --with-xml-prefix=PFX   Prefix where libxml is installed (optional)],
+            AC_HELP_STRING(--with-xml-prefix=PFX, Prefix where libxml is installed (optional)),
             xml_config_prefix="$withval", xml_config_prefix="")
 AC_ARG_WITH(xml-exec-prefix,
-            [  --with-xml-exec-prefix=PFX Exec prefix where libxml is installed (optional)],
+            AC_HELP_STRING(--with-xml-exec-prefix=PFX, Exec prefix where libxml is installed (optional)),
             xml_config_exec_prefix="$withval", xml_config_exec_prefix="")
 AC_ARG_ENABLE(xmltest,
-              [  --disable-xmltest       Do not try to compile and run a test LIBXML program],,
+              AC_HELP_STRING(--disable-xmltest, Do not try to compile and run a test LIBXML program),,
               enable_xmltest=yes)
 
   if test x$xml_config_exec_prefix != x ; then
