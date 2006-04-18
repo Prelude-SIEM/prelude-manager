@@ -113,8 +113,6 @@ dnl **************************************************
 
 AM_PATH_LIBPRELUDEDB(0.9.4, enable_libpreludedb=yes, enable_libpreludedb=no)
 AM_CONDITIONAL(HAVE_LIBPRELUDEDB, test x$enable_libpreludedb = xyes)
-AC_SUBST(HAVE_LIBPRELUDEDB)
-
 
 
 dnl ********************************************************
@@ -123,8 +121,6 @@ dnl ********************************************************
 
 AM_PATH_XML2(, enable_xmlmod=yes, enable_xmlmod=no)
 AM_CONDITIONAL(HAVE_XML2, test x$enable_xmlmod = xyes)
-AC_SUBST(HAVE_XML2)
-
 
 
 
@@ -132,60 +128,58 @@ dnl **************************************************
 dnl * TCP WRAPPER CHECK                              *
 dnl **************************************************
 
+AC_ARG_WITH(libwrap, AC_HELP_STRING(--with-libwrap@<:@=PFX@:>@, 
+                                    Compile in libwrap (tcp_wrappers) support @<:@default=auto@:>@.),
+            libwrap_required=true, [])
 
-AC_CHECK_HEADER(tcpd.h, have_tcpd_header=yes)
+if test x$with_libwrap != xno; then
+   LIBWRAP_INCLUDE="tcpd.h"
 
-if test x$have_tcpd_header = xyes; then 
+   if test -d $with_libwrap; then
+      LIBWRAP_PATH="$with_libwrap"
+      LIBWRAP_INCLUDE="$with_libwrap/include/tcpd.h"
+   fi
 
-	AC_MSG_CHECKING(whether to use TCP wrappers)
+   AC_CHECK_HEADER($LIBWRAP_INCLUDE, with_libwrap=yes, with_libwrap=no)
 
-	for tcpd_lib_path in /usr/lib /usr/local/lib; do
-        
-		if test -f $tcpd_lib_path/libwrap.a; then
-			libwrap="$tcpd_lib_path/libwrap.a"
-			break
-		fi
-	done
+   if test x$with_libwrap = xyes; then
+      AC_CHECK_LIB(wrap, request_init, LIBWRAP_LIBS="-L$LIBWRAP_PATH/lib -lwrap")
+      AC_CHECK_LIB(nsl, yp_get_default_domain, LIBNSL_LIBS="-lnsl")
 
-	if test -n "$libwrap"; then
-         	AC_MSG_RESULT(yes)
-	else
-         	AC_MSG_RESULT(no)
-	fi
+      AC_MSG_CHECKING(whether -lwrap require -lnsl)
+      old_LIBS=$LIBS
+      LIBS=$LIBWRAP_LIBS
 
+      AC_TRY_LINK([extern int hosts_access; int allow_severity, deny_severity;],
+		  [return hosts_access;], with_libwrap=yes, with_libwrap=no)
 
-	AC_CHECK_LIB(nsl, yp_get_default_domain, libnsl="-lnsl")
+      require_nsl="no"
+      if test x$with_libwrap = xno; then
+	 LIBS="$LIBNSL_LIBS $LIBS"
+	 AC_TRY_LINK([extern int hosts_access; int allow_severity, deny_severity;],
+		     [return hosts_access;], [with_libwrap=yes require_nsl="yes"], with_libwrap=no)
+      fi
+   
+      AC_MSG_RESULT($require_nsl)
+   fi
 
-	AC_MSG_CHECKING(whether -lwrap require -lnsl)
-	tcpd_ldflags="-L$tcpd_lib_path $libwrap"
+   LIBWRAP_LIBS=$LIBS
+   LIBS=$old_LIBS
 
-	orig_libs=$LIBS
-     	LIBS="$LIBS $tcpd_ldflags"
-     	AC_TRY_LINK([extern int hosts_access; int allow_severity, deny_severity;], 
-		    [return hosts_access;], [have_tcp_wrapper=yes libnsl=""], [LIBS="$LIBS $libnsl"
-     
-	            AC_TRY_LINK([extern int hosts_access; int allow_severity, deny_severity;], 
-		    		[return hosts_access;], have_tcp_wrapper=yes)
-		    ])
+   if test x$libwrap_required = xtrue && test x$with_libwrap = xno; then 
+      AC_MSG_ERROR([Could not find libwrap library])
+   fi
+fi
 
-	if test -n "$libnsl"; then
-		 AC_MSG_RESULT(yes)
-	else
-         	 AC_MSG_RESULT(no)
-	fi
-
-	LIBWRAP_LIBS="$LIBS"
-	LIBS=$orig_libs
-
-	if test x$have_tcp_wrapper = xyes; then 
-		AC_DEFINE_UNQUOTED(HAVE_TCP_WRAPPERS, , Define wether you have TCP wrapper installed on your system)
-		AC_SUBST(LIBWRAP_LIBS)		
-	fi
+if test x$with_libwrap = xyes; then
+   AC_DEFINE_UNQUOTED(HAVE_TCP_WRAPPERS, [], Define if tcp wrapper support is enabled)
 fi
 
 
+dnl
 dnl Add -no-cpp-precomp to avoid GNU macro extension parsing errors on OSX
-AC_MSG_CHECKING("whether we need to add -no-cpp-precomp")
+dnl
+AC_MSG_CHECKING(whether -no-cpp-precomp is needed)
 if test $host_cpu = "powerpc" && test $host_vendor = "apple"; then
 	AC_MSG_RESULT(yes)
 	CPPFLAGS="$CPPFLAGS -no-cpp-precomp"
@@ -321,5 +315,6 @@ AC_OUTPUT
 
 echo
 echo "*** Dumping configuration ***"
-echo "    - Enable Xml plugin      : $enable_xmlmod";
-echo "    - Enable database support: $enable_libpreludedb";
+echo "    - TCP wrapper support    : $with_libwrap";
+echo "    - XML plugin support     : $enable_xmlmod";
+echo "    - Database plugin support: $enable_libpreludedb";
