@@ -122,7 +122,7 @@ static void idmef_attr_string(xmlNodePtr node, const char *attr, prelude_string_
 static void _idmef_attr_enum(xmlNodePtr node, const char *attr, int value, const char *(*convert)(int))
 {
         const char *content = convert(value);
-	xmlSetProp(node, (const xmlChar *) attr, (const xmlChar *) content ? content : "");
+	xmlSetProp(node, (const xmlChar *) attr, (const xmlChar *) (content ? content : ""));
 }
 
 #define idmef_attr_enum(node, attr, value, convert) \
