@@ -143,7 +143,7 @@ static void _idmef_attr_enum_optional(xmlNodePtr node, const char *attr, int *va
 
 
 
-static void process_time(xmlNodePtr parent, const char *type, idmef_time_t *time) 
+static void process_time(xmlNodePtr parent, const char *type, idmef_time_t *time, prelude_bool_t enable_ntpstamp) 
 {
         int ret;
         xmlNodePtr new;
@@ -170,15 +170,18 @@ static void process_time(xmlNodePtr parent, const char *type, idmef_time_t *time
                 return;
         }
 
-        prelude_string_clear(out);
-
-        ret = idmef_time_to_ntpstamp(time, out);
-        if ( ret < 0 ) {
-                prelude_string_destroy(out);
-                return;
+        if ( enable_ntpstamp ) {
+                prelude_string_clear(out);
+                
+                ret = idmef_time_to_ntpstamp(time, out);
+                if ( ret < 0 ) {
+                        prelude_string_destroy(out);
+                        return;
+                }
+        
+                xmlSetProp(new, (const xmlChar *) "ntpstamp", (const xmlChar *) prelude_string_get_string(out));
         }
         
-        xmlSetProp(new, (const xmlChar *) "ntpstamp", (const xmlChar *) prelude_string_get_string(out));
         prelude_string_destroy(out);
 }
 
@@ -422,7 +425,7 @@ static void process_file_access(xmlNodePtr parent, idmef_file_access_t *file_acc
 
 	permission = NULL;
 	while ( (permission = idmef_file_access_get_next_permission(file_access, permission)) )
-		xmlNewTextChild(new, NULL, (const xmlChar *) "permission", (const xmlChar *) prelude_string_get_string(permission));
+		xmlNewTextChild(new, NULL, (const xmlChar *) "Permission", (const xmlChar *) prelude_string_get_string(permission));
 }
 
 
@@ -459,7 +462,7 @@ static void process_inode(xmlNodePtr parent, idmef_inode_t *inode)
         if ( ! new )
                 return;
 
-        process_time(new, "change-time", idmef_inode_get_change_time(inode));
+        process_time(new, "change-time", idmef_inode_get_change_time(inode), FALSE);
 
         idmef_content_generic_optional(new, "number", "%" PRELUDE_PRIu32, idmef_inode_get_number(inode));
         idmef_content_generic_optional(new, "major-device", "%" PRELUDE_PRIu32,  idmef_inode_get_major_device(inode));
@@ -469,12 +472,29 @@ static void process_inode(xmlNodePtr parent, idmef_inode_t *inode)
 }
 
 
+static void process_file_checksum(xmlNodePtr parent, idmef_checksum_t *csum) 
+{
+        xmlNodePtr new;
+
+        if ( ! csum )
+                return;
+
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "Checksum", NULL);
+        if ( ! new )
+                return;
+
+        idmef_attr_enum(new, "algorithm", idmef_checksum_get_algorithm(csum), idmef_checksum_algorithm_to_string);
+        idmef_content_string(new, "value", idmef_checksum_get_value(csum));
+        idmef_content_string(new, "key", idmef_checksum_get_key(csum));
+}
+
 
 
 static void process_file(xmlNodePtr parent, idmef_file_t *file) 
 {
         xmlNodePtr new;
-	idmef_linkage_t *file_linkage;
+	idmef_linkage_t *file_linkage;       
+        idmef_checksum_t *file_checksum;
 	idmef_file_access_t *file_access;
 
         if ( ! file )
@@ -489,9 +509,9 @@ static void process_file(xmlNodePtr parent, idmef_file_t *file)
 	idmef_attr_enum_optional(new, "fstype", idmef_file_get_fstype(file), idmef_file_fstype_to_string);
         idmef_content_string(new, "name", idmef_file_get_name(file));
         idmef_content_string(new, "path", idmef_file_get_path(file));
-        process_time(new, "create-time", idmef_file_get_create_time(file));
-        process_time(new, "modify-time", idmef_file_get_modify_time(file));
-        process_time(new, "access-time", idmef_file_get_access_time(file));
+        process_time(new, "create-time", idmef_file_get_create_time(file), FALSE);
+        process_time(new, "modify-time", idmef_file_get_modify_time(file), FALSE);
+        process_time(new, "access-time", idmef_file_get_access_time(file), FALSE);
         idmef_content_generic_optional(new, "data-size", "%" PRELUDE_PRIu64, idmef_file_get_data_size(file));
         idmef_content_generic_optional(new, "disk-size", "%" PRELUDE_PRIu64, idmef_file_get_disk_size(file));
 
@@ -503,6 +523,10 @@ static void process_file(xmlNodePtr parent, idmef_file_t *file)
 	while ( (file_linkage = idmef_file_get_next_linkage(file, file_linkage)) )
 		process_file_linkage(new, file_linkage);
 
+        file_checksum = NULL;
+        while ( (file_checksum = idmef_file_get_next_checksum(file, file_checksum)) )
+                process_file_checksum(new, file_checksum);
+        
         process_inode(new, idmef_file_get_inode(file));
 }
 
@@ -623,13 +647,20 @@ static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *
 		return;
         }
         
-        new = xmlNewTextChild(parent, NULL, (const xmlChar *) "AdditionalData", (const xmlChar *) prelude_string_get_string(out));
-        prelude_string_destroy(out);
-        if ( ! new )
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "AdditionalData", NULL);
+        if ( ! new ) {
+                prelude_string_destroy(out);
                 return;
+        }
 
         idmef_attr_enum(new, "type", idmef_additional_data_get_type(ad), idmef_additional_data_type_to_string);
         idmef_attr_string(new, "meaning", idmef_additional_data_get_meaning(ad));
+
+        xmlNewTextChild(new, NULL, (const xmlChar *) idmef_additional_data_type_to_string(
+                                idmef_additional_data_get_type(ad)),
+                        (const xmlChar *) prelude_string_get_string(out));
+
+        prelude_string_destroy(out);
 }
 
 
@@ -748,9 +779,9 @@ static void process_alert(xmlNodePtr root, idmef_alert_t *alert)
         while ( (analyzer = idmef_alert_get_next_analyzer(alert, analyzer)) )      
                 anode = process_analyzer(anode, analyzer);
         
-        process_time(new, "CreateTime", idmef_alert_get_create_time(alert));
-        process_time(new, "DetectTime", idmef_alert_get_detect_time(alert));
-        process_time(new, "AnalyzerTime", idmef_alert_get_analyzer_time(alert));
+        process_time(new, "CreateTime", idmef_alert_get_create_time(alert), TRUE);
+        process_time(new, "DetectTime", idmef_alert_get_detect_time(alert), TRUE);
+        process_time(new, "AnalyzerTime", idmef_alert_get_analyzer_time(alert), TRUE);
         
 	source = NULL;
 	while ( (source = idmef_alert_get_next_source(alert, source)) )
@@ -792,8 +823,8 @@ static void process_heartbeat(xmlNodePtr idmefmsg, idmef_heartbeat_t *heartbeat)
         while ( (analyzer = idmef_heartbeat_get_next_analyzer(heartbeat, analyzer)) )      
                 anode = process_analyzer(anode, analyzer);
         
-        process_time(hb, "CreateTime", idmef_heartbeat_get_create_time(heartbeat));
-        process_time(hb, "AnalyzerTime", idmef_heartbeat_get_analyzer_time(heartbeat));
+        process_time(hb, "CreateTime", idmef_heartbeat_get_create_time(heartbeat), TRUE);
+        process_time(hb, "AnalyzerTime", idmef_heartbeat_get_analyzer_time(heartbeat), TRUE);
 
 	additional_data = NULL;
 	while ( (additional_data = idmef_heartbeat_get_next_additional_data(heartbeat, additional_data)) )
@@ -970,7 +1001,7 @@ static int set_dtd_check(prelude_option_t *option, const char *arg, prelude_stri
                 
         plugin->idmef_dtd = xmlParseDTD(NULL, (const xmlChar *) IDMEF_DTD);
         if ( ! plugin->idmef_dtd ) {
-                prelude_string_sprintf(err, "error loading IDMEF DTD '%s'", arg);
+                prelude_string_sprintf(err, "error loading IDMEF DTD '%s'", IDMEF_DTD);
                 return -1;
         }
 
@@ -1063,7 +1094,7 @@ int xmlmod_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
         
         ret = prelude_option_add(opt, NULL, hook, 'd', "disable-buffering",
                                  "Disable output file buffering to prevent truncated tags",
-                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, disable_buffering, NULL);
+                                 PRELUDE_OPTION_ARGUMENT_OPTIONAL, disable_buffering, NULL);
         if ( ret < 0 )
                 return ret;
         
