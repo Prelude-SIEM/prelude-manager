@@ -407,7 +407,7 @@ static int handle_declare_receiver(sensor_fd_t *sclient)
 
 static int handle_declare_client(sensor_fd_t *cnx) 
 {
-        cnx->queue = idmef_message_scheduler_queue_new();
+        cnx->queue = idmef_message_scheduler_queue_new(manager_client);
         if ( ! cnx->queue )
                 return -1;
         
@@ -716,7 +716,7 @@ int sensor_server_add_client(server_generic_t *server, server_generic_client_t *
                 return -1;
         }
         
-        cdata->queue = idmef_message_scheduler_queue_new();
+        cdata->queue = idmef_message_scheduler_queue_new(manager_client);
         if ( ! cdata->queue ) {
                 free(cdata->addr);
                 free(cdata);

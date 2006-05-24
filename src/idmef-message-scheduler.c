@@ -60,11 +60,6 @@
 
 
 #define MAX_MESSAGE_IN_MEMORY 200
-
-#define HIGH_PRIORITY_MESSAGE_FILENAME MANAGER_SCHEDULER_DIR "/high-priority-fifo"
-#define MID_PRIORITY_MESSAGE_FILENAME MANAGER_SCHEDULER_DIR "/mid-priority-fifo"
-#define LOW_PRIORITY_MESSAGE_FILENAME MANAGER_SCHEDULER_DIR "/low-priority-fifo"
-
 #define QUEUE_STATE_DESTROYED 0x01
 
 
@@ -664,12 +659,12 @@ int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg)
 
 
 
-idmef_queue_t *idmef_message_scheduler_queue_new(void)
+idmef_queue_t *idmef_message_scheduler_queue_new(prelude_client_t *client)
 {
         int ret;
-        char buf[256];
         unsigned int id;
         idmef_queue_t *queue;
+        char buf[PATH_MAX], bdir[PATH_MAX];
         
         queue = calloc(1, sizeof(*queue));
         if ( ! queue ) {
@@ -684,23 +679,25 @@ idmef_queue_t *idmef_message_scheduler_queue_new(void)
         pthread_mutex_lock(&queue_list_mutex);
         id = global_id++;
         pthread_mutex_unlock(&queue_list_mutex);
-        
-        snprintf(buf, sizeof(buf), HIGH_PRIORITY_MESSAGE_FILENAME ".%u", id);        
+
+        prelude_client_profile_get_backup_dirname(prelude_client_get_profile(client), bdir, sizeof(bdir));
+
+        snprintf(buf, sizeof(buf), "%s/high-priority-fifo.%u", bdir, id);        
         ret = init_file_output(buf, &queue->high.disk_message_list);
         if ( ret < 0 ) {
                 free(queue);
                 return NULL;
         }
-
-        snprintf(buf, sizeof(buf), MID_PRIORITY_MESSAGE_FILENAME ".%u", id);
+        
+        snprintf(buf, sizeof(buf), "%s/mid-priority-fifo.%u", bdir, id);
         ret = init_file_output(buf, &queue->mid.disk_message_list);
         if ( ret < 0 ) {
                 destroy_file_output(&queue->high.disk_message_list);
                 free(queue);
                 return NULL;
         }
-
-        snprintf(buf, sizeof(buf), LOW_PRIORITY_MESSAGE_FILENAME ".%u", id);
+        
+        snprintf(buf, sizeof(buf), "%s/low-priority-fifo.%u", bdir, id);
         ret = init_file_output(buf, &queue->low.disk_message_list);
         if ( ret < 0 ) {
                 destroy_file_output(&queue->high.disk_message_list);

@@ -33,7 +33,7 @@ int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg);
 
 void idmef_message_process(idmef_message_t *idmef);
 
-idmef_queue_t *idmef_message_scheduler_queue_new(void);
+idmef_queue_t *idmef_message_scheduler_queue_new(prelude_client_t *client);
 
 void idmef_message_scheduler_queue_destroy(idmef_queue_t *queue);
 
