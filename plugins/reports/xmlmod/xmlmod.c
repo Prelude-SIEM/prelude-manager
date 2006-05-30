@@ -756,6 +756,34 @@ static void process_assessment(xmlNodePtr parent, idmef_assessment_t *assessment
 
 
 
+static void process_correlation_alert(xmlNodePtr parent, idmef_correlation_alert_t *ca)
+{
+        xmlNodePtr new, anew;
+        prelude_string_t *str;
+        idmef_alertident_t *alertident = NULL;
+        
+        if ( ! ca )
+                return;
+
+        new = xmlNewChild(parent, NULL, (const xmlChar *) "CorrelationAlert", NULL);
+        if ( ! new )
+                return;
+
+        str = idmef_correlation_alert_get_name(ca);
+	if ( str )
+		xmlNewTextChild(new, NULL, (const xmlChar *) "name", (const xmlChar *) prelude_string_get_string(str));
+
+        while ( (alertident = idmef_correlation_alert_get_next_alertident(ca, alertident)) ) {
+                anew = xmlNewTextChild(new, NULL, (const xmlChar *) "alertident",
+                                       (const xmlChar *) prelude_string_get_string(idmef_alertident_get_alertident(alertident)));
+                if ( ! anew )
+                        break;
+
+                if ( idmef_alertident_get_analyzerid(alertident) )
+                        idmef_attr_string(anew, "analyzerid", idmef_alertident_get_analyzerid(alertident));
+        }
+}
+
 
 
 static void process_alert(xmlNodePtr root, idmef_alert_t *alert) 
@@ -793,7 +821,8 @@ static void process_alert(xmlNodePtr root, idmef_alert_t *alert)
 
         process_classification(new, idmef_alert_get_classification(alert));
         process_assessment(new, idmef_alert_get_assessment(alert));
-
+        process_correlation_alert(new, idmef_alert_get_correlation_alert(alert));
+        
 	additional_data = NULL;
 	while ( (additional_data = idmef_alert_get_next_additional_data(alert, additional_data)) )
                 process_additional_data(new, additional_data);
