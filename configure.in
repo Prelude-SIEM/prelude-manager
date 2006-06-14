@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT
 AC_PREREQ(2.50)
 AC_CANONICAL_TARGET([])
-AM_INIT_AUTOMAKE(prelude-manager, 0.9.4.1)
+AM_INIT_AUTOMAKE(prelude-manager, 0.9.5)
 AM_CONFIG_HEADER(config.h)
 AM_DISABLE_STATIC
 
@@ -130,7 +130,7 @@ dnl **************************************************
 
 AC_ARG_WITH(libwrap, AC_HELP_STRING(--with-libwrap@<:@=PFX@:>@, 
                                     Compile in libwrap (tcp_wrappers) support @<:@default=auto@:>@.),
-            libwrap_required=true, [])
+            libwrap_required=true, with_libwrap="yes")
 
 if test x$with_libwrap != xno; then
    LIBWRAP_INCLUDE="tcpd.h"

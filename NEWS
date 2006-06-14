@@ -1,3 +1,28 @@
+* 2006-06-14, prelude-manager-0.9.5:
+
+	- Store Prelude-Manager FIFO into the profile backup directory so that FIFO 
+	  are per profile. Fix #151. 	
+
+	- Update libwrap check, don't statically link libwrap. Cleanup. Fix #144. 
+
+	- XMLmod: Implement CorrelationAlert processing.
+    
+	- XMLmod: No ntpstamp attribute in File/Inode element datetime fields.
+    
+	- XMLmod: permission -> Permission, as per IDMEF DTD requirements.
+    	
+	- XMLmod: Process the Checksum IDMEF element.
+
+ 	- XMLmod: Make AdditionalData validation pass (IDMEF v15 -> v16 change).
+
+	- XMLmod: disable-buffering option argument is optional.
+
+    	- XMLmod: Correct DTD loading error. 
+
+	- XMLmod: Avoid NULL libxml warning.
+
+
+
 * 2006-03-28, prelude-manager-0.9.4.1:
 
 	- Enable write notification on queued write (Fix reverse relaying).
