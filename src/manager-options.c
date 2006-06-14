@@ -354,7 +354,7 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
                            "Print this help", PRELUDE_OPTION_ARGUMENT_NONE, print_help, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
         
-        prelude_option_add(init_first, &opt, PRELUDE_OPTION_TYPE_CLI, 0, "config",
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 0, "config",
                            "Configuration file to use", PRELUDE_OPTION_ARGUMENT_REQUIRED,
                            set_conf_file, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
