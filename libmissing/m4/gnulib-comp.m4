@@ -51,6 +51,7 @@ AC_DEFUN([gl_INIT],
   gl_TIME_R
   gl_FUNC_VASNPRINTF
   gl_FUNC_VSNPRINTF
+  gl_FUNC_WCWIDTH
   gl_XSIZE
 ])
 
@@ -96,6 +97,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/vasnprintf.h
   lib/vsnprintf.c
   lib/vsnprintf.h
+  lib/wcwidth.h
   lib/xsize.h
   m4/alloca.m4
   m4/eoverflow.m4
@@ -130,6 +132,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/vasnprintf.m4
   m4/vsnprintf.m4
   m4/wchar_t.m4
+  m4/wcwidth.m4
   m4/wint_t.m4
   m4/xsize.m4
 ])
