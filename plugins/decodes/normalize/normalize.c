@@ -41,8 +41,9 @@ static int sanitize_service_protocol(idmef_service_t *service)
 {
         int ret;
         uint8_t *ipn;
+        uint16_t *port;
         struct protoent *proto;
-        prelude_string_t *pname;
+        prelude_string_t *str;
 
         if ( ! service )
                 return 0;
@@ -50,24 +51,35 @@ static int sanitize_service_protocol(idmef_service_t *service)
         setprotoent(1);
         
         ipn = idmef_service_get_iana_protocol_number(service);
-        if ( ipn) {
+        if ( ipn ) {
                 proto = getprotobynumber(*ipn);
                 if ( proto ) {
-                        ret = idmef_service_new_iana_protocol_name(service, &pname);
+                        ret = idmef_service_new_iana_protocol_name(service, &str);
                         if ( ret < 0 )
                                 return ret;
                         
-                        return prelude_string_set_dup(pname, proto->p_name);
+                        ret = prelude_string_set_dup(str, proto->p_name);
+                        if ( ret < 0 )
+                                return ret;
                 }
         }
 
-        pname = idmef_service_get_iana_protocol_name(service);
-        if ( pname && ! prelude_string_is_empty(pname) ) {
-                proto = getprotobyname(prelude_string_get_string(pname));
+        else if ( (str = idmef_service_get_iana_protocol_name(service)) && ! prelude_string_is_empty(str) ) {
+                proto = getprotobyname(prelude_string_get_string(str));
                 if ( proto )
                         idmef_service_set_iana_protocol_number(service, proto->p_proto);
         }
+        
+        if ( ! idmef_service_get_port(service) && ! idmef_service_get_name(service) ) {
+                ret = idmef_service_new_name(service, &str);
+                if ( ret < 0 )
+                        return ret;
 
+                ret = prelude_string_set_constant(str, "unknown");
+                if ( ret < 0 )
+                        return ret;
+        }
+        
         return 0;
 }
 
