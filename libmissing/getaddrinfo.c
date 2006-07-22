@@ -38,6 +38,8 @@
 #define _(String) gettext (String)
 #define N_(String) String
 
+#include "inet_ntop.h"
+#include "snprintf.h"
 #include "strdup.h"
 
 #if defined _WIN32 || defined __WIN32__
@@ -45,11 +47,11 @@
 #endif
 
 #ifdef WIN32_NATIVE
-typedef int WSAAPI (*getaddrinfo_func) (const char*, const char*,
+typedef int (WSAAPI *getaddrinfo_func) (const char*, const char*,
 					const struct addrinfo*,
 					struct addrinfo**);
-typedef void WSAAPI (*freeaddrinfo_func) (struct addrinfo*);
-typedef int WSAAPI (*getnameinfo_func) (const struct sockaddr*,
+typedef void (WSAAPI *freeaddrinfo_func) (struct addrinfo*);
+typedef int (WSAAPI *getnameinfo_func) (const struct sockaddr*,
 					socklen_t, char*, DWORD,
 					char*, DWORD, int);
 
@@ -72,9 +74,9 @@ use_win32_p (void)
 
   if (h)
     {
-      getaddrinfo_ptr = GetProcAddress (h, "getaddrinfo");
-      freeaddrinfo_ptr = GetProcAddress (h, "freeaddrinfo");
-      getnameinfo_ptr = GetProcAddress (h, "getnameinfo");
+      getaddrinfo_ptr = (getaddrinfo_func) GetProcAddress (h, "getaddrinfo");
+      freeaddrinfo_ptr = (freeaddrinfo_func) GetProcAddress (h, "freeaddrinfo");
+      getnameinfo_ptr = (getnameinfo_func) GetProcAddress (h, "getnameinfo");
     }
 
   /* If either is missing, something is odd. */
@@ -138,6 +140,10 @@ getaddrinfo (const char *restrict nodename,
     return getaddrinfo_ptr (nodename, servname, hints, res);
 #endif
 
+  if (hints && (hints->ai_flags & ~(AI_CANONNAME|AI_PASSIVE)))
+    /* FIXME: Support more flags. */
+    return EAI_BADFLAGS;
+
   if (hints && !validate_family (hints->ai_family))
     return EAI_FAMILY;
 
@@ -146,14 +152,17 @@ getaddrinfo (const char *restrict nodename,
     /* FIXME: Support other socktype. */
     return EAI_SOCKTYPE; /* FIXME: Better return code? */
 
-  if ( ! nodename ) {
-          if ( ! (hints->ai_flags & AI_PASSIVE) )
-                  return EAI_NONAME;
-          
-          nodename = (hint->ai_family == AF_INET6) ? "::" : "0.0.0.0";
-  }
-  
-    /* FIXME: Support server bind mode. */
+  if (!nodename)
+    {
+      if (!(hints->ai_flags & AI_PASSIVE))
+	return EAI_NONAME;
+
+#ifdef HAVE_IPV6
+      nodename = (hint->ai_family == AF_INET6) ? "::" : "0.0.0.0";
+#else
+      nodename = "0.0.0.0";
+#endif
+    }
 
   if (servname)
     {
@@ -295,7 +304,10 @@ freeaddrinfo (struct addrinfo *ai)
 {
 #ifdef WIN32_NATIVE
   if (use_win32_p ())
-    return freeaddrinfo_ptr (ai);
+    {
+      freeaddrinfo_ptr (ai);
+      return;
+    }
 #endif
 
   while (ai)
@@ -315,7 +327,7 @@ int getnameinfo(const struct sockaddr *restrict sa, socklen_t salen,
 		char *restrict service, socklen_t servicelen,
 		int flags)
 {
-#if WIN32_NATIVE
+#ifdef WIN32_NATIVE
   if (use_win32_p ())
     return getnameinfo_ptr (sa, salen, node, nodelen,
 			    service, servicelen, flags);
