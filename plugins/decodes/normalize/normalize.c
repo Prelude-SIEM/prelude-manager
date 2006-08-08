@@ -41,7 +41,6 @@ static int sanitize_service_protocol(idmef_service_t *service)
 {
         int ret;
         uint8_t *ipn;
-        uint16_t *port;
         struct protoent *proto;
         prelude_string_t *str;
 
@@ -147,7 +146,17 @@ static void sanitize_alert(idmef_alert_t *alert)
         idmef_node_t *node;
         idmef_source_t *src = NULL;
         idmef_target_t *dst = NULL;
-
+        idmef_analyzer_t *analyzer = NULL;
+        
+        while ( (analyzer = idmef_alert_get_next_analyzer(alert, analyzer)) ) {
+                node = idmef_analyzer_get_node(analyzer);
+                if ( node ) {
+                        ret = sanitize_node(node);
+                        if ( ret < 0 )
+                                idmef_analyzer_set_node(analyzer, NULL);
+                }
+        }
+        
         while ( (src = idmef_alert_get_next_source(alert, src)) ) {
 
                 sanitize_service_protocol(idmef_source_get_service(src));
