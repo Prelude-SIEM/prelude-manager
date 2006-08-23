@@ -19,6 +19,8 @@
 # any checks for libraries, header files, types and library functions.
 AC_DEFUN([gl_EARLY],
 [
+  m4_pattern_forbid([^gl_[A-Z]])dnl the gnulib macro namespace
+  m4_pattern_allow([^gl_ES$])dnl a valid locale name
   AC_REQUIRE([AC_PROG_RANLIB])
   AC_REQUIRE([AC_GNU_SOURCE])
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
@@ -30,6 +32,7 @@ AC_DEFUN([gl_INIT],
 [
   AM_CONDITIONAL([GL_COND_LIBTOOL], [true])
   gl_FUNC_ALLOCA
+  gl_HEADER_ARPA_INET
   dnl gl_USE_SYSTEM_EXTENSIONS must be added quite early to configure.ac.
   gl_GETADDRINFO
   gl_INET_NTOP
@@ -38,9 +41,9 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_MEMCHR
   gl_FUNC_MEMSET
   gl_MINMAX
+  gl_HEADER_NETINET_IN
   gl_PATHMAX
   gl_FUNC_POLL
-  gl_C_RESTRICT
   gl_SIZE_MAX
   gl_FUNC_SNPRINTF
   gl_TYPE_SOCKLEN_T
@@ -100,6 +103,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/wcwidth.h
   lib/xsize.h
   m4/alloca.m4
+  m4/arpa_inet_h.m4
   m4/eoverflow.m4
   m4/extensions.m4
   m4/getaddrinfo.m4
@@ -114,10 +118,10 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/memchr.m4
   m4/memset.m4
   m4/minmax.m4
+  m4/netinet_in_h.m4
   m4/onceonly_2_57.m4
   m4/pathmax.m4
   m4/poll.m4
-  m4/restrict.m4
   m4/signed.m4
   m4/size_max.m4
   m4/snprintf.m4
