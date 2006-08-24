@@ -1,3 +1,15 @@
+* 2006-08-24, prelude-manager-0.9.6:
+
+	- In case an IDMEF-Service object contain neither name or port 
+	  attribute, set name to "unknown" in order to avoid IDMEF DTD 
+	  validation issue.
+
+	- Normalize analyzer(*).node.
+
+	- Fix OpenBSD getaddrinfo() problem.
+
+
+
 * 2006-06-14, prelude-manager-0.9.5:
 
 	- Store Prelude-Manager FIFO into the profile backup directory so that FIFO 
