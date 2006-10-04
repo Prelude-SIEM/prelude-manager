@@ -30,15 +30,16 @@ AC_DEFUN([gl_EARLY],
 # "Check for header files, types and library functions".
 AC_DEFUN([gl_INIT],
 [
-  AM_CONDITIONAL([GL_COND_LIBTOOL], [true])
+  AM_CONDITIONAL([GL_COND_LIBTOOL], [false])
+  gl_cond_libtool=false
+  gl_libdeps=
+  gl_ltlibdeps=
+  gl_source_base='libmissing'
   gl_FUNC_ALLOCA
   gl_HEADER_ARPA_INET
   dnl gl_USE_SYSTEM_EXTENSIONS must be added quite early to configure.ac.
   gl_GETADDRINFO
   gl_INET_NTOP
-  gl_MBCHAR
-  gl_MBITER
-  gl_FUNC_MEMCHR
   gl_FUNC_MEMSET
   gl_MINMAX
   gl_HEADER_NETINET_IN
@@ -48,14 +49,16 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_SNPRINTF
   gl_TYPE_SOCKLEN_T
   AM_STDBOOL_H
-  gl_STRCASE
   gl_FUNC_STRDUP
   gl_HEADER_SYS_SOCKET
   gl_TIME_R
   gl_FUNC_VASNPRINTF
   gl_FUNC_VSNPRINTF
-  gl_FUNC_WCWIDTH
   gl_XSIZE
+  LIBMISSING_LIBDEPS="$gl_libdeps"
+  AC_SUBST([LIBMISSING_LIBDEPS])
+  LIBMISSING_LTLIBDEPS="$gl_ltlibdeps"
+  AC_SUBST([LIBMISSING_LTLIBDEPS])
 ])
 
 # This macro records the list of files which have been installed by
@@ -63,16 +66,13 @@ AC_DEFUN([gl_INIT],
 AC_DEFUN([gl_FILE_LIST], [
   lib/alloca_.h
   lib/asnprintf.c
+  lib/dummy.c
   lib/gai_strerror.c
   lib/getaddrinfo.c
   lib/getaddrinfo.h
   lib/gettext.h
   lib/inet_ntop.c
   lib/inet_ntop.h
-  lib/mbchar.c
-  lib/mbchar.h
-  lib/mbuiter.h
-  lib/memchr.c
   lib/memset.c
   lib/minmax.h
   lib/pathmax.h
@@ -87,20 +87,14 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/snprintf.h
   lib/socket_.h
   lib/stdbool_.h
-  lib/strcase.h
-  lib/strcasecmp.c
   lib/strdup.c
   lib/strdup.h
-  lib/strncasecmp.c
-  lib/strnlen1.c
-  lib/strnlen1.h
   lib/time_r.c
   lib/time_r.h
   lib/vasnprintf.c
   lib/vasnprintf.h
   lib/vsnprintf.c
   lib/vsnprintf.h
-  lib/wcwidth.h
   lib/xsize.h
   m4/alloca.m4
   m4/arpa_inet_h.m4
@@ -112,10 +106,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/inttypes_h.m4
   m4/longdouble.m4
   m4/longlong.m4
-  m4/mbchar.m4
-  m4/mbiter.m4
-  m4/mbrtowc.m4
-  m4/memchr.m4
   m4/memset.m4
   m4/minmax.m4
   m4/netinet_in_h.m4
@@ -129,14 +119,12 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/sockpfaf.m4
   m4/stdbool.m4
   m4/stdint_h.m4
-  m4/strcase.m4
   m4/strdup.m4
   m4/sys_socket_h.m4
   m4/time_r.m4
   m4/vasnprintf.m4
   m4/vsnprintf.m4
   m4/wchar_t.m4
-  m4/wcwidth.m4
   m4/wint_t.m4
   m4/xsize.m4
 ])
