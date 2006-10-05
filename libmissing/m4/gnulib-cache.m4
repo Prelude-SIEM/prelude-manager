@@ -15,7 +15,7 @@
 
 
 # Specification in the form of a command-line invocation:
-#   gnulib-tool --import --dir=. --lib=libmissing --source-base=libmissing --m4-base=libmissing/m4 --doc-base=libmissing/doc --aux-dir=. --lgpl --no-libtool --macro-prefix=gl getaddrinfo inet_ntop memset pathmax poll snprintf strdup time_r vsnprintf
+#   gnulib-tool --import --dir=. --lib=libmissing --source-base=libmissing --m4-base=libmissing/m4 --doc-base=libmissing/doc --aux-dir=. --lgpl --libtool --macro-prefix=gl getaddrinfo inet_ntop memset pathmax poll snprintf strdup time_r vsnprintf
 
 # Specification in the form of a few gnulib-tool.m4 macro invocations:
 gl_LOCAL_DIR([])
@@ -28,4 +28,5 @@ gl_TESTS_BASE([tests])
 gl_LIB([libmissing])
 gl_LGPL
 gl_MAKEFILE_NAME([])
+gl_LIBTOOL
 gl_MACRO_PREFIX([gl])

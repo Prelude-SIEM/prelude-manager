@@ -30,10 +30,8 @@ AC_DEFUN([gl_EARLY],
 # "Check for header files, types and library functions".
 AC_DEFUN([gl_INIT],
 [
-  AM_CONDITIONAL([GL_COND_LIBTOOL], [false])
-  gl_cond_libtool=false
-  gl_libdeps=
-  gl_ltlibdeps=
+  AM_CONDITIONAL([GL_COND_LIBTOOL], [true])
+  gl_cond_libtool=true
   gl_source_base='libmissing'
   gl_FUNC_ALLOCA
   gl_HEADER_ARPA_INET
@@ -55,10 +53,6 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_VASNPRINTF
   gl_FUNC_VSNPRINTF
   gl_XSIZE
-  LIBMISSING_LIBDEPS="$gl_libdeps"
-  AC_SUBST([LIBMISSING_LIBDEPS])
-  LIBMISSING_LTLIBDEPS="$gl_ltlibdeps"
-  AC_SUBST([LIBMISSING_LTLIBDEPS])
 ])
 
 # This macro records the list of files which have been installed by

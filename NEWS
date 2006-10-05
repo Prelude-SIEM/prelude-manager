@@ -1,3 +1,11 @@
+* 2006-10-04, prelude-manager-0.9.6.1:
+
+	- Fix possible undefined reference to GnuLib symbols.
+
+	- Verbose error message in case of Authentication initialization failure.
+
+
+
 * 2006-08-24, prelude-manager-0.9.6:
 
 	- In case an IDMEF-Service object contain neither name or port 
