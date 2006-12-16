@@ -88,7 +88,7 @@ int server_generic_bind_numeric(server_generic_t *server, struct sockaddr *sa, s
 
 void server_generic_start(server_generic_t **server, size_t nserver);
 
-void server_generic_close(server_generic_t *server);
+void server_generic_destroy(server_generic_t *server);
 
 void server_generic_stop(server_generic_t *server);
 

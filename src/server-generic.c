@@ -795,6 +795,7 @@ server_generic_t *server_generic_new(size_t clientlen, server_generic_accept_fun
                 return NULL;
         }
 
+        server->sa = NULL;
         server->read = readf;
         server->write = writef;
         server->accept = acceptf;
@@ -826,8 +827,8 @@ int server_generic_bind_numeric(server_generic_t *server, struct sockaddr *sa, s
         
         ret = inet_server_start(server, server->sa, server->slen);
         if ( ret < 0 ) {
-                server_logic_stop(server->logic);
                 free(server->sa);
+                server->sa = NULL;
                 return ret;
         }
 
@@ -850,8 +851,8 @@ int server_generic_bind(server_generic_t *server, const char *saddr, unsigned in
                 ret = inet_server_start(server, server->sa, server->slen);
         
         if ( ret < 0 ) {
-                server_logic_stop(server->logic);
                 free(server->sa);
+                server->sa = NULL;
                 return ret;
         }
 
@@ -874,14 +875,19 @@ void server_generic_stop(server_generic_t *server)
 
 
 
-void server_generic_close(server_generic_t *server) 
+void server_generic_destroy(server_generic_t *server) 
 {
         close(server->sock);
         
-        if ( server->sa->sa_family == AF_UNIX )                 
-                unlink(((struct sockaddr_un *)server->sa)->sun_path);
+        if ( server->sa ) {
+                if ( server->sa->sa_family == AF_UNIX )                 
+                        unlink(((struct sockaddr_un *)server->sa)->sun_path);
+                        
+                free(server->sa);
+        }
         
-        server_logic_stop(server->logic);
+        server_logic_destroy(server->logic);
+        free(server);
 }
 
 
