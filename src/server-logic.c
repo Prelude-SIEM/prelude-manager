@@ -129,7 +129,7 @@ struct server_logic {
          */
         pthread_mutex_t mutex;
         prelude_list_t free_set_list;
-        prelude_list_t  used_set_list;
+        prelude_list_t used_set_list;
 
         volatile sig_atomic_t continue_processing;
 };
@@ -469,7 +469,6 @@ static void *child_reader(void *ptr)
                 }
                 
                 pthread_mutex_unlock(&set->parent->mutex);
-                
                 poll_fd_set(set);
         }
         
@@ -640,6 +639,22 @@ void server_logic_stop(server_logic_t *server)
         pthread_mutex_unlock(&server->mutex);
 }
 
+
+
+/**
+ * server_logic_destroy:
+ * @server: Pointer on a #server_logic_t object.
+ *
+ * Destroy the @server object.
+ *
+ * Warning: in the current state, server_logic_destroy() should only be 
+ * used if server_logic_process_requests() was not yet called.
+ */
+void server_logic_destroy(server_logic_t *server)
+{
+        pthread_mutex_destroy(&server->mutex);
+        free(server);
+}
 
 
 

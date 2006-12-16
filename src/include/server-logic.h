@@ -74,6 +74,10 @@ void server_logic_set_min_running_thread(server_logic_t *server, unsigned int mi
  */
 void server_logic_stop(server_logic_t *server);
 
+/*
+ *
+ */
+void server_logic_destroy(server_logic_t *server);
 
 /*
  *
