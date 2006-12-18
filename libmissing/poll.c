@@ -28,6 +28,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <string.h>
 
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
@@ -158,40 +159,33 @@ poll (pfd, nfd, timeout)
 	  if (FD_ISSET (pfd[i].fd, &rfds))
 	    {
 	      int r;
-	      long avail = -1;
-	      /* support for POLLHUP.  */
+	                      
 #if defined __MACH__ && defined __APPLE__
 	      /* There is a bug in Mac OS X that causes it to ignore MSG_PEEK for
-		 some kinds of descriptors.  Use FIONREAD to emulate POLLHUP.
-		 It is still not completely POSIX compliant (it does not fully
-		 work on TTYs), but at least it does not delete data!  For other
-		 platforms, we still use MSG_PEEK because it was proved to be
-		 reliable, and I a leery of changing it.  */
-	      do
-		r = ioctl (pfd[i].fd, FIONREAD, &avail);
-	      while (r == -1 && (errno == EAGAIN || errno == EINTR));
-	      if (avail < 0)
-	        avail = 0;
+                some kinds of descriptors. Use a length of 0. */
+
+              char *data = NULL;
+              size_t len = 0;
 #else
-	      char data[64];
-	      r = recv (pfd[i].fd, data, 64, MSG_PEEK);
-	      if (r == -1)
+              char data[64];
+              size_t len = sizeof(data);
+#endif
+	      r = recv (pfd[i].fd, data, len, MSG_PEEK);
+	      if (r > 0)
+	        happened = POLLIN|POLLRDNORM;
+	        
+	      else if (r == 0)
+	        happened = (len == 0 /* Mac OSX */ ) ? POLLIN|POLLRDNORM : POLLHUP;
+	        
+	      else if (r < 0)
 		{
-		  avail = (errno == ESHUTDOWN || errno == ECONNRESET ||
-	                   errno == ECONNABORTED || errno == ENETRESET) ? 0 : -1;
+		  if (errno == ENOTCONN)
+		    happened = POLLIN|POLLRDNORM; /* Event happening on an unconnected server socket. */
+		  else
+		    happened = (errno == ESHUTDOWN || errno == ECONNRESET ||
+	                        errno == ECONNABORTED || errno == ENETRESET) ? POLLHUP : POLLERR;
 		  errno = 0;
 		}
-	      else
-	        avail = r;
-#endif
-
-	      /* An hung up descriptor does not increase the return value! */
-	      if (avail == 0)
-		pfd[i].revents |= POLLHUP;
-	      else if (avail == -1)
-		pfd[i].revents |= POLLERR;
-	      else
-		happened |= POLLIN | POLLRDNORM;
 	    }
 
 	  if (FD_ISSET (pfd[i].fd, &wfds))
@@ -200,7 +194,7 @@ poll (pfd, nfd, timeout)
 	  if (FD_ISSET (pfd[i].fd, &efds))
 	    happened |= POLLPRI | POLLRDBAND;
 
-	  pfd[i].revents |= pfd[i].events & happened;
+	  pfd[i].revents |= happened;
 	  rc += (happened > 0);
 	}
     }

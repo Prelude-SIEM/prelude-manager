@@ -190,18 +190,6 @@ fi
 
 
 dnl **************************************************
-dnl * Check for accept() prototype                   *
-dnl **************************************************
-AC_PROTOTYPE_ACCEPT
-AC_CHECK_TYPES([socklen_t], , 
-               AC_DEFINE(socklen_t, ACCEPT_ARG3, Define socklen_t to accept third argument type), 
-               [ 
-                 #include <stdio.h>
-                 #include <sys/types.h> 
-                 #include <sys/socket.h> ])
-
-
-dnl **************************************************
 dnl * Check for Ipv6.                                *
 dnl **************************************************
 
