@@ -25,7 +25,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/poll.h>
 #include <pthread.h>
 #include <assert.h>
 #include <errno.h>

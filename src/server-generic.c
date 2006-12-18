@@ -37,7 +37,6 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <syslog.h>
-#include <sys/poll.h>
 #include <assert.h>
 #include <sys/stat.h>
 #include <signal.h>
