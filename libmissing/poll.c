@@ -163,19 +163,18 @@ poll (pfd, nfd, timeout)
 #if defined __MACH__ && defined __APPLE__
 	      /* There is a bug in Mac OS X that causes it to ignore MSG_PEEK for
                 some kinds of descriptors. Use a length of 0. */
-
-              char *data = NULL;
-              size_t len = 0;
+              r = recv (pfd[i].fd, NULL, 0, MSG_PEEK);
+              if (r == 0)
+                happened = POLLIN|POLLRDNORM;
 #else
               char data[64];
-              size_t len = sizeof(data);
+              
+              r = recv (pfd[i].fd, data, sizeof(data), MSG_PEEK);
+              if (r == 0)
+                happened = POLLHUP; 
 #endif
-	      r = recv (pfd[i].fd, data, len, MSG_PEEK);
-	      if (r > 0)
+	      else if (r > 0)
 	        happened = POLLIN|POLLRDNORM;
-	        
-	      else if (r == 0)
-	        happened = (len == 0 /* Mac OSX */ ) ? POLLIN|POLLRDNORM : POLLHUP;
 	        
 	      else if (r < 0)
 		{
