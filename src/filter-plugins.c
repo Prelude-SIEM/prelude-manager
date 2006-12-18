@@ -28,7 +28,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <dlfcn.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <assert.h>
