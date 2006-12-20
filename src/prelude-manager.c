@@ -32,7 +32,6 @@
 #include <signal.h>
 #include <assert.h>
 #include <pthread.h>
-#include <sys/time.h>
 
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
@@ -66,7 +65,7 @@ static volatile sig_atomic_t got_signal = 0;
 /*
  * all function called here should be signal safe.
  */
-static void handle_signal(int sig) 
+static RETSIGTYPE handle_signal(int sig) 
 {
         size_t i;
         

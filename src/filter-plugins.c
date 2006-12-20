@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
-#include <sys/time.h>
 #include <assert.h>
 
 #include <libprelude/prelude.h>
