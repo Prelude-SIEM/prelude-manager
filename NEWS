@@ -1,3 +1,14 @@
+* 2006-12-20, prelude-manager-0.9.7:
+
+        - Fix a startup problem on system with different address of different family
+          mapping to the same IP.
+        
+        - Fix for system using the GnuLib poll replacement modules. The module was
+          broken when used in conjunction with server socket.
+          
+        - Various portability fixes (this release should compile and run on OSX out of the box).
+          
+
 * 2006-10-04, prelude-manager-0.9.6.1:
 
 	- Fix possible undefined reference to GnuLib symbols.
