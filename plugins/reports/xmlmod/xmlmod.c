@@ -55,7 +55,15 @@ PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(xmlmod, xmlmod_plugin_t, logfile)
 
 static int file_write(void *context, const char *buf, int len) 
 {
-        return fwrite(buf, 1, len, context);
+        size_t ret;
+        
+        ret = fwrite(buf, 1, len, context);
+        if ( ret != (size_t ) len && ferror(context) ) {
+                prelude_log(PRELUDE_LOG_ERR, "could not write IDMEF-XML data: '%s'.\n", strerror(errno));
+                return -1;
+        }
+                
+        return 0;
 }
 
 
