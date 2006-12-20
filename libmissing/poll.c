@@ -159,30 +159,31 @@ poll (pfd, nfd, timeout)
 	  if (FD_ISSET (pfd[i].fd, &rfds))
 	    {
 	      int r;
-	                      
+
 #if defined __MACH__ && defined __APPLE__
 	      /* There is a bug in Mac OS X that causes it to ignore MSG_PEEK for
-                some kinds of descriptors. Use a length of 0. */
-              r = recv (pfd[i].fd, NULL, 0, MSG_PEEK);
-              if (r == 0)
-                happened = POLLIN|POLLRDNORM;
+	         some kinds of descriptors. Use a length of 0. */
+	      r = recv (pfd[i].fd, NULL, 0, MSG_PEEK);
+	      if (r == 0)
+		happened = POLLIN | POLLRDNORM;
 #else
-              char data[64];
-              
-              r = recv (pfd[i].fd, data, sizeof(data), MSG_PEEK);
-              if (r == 0)
-                happened = POLLHUP; 
+	      char data[64];
+
+	      r = recv (pfd[i].fd, data, sizeof (data), MSG_PEEK);
+	      if (r == 0)
+		happened = POLLHUP;
 #endif
 	      else if (r > 0)
-	        happened = POLLIN|POLLRDNORM;
-	        
+		happened = POLLIN | POLLRDNORM;
+
 	      else if (r < 0)
 		{
 		  if (errno == ENOTCONN)
-		    happened = POLLIN|POLLRDNORM; /* Event happening on an unconnected server socket. */
+		    happened = POLLIN | POLLRDNORM;	/* Event happening on an unconnected server socket. */
 		  else
 		    happened = (errno == ESHUTDOWN || errno == ECONNRESET ||
-	                        errno == ECONNABORTED || errno == ENETRESET) ? POLLHUP : POLLERR;
+				errno == ECONNABORTED
+				|| errno == ENETRESET) ? POLLHUP : POLLERR;
 		  errno = 0;
 		}
 	    }
