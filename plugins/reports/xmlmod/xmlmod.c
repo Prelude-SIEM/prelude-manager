@@ -58,7 +58,7 @@ static int file_write(void *context, const char *buf, int len)
         size_t ret;
         
         ret = fwrite(buf, 1, len, context);
-        if ( ret != (size_t ) len && ferror(context) ) {
+        if ( ret != (size_t ) len && ferror((FILE *) context) ) {
                 prelude_log(PRELUDE_LOG_ERR, "could not write IDMEF-XML data: '%s'.\n", strerror(errno));
                 return -1;
         }
