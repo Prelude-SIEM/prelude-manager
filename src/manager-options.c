@@ -455,15 +455,20 @@ int manager_options_read(prelude_option_t *manager_root_optlist, int *argc, char
         
         ret = prelude_option_read(manager_root_optlist, &config.config_file, argc, argv, &err, manager_client);        
         if ( ret < 0 ) {
+                if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EOF )
+                        return -1;
+                
                 if ( err )
                         prelude_log(PRELUDE_LOG_WARN, "Option error: %s.\n", prelude_string_get_string(err));
-
-                else if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
-                        prelude_perror(ret, "error processing prelude-manager options");
+                else
+                        prelude_perror(ret, "error processing options");
                 
                 return -1;
         }
-        
+
+        while ( ret < *argc )
+                prelude_log(PRELUDE_LOG_WARN, "Unhandled command line argument: '%s'.\n", argv[ret++]);
+            
         if ( config.nserver == 0 )
                 ret = add_server_default();
 
