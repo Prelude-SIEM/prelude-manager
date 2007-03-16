@@ -1,5 +1,6 @@
-/* strdup.h -- duplicate a string
-   Copyright (C) 2004, 2006 Free Software Foundation, Inc.
+/* Provide a more complete sys/time.h.
+
+   Copyright (C) 2007 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -15,25 +16,29 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
-#ifndef STRDUP_H_
-#define STRDUP_H_
+/* Written by Paul Eggert.  */
 
-/* Get strdup declaration, if available.  */
-#include <string.h>
+#ifndef _gl_SYS_TIME_H
+#define _gl_SYS_TIME_H
 
-#ifdef __cplusplus
-extern "C" {
+#if @HAVE_SYS_TIME_H@
+# include @ABSOLUTE_SYS_TIME_H@
+#else
+# include <time.h>
 #endif
 
-
-#if defined HAVE_DECL_STRDUP && !HAVE_DECL_STRDUP && !defined strdup
-/* Duplicate S, returning an identical malloc'd string.  */
-extern char *strdup (const char *s);
+#if ! @HAVE_STRUCT_TIMEVAL@
+struct timeval
+{
+  time_t tv_sec;
+  long int tv_usec;
+};
 #endif
 
-
-#ifdef __cplusplus
-}
+#if @REPLACE_GETTIMEOFDAY@
+# undef gettimeofday
+# define gettimeofday rpl_gettimeofday
+int gettimeofday (struct timeval *restrict, void *restrict);
 #endif
 
-#endif /* STRDUP_H_ */
+#endif /* _gl_SYS_TIME_H */

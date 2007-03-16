@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2004-2006 Free Software Foundation, Inc.
+# Copyright (C) 2004-2007 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -41,23 +41,34 @@ AC_DEFUN([gl_INIT],
   gl_source_base='libmissing'
   gl_FUNC_ALLOCA
   gl_HEADER_ARPA_INET
-  dnl gl_USE_SYSTEM_EXTENSIONS must be added quite early to configure.ac.
+  AC_PROG_MKDIR_P
   gl_GETADDRINFO
   gl_INET_NTOP
   gl_FUNC_MEMSET
-  gl_MINMAX
   gl_HEADER_NETINET_IN
+  AC_PROG_MKDIR_P
   gl_PATHMAX
   gl_FUNC_POLL
   gl_SIZE_MAX
   gl_FUNC_SNPRINTF
+  gl_STDIO_MODULE_INDICATOR([snprintf])
   gl_TYPE_SOCKLEN_T
   AM_STDBOOL_H
+  gl_STDIO_H
   gl_FUNC_STRDUP
+  gl_STRING_MODULE_INDICATOR([strdup])
+  gl_HEADER_STRING_H
+  gl_HEADER_SYS_SELECT
+  AC_PROG_MKDIR_P
   gl_HEADER_SYS_SOCKET
+  AC_PROG_MKDIR_P
+  gl_HEADER_SYS_TIME_H
+  AC_PROG_MKDIR_P
+  gl_HEADER_TIME_H
   gl_TIME_R
   gl_FUNC_VASNPRINTF
   gl_FUNC_VSNPRINTF
+  gl_STDIO_MODULE_INDICATOR([vsnprintf])
   gl_XSIZE
   m4_popdef([AC_LIBSOURCES])
   m4_popdef([AC_REPLACE_FUNCS])
@@ -96,6 +107,7 @@ AC_DEFUN([gl_LIBSOURCES],
 # This macro records the list of files which have been installed by
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
+  build-aux/link-warning.h
   lib/alloca_.h
   lib/asnprintf.c
   lib/dummy.c
@@ -106,7 +118,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/inet_ntop.c
   lib/inet_ntop.h
   lib/memset.c
-  lib/minmax.h
+  lib/netinet_in_.h
   lib/pathmax.h
   lib/poll.c
   lib/poll_.h
@@ -116,30 +128,32 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/printf-parse.h
   lib/size_max.h
   lib/snprintf.c
-  lib/snprintf.h
   lib/socket_.h
   lib/stdbool_.h
+  lib/stdio_.h
   lib/strdup.c
-  lib/strdup.h
+  lib/string_.h
+  lib/sys_select_.h
+  lib/sys_time_.h
+  lib/time_.h
   lib/time_r.c
-  lib/time_r.h
   lib/vasnprintf.c
   lib/vasnprintf.h
   lib/vsnprintf.c
-  lib/vsnprintf.h
   lib/xsize.h
+  m4/absolute-header.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/eoverflow.m4
   m4/extensions.m4
   m4/getaddrinfo.m4
+  m4/gnulib-common.m4
   m4/inet_ntop.m4
   m4/intmax_t.m4
   m4/inttypes_h.m4
   m4/longdouble.m4
   m4/longlong.m4
   m4/memset.m4
-  m4/minmax.m4
   m4/netinet_in_h.m4
   m4/onceonly_2_57.m4
   m4/pathmax.m4
@@ -150,8 +164,13 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/sockpfaf.m4
   m4/stdbool.m4
   m4/stdint_h.m4
+  m4/stdio_h.m4
   m4/strdup.m4
+  m4/string_h.m4
+  m4/sys_select_h.m4
   m4/sys_socket_h.m4
+  m4/sys_time_h.m4
+  m4/time_h.m4
   m4/time_r.m4
   m4/vasnprintf.m4
   m4/vsnprintf.m4
