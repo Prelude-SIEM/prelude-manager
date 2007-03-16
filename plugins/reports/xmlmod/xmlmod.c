@@ -312,10 +312,12 @@ static void process_snmp_service(xmlNodePtr parent, idmef_snmp_service_t *snmp)
                 return;
 
         idmef_content_string(new, "oid", idmef_snmp_service_get_oid(snmp));
-        idmef_content_string(new, "community", idmef_snmp_service_get_community(snmp));
-        idmef_content_string(new, "security_name", idmef_snmp_service_get_security_name(snmp));
-        idmef_content_string(new, "context_name", idmef_snmp_service_get_context_name(snmp));
-        idmef_content_string(new, "context_engine_id", idmef_snmp_service_get_context_engine_id(snmp));
+        idmef_content_generic_optional(new, "messageProcessingModel", "%" PRELUDE_PRIu32, idmef_snmp_service_get_message_processing_model(snmp));
+        idmef_content_generic_optional(new, "securityModel", "%" PRELUDE_PRIu32, idmef_snmp_service_get_security_model(snmp));
+        idmef_content_string(new, "securityName", idmef_snmp_service_get_security_name(snmp));
+        idmef_content_generic_optional(new, "securityLevel", "%" PRELUDE_PRIu32, idmef_snmp_service_get_security_level(snmp));
+        idmef_content_string(new, "contextName", idmef_snmp_service_get_context_name(snmp));
+        idmef_content_string(new, "contextEngineId", idmef_snmp_service_get_context_engine_id(snmp));
         idmef_content_string(new, "command", idmef_snmp_service_get_command(snmp));
 }
 

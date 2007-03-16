@@ -269,15 +269,22 @@ static void process_snmp_service(textmod_plugin_t *plugin, idmef_snmp_service_t 
                 return;
         
 	print_string(plugin, 0, " oid=%s", idmef_snmp_service_get_oid(snmp));
-
-	print_string(plugin, 0, " community=%s", idmef_snmp_service_get_community(snmp));
-
-	print_string(plugin, 0, " security_name=%s", idmef_snmp_service_get_security_name(snmp));
-
-	print_string(plugin, 0, " context_name=%s", idmef_snmp_service_get_context_name(snmp));
-
-	print_string(plugin, 0, " context_engine_id=%s", idmef_snmp_service_get_context_engine_id(snmp));
-
+	
+	if ( idmef_snmp_service_get_message_processing_model(snmp) )
+	        print(plugin, 0, " messageProcessingModel=%u", * idmef_snmp_service_get_message_processing_model(snmp));
+	
+	if ( idmef_snmp_service_get_security_model(snmp) )
+                print(plugin, 0, " securityModel=%u", * idmef_snmp_service_get_security_model(snmp));
+        
+	print_string(plugin, 0, " securityName=%s", idmef_snmp_service_get_security_name(snmp));
+	
+	if ( idmef_snmp_service_get_security_level(snmp) )
+                print(plugin, 0, " securityLevel=%u", * idmef_snmp_service_get_security_level(snmp));
+        
+	print_string(plugin, 0, " contextName=%s", idmef_snmp_service_get_context_name(snmp));
+	
+	print_string(plugin, 0, " contextEngineId=%s", idmef_snmp_service_get_context_engine_id(snmp));
+	
 	print_string(plugin, 0, " command=%s", idmef_snmp_service_get_command(snmp));
 
 }
