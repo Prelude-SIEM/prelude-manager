@@ -895,7 +895,10 @@ static void dump_document(xmlmod_plugin_t *plugin, xmlDoc *doc)
 	        xmlOutputBufferWriteString(plugin->fd, "\n");
 	        
         xmlOutputBufferFlush(plugin->fd);
-                
+        
+        if ( plugin->no_buffering )
+                fflush(plugin->fd->context);
+                        
         if ( plugin->idmef_dtd )
                 validate_dtd(plugin, doc);
 }
