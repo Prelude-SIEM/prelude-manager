@@ -143,8 +143,8 @@ static int try_recovering_from_failover(prelude_plugin_instance_t *pi, plugin_fa
         
         plugin = prelude_plugin_instance_get_plugin(pi);
         
-        prelude_log(PRELUDE_LOG_WARN, "- Plugin %s[%s]: flushing %u message (%u erased due to quota)...\n",
-                    plugin->name,prelude_plugin_instance_get_name(pi),
+        prelude_log(PRELUDE_LOG_WARN, "- Plugin %s[%s]: flushing %u message (%lu erased due to quota)...\n",
+                    plugin->name, prelude_plugin_instance_get_name(pi),
                     available, prelude_failover_get_deleted_msg_count(pf->failover));
          
         count = recover_from_failover(pi, pf, &totsize);
@@ -156,8 +156,8 @@ static int try_recovering_from_failover(prelude_plugin_instance_t *pi, plugin_fa
                 pf->failover_enabled = 0;
         }
 
-        prelude_log(PRELUDE_LOG_WARN, "- Plugin %s[%s]: %s from failover: %u/%u message flushed (%u bytes).\n",
-                    plugin->name, prelude_plugin_instance_get_name(pi), text, count, available, totsize);
+        prelude_log(PRELUDE_LOG_WARN, "- Plugin %s[%s]: %s from failover: %u/%u message flushed (%" PRELUDE_PRIu64 " bytes).\n",
+                    plugin->name, prelude_plugin_instance_get_name(pi), text, count, available, (uint64_t) totsize);
 
         return (count == available) ? 0 : -1;
 }

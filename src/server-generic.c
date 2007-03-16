@@ -380,7 +380,7 @@ static int setup_client_socket(server_generic_t *server,
          */        
         ret = fcntl(client, F_SETFL, O_NONBLOCK);
         if ( ret < 0 )
-                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set non blocking mode for client: %s");
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set non blocking mode for client: %s", strerror(errno));
         
         fcntl(client, F_SETFD, fcntl(client, F_GETFD) | FD_CLOEXEC);
         

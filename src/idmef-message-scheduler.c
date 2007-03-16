@@ -516,7 +516,7 @@ static int flush_existing_fifo(const char *filename, file_output_t *out, off_t s
         int num = 0, ret;
         prelude_msg_t *msg;
         
-        prelude_log(PRELUDE_LOG_WARN, "%s contain unflushed message (%d bytes). Flushing.\n", filename, size);
+        prelude_log(PRELUDE_LOG_WARN, "%s contain unflushed message (%lu bytes). Flushing.\n", filename, (unsigned long) size);
         
         while ( 1 ) {
                 
