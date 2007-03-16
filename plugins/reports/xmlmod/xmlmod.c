@@ -44,13 +44,27 @@ typedef struct {
         int no_buffering;
         char *logfile;
         xmlDtdPtr idmef_dtd;
-        FILE *fd;
+        xmlOutputBufferPtr fd;
 } xmlmod_plugin_t;
 
 
 
 PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(xmlmod, xmlmod_plugin_t, logfile)
 
+
+
+static int file_write(void *context, const char *buf, int len) 
+{
+        size_t ret;
+
+        ret = fwrite(buf, 1, (size_t) len, context);
+        if ( ret != (size_t ) len && ferror((FILE *) context) ) {
+                prelude_log(PRELUDE_LOG_ERR, "could not write IDMEF-XML data: '%s'.\n", strerror(errno));
+                return -1;
+        }
+                
+        return (int) ret;
+}
 
 
 
@@ -843,6 +857,7 @@ static void process_heartbeat(xmlNodePtr idmefmsg, idmef_heartbeat_t *heartbeat)
 
 	idmef_attr_string(hb, "messageid", idmef_heartbeat_get_messageid(heartbeat));
 
+        
         anode = hb;
         while ( (analyzer = idmef_heartbeat_get_next_analyzer(heartbeat, analyzer)) )      
                 anode = process_analyzer(anode, analyzer);
@@ -864,7 +879,7 @@ static void validate_dtd(xmlmod_plugin_t *plugin, xmlDoc *doc)
         memset(&validation_context, 0, sizeof(validation_context));
         
         validation_context.doc = doc;
-        validation_context.userData = (void *) plugin->fd;
+        validation_context.userData = (void *) plugin->fd->context;
         validation_context.error = (xmlValidityErrorFunc) fprintf;
         validation_context.warning = (xmlValidityWarningFunc) fprintf;
         
@@ -872,21 +887,17 @@ static void validate_dtd(xmlmod_plugin_t *plugin, xmlDoc *doc)
 }
 
 
+
 static void dump_document(xmlmod_plugin_t *plugin, xmlDoc *doc) 
 {
-        int ret;
-        
-        ret = xmlDocFormatDump(plugin->fd, doc, plugin->format);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not write IDMEF-XML data: '%s'.\n", strerror(errno));
-                return -1;
-        }
-       
+        xmlNodeDumpOutput(plugin->fd, doc, doc->children, 0, plugin->format, NULL);
+        if ( plugin->format )
+	        xmlOutputBufferWriteString(plugin->fd, "\n");
+	        
+        xmlOutputBufferFlush(plugin->fd);
+                
         if ( plugin->idmef_dtd )
                 validate_dtd(plugin, doc);
-
-        if ( ! plugin->no_buffering )
-                fflush(plugin->fd);
 }
 
 
@@ -937,7 +948,7 @@ static int xmlmod_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
 
 static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
-        int ret;
+        FILE *fd;
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
         if ( ! plugin->logfile ) {
@@ -945,17 +956,21 @@ static int xmlmod_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
                 if ( ! plugin->logfile )
                         return prelude_error_from_errno(errno);
                 
-                plugin->fd = stdout;
+                fd = stdout;
         }
         
         else if ( strcmp(plugin->logfile, "-") == 0 )
-                plugin->fd = stdout;
+                fd = stdout;
         
-        else if ( ! (plugin->fd = fopen(plugin->logfile, "a+")) ) {
+        else if ( ! (fd = fopen(plugin->logfile, "a+")) ) {
                 prelude_string_sprintf(out, "error opening %s for writing", plugin->logfile);
                 return -1;
         }
         
+        plugin->fd->context = fd;
+        plugin->fd->writecallback = file_write;
+        plugin->fd->closecallback = NULL; /* No close callback */
+
         return 0;
 }
 
@@ -965,8 +980,8 @@ static void xmlmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
         xmlmod_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
         
-        if ( plugin->fd && plugin->fd != stdout )
-                fclose(plugin->fd);
+        if ( plugin->fd && plugin->fd->context != stdout )
+                xmlOutputBufferClose(plugin->fd);
         
         if ( plugin->logfile )
                 free(plugin->logfile);
@@ -984,6 +999,13 @@ static int xmlmod_activate(prelude_option_t *opt, const char *arg, prelude_strin
         new = calloc(1, sizeof(*new));
         if ( ! new )
                 return prelude_error_from_errno(errno);
+        
+        new->fd = xmlAllocOutputBuffer(NULL);
+        if ( ! new->fd ) {
+                prelude_string_sprintf(err, "error creating an XML output buffer");
+                free(new);
+                return -1;
+        }
         
         prelude_plugin_instance_set_plugin_data(context, new);
         
