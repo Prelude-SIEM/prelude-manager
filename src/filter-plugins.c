@@ -151,6 +151,10 @@ int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t
                 if ( entry->filtered_plugin != plugin )
                         continue;
                 
+                ret = filter_plugins_run_by_plugin(msg, entry->filter);
+                if ( ret < 0 )
+                        return ret;
+                        
                 ret = prelude_plugin_run(entry->filter, manager_filter_plugin_t, run, msg, entry->data);
                 if ( ret < 0 )
                         return -1;
