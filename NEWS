@@ -1,3 +1,16 @@
+* 2007-03-16, prelude-manager-0.9.7.2:
+
+        - Allow filtering plugins to hook others filters plugins.
+
+        - Update reporting code to latest specification for the SNMPService class. 
+
+        - Warn about Un-handled command line arguments.
+        
+        - Properly dump IDMEF-XML output (fix #186).
+
+        - Various bug fixes.
+        
+        
 * 2006-12-21, prelude-manager-0.9.7.1:
 
         - Fix compilation issue on system where ferror is not declared as a function, 
