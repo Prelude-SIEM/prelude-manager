@@ -32,15 +32,13 @@
 #include "config.h"
 
 #include <poll.h>
+#include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <time.h>
 #include "getaddrinfo.h"
 #include "inet_ntop.h"
 #include "pathmax.h"
-#include "snprintf.h"
-#include "strdup.h"
-#include "time_r.h"
-#include "vsnprintf.h"
 
 #endif /* _PRELUDE_MANAGER_LIBMISSING_H */
