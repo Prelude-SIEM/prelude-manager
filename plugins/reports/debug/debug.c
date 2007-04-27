@@ -160,6 +160,7 @@ static int debug_set_object(prelude_option_t *option, const char *arg, prelude_s
 static int debug_set_logfile(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
         FILE *fd;
+        char *old;
         debug_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
                 
         if ( strcmp(arg, "-") == 0 )                
@@ -173,6 +174,7 @@ static int debug_set_logfile(prelude_option_t *option, const char *arg, prelude_
                 }
         }
         
+        old = plugin->logfile;
         plugin->logfile = strdup(arg);
         if ( ! plugin->logfile ) {
                 if ( fd != stdout )
@@ -180,7 +182,10 @@ static int debug_set_logfile(prelude_option_t *option, const char *arg, prelude_
 
                 return prelude_error_from_errno(errno);
         }
-        
+
+        if ( old )
+                free(old);
+                        
         if ( prelude_io_get_fdptr(plugin->fd) != stdout )
                 fclose(prelude_io_get_fdptr(plugin->fd));
         
@@ -210,12 +215,15 @@ static int debug_new(prelude_option_t *opt, const char *arg, prelude_string_t *e
                 return prelude_error_from_errno(errno);
         
         ret = prelude_io_new(&new->fd);
-        if ( ret < 0 )
+        if ( ret < 0 ) {
+                free(new);
                 return ret;
-
+        }
+        
         new->logfile = strdup("-");
         if ( ! new->logfile ) {
                 prelude_io_destroy(new->fd);
+                free(new);
                 return prelude_error_from_errno(errno);
         }
         
@@ -251,6 +259,7 @@ static void debug_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
                 free(object);
         }
         
+        free(plugin->logfile);
         free(plugin);
 }
 
