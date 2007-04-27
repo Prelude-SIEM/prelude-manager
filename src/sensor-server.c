@@ -197,11 +197,8 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
 			break;
 		
                 ident = prelude_extract_uint64(&(*target_ptr)[ret]);                
-                if ( ident != client->ident ) {
-                        server_generic_log_client((server_generic_client_t *) client,
-                                                  PRELUDE_LOG_WARN, "client attempt to mask source identifier.\n");
-                        return -1;
-                }
+                if ( ident != client->ident )
+                        return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "client attempt to mask source identifier");
                 
                 hop = (direction == PRELUDE_MSG_OPTION_REQUEST) ? hop + 1 : hop - 1;
 		if ( ret < 0 || ret >= (target_len / sizeof(uint64_t)) )
@@ -222,10 +219,7 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
                 return 0;
         }
 
-        server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_WARN,
-                                  "message does not carry a valid target: closing connection.\n");
-
-        return -1;
+        return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "message does not carry a valid target: closing connection");
 }
 
 
@@ -310,7 +304,7 @@ static int request_sensor_option(server_generic_client_t *client, prelude_msg_t 
         ret = get_msg_target_ident(sclient, msg, &target_route,
                                    &target_hop, &instance_id, PRELUDE_MSG_OPTION_REQUEST);
         if ( ret < 0 ) 
-                return -1;
+                return ret;
         
         /*
          * We receive an option request from client.
@@ -360,7 +354,7 @@ static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
         
         ret = get_msg_target_ident(client, msg, &target_route, &target_hop, &instance_no, PRELUDE_MSG_OPTION_REPLY);
         if ( ret < 0 )
-                return -1;
+                return ret;
         
         ident = prelude_extract_uint64(&target_route[target_hop]);
                 
@@ -393,7 +387,7 @@ static int handle_declare_receiver(sensor_fd_t *sclient)
                  */
                 ret = reverse_relay_new_receiver(&sclient->rrr, client, sclient->ident);
                 if ( ret < 0 )
-                        return -1;
+                        return ret;
         }
 
         server_generic_log_client(client, PRELUDE_LOG_INFO,
@@ -735,7 +729,10 @@ int sensor_server_add_client(server_generic_t *server, server_generic_client_t *
         
         server_generic_client_set_permission((server_generic_client_t *)cdata, prelude_connection_get_permission(cnx));
         
+        pthread_mutex_lock(&sensors_list_mutex);        
         prelude_list_add(&sensors_cnx_list, &cdata->list);
+        pthread_mutex_unlock(&sensors_list_mutex);
+        
         server_generic_process_requests(server, (server_generic_client_t *) cdata);
         
         return 0;
