@@ -1,1 +1,1 @@
-SUBDIRS = idmef-criteria
+SUBDIRS = idmef-criteria thresholding
