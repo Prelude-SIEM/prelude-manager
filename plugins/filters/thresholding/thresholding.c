@@ -274,7 +274,7 @@ static int get_filter_path(prelude_option_t *opt, prelude_string_t *out, void *c
 
 static int set_filter_path(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
 {
-        int ret;
+        int ret = 0;
         path_elem_t *elem;
         char *ptr, *start, *dup = strdup(optarg);
         filter_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
@@ -282,10 +282,15 @@ static int set_filter_path(prelude_option_t *opt, const char *optarg, prelude_st
         start = dup;
         
         while ( (ptr = strsep(&dup, ", ")) ) {
+                if ( *ptr == '\0' )
+                        continue;
+
                 elem = malloc(sizeof(*elem));
-                if ( ! elem )
+                if ( ! elem ) {
+                        ret = prelude_error_from_errno(errno);
                         break;
-                        
+                }
+                         
                 ret = idmef_path_new(&elem->path, ptr);
                 if ( ret < 0 ) {
                         free(elem);
@@ -296,7 +301,7 @@ static int set_filter_path(prelude_option_t *opt, const char *optarg, prelude_st
         }
 
         free(start);
-        return 0;
+        return ret;
 }
 
 
