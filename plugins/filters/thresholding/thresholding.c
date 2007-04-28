@@ -291,7 +291,7 @@ static int set_filter_path(prelude_option_t *opt, const char *optarg, prelude_st
                         break;
                 }
                          
-                ret = idmef_path_new(&elem->path, ptr);
+                ret = idmef_path_new_fast(&elem->path, ptr);
                 if ( ret < 0 ) {
                         free(elem);
                         break;
