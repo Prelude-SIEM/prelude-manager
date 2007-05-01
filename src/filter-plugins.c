@@ -143,6 +143,7 @@ int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t
         int ret;
         prelude_list_t *tmp;
         manager_filter_hook_t *entry;
+        prelude_bool_t filter_failed = FALSE;
         
         prelude_list_for_each(&filter_category_list[MANAGER_FILTER_CATEGORY_PLUGIN], tmp) {
                 
@@ -151,16 +152,27 @@ int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t
                 if ( entry->filtered_plugin != plugin )
                         continue;
                 
-                ret = filter_plugins_run_by_plugin(msg, entry->filter);
-                if ( ret < 0 )
-                        return ret;
-                        
                 ret = prelude_plugin_run(entry->filter, manager_filter_plugin_t, run, msg, entry->data);
-                if ( ret < 0 )
-                        return -1;
+                if ( ret >= 0 ) {
+                        prelude_log_debug(3, "filter '%s': match.\n", prelude_plugin_instance_get_name(entry->filter));
+                    
+                        /*
+                         * Check filters hooked on this filter plugin. This is handled as a AND, 
+                         * so if a sub-filter fail, it mean we will continue with the main OR of
+                         * filter list.
+                         */    
+                        ret = filter_plugins_run_by_plugin(msg, entry->filter);
+                        if ( ret >= 0 )
+                                return ret;
+                        else
+                                filter_failed = TRUE;
+                } else {
+                        filter_failed = TRUE;
+                        prelude_log_debug(3, "filter '%s': failed.\n", prelude_plugin_instance_get_name(entry->filter));
+                }
         }
 
-        return 0;
+        return (filter_failed) ? -1 : 0;
 }
 
 
