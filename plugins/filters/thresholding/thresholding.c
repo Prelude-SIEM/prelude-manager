@@ -38,9 +38,6 @@ int thresholding_LTX_prelude_plugin_version(void);
 int thresholding_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *data);
 
 
-static manager_filter_plugin_t filter_plugin;
-
-
 typedef struct {
         prelude_list_t list;
         idmef_path_t *path;
@@ -64,7 +61,9 @@ typedef struct {
 } filter_plugin_t;
 
 
+static int plugin_instance_no = 0;
 static prelude_hash_t *path_value_hash;
+static manager_filter_plugin_t filter_plugin;
 
 
 
@@ -105,19 +104,41 @@ static int get_value_from_path(idmef_path_t *path, idmef_message_t *message, pre
 
 
 
-static void hash_entry_expire_cb(void *data)
+static void hash_entry_destroy(void *data)
 {
         hash_elem_t *helem = data;
-
-        prelude_log_debug(3, "[%s]: release suppression.\n", helem->key);
-                                          
+        
         prelude_timer_destroy(&helem->timer);
-        prelude_hash_elem_destroy(path_value_hash, helem->key);
-
         free(helem->key);
         free(helem);        
 }
 
+
+
+static void destroy_filter_path(filter_plugin_t *plugin)
+{
+        path_elem_t *item;
+        prelude_list_t *tmp, *bkp;
+        
+        prelude_list_for_each_safe(&plugin->path_list, tmp, bkp) {
+                item = prelude_list_entry(tmp, path_elem_t, list);
+
+                idmef_path_destroy(item->path);
+                           
+                prelude_list_del(&item->list);
+                free(item);                
+        }
+}
+
+
+
+static void hash_entry_expire_cb(void *data)
+{
+        hash_elem_t *helem = data;
+        
+        prelude_log_debug(3, "[%s]: release suppression.\n", helem->key);
+        prelude_hash_elem_destroy(path_value_hash, helem->key);
+}
 
 
 static int check_filter(filter_plugin_t *plugin, const char *key)
@@ -133,11 +154,12 @@ static int check_filter(filter_plugin_t *plugin, const char *key)
 
                 helem->count = 0;
                 helem->key = strdup(key);                        
-                
+
+                prelude_timer_init_list(&helem->timer);                
                 prelude_timer_set_expire(&helem->timer, plugin->block);
                 prelude_timer_set_data(&helem->timer, helem);
                 prelude_timer_set_callback(&helem->timer, hash_entry_expire_cb);
-        
+
                 ret = prelude_hash_set(path_value_hash, helem->key, helem);
         }
 
@@ -279,6 +301,7 @@ static int set_filter_path(prelude_option_t *opt, const char *optarg, prelude_st
         char *ptr, *start, *dup = strdup(optarg);
         filter_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
         
+        destroy_filter_path(plugin);
         start = dup;
         
         while ( (ptr = strsep(&dup, ", ")) ) {
@@ -307,11 +330,15 @@ static int set_filter_path(prelude_option_t *opt, const char *optarg, prelude_st
 
 static int get_filter_hook(prelude_option_t *opt, prelude_string_t *out, void *context)
 {
+        int ret = 0;
         filter_plugin_t *plugin;
         
         plugin = prelude_plugin_instance_get_plugin_data(context);
-
-        return prelude_string_set_ref(out, plugin->hook_str);
+  
+        if ( plugin->hook_str ) 
+                ret = prelude_string_set_ref(out, plugin->hook_str);
+        
+        return ret;
 }
 
 
@@ -370,7 +397,14 @@ static int set_filter_hook(prelude_option_t *opt, const char *optarg, prelude_st
 
 static int filter_activate(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context) 
 {
+        int ret;
         filter_plugin_t *new;
+        
+        if ( plugin_instance_no++ == 0 ) {
+                ret = prelude_hash_new(&path_value_hash, NULL, NULL, NULL, hash_entry_destroy);
+                if ( ret < 0 )
+                        return ret;
+        }
         
         new = calloc(1, sizeof(*new));
         if ( ! new )
@@ -386,24 +420,18 @@ static int filter_activate(prelude_option_t *opt, const char *optarg, prelude_st
 
 static void filter_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 {
-        path_elem_t *item;
-        prelude_list_t *tmp, *bkp;
         filter_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
-
-        prelude_list_for_each_safe(&plugin->path_list, tmp, bkp) {
-                item = prelude_list_entry(tmp, path_elem_t, list);
-
-                idmef_path_destroy(item->path);
-                
-                prelude_list_del(&item->list);
-                free(item);                
-        }
         
+        destroy_filter_path(plugin);
+                
         if ( plugin->hook )
                 manager_filter_destroy_hook(plugin->hook);
 
         if ( plugin->hook_str )
                 free(plugin->hook_str);
+
+        if ( --plugin_instance_no == 0 )
+                prelude_hash_destroy(path_value_hash);
         
         free(plugin);
 }
@@ -415,9 +443,6 @@ int thresholding_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *root_
 {
         int ret;
         prelude_option_t *opt;
-   
-        ret = prelude_hash_new(&path_value_hash, NULL, NULL, NULL, NULL);
-        
 
         ret = prelude_option_add(root_opt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
                                  |PRELUDE_OPTION_TYPE_WIDE, 0, "thresholding",
