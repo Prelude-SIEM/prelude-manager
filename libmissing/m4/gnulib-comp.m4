@@ -43,6 +43,8 @@ AC_DEFUN([gl_INIT],
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
   gl_GETADDRINFO
+  AC_SUBST([LIBINTL])
+  AC_SUBST([LTLIBINTL])
   gl_INET_NTOP
   gl_FUNC_MEMSET
   gl_HEADER_NETINET_IN
@@ -54,6 +56,7 @@ AC_DEFUN([gl_INIT],
   gl_STDIO_MODULE_INDICATOR([snprintf])
   gl_TYPE_SOCKLEN_T
   AM_STDBOOL_H
+  gl_STDINT_H
   gl_STDIO_H
   gl_FUNC_STRDUP
   gl_STRING_MODULE_INDICATOR([strdup])
@@ -69,6 +72,7 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_VASNPRINTF
   gl_FUNC_VSNPRINTF
   gl_STDIO_MODULE_INDICATOR([vsnprintf])
+  gl_WCHAR_H
   gl_XSIZE
   m4_popdef([AC_LIBSOURCES])
   m4_popdef([AC_REPLACE_FUNCS])
@@ -128,18 +132,20 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/printf-parse.h
   lib/size_max.h
   lib/snprintf.c
-  lib/socket_.h
   lib/stdbool_.h
+  lib/stdint_.h
   lib/stdio_.h
   lib/strdup.c
   lib/string_.h
   lib/sys_select_.h
+  lib/sys_socket_.h
   lib/sys_time_.h
   lib/time_.h
   lib/time_r.c
   lib/vasnprintf.c
   lib/vasnprintf.h
   lib/vsnprintf.c
+  lib/wchar_.h
   lib/xsize.h
   m4/absolute-header.m4
   m4/alloca.m4
@@ -151,7 +157,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/inet_ntop.m4
   m4/intmax_t.m4
   m4/inttypes_h.m4
-  m4/longdouble.m4
   m4/longlong.m4
   m4/memset.m4
   m4/netinet_in_h.m4
@@ -163,6 +168,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/socklen.m4
   m4/sockpfaf.m4
   m4/stdbool.m4
+  m4/stdint.m4
   m4/stdint_h.m4
   m4/stdio_h.m4
   m4/strdup.m4
@@ -172,8 +178,10 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/sys_time_h.m4
   m4/time_h.m4
   m4/time_r.m4
+  m4/ulonglong.m4
   m4/vasnprintf.m4
   m4/vsnprintf.m4
+  m4/wchar.m4
   m4/wchar_t.m4
   m4/wint_t.m4
   m4/xsize.m4
