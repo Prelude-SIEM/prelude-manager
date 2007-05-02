@@ -67,11 +67,15 @@ static int process_message(idmef_message_t *msg, void *priv)
 
 static int get_filter_hook(prelude_option_t *opt, prelude_string_t *out, void *context)
 {
+        int ret = 0;
         filter_plugin_t *plugin;
         
         plugin = prelude_plugin_instance_get_plugin_data(context);
 
-        return prelude_string_set_ref(out, plugin->hook_str);
+        if ( plugin->hook_str )
+                ret = prelude_string_set_ref(out, plugin->hook_str);
+
+        return ret;
 }
 
 
@@ -261,7 +265,7 @@ int idmef_criteria_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *roo
         prelude_option_t *opt;
         
         ret = prelude_option_add(root_opt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
-                                 |PRELUDE_OPTION_TYPE_WIDE, 0, "idmef-criteria-filter",
+                                 |PRELUDE_OPTION_TYPE_WIDE, 0, "idmef-criteria",
                                  "Filter message based on IDMEF criteria", PRELUDE_OPTION_ARGUMENT_OPTIONAL,
                                  filter_activate, NULL);
         if ( ret < 0 )
