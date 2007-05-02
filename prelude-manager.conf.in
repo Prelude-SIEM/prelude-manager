@@ -154,3 +154,45 @@ listen = 127.0.0.1
 #
 # object = alert.classification.text
 
+
+
+####################################
+# Filtering plugins configuration  #
+####################################
+
+# The idmef-criteria filtering plugin allow you to filter events basing on specific IDMEF-Criteria. 
+#
+# [idmef-criteria]
+# rule = alert.classification.text == 'User login successful'
+# hook = relaying[default]
+#
+# Will forward any events that match the defined criteria to the default instance of the relaying 
+# reporting plugin. The rule argument might also be a filename containing the rules. Example:
+#
+# rule = /path/to/rule.file
+
+
+# The thresholding filtering plugin allow you to suppress events based on their value.
+#
+# [thresholding]
+# path = alert.classification.text, alert.source.node.address.address
+# limit = 1
+# seconds = 3600
+# hook = relaying[default]
+#
+# Will forward one event with the unique alert.classification.text, alert.source.node.address.address 
+# value combination to the 'default' instance of the 'relaying' reporting plugin. Further events with 
+# the same value will be suppressed for 3600 seconds.
+#
+#
+# [thresholding]
+# path = alert.classification.text, alert.source.node.address.address
+# threshold = 1
+# seconds = 3600
+# hook = relaying[default]
+# 
+# Will forward no more than one event per 3600 seconds with the unique alert.classification.text, 
+# alert.source.node.address.address value combination to the 'default' instance of the 'relaying' 
+# reporting plugin. Further events with the same value will be suppressed, until the threshold 
+# expire.
+
