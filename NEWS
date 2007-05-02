@@ -1,3 +1,17 @@
+* 2007-05-02, prelude-manager-0.9.8:
+
+        - Initial implementation of the 'thresholding' plugin, allowing you to 
+          suppress events after a certain limit/threshold.
+
+        - Filters hooking to a reporting plugin are now OR'ed instead of being
+          AND'ed. AND is already possible by hooking filtering plugin one with 
+          another.
+
+        - Improved error reporting.
+        
+        - Minor bug fixes.
+        
+
 * 2007-03-16, prelude-manager-0.9.7.2:
 
         - Allow filtering plugins to hook others filters plugins.
