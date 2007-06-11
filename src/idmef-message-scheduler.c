@@ -77,10 +77,10 @@ typedef struct {
 
         char *filename;
         int input_available;
-        
+
         prelude_io_t *wfd;
         prelude_io_t *rfd;
-        
+
 } file_output_t;
 
 
@@ -101,7 +101,7 @@ struct idmef_queue {
         message_queue_t high;
         message_queue_t mid;
         message_queue_t low;
-                
+
         pthread_mutex_t mutex;
 };
 
@@ -140,24 +140,24 @@ static void signal_input_available(void)
 /*
  * Wait until a message is queued.
  */
-static void wait_for_message(struct timeval *start) 
+static void wait_for_message(struct timeval *start)
 {
         int ret;
         struct timespec ts;
         struct timeval end;
-        
-        pthread_mutex_lock(&input_mutex);            
-        
+
+        pthread_mutex_lock(&input_mutex);
+
         while ( ! input_available && ! stop_processing ) {
 
                 if ( start->tv_sec == 0 ) {
                         gettimeofday(start, NULL);
                         start->tv_sec++;
                 }
-                
+
                 ts.tv_sec = start->tv_sec;
                 ts.tv_nsec = start->tv_usec * 1000;
-                
+
                 ret = pthread_cond_timedwait(&input_cond, &input_mutex, &ts);
                 if ( ret == ETIMEDOUT ) {
                         start->tv_sec = 0;
@@ -168,12 +168,12 @@ static void wait_for_message(struct timeval *start)
                         start->tv_usec += (end.tv_usec - start->tv_usec);
                 }
         }
-        
+
         if ( ! input_available && stop_processing ) {
                 pthread_mutex_unlock(&input_mutex);
                 pthread_exit(NULL);
         }
-        
+
         /*
          * We are going to process all available data.
          */
@@ -184,10 +184,10 @@ static void wait_for_message(struct timeval *start)
 
 
 
-static int clear_fifo(file_output_t *out) 
+static int clear_fifo(file_output_t *out)
 {
         int ret;
-                
+
         ret = ftruncate(prelude_io_get_fd(out->wfd), 0);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "error truncating fifo: %s.\n", strerror(errno));
@@ -195,23 +195,23 @@ static int clear_fifo(file_output_t *out)
         }
 
         lseek(prelude_io_get_fd(out->rfd), 0, SEEK_SET);
-                
+
         return 0;
 }
 
 
 
 
-static void destroy_file_output(file_output_t *out) 
-{        
+static void destroy_file_output(file_output_t *out)
+{
         prelude_io_close(out->rfd);
         prelude_io_destroy(out->rfd);
 
         prelude_io_close(out->wfd);
         prelude_io_destroy(out->wfd);
-        
+
         assert(out->input_available == 0);
-                
+
         unlink(out->filename);
         free(out->filename);
 }
@@ -222,24 +222,24 @@ static void destroy_file_output(file_output_t *out)
 /*
  * Get a low / mid priority queued message
  */
-static prelude_msg_t *get_message_from_file(file_output_t *out) 
+static prelude_msg_t *get_message_from_file(file_output_t *out)
 {
         int ret;
         prelude_msg_t *msg = NULL;
-        
+
         if ( ! out->input_available )
                 return NULL;
-                
+
         ret = prelude_msg_read(&msg, out->rfd);
         if ( ret == 0 )
                 return msg;
 
         else if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EOF )
                 out->input_available = 0;
-        
+
         else {
                 /*
-                 * unfinished and error should never happen 
+                 * unfinished and error should never happen
                  */
                 prelude_log(PRELUDE_LOG_ERR, "on disk message fifo is corrupted: %s %s.\n",
                             prelude_strsource(ret), prelude_strerror(ret));
@@ -252,12 +252,12 @@ static prelude_msg_t *get_message_from_file(file_output_t *out)
 
 
 
-static int process_message(prelude_msg_t *msg) 
+static int process_message(prelude_msg_t *msg)
 {
         int ret;
         idmef_message_t *idmef;
-        
-        ret = pmsg_to_idmef(&idmef, msg);        
+
+        ret = pmsg_to_idmef(&idmef, msg);
         if ( ret < 0 ) {
                 prelude_msg_destroy(msg);
                 return ret;
@@ -272,7 +272,7 @@ static int process_message(prelude_msg_t *msg)
         idmef_message_process(idmef);
 
         idmef_message_destroy(idmef);
-                
+
         return 0;
 }
 
@@ -283,31 +283,31 @@ static void queue_destroy(idmef_queue_t *queue)
         pthread_mutex_lock(&queue_list_mutex);
         prelude_list_del(&queue->list);
         pthread_mutex_unlock(&queue_list_mutex);
-        
+
         pthread_mutex_destroy(&queue->mutex);
-        
+
         destroy_file_output(&queue->high.disk_message_list);
         destroy_file_output(&queue->mid.disk_message_list);
         destroy_file_output(&queue->low.disk_message_list);
-        
+
         free(queue);
 }
 
 
 
 
-static prelude_msg_t *get_message(message_queue_t *mqueue) 
+static prelude_msg_t *get_message(message_queue_t *mqueue)
 {
         prelude_msg_t *msg = NULL;
-                
+
         if ( ! prelude_list_is_empty(&mqueue->message_list) ) {
                 msg = prelude_linked_object_get_object(mqueue->message_list.next);
 
                 prelude_linked_object_del((prelude_linked_object_t *) msg);
                 mqueue->in_memory_count--;
         }
-        
-        return msg ? msg : get_message_from_file(&mqueue->disk_message_list); 
+
+        return msg ? msg : get_message_from_file(&mqueue->disk_message_list);
 }
 
 
@@ -315,18 +315,18 @@ static prelude_msg_t *get_message(message_queue_t *mqueue)
 static int is_queue_dirty(idmef_queue_t *queue)
 {
         int ret;
-        
+
         pthread_mutex_lock(&queue->mutex);
-        
+
         ret =   ! prelude_list_is_empty(&queue->high.message_list) +
                 ! prelude_list_is_empty(&queue->mid.message_list) +
                 ! prelude_list_is_empty(&queue->low.message_list) +
                 queue->high.disk_message_list.input_available +
                 queue->mid.disk_message_list.input_available +
                 queue->low.disk_message_list.input_available;
-        
+
         pthread_mutex_unlock(&queue->mutex);
-        
+
         return ret;
 }
 
@@ -336,7 +336,7 @@ static int is_queue_dirty(idmef_queue_t *queue)
 static prelude_msg_t *get_first_message_in_queue(idmef_queue_t *queue)
 {
         prelude_msg_t *msg;
-        
+
         msg = get_message(&queue->high);
         if ( msg )
                 return msg;
@@ -362,21 +362,21 @@ static void read_message_scheduled(idmef_queue_t *queue)
                 msg = NULL;
 
                 pthread_mutex_lock(&queue->mutex);
-                
-                if ( msg_count < ROUND_ROBBIN_HIGH ) 
+
+                if ( msg_count < ROUND_ROBBIN_HIGH )
                         msg = get_message(&queue->high);
-                
+
                 else if ( msg_count < (ROUND_ROBBIN_HIGH + ROUND_ROBBIN_MID) )
                         msg = get_message(&queue->mid);
-                
-                else 
+
+                else
                         msg = get_message(&queue->low);
-                
+
                 if ( ! msg && !(msg = get_first_message_in_queue(queue)) ) {
                         pthread_mutex_unlock(&queue->mutex);
                         break;
                 }
-                
+
                 pthread_mutex_unlock(&queue->mutex);
 
                 ret = process_message(msg);
@@ -386,7 +386,7 @@ static void read_message_scheduled(idmef_queue_t *queue)
                          */
                         prelude_log(PRELUDE_LOG_ERR, "Invalid message received.\n");
                 }
-                
+
                 msg_count = (msg_count + 1) % (ROUND_ROBBIN_HIGH + ROUND_ROBBIN_MID + ROUND_ROBBIN_LOW);
         }
 }
@@ -397,11 +397,11 @@ static void schedule_queued_message(void)
 {
         int dirty, any_queue_dirty;
         idmef_queue_t *queue, *bkp = NULL;
-        
+
         do {
                 queue = NULL;
                 any_queue_dirty = 0;
-                
+
                 while ( 1 ) {
                         pthread_mutex_lock(&queue_list_mutex);
                         queue = prelude_list_get_next_safe(&message_queue, queue, bkp, idmef_queue_t, list);
@@ -409,25 +409,25 @@ static void schedule_queued_message(void)
 
                         if ( ! queue )
                                 break;
-                                                
+
                         read_message_scheduled(queue);
 
                         dirty = is_queue_dirty(queue);
                         any_queue_dirty += dirty;
-                        
+
                         if ( ! dirty && queue->state & QUEUE_STATE_DESTROYED )
                                 queue_destroy(queue);
                 }
         } while ( any_queue_dirty );
 }
-        
+
 
 
 
 /*
  * This is the function responssible for handling queued message.
  */
-static void *message_reader(void *arg) 
+static void *message_reader(void *arg)
 {
         int ret;
         sigset_t set;
@@ -435,13 +435,13 @@ static void *message_reader(void *arg)
 
         tv.tv_sec = 0;
         sigfillset(&set);
-        
+
         ret = pthread_sigmask(SIG_SETMASK, &set, NULL);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "couldn't set thread signal mask.\n");
                 return NULL;
         }
-        
+
         while ( ! stop_processing ) {
                 schedule_queued_message();
                 wait_for_message(&tv);
@@ -457,7 +457,7 @@ static void *message_reader(void *arg)
 
 
 
-static int queue_message_to_fd(file_output_t *out, prelude_msg_t *msg) 
+static int queue_message_to_fd(file_output_t *out, prelude_msg_t *msg)
 {
         ssize_t ret;
 
@@ -467,13 +467,13 @@ static int queue_message_to_fd(file_output_t *out, prelude_msg_t *msg)
          */
         if ( out->input_available == 0 )
                 clear_fifo(out);
-        
+
         ret = prelude_msg_write(msg, out->wfd);
         if ( ret < 0 )
                 prelude_perror(ret, "couldn't write message to fifo");
 
         out->input_available = 1;
-        
+
         /*
          * Message was copied to a file, we do not need it anymore.
          */
@@ -488,10 +488,10 @@ static int queue_message_to_fd(file_output_t *out, prelude_msg_t *msg)
 /*
  * Queue this message to memory.
  */
-static void queue_message(idmef_queue_t *queue, message_queue_t *mqueue, prelude_msg_t *msg) 
+static void queue_message(idmef_queue_t *queue, message_queue_t *mqueue, prelude_msg_t *msg)
 {
         int queue_to_fd = 0;
-        
+
         pthread_mutex_lock(&queue->mutex);
 
         if ( mqueue->in_memory_count < MAX_MESSAGE_IN_MEMORY ) {
@@ -511,28 +511,28 @@ static void queue_message(idmef_queue_t *queue, message_queue_t *mqueue, prelude
 
 
 
-static int flush_existing_fifo(const char *filename, file_output_t *out, off_t size) 
+static int flush_existing_fifo(const char *filename, file_output_t *out, off_t size)
 {
         int num = 0, ret;
         prelude_msg_t *msg;
-        
+
         prelude_log(PRELUDE_LOG_WARN, "%s contain unflushed message (%lu bytes). Flushing.\n", filename, (unsigned long) size);
-        
+
         while ( 1 ) {
-                
+
                 msg = get_message_from_file(out);
                 if ( ! msg )
                         break;
-                
+
                 ret = process_message(msg);
                 if ( ret < 0 )
                         return -1;
 
                 num++;
         }
-        
+
         prelude_log(PRELUDE_LOG_WARN, "Done - %d messages flushed.\n", num);
-                                
+
         return 0;
 }
 
@@ -556,9 +556,9 @@ static prelude_io_t *new_sysio_from_fd(int fd)
 
 
 /*
- * 
+ *
  */
-static int init_file_output(const char *filename, file_output_t *out) 
+static int init_file_output(const char *filename, file_output_t *out)
 {
         int rfd, wfd;
 
@@ -567,13 +567,13 @@ static int init_file_output(const char *filename, file_output_t *out)
                 prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
-        
+
         wfd = open(filename, O_WRONLY|O_APPEND|O_CREAT, S_IRUSR|S_IWUSR);
         if ( wfd < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "couldn't open %s in append mode: %s.\n", filename, strerror(errno));
                 return -1;
         }
-        
+
         rfd = open(filename, O_RDONLY);
         if ( rfd < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "couldn't open %s for reading: %s.\n", filename, strerror(errno));
@@ -587,7 +587,7 @@ static int init_file_output(const char *filename, file_output_t *out)
                 close(wfd);
                 return -1;
         }
-        
+
         out->rfd = new_sysio_from_fd(rfd);
         if ( ! out->rfd ) {
                 close(rfd);
@@ -595,7 +595,7 @@ static int init_file_output(const char *filename, file_output_t *out)
                 prelude_io_destroy(out->wfd);
                 return -1;
         }
-        
+
         out->input_available = 0;
 
         return 0;
@@ -609,10 +609,10 @@ static int flush_orphan_fifo(const char *filename)
         int ret;
         struct stat st;
         file_output_t tmp;
-        
+
         ret = stat(filename, &st);
         if ( ret < 0 ) {
-		if ( errno != ENOENT ) 
+                if ( errno != ENOENT )
                         prelude_log(PRELUDE_LOG_ERR, "could not stats %s: %s.\n", filename, strerror(errno));
 
                 return -1;
@@ -622,7 +622,7 @@ static int flush_orphan_fifo(const char *filename)
                 ret = init_file_output(filename, &tmp);
                 if ( ret < 0 )
                         return -1;
-                
+
                 tmp.input_available = 1;
                 flush_existing_fifo(filename, &tmp, st.st_size);
 
@@ -630,20 +630,20 @@ static int flush_orphan_fifo(const char *filename)
         }
 
         unlink(filename);
-        
+
         return 0;
 }
 
 
 
 
-int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg) 
+int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg)
 {
         message_queue_t *mqueue;
 
         if ( ! queue )
                 return -1;
-        
+
         switch (prelude_msg_get_priority(msg)) {
 
         case PRELUDE_MSG_PRIORITY_HIGH:
@@ -658,8 +658,8 @@ int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg)
                 mqueue = &queue->low;
                 break;
         }
-        
-        queue_message(queue, mqueue, msg);        
+
+        queue_message(queue, mqueue, msg);
         signal_input_available();
 
         return 0;
@@ -675,7 +675,7 @@ idmef_queue_t *idmef_message_scheduler_queue_new(prelude_client_t *client)
         unsigned int id;
         idmef_queue_t *queue;
         char buf[PATH_MAX], bdir[PATH_MAX];
-        
+
         queue = calloc(1, sizeof(*queue));
         if ( ! queue ) {
                 prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
@@ -692,13 +692,13 @@ idmef_queue_t *idmef_message_scheduler_queue_new(prelude_client_t *client)
 
         prelude_client_profile_get_backup_dirname(prelude_client_get_profile(client), bdir, sizeof(bdir));
 
-        snprintf(buf, sizeof(buf), "%s/high-priority-fifo.%u", bdir, id);        
+        snprintf(buf, sizeof(buf), "%s/high-priority-fifo.%u", bdir, id);
         ret = init_file_output(buf, &queue->high.disk_message_list);
         if ( ret < 0 ) {
                 free(queue);
                 return NULL;
         }
-        
+
         snprintf(buf, sizeof(buf), "%s/mid-priority-fifo.%u", bdir, id);
         ret = init_file_output(buf, &queue->mid.disk_message_list);
         if ( ret < 0 ) {
@@ -706,7 +706,7 @@ idmef_queue_t *idmef_message_scheduler_queue_new(prelude_client_t *client)
                 free(queue);
                 return NULL;
         }
-        
+
         snprintf(buf, sizeof(buf), "%s/low-priority-fifo.%u", bdir, id);
         ret = init_file_output(buf, &queue->low.disk_message_list);
         if ( ret < 0 ) {
@@ -715,13 +715,13 @@ idmef_queue_t *idmef_message_scheduler_queue_new(prelude_client_t *client)
                 free(queue);
                 return NULL;
         }
-        
+
         pthread_mutex_init(&queue->mutex, NULL);
 
         pthread_mutex_lock(&queue_list_mutex);
         prelude_list_add_tail(&message_queue, &queue->list);
         pthread_mutex_unlock(&queue_list_mutex);
-        
+
         return queue;
 }
 
@@ -737,13 +737,13 @@ void idmef_message_scheduler_queue_destroy(idmef_queue_t *queue)
 
 
 
-int idmef_message_scheduler_init(void) 
+int idmef_message_scheduler_init(void)
 {
         int ret;
         DIR *dir;
         struct dirent *de;
         char filename[PATH_MAX];
-        
+
         dir = opendir(MANAGER_SCHEDULER_DIR);
         if ( ! dir ) {
                 prelude_log(PRELUDE_LOG_ERR, "could not open %s: %s.\n", MANAGER_SCHEDULER_DIR, strerror(errno));
@@ -756,41 +756,41 @@ int idmef_message_scheduler_init(void)
                         continue;
 
                 snprintf(filename, sizeof(filename), MANAGER_SCHEDULER_DIR "/%s", de->d_name);
-                
+
                 ret = flush_orphan_fifo(filename);
                 if ( ret != 0 )
                         break;
         }
 
         closedir(dir);
-        
+
         ret = pthread_create(&thread, NULL, &message_reader, NULL);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "couldn't create message processing thread.\n");
                 return -1;
         }
-        
+
         return 0;
 }
 
 
 
 
-void idmef_message_scheduler_exit(void) 
+void idmef_message_scheduler_exit(void)
 {
         idmef_queue_t *queue;
         prelude_list_t *tmp, *bkp;
-        
+
         pthread_mutex_lock(&input_mutex);
 
         stop_processing = 1;
         pthread_cond_signal(&input_cond);
 
         pthread_mutex_unlock(&input_mutex);
-        
+
         prelude_log(PRELUDE_LOG_WARN, "- Waiting queued message to be processed.\n");
         pthread_join(thread, NULL);
-        
+
         pthread_cond_destroy(&input_cond);
         pthread_mutex_destroy(&input_mutex);
 
@@ -814,7 +814,7 @@ void idmef_message_process(idmef_message_t *idmef)
          * run simple reporting plugin.
          */
         report_plugins_run(idmef);
-        
+
         relay_filter_available = filter_plugins_available(MANAGER_FILTER_CATEGORY_REVERSE_RELAYING);
         if ( relay_filter_available )
                 ret = filter_plugins_run_by_category(idmef, MANAGER_FILTER_CATEGORY_REVERSE_RELAYING);
