@@ -182,7 +182,7 @@ static int dh_params_save(gnutls_dh_params dh, unsigned int dh_bits)
 
         fd = open(DH_FILENAME, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR);
         if ( ! fd ) {
-                prelude_log(PRELUDE_LOG_ERR, "error opening %s for writing.\n", DH_FILENAME);
+                prelude_log(PRELUDE_LOG_ERR, "error opening %s for writing: %s.\n", DH_FILENAME, strerror(errno));
                 free(prime.data);
                 free(generator.data);
                 return -1;
