@@ -6,7 +6,7 @@
 * This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by 
+* it under the terms of the GNU General Public License as published by
 * the Free Software Foundation; either version 2, or (at your option)
 * any later version.
 *
@@ -63,17 +63,17 @@ static int get_msg_time(prelude_msg_t *msg, idmef_time_t *create_time, idmef_tim
 
         if ( ! create_time )
                 return -1;
-        
+
         prelude_msg_get_time(msg, &tv);
-        
+
         retval = idmef_time_new(ret);
         if ( retval < 0 )
                 return retval;
 
         idmef_time_set_sec(*ret, tv.tv_sec);
         idmef_time_set_usec(*ret, tv.tv_usec);
-	idmef_time_set_gmt_offset(*ret, idmef_time_get_gmt_offset(create_time));
-        
+        idmef_time_set_gmt_offset(*ret, idmef_time_get_gmt_offset(create_time));
+
         return retval;
 }
 
@@ -85,25 +85,25 @@ static int handle_heartbeat_msg(prelude_msg_t *msg, idmef_message_t *idmef)
         int ret;
         idmef_time_t *analyzer_time;
         idmef_heartbeat_t *heartbeat;
-        
+
         ret = idmef_message_new_heartbeat(idmef, &heartbeat);
         if ( ret < 0 )
                 return ret;
 
         ret = idmef_heartbeat_read(heartbeat, msg);
-        if ( ret < 0 ) 
+        if ( ret < 0 )
                 return ret;
-        
+
         if ( ! idmef_heartbeat_get_analyzer_time(heartbeat) ) {
                 ret = get_msg_time(msg, idmef_heartbeat_get_create_time(heartbeat), &analyzer_time);
                 if ( ret < 0 )
                         return ret;
-                
+
                 idmef_heartbeat_set_analyzer_time(heartbeat, analyzer_time);
         }
 
         idmef_heartbeat_set_analyzer(heartbeat, idmef_analyzer_ref(prelude_client_get_analyzer(manager_client)), IDMEF_LIST_PREPEND);
-        
+
         return 0;
 }
 
@@ -115,7 +115,7 @@ static int handle_alert_msg(prelude_msg_t *msg, idmef_message_t *idmef)
         int ret;
         idmef_alert_t *alert;
         idmef_time_t *analyzer_time;
-        
+
         ret = idmef_message_new_alert(idmef, &alert);
         if ( ret < 0 )
                 return ret;
@@ -123,17 +123,17 @@ static int handle_alert_msg(prelude_msg_t *msg, idmef_message_t *idmef)
         ret = idmef_alert_read(alert, msg);
         if ( ret < 0 )
                 return ret;
-        
+
         if ( ! idmef_alert_get_analyzer_time(alert) ) {
                 ret = get_msg_time(msg, idmef_alert_get_create_time(alert), &analyzer_time);
                 if ( ret < 0 )
                         return ret;
-                
+
                 idmef_alert_set_analyzer_time(alert, analyzer_time);
-        }       
+        }
 
         idmef_alert_set_analyzer(alert, idmef_analyzer_ref(prelude_client_get_analyzer(manager_client)), IDMEF_LIST_PREPEND);
-        
+
         return 0;
 }
 
@@ -144,11 +144,11 @@ static int handle_proprietary_msg(prelude_msg_t *msg, idmef_message_t *idmef, vo
 {
         int ret;
         uint8_t tag;
-        
+
         ret = prelude_extract_uint8_safe(&tag, buf, len);
         if ( ret < 0 )
                 return -1;
-                        
+
         ret = decode_plugins_run(tag, msg, idmef);
         if ( ret < 0 )
                 return -1;
@@ -159,25 +159,25 @@ static int handle_proprietary_msg(prelude_msg_t *msg, idmef_message_t *idmef, vo
 
 
 
-int pmsg_to_idmef(idmef_message_t **idmef, prelude_msg_t *msg) 
+int pmsg_to_idmef(idmef_message_t **idmef, prelude_msg_t *msg)
 {
-	int ret;
-	void *buf;
-	uint8_t tag;
-	uint32_t len;
-        
-	ret = idmef_message_new(idmef);
-	if ( ret < 0 ) {
+        int ret;
+        void *buf;
+        uint8_t tag;
+        uint32_t len;
+
+        ret = idmef_message_new(idmef);
+        if ( ret < 0 ) {
                 prelude_perror(ret, "error creating idmef-message");
                 return ret;
         }
 
         while ( (ret = prelude_msg_get(msg, &tag, &len, &buf)) == 0 ) {
-                
-                if ( tag == IDMEF_MSG_ALERT_TAG ) 
-			ret = handle_alert_msg(msg, *idmef);
 
-                else if ( tag == IDMEF_MSG_HEARTBEAT_TAG ) 
+                if ( tag == IDMEF_MSG_ALERT_TAG )
+                        ret = handle_alert_msg(msg, *idmef);
+
+                else if ( tag == IDMEF_MSG_HEARTBEAT_TAG )
                         ret = handle_heartbeat_msg(msg, *idmef);
 
                 else if ( tag == IDMEF_MSG_OWN_FORMAT )
@@ -185,18 +185,18 @@ int pmsg_to_idmef(idmef_message_t **idmef, prelude_msg_t *msg)
 
                 else if ( tag == IDMEF_MSG_END_OF_TAG )
                         continue;
-                
+
                 else prelude_log(PRELUDE_LOG_ERR, "unknown IDMEF tag: %d.\n", tag);
-                        
+
                 if ( ret < 0 )
                         break;
         }
-        
+
         if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EOF )
                 return decode_plugins_run(0, NULL, *idmef);
-        
+
         prelude_log(PRELUDE_LOG_INFO, "%s: error reading IDMEF message: %s.\n", prelude_strsource(ret), prelude_strerror(ret));
         idmef_message_destroy(*idmef);
-                
+
         return ret;
 }
