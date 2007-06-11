@@ -147,11 +147,11 @@ static int handle_proprietary_msg(prelude_msg_t *msg, idmef_message_t *idmef, vo
 
         ret = prelude_extract_uint8_safe(&tag, buf, len);
         if ( ret < 0 )
-                return -1;
+                return ret;
 
         ret = decode_plugins_run(tag, msg, idmef);
         if ( ret < 0 )
-                return -1;
+                return ret;
 
         return 0;
 }
@@ -193,7 +193,7 @@ int pmsg_to_idmef(idmef_message_t **idmef, prelude_msg_t *msg)
         }
 
         if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EOF )
-                return decode_plugins_run(0, NULL, *idmef);
+                return 0;
 
         prelude_log(PRELUDE_LOG_INFO, "%s: error reading IDMEF message: %s.\n", prelude_strsource(ret), prelude_strerror(ret));
         idmef_message_destroy(*idmef);

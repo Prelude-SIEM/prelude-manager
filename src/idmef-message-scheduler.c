@@ -56,6 +56,7 @@
 
 #include "prelude-manager.h"
 #include "filter-plugins.h"
+#include "decode-plugins.h"
 #include "report-plugins.h"
 #include "manager-options.h"
 #include "reverse-relaying.h"
@@ -809,6 +810,11 @@ void idmef_message_process(idmef_message_t *idmef)
         prelude_bool_t relay_filter_available = 0;
 
         pthread_mutex_lock(&process_mutex);
+
+        /*
+         * run normalization plugin.
+         */
+        decode_plugins_run(0, NULL, idmef);
 
         /*
          * run simple reporting plugin.
