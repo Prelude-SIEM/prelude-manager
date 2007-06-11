@@ -148,6 +148,9 @@ static void sanitize_alert(idmef_alert_t *alert)
         idmef_target_t *dst = NULL;
         idmef_analyzer_t *analyzer = NULL;
 
+        if ( ! alert )
+                return;
+
         while ( (analyzer = idmef_alert_get_next_analyzer(alert, analyzer)) ) {
                 node = idmef_analyzer_get_node(analyzer);
                 if ( node ) {
@@ -185,17 +188,34 @@ static void sanitize_alert(idmef_alert_t *alert)
 
 
 
+static void sanitize_heartbeat(idmef_heartbeat_t *heartbeat)
+{
+        int ret;
+        idmef_node_t *node;
+        idmef_analyzer_t *analyzer = NULL;
+
+        if ( ! heartbeat )
+                return;
+
+        while ( (analyzer = idmef_heartbeat_get_next_analyzer(heartbeat, analyzer)) ) {
+                node = idmef_analyzer_get_node(analyzer);
+                if ( node ) {
+                        ret = sanitize_node(node);
+                        if ( ret < 0 )
+                                idmef_analyzer_set_node(analyzer, NULL);
+                }
+        }
+}
+
+
 
 
 static int normalize_run(prelude_msg_t *msg, idmef_message_t *idmef)
 {
-        idmef_alert_t *alert;
-
-        alert = idmef_message_get_alert(idmef);
-        if ( ! alert )
-                return 0;
-
-        sanitize_alert(alert);
+        if ( idmef_message_get_type(idmef) == IDMEF_MESSAGE_TYPE_ALERT )
+                sanitize_alert(idmef_message_get_alert(idmef));
+        else
+                sanitize_heartbeat(idmef_message_get_heartbeat(idmef));
 
         return 0;
 }
