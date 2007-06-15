@@ -343,7 +343,6 @@ void report_plugins_run(idmef_message_t *idmef)
 void report_plugins_close(void)
 {
         prelude_list_t *tmp, *bkp;
-        manager_report_plugin_t *plugin;
         prelude_plugin_instance_t *pi;
 
         prelude_list_for_each_safe(&report_plugins_instance, tmp, bkp) {
@@ -379,13 +378,13 @@ int report_plugins_init(const char *dirname, void *data)
          * certain system.
          */
         if ( count < 0 && errno != ENOENT ) {
-                prelude_perror(count, "could not load plugin subsystem: %s");
+                prelude_perror(count, "could not load plugin subsystem: %s", prelude_strerror(count));
                 return -1;
         }
 
         ret = prelude_msgbuf_new(&msgbuf);
         if ( ret < 0 ) {
-                prelude_perror(ret, "could not create message buffer");
+                prelude_perror(ret, "could not create message buffer: %s", prelude_strerror(ret));
                 return -1;
         }
 
