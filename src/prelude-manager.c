@@ -261,6 +261,13 @@ int main(int argc, char **argv)
                             got_signal, (got_signal == SIGHUP) ? "will restart" : "terminating");
 
         idmef_message_scheduler_exit();
+        prelude_client_destroy(manager_client, PRELUDE_CLIENT_EXIT_STATUS_FAILURE);
+
+        /*
+         * De-Initialize the Prelude library. This has the side effect of flushing
+         * the Prelude asynchronous stack.
+         */
+        prelude_deinit();
 
         if ( got_signal == SIGHUP )
                 restart_manager();
