@@ -163,25 +163,19 @@ int main(int argc, char **argv)
         PRELUDE_PLUGIN_SET_PRELOADED_SYMBOLS();
 
         ret = report_plugins_init(REPORT_PLUGIN_DIR, manager_root_optlist);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "error initializing reporting plugins.\n");
+        if ( ret < 0 )
                 return -1;
-        }
-        prelude_log(PRELUDE_LOG_DEBUG, "- Initialized %d reporting plugins.\n", ret);
+        prelude_log(PRELUDE_LOG_DEBUG, "Initialized %d reporting plugins.\n", ret);
 
         ret = decode_plugins_init(DECODE_PLUGIN_DIR, manager_root_optlist);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "error initializing decoding plugins.\n");
+        if ( ret < 0 )
                 return -1;
-        }
-        prelude_log(PRELUDE_LOG_DEBUG, "- Initialized %d decoding plugins.\n", ret);
+        prelude_log(PRELUDE_LOG_DEBUG, "Initialized %d decoding plugins.\n", ret);
 
         ret = filter_plugins_init(FILTER_PLUGIN_DIR, manager_root_optlist);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "error initializing filtering plugins.\n");
+        if ( ret < 0 )
                 return -1;
-        }
-        prelude_log(PRELUDE_LOG_DEBUG, "- Initialized %d filtering plugins.\n", ret);
+        prelude_log(PRELUDE_LOG_DEBUG, "Initialized %d filtering plugins.\n", ret);
 
 
         ret = manager_options_init(manager_root_optlist, &argc, argv);
@@ -262,6 +256,8 @@ int main(int argc, char **argv)
 
         idmef_message_scheduler_exit();
         prelude_client_destroy(manager_client, PRELUDE_CLIENT_EXIT_STATUS_FAILURE);
+
+        report_plugins_close();
 
         /*
          * De-Initialize the Prelude library. This has the side effect of flushing

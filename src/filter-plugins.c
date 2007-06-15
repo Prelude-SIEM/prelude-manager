@@ -6,7 +6,7 @@
 * This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by 
+* it under the terms of the GNU General Public License as published by
 * the Free Software Foundation; either version 2, or (at your option)
 * any later version.
 *
@@ -47,7 +47,7 @@ struct manager_filter_hook {
         void *data;
         prelude_plugin_instance_t *filter;
         prelude_plugin_instance_t *filtered_plugin;
-        
+
 };
 
 
@@ -57,11 +57,11 @@ static prelude_list_t filter_category_list[MANAGER_FILTER_CATEGORY_END];
 
 static int add_filter_entry(manager_filter_hook_t **entry,
                             prelude_plugin_instance_t *filter, manager_filter_category_t cat,
-                            prelude_plugin_instance_t *filtered_plugin_instance, void *data) 
+                            prelude_plugin_instance_t *filtered_plugin_instance, void *data)
 {
         manager_filter_hook_t *new;
         prelude_plugin_generic_t *plugin, *filtered_plugin;
-        
+
         new = malloc(sizeof(*new));
         if ( ! new ) {
                 prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
@@ -75,26 +75,26 @@ static int add_filter_entry(manager_filter_hook_t **entry,
         prelude_list_add_tail(&filter_category_list[cat], &new->list);
 
         plugin = prelude_plugin_instance_get_plugin(filter);
-        
+
         if ( filtered_plugin_instance ) {
                 filtered_plugin = prelude_plugin_instance_get_plugin(filtered_plugin_instance);
-                prelude_log(PRELUDE_LOG_WARN, "- Subscribing %s to filtering plugin with plugin hook %s[%s].\n",
+                prelude_log(PRELUDE_LOG_INFO, "Subscribing %s to filtering plugin with plugin hook %s[%s].\n",
                             plugin->name, filtered_plugin->name, prelude_plugin_instance_get_name(filtered_plugin_instance));
         } else
-                prelude_log(PRELUDE_LOG_WARN, "- Subscribing %s to filtering plugin with category hook %d.\n",
+                prelude_log(PRELUDE_LOG_INFO, "Subscribing %s to filtering plugin with category hook %d.\n",
                             plugin->name, cat);
 
         *entry = new;
-        
+
         return 0;
 }
 
 
 
-static void unsubscribe(prelude_plugin_instance_t *pi) 
+static void unsubscribe(prelude_plugin_instance_t *pi)
 {
-        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);       
-        prelude_log(PRELUDE_LOG_WARN, "- Un-subscribing %s from active reporting plugins.\n", plugin->name);
+        prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
+        prelude_log(PRELUDE_LOG_DEBUG, "Unsubscribing %s from active reporting plugins.\n", plugin->name);
 }
 
 
@@ -118,49 +118,49 @@ int manager_filter_new_hook(manager_filter_hook_t **entry,
 
 
 
-int filter_plugins_run_by_category(idmef_message_t *msg, manager_filter_category_t cat) 
+int filter_plugins_run_by_category(idmef_message_t *msg, manager_filter_category_t cat)
 {
         int ret;
         prelude_list_t *tmp;
         manager_filter_hook_t *entry;
-        
+
         prelude_list_for_each(&filter_category_list[cat], tmp) {
                 entry = prelude_list_entry(tmp, manager_filter_hook_t, list);
-                
+
                 ret = prelude_plugin_run(entry->filter, manager_filter_plugin_t, run, msg, entry->data);
                 if ( ret < 0 )
                         return -1;
         }
-        
+
         return 0;
 }
 
 
 
 
-int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t *plugin) 
+int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t *plugin)
 {
         int ret;
         prelude_list_t *tmp;
         manager_filter_hook_t *entry;
         prelude_bool_t filter_failed = FALSE;
-        
+
         prelude_list_for_each(&filter_category_list[MANAGER_FILTER_CATEGORY_PLUGIN], tmp) {
-                
+
                 entry = prelude_list_entry(tmp, manager_filter_hook_t, list);
 
                 if ( entry->filtered_plugin != plugin )
                         continue;
-                
+
                 ret = prelude_plugin_run(entry->filter, manager_filter_plugin_t, run, msg, entry->data);
                 if ( ret >= 0 ) {
                         prelude_log_debug(3, "filter '%s': match.\n", prelude_plugin_instance_get_name(entry->filter));
-                    
+
                         /*
-                         * Check filters hooked on this filter plugin. This is handled as a AND, 
+                         * Check filters hooked on this filter plugin. This is handled as a AND,
                          * so if a sub-filter fail, it mean we will continue with the main OR of
                          * filter list.
-                         */    
+                         */
                         ret = filter_plugins_run_by_plugin(msg, entry->filter);
                         if ( ret >= 0 )
                                 return ret;
@@ -185,19 +185,19 @@ int filter_plugins_run_by_plugin(idmef_message_t *msg, prelude_plugin_instance_t
 int filter_plugins_init(const char *dirname, void *data)
 {
         int ret, i;
-        
+
         for (i = 0; i < MANAGER_FILTER_CATEGORY_END; i++ )
                 prelude_list_init(&filter_category_list[i]);
-        
-	ret = access(dirname, F_OK);        
-        if ( ret < 0 ) {
-		if ( errno == ENOENT )
-			return 0;
 
-                prelude_log(PRELUDE_LOG_ERR, "can't access %s.\n", dirname);
-		return -1;
-	}
-        
+        ret = access(dirname, F_OK);
+        if ( ret < 0 ) {
+                if ( errno == ENOENT )
+                        return 0;
+
+                prelude_log(PRELUDE_LOG_ERR, "could not access %s: %s.\n", dirname, strerror(errno));
+                return -1;
+        }
+
         ret = prelude_plugin_load_from_dir(NULL, dirname, MANAGER_PLUGIN_SYMBOL, data, NULL, unsubscribe);
 
         /*
@@ -206,17 +206,17 @@ int filter_plugins_init(const char *dirname, void *data)
          * certain system.
          */
         if ( ret < 0 && errno != ENOENT ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't load plugin subsystem.\n");
+                prelude_log(PRELUDE_LOG_ERR, "couldn't load plugin subsystem: %s.\n", prelude_strerror(ret));
                 return -1;
         }
-        
+
         return ret;
 }
 
 
 
 
-prelude_bool_t filter_plugins_available(manager_filter_category_t cat) 
+prelude_bool_t filter_plugins_available(manager_filter_category_t cat)
 {
         return prelude_list_is_empty(&filter_category_list[cat]);
 }

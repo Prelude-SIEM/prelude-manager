@@ -789,7 +789,7 @@ void idmef_message_scheduler_exit(void)
 
         pthread_mutex_unlock(&input_mutex);
 
-        prelude_log(PRELUDE_LOG_WARN, "- Waiting queued message to be processed.\n");
+        prelude_log(PRELUDE_LOG_INFO, "Waiting queued message to be processed.\n");
         pthread_join(thread, NULL);
 
         pthread_cond_destroy(&input_cond);

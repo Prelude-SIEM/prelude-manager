@@ -1,12 +1,12 @@
 /*****
 *
-* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 PreludeIDS Technologies. All Rights Reserved.
+* Copyright (C) 1999-2005,2006,2007 PreludeIDS Technologies. All Rights Reserved.
 * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
 * This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by 
+* it under the terms of the GNU General Public License as published by
 * the Free Software Foundation; either version 2, or (at your option)
 * any later version.
 *
@@ -62,7 +62,7 @@ struct server_generic {
 
         size_t slen;
         struct sockaddr *sa;
-        
+
         size_t clientlen;
         struct server_logic *logic;
         server_generic_read_func_t *read;
@@ -95,28 +95,28 @@ static int send_auth_result(server_generic_client_t *client, int result)
                 ret = prelude_msg_new(&client->msg, 1, sizeof(uint64_t), PRELUDE_MSG_AUTH, 0);
                 if ( ret < 0 )
                         return -1;
-                
+
                 cp = prelude_client_get_profile(manager_client);
                 nident = prelude_hton64(prelude_client_profile_get_analyzerid(cp));
                 prelude_msg_set(client->msg, result, sizeof(nident), &nident);
         }
-        
+
         ret = prelude_msg_write(client->msg, client->fd);
-        
+
         if ( ret < 0 ) {
-		if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
-			server_logic_notify_write_enable((server_logic_client_t *) client);
-			return 0;
-		}
-                
-		prelude_msg_destroy(client->msg);
-		return -1;
+                if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
+                        server_logic_notify_write_enable((server_logic_client_t *) client);
+                        return 0;
+                }
+
+                prelude_msg_destroy(client->msg);
+                return -1;
         }
 
         prelude_msg_destroy(client->msg);
 
         client->msg = NULL;
-                
+
         return (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ? 1 : -1;
 }
 
@@ -129,7 +129,7 @@ static int send_queued_alert(server_generic_client_t *client)
         do {
                 ret = gnutls_alert_send(prelude_io_get_fdptr(client->fd), GNUTLS_AL_FATAL, client->alert);
         } while ( ret < 0 && ret == GNUTLS_E_INTERRUPTED );
-                
+
         if ( ret == GNUTLS_E_AGAIN ) {
                 server_logic_notify_write_enable((server_logic_client_t *) client);
                 return 0;
@@ -151,27 +151,27 @@ static int send_queued_alert(server_generic_client_t *client)
  *
  * Once we finish reading the message, we start the authentication process.
  */
-static int authenticate_client(server_generic_t *server, server_generic_client_t *client) 
+static int authenticate_client(server_generic_t *server, server_generic_client_t *client)
 {
         int ret;
 
         if ( ! client->msg && ! client->alert && ! (client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED) ) {
-                ret = manager_auth_client(client, client->fd, &client->alert);                
+                ret = manager_auth_client(client, client->fd, &client->alert);
                 if ( ret == 0 )
                         return ret; /* EAGAIN happened */
-                
+
                 if ( ret < 0 ) {
                         if ( client->alert ) {
                                 ret = send_queued_alert(client);
                                 if ( ret != 1 )
                                         return ret;
                         }
-                        
+
                         return -1;
                 }
-                
+
                 client->state |= SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED;
-                
+
                 ret = send_auth_result(client, PRELUDE_MSG_AUTH_SUCCEED);
                 if ( ret != 1 )
                         return ret;
@@ -182,16 +182,16 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
                 if ( ret != 1 )
                         return ret;
         }
-        
+
         else if ( client->msg ) {
                 ret = send_auth_result(client, -1);
                 if ( ret != 1 )
                         return ret;
         }
-        
+
         if ( ! client->state & SERVER_GENERIC_CLIENT_STATE_AUTHENTICATED )
                 return -1;
-        
+
         if ( server->sa->sa_family == AF_UNIX && ! (client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED) ) {
                 ret = manager_auth_disable_encryption(client, client->fd);
                 if ( ret <= 0 )
@@ -201,7 +201,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
         }
 
         client->state |= SERVER_GENERIC_CLIENT_STATE_ACCEPTED;
-        
+
         return server->accept(client);
 }
 
@@ -212,7 +212,7 @@ static int write_connection_cb(void *sdata, server_logic_client_t *ptr)
 {
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
-        
+
         if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
                 return server->write(client);
         else {
@@ -232,19 +232,19 @@ static int write_connection_cb(void *sdata, server_logic_client_t *ptr)
  * If the authentication function return -1 (error), this will cause
  * server-logic to call the close_connection_cb callback.
  */
-static int read_connection_cb(void *sdata, server_logic_client_t *ptr) 
+static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
 {
         int ret = 0;
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
 
         assert(!(client->state & SERVER_GENERIC_CLIENT_STATE_CLOSING));
-                
+
         if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
                 ret = server->read(client);
         else
                 ret = authenticate_client(server, client);
-        
+
         return ret;
 }
 
@@ -255,9 +255,9 @@ static int do_close_fd(server_generic_client_t *client)
         int ret;
         void *fd_ptr;
         prelude_error_code_t code;
-        
+
         do {
-                ret = prelude_io_close(client->fd);                
+                ret = prelude_io_close(client->fd);
                 if ( ret == 0 )
                         break;
 
@@ -266,12 +266,12 @@ static int do_close_fd(server_generic_client_t *client)
                         fd_ptr = prelude_io_get_fdptr(client->fd);
                         if ( fd_ptr && gnutls_record_get_direction(fd_ptr) == 1 )
                                 server_logic_notify_write_enable((server_logic_client_t *) client);
-                        
+
                         return -1;
                 }
-                        
+
                 server_generic_log_client(client, PRELUDE_LOG_WARN, "connection closure error: %s.\n", prelude_strerror(ret));
-                
+
         } while ( ret < 0 && ! prelude_io_is_error_fatal(client->fd, ret));
 
         return 0;
@@ -283,23 +283,23 @@ static int do_close_fd(server_generic_client_t *client)
  * if the authentication process succeed for this connection, call
  * the real close() callback function.
  */
-static int close_connection_cb(void *sdata, server_logic_client_t *ptr) 
+static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
 {
         int ret;
         server_generic_t *server = sdata;
         server_generic_client_t *client = (server_generic_client_t *) ptr;
-        
+
         client->state |= SERVER_GENERIC_CLIENT_STATE_CLOSING;
-        
+
         if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED && ! (client->state & SERVER_GENERIC_CLIENT_STATE_CLOSED) ) {
-                
+
                 ret = server->close(client);
                 if ( ret < 0 )
                         return ret;
 
                 client->state |= SERVER_GENERIC_CLIENT_STATE_CLOSED;
         }
-        
+
         /*
          * layer above server-generic are permited to set fd to NULL so
          * that they can take control over the connection FD.
@@ -308,15 +308,15 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
                 ret = do_close_fd(client);
                 if ( ret < 0 )
                         return -1;
-                
+
                 prelude_io_destroy(client->fd);
                 server_generic_log_client(client, PRELUDE_LOG_INFO, "closing connection.\n");
         }
-        
+
         free(client->permission_string);
-        free(client->addr);        
+        free(client->addr);
         free(client);
-        
+
         return 0;
 }
 
@@ -334,13 +334,13 @@ int allow_severity = LOG_INFO, deny_severity = LOG_NOTICE;
 /*
  *
  */
-static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock) 
+static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock)
 {
         int ret;
         struct request_info request;
-        
+
         request_init(&request, RQ_DAEMON, "prelude-manager", RQ_FILE, clnt_sock, 0);
-        
+
         fromhost(&request);
 
         ret = hosts_access(&request);
@@ -348,7 +348,7 @@ static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock)
                 server_generic_log_client(cdata, PRELUDE_LOG_WARN, "tcp wrapper refused connection.\n", cdata->addr);
                 return -1;
         }
-        
+
         return 0;
 }
 
@@ -364,10 +364,10 @@ static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock)
  * Tell server-logic to handle event on the newly accepted client.
  */
 static int setup_client_socket(server_generic_t *server,
-                               server_generic_client_t *cdata, int client) 
+                               server_generic_client_t *cdata, int client)
 {
         int ret;
-        
+
 #ifdef HAVE_TCP_WRAPPERS
         if ( server->sa->sa_family != AF_UNIX ) {
                 ret = tcpd_auth(cdata, client);
@@ -377,47 +377,47 @@ static int setup_client_socket(server_generic_t *server,
 #endif
         /*
          * set client socket non blocking.
-         */        
+         */
         ret = fcntl(client, F_SETFL, O_NONBLOCK);
         if ( ret < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set non blocking mode for client: %s", strerror(errno));
-        
+
         fcntl(client, F_SETFD, fcntl(client, F_GETFD) | FD_CLOEXEC);
-        
+
         ret = prelude_io_new(&cdata->fd);
-        if ( ret < 0 ) 
+        if ( ret < 0 )
                 return ret;
 
         prelude_io_set_sys_io(cdata->fd, client);
-               
+
         cdata->msg = NULL;
         cdata->state = 0;
-        
+
         return 0;
 }
 
 
 
 
-static int accept_connection(server_generic_t *server, server_generic_client_t *cdata) 
+static int accept_connection(server_generic_t *server, server_generic_client_t *cdata)
 {
         socklen_t addrlen;
         int ret, sock, on = 1;
-        
+
 #ifndef HAVE_IPV6
         struct sockaddr_in addr;
 #else
         struct sockaddr_in6 addr;
 #endif
-        
+
         addrlen = sizeof(addr);
-        
+
         sock = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
         if ( sock < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "accept error: %s.\n", strerror(errno));
                 return -1;
         }
-        
+
         ret = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(int));
         if ( ret < 0 )
                 prelude_log(PRELUDE_LOG_ERR, "could not set SO_KEEPALIVE socket option: %s.\n", strerror(errno));
@@ -433,14 +433,14 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
 #ifdef HAVE_IPV6
                 cdata->port = ntohs(addr.sin6_port);
 #else
-		cdata->port = ntohs(addr.sin_port);
+                cdata->port = ntohs(addr.sin_port);
 #endif
                 in_addr = prelude_sockaddr_get_inaddr(sa);
                 if ( ! in_addr ) {
                         close(sock);
                         return -1;
                 }
-                
+
                 str = inet_ntop(sa->sa_family, in_addr, out, sizeof(out));
                 if ( str ) {
                         snprintf(out + strlen(out), sizeof(out) - strlen(out), ":%d", cdata->port);
@@ -461,31 +461,31 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
 
 
 
-static int handle_connection(server_generic_t *server) 
+static int handle_connection(server_generic_t *server)
 {
         int ret, client;
         server_generic_client_t *cdata;
-        
+
         cdata = calloc(1, server->clientlen);
         if ( ! cdata ) {
                 prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
 
-        client = accept_connection(server, cdata);                
+        client = accept_connection(server, cdata);
         if ( client < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "couldn't accept connection.\n");
                 free(cdata);
                 return -1;
         }
-                
+
         ret = setup_client_socket(server, cdata, client);
         if ( ret < 0 ) {
                 free(cdata);
                 close(client);
                 return -1;
         }
-        
+
         ret = server_logic_process_requests(server->logic, (server_logic_client_t *) cdata);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "queueing client FD for server logic processing failed.\n");
@@ -512,15 +512,15 @@ static int wait_connection(server_generic_t **server, size_t nserver)
         size_t i;
         int active_fd;
         struct pollfd pfd[nserver];
-        
-        for ( i = 0; i < nserver; i++ ) {                
+
+        for ( i = 0; i < nserver; i++ ) {
                 pfd[i].events = POLLIN;
                 pfd[i].fd = server[i]->sock;
-        } 
-        
+        }
+
         while ( continue_processing ) {
 
-                active_fd = poll(pfd, nserver, -1);                
+                active_fd = poll(pfd, nserver, -1);
                 if ( active_fd < 0 )
                         continue;
 
@@ -540,19 +540,19 @@ static int wait_connection(server_generic_t **server, size_t nserver)
 /*
  *
  */
-static int generic_server(int sock, struct sockaddr *addr, size_t alen) 
+static int generic_server(int sock, struct sockaddr *addr, size_t alen)
 {
         int ret;
-        
+
         ret = bind(sock, addr, alen);
         if ( ret < 0 )
                 return prelude_error_verbose(prelude_error_code_from_errno(errno),
                                              "could not bind socket: %s", strerror(errno));
-        
+
         ret = listen(sock, 10);
         if ( ret < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "listen error: %s", strerror(errno));
-                
+
         return 0;
 }
 
@@ -569,7 +569,7 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
  * return 0 if the socket is unused.
  * retuir -1 on error.
  */
-static int is_unix_socket_already_used(int sock, struct sockaddr_un *sa, int addrlen) 
+static int is_unix_socket_already_used(int sock, struct sockaddr_un *sa, int addrlen)
 {
         int ret;
         struct stat st;
@@ -584,11 +584,11 @@ static int is_unix_socket_already_used(int sock, struct sockaddr_un *sa, int add
 
         if ( ! S_ISSOCK(st.st_mode) )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "'%s' exist and is not an UNIX socket", sa->sun_path);
-        
+
         ret = connect(sock, (struct sockaddr *) sa, addrlen);
         if ( ret == 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "UNIX socket '%s' already in use", sa->sun_path);
-        
+
         /*
          * The unix socket exist on the file system,
          * but no one use it... Delete it.
@@ -596,7 +596,7 @@ static int is_unix_socket_already_used(int sock, struct sockaddr_un *sa, int add
         ret = unlink(sa->sun_path);
         if ( ret < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not delete unused UNIX socket: %s", strerror(errno));
-        
+
         return 0;
 }
 
@@ -605,11 +605,11 @@ static int is_unix_socket_already_used(int sock, struct sockaddr_un *sa, int add
 /*
  *
  */
-static int unix_server_start(server_generic_t *server) 
+static int unix_server_start(server_generic_t *server)
 {
         int ret;
         struct sockaddr_un *sa = (struct sockaddr_un *) server->sa;
-        
+
         server->sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if ( server->sock < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "error creating UNIX socket: %s", strerror(errno));
@@ -631,9 +631,9 @@ static int unix_server_start(server_generic_t *server)
          * representing our socket.
          */
         ret = chmod(sa->sun_path, S_IRWXU|S_IRWXG|S_IRWXO);
-        if ( ret < 0 ) 
+        if ( ret < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set permission on UNIX socket: %s", strerror(errno));
-        
+
         return 0;
 }
 
@@ -643,20 +643,20 @@ static int unix_server_start(server_generic_t *server)
 /*
  *
  */
-static int inet_server_start(server_generic_t *server, struct sockaddr *addr, socklen_t addrlen) 
+static int inet_server_start(server_generic_t *server, struct sockaddr *addr, socklen_t addrlen)
 {
         int ret, on = 1;
-        
+
         server->sock = socket(server->sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
         if ( server->sock < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "error creating socket: %s", strerror(errno));
-        
+
         ret = setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
                 ret = prelude_error_verbose(PRELUDE_ERROR_GENERIC, "error setting SO_REUSEADDR: %s", strerror(errno));
                 goto err;
         }
-        
+
         ret = generic_server(server->sock, addr, addrlen);
         if ( ret < 0 )
                 goto err;
@@ -677,14 +677,14 @@ static prelude_bool_t is_unix_addr(const char **out, const char *addr)
 
         if ( ! addr )
                 return FALSE;
-        
+
         ret = strncmp(addr, "unix", 4);
         if ( ret != 0 )
                 return FALSE;
-        
-        ptr = strchr(addr, ':');        
+
+        ptr = strchr(addr, ':');
         *out = (ptr && *(ptr + 1)) ? ptr + 1 : prelude_connection_get_default_socket_filename();
-        
+
         return TRUE;
 }
 
@@ -698,27 +698,27 @@ static int do_getaddrinfo(struct addrinfo **ai, const char *addr, unsigned int p
 
         memset(&hints, 0, sizeof(hints));
         snprintf(service, sizeof(service), "%u", port);
-        
+
         hints.ai_family = PF_UNSPEC;
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
-                
+
         ret = getaddrinfo(addr, service, &hints, ai);
         if ( ret != 0 )
                 ret = prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not resolve '%s': %s",
                                             addr, (ret == EAI_SYSTEM) ? strerror(errno) : gai_strerror(ret));
-                
+
         return ret;
 }
 
 
 
-static int resolve_addr(server_generic_t *server, const char *addr, unsigned int port) 
+static int resolve_addr(server_generic_t *server, const char *addr, unsigned int port)
 {
         struct addrinfo *ai;
         const char *unixpath = NULL;
         int ret, ai_family, ai_addrlen;
-        
+
         if ( is_unix_addr(&unixpath, addr) ) {
                 ai_family = AF_UNIX;
                 ai_addrlen = sizeof(struct sockaddr_un);
@@ -741,7 +741,7 @@ static int resolve_addr(server_generic_t *server, const char *addr, unsigned int
 
         server->slen = ai_addrlen;
         server->sa->sa_family = ai_family;
-                
+
         if ( ai_family != AF_UNIX ) {
                 memcpy(server->sa, ai->ai_addr, ai->ai_addrlen);
                 freeaddrinfo(ai);
@@ -759,18 +759,18 @@ static int sg_bind_common(server_generic_t *server, unsigned int port)
 {
         char out[128];
         void *in_addr;
-        
+
         fcntl(server->sock, F_SETFD, fcntl(server->sock, F_GETFD) | FD_CLOEXEC);
-        
+
         if ( server->sa->sa_family == AF_UNIX )
-                prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s).\n",
+                prelude_log(PRELUDE_LOG_INFO, "server started (listening on %s).\n",
                             ((struct sockaddr_un *) server->sa)->sun_path);
         else {
                 in_addr = prelude_sockaddr_get_inaddr(server->sa);
                 assert(in_addr);
-                
+
                 inet_ntop(server->sa->sa_family, in_addr, out, sizeof(out));
-                prelude_log(PRELUDE_LOG_INFO, "- server started (listening on %s port %u).\n", out, port);
+                prelude_log(PRELUDE_LOG_INFO, "server started (listening on %s port %u).\n", out, port);
         }
 
         return 0;
@@ -787,7 +787,7 @@ server_generic_t *server_generic_new(size_t clientlen, server_generic_accept_fun
                                      server_generic_close_func_t *closef)
 {
         server_generic_t *server;
-                
+
         server = malloc(sizeof(*server));
         if ( ! server ) {
                 prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
@@ -800,14 +800,14 @@ server_generic_t *server_generic_new(size_t clientlen, server_generic_accept_fun
         server->accept = acceptf;
         server->close = closef;
         server->clientlen = clientlen;
-        
+
         server->logic = server_logic_new(server, read_connection_cb, write_connection_cb, close_connection_cb);
         if ( ! server->logic ) {
                 prelude_log(PRELUDE_LOG_WARN, "couldn't initialize server pool.\n");
                 free(server);
                 return NULL;
         }
-        
+
         return server;
 }
 
@@ -823,7 +823,7 @@ int server_generic_bind_numeric(server_generic_t *server, struct sockaddr *sa, s
 
         server->slen = len;
         memcpy(server->sa, sa, len);
-        
+
         ret = inet_server_start(server, server->sa, server->slen);
         if ( ret < 0 ) {
                 free(server->sa);
@@ -839,16 +839,16 @@ int server_generic_bind_numeric(server_generic_t *server, struct sockaddr *sa, s
 int server_generic_bind(server_generic_t *server, const char *saddr, unsigned int port)
 {
         int ret;
-        
+
         ret = resolve_addr(server, saddr, port);
         if ( ret < 0 )
                 return ret;
-        
+
         if ( server->sa->sa_family == AF_UNIX )
                 ret = unix_server_start(server);
-        else 
+        else
                 ret = inet_server_start(server, server->sa, server->slen);
-        
+
         if ( ret < 0 ) {
                 free(server->sa);
                 server->sa = NULL;
@@ -859,7 +859,7 @@ int server_generic_bind(server_generic_t *server, const char *saddr, unsigned in
 }
 
 
-void server_generic_start(server_generic_t **server, size_t nserver) 
+void server_generic_start(server_generic_t **server, size_t nserver)
 {
         wait_connection(server, nserver);
 }
@@ -874,17 +874,17 @@ void server_generic_stop(server_generic_t *server)
 
 
 
-void server_generic_destroy(server_generic_t *server) 
+void server_generic_destroy(server_generic_t *server)
 {
         close(server->sock);
-        
+
         if ( server->sa ) {
-                if ( server->sa->sa_family == AF_UNIX )                 
+                if ( server->sa->sa_family == AF_UNIX )
                         unlink(((struct sockaddr_un *)server->sa)->sun_path);
-                        
+
                 free(server->sa);
         }
-        
+
         server_logic_destroy(server->logic);
         free(server);
 }
@@ -908,7 +908,7 @@ void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t prior
         va_list ap;
         int ret = 0;
         char buf[1024];
-        
+
         if ( cnx->ident && cnx->permission_string ) {
                 ret = snprintf(buf, sizeof(buf), " 0x%" PRELUDE_PRIx64 " %s]: ", cnx->ident, cnx->permission_string);
                 if ( ret < 0 || ret >= sizeof(buf) )
@@ -918,11 +918,11 @@ void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t prior
                 if ( ret < 0 || ret >= sizeof(buf) )
                         return;
         }
-                
+
         va_start(ap, fmt);
         vsnprintf(buf + ret, sizeof(buf) - ret, fmt, ap);
         va_end(ap);
-        
+
         prelude_log(priority, "[%s%s", cnx->addr, buf);
 }
 
@@ -964,7 +964,7 @@ int server_generic_client_set_permission(server_generic_client_t *client, prelud
 
         ret = prelude_string_get_string_released(out, &client->permission_string);
         prelude_string_destroy(out);
-        
+
         if ( ret < 0 )
                 return ret;
 
