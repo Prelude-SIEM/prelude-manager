@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998-2005 PreludeIDS Technologies. All Rights Reserved.
+* Copyright (C) 1998-2005,2006,2007 PreludeIDS Technologies. All Rights Reserved.
 * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
 * This file is part of the Prelude-Manager program.
@@ -84,7 +84,7 @@ static void restart_manager(void)
 {
         int ret;
 
-        prelude_log(PRELUDE_LOG_WARN, "- Restarting Prelude Manager (%s).\n", global_argv[0]);
+        prelude_log(PRELUDE_LOG_WARN, "Restarting Prelude Manager (%s).\n", global_argv[0]);
 
         ret = execvp(global_argv[0], global_argv);
         if ( ret < 0 )

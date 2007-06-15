@@ -1,12 +1,12 @@
 /*****
 *
-* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 PreludeIDS Technologies. All Rights Reserved.
+* Copyright (C) 1999-2005,2006,2007 PreludeIDS Technologies. All Rights Reserved.
 * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
 * This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by 
+* it under the terms of the GNU General Public License as published by
 * the Free Software Foundation; either version 2, or (at your option)
 * any later version.
 *
@@ -58,14 +58,14 @@ static int set_conf_file(prelude_option_t *opt, const char *optarg, prelude_stri
 }
 
 
-static int print_version(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+static int print_version(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         fprintf(stderr, "prelude-manager %s\n", VERSION);
         exit(0);
 }
 
 
-static int set_daemon_mode(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+static int set_daemon_mode(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         prelude_daemonize(config.pidfile);
         prelude_log_set_flags(prelude_log_get_flags() | PRELUDE_LOG_FLAGS_SYSLOG);
@@ -74,20 +74,20 @@ static int set_daemon_mode(prelude_option_t *opt, const char *arg, prelude_strin
 
 
 
-static int set_debug_mode(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+static int set_debug_mode(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         prelude_log_t priority = PRELUDE_LOG_DEBUG;
-                
+
         if ( arg )
                 priority = atoi(arg);
-        
+
         prelude_log_set_debug_level(priority);
 
         return 0;
 }
 
 
-static int set_pidfile(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+static int set_pidfile(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         config.pidfile = strdup(arg);
         return 0;
@@ -99,10 +99,10 @@ static server_generic_t *add_server(void)
 {
         config.nserver++;
 
-        config.server = _prelude_realloc(config.server, sizeof(*config.server) * config.nserver);        
+        config.server = _prelude_realloc(config.server, sizeof(*config.server) * config.nserver);
         if ( ! config.server )
                 return NULL;
-        
+
         config.server[config.nserver - 1] = sensor_server_new();
         if ( ! config.server[config.nserver - 1] )
                 return NULL;
@@ -114,7 +114,7 @@ static server_generic_t *add_server(void)
 static void del_server(void)
 {
         server_generic_destroy(config.server[config.nserver - 1]);
-        
+
         config.nserver--;
         config.server = _prelude_realloc(config.server, sizeof(*config.server) * config.nserver);
 }
@@ -127,12 +127,12 @@ static int add_server_default(void)
         struct addrinfo *ai, *ai_start, hints;
 
         memset(&hints, 0, sizeof(hints));
-        
+
         hints.ai_flags = AI_PASSIVE;
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
         hints.ai_family = PF_UNSPEC;
-        
+
 #ifdef AI_ADDRCONFIG
         /*
          * Only look up addresses using address types for which a local
@@ -140,16 +140,16 @@ static int add_server_default(void)
          */
         hints.ai_flags |= AI_ADDRCONFIG;
 #endif
-        
+
         snprintf(buf, sizeof(buf), "%u", DEFAULT_MANAGER_PORT);
-                
+
         ret = getaddrinfo(NULL, buf, &hints, &ai);
         if ( ret != 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "error getting default machine address: %s.\n", 
+                prelude_log(PRELUDE_LOG_ERR, "error getting default machine address: %s.\n",
                             (ret == EAI_SYSTEM) ? strerror(errno) : gai_strerror(ret));
                 return -1;
         }
-        
+
         for ( ai_start = ai; ai != NULL; ai = ai->ai_next ) {
                 if ( ! inet_ntop(ai->ai_family, prelude_sockaddr_get_inaddr(ai->ai_addr), buf, sizeof(buf)) ) {
                         prelude_log(PRELUDE_LOG_ERR, "address to string translation failed: %s.\n", strerror(errno));
@@ -159,7 +159,7 @@ static int add_server_default(void)
                 server = add_server();
                 if ( ! server )
                         break;
-                
+
                 ret = server_generic_bind_numeric(server, ai->ai_addr, ai->ai_addrlen, DEFAULT_MANAGER_PORT);
                 if ( ret < 0 ) {
                         char buf[128];
@@ -167,14 +167,14 @@ static int add_server_default(void)
                         /*
                          * More information on this at:
                          * http://lists.debian.org/debian-ipv6/2001/01/msg00031.html
-                         */   
+                         */
                         if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EADDRINUSE &&
                              prev_family != AF_UNSPEC && ai->ai_family != prev_family ) {
                                 ret = 0;
                                 del_server();
                                 continue;
                         }
-                        
+
                         inet_ntop(ai->ai_family, prelude_sockaddr_get_inaddr(ai->ai_addr), buf, sizeof(buf));
                         prelude_perror(ret, "error initializing server on %s:%u", buf, DEFAULT_MANAGER_PORT);
                         break;
@@ -187,7 +187,7 @@ static int add_server_default(void)
                 prelude_log(PRELUDE_LOG_WARN, "could not find any address to listen on.\n");
                 return -1;
         }
-        
+
         freeaddrinfo(ai_start);
 
         return ret;
@@ -195,31 +195,31 @@ static int add_server_default(void)
 
 
 
-static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         int ret;
-        
+
         if ( config.nserver == 0 ) {
                 ret = add_server_default();
                 if ( ret < 0 )
                         return -1; /* avoid duplicate option error */
         }
-        
+
         return reverse_relay_create_initiator(arg);
 }
 
 
 
 
-static int set_listen_address(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+static int set_listen_address(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         int ret;
         char *ptr;
         server_generic_t *server;
         unsigned int port = DEFAULT_MANAGER_PORT;
-                
+
         if ( strncmp(arg, "unix", 4) != 0 ) {
-                
+
                 ptr = strrchr(arg, ':');
                 if ( ptr ) {
                         *ptr = '\0';
@@ -230,11 +230,11 @@ static int set_listen_address(prelude_option_t *opt, const char *arg, prelude_st
         server = add_server();
         if ( ! server )
                 return -1;
-        
+
         ret = server_generic_bind(server, arg, port);
         if ( ret < 0 )
                 prelude_perror(ret, "error initializing server on %s:%u", arg, port);
-        
+
         return ret;
 }
 
@@ -243,24 +243,24 @@ static int set_listen_address(prelude_option_t *opt, const char *arg, prelude_st
 static int set_report_plugin_failover(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         int ret;
-        
+
         ret = report_plugin_activate_failover(arg);
         if ( ret == 0 )
-                prelude_log(PRELUDE_LOG_INFO, "- Failover capability enabled for reporting plugin %s.\n", arg);
+                prelude_log(PRELUDE_LOG_INFO, "Failover capability enabled for reporting plugin %s.\n", arg);
 
         return ret;
 }
 
 
 
-static int set_dh_bits(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+static int set_dh_bits(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         config.dh_bits = atoi(arg);
         return 0;
 }
 
 
-static int set_dh_regenerate(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+static int set_dh_regenerate(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         config.dh_regenerate = atoi(arg) * 60 * 60;
         return 0;
@@ -276,7 +276,7 @@ static int set_user(prelude_option_t *opt, const char *optarg, prelude_string_t 
         struct passwd *pw;
 
         for ( p = optarg; isdigit((int) *p); p++ );
-        
+
         if ( *p == 0 )
                 uid = atoi(optarg);
         else {
@@ -294,7 +294,7 @@ static int set_user(prelude_option_t *opt, const char *optarg, prelude_string_t 
                 prelude_log(PRELUDE_LOG_ERR, "change to UID %d failed: %s.\n", (int) uid, strerror(errno));
                 return ret;
         }
-        
+
         return 0;
 }
 
@@ -337,7 +337,7 @@ static int set_group(prelude_option_t *opt, const char *optarg, prelude_string_t
 
 
 
-static int print_help(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context) 
+static int print_help(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         prelude_option_print(NULL, PRELUDE_OPTION_TYPE_CLI, 25, stderr);
         return prelude_error(PRELUDE_ERROR_EOF);
@@ -345,24 +345,24 @@ static int print_help(prelude_option_t *opt, const char *arg, prelude_string_t *
 
 
 
-int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv) 
+int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
 {
         int ret;
         prelude_string_t *err;
         prelude_option_t *init_first, *opt;
         prelude_option_warning_t old_warnings;
-        
+
         /* Default */
         memset(&config, 0, sizeof(config));
         config.dh_regenerate = 24 * 60 * 60;
         config.config_file = PRELUDE_MANAGER_CONF;
 
         prelude_option_new_root(&init_first);
-        
+
         prelude_option_add(init_first, &opt, PRELUDE_OPTION_TYPE_CLI, 'h', "help",
                            "Print this help", PRELUDE_OPTION_ARGUMENT_NONE, print_help, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
-        
+
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 0, "config",
                            "Configuration file to use", PRELUDE_OPTION_ARGUMENT_REQUIRED,
                            set_conf_file, NULL);
@@ -375,36 +375,36 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI, 'D', "debug-level",
                            "Run in debug mode", PRELUDE_OPTION_ARGUMENT_OPTIONAL, set_debug_mode, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
-        
+
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'd',
                            "daemon", "Run in daemon mode", PRELUDE_OPTION_ARGUMENT_NONE, set_daemon_mode, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
-        
+
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'P',
                            "pidfile", "Write Prelude PID to pidfile", PRELUDE_OPTION_ARGUMENT_REQUIRED,
                            set_pidfile, NULL);
-        
+
         /*
          * we want this option to be processed before -d.
          */
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
 
-        
+
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "user",
                            "Set the user ID used by prelude-manager", PRELUDE_OPTION_ARGUMENT_REQUIRED, set_user, NULL);
-        
+
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CFG, 0, "group",
                            "Set the group ID used by prelude-manager", PRELUDE_OPTION_ARGUMENT_REQUIRED, set_group, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
-        
+
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-parameters-regenerate",
                            "How often to regenerate the Diffie Hellman parameters (in hours)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_dh_regenerate, NULL);
-        
+
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-prime-length",
                            "Size of the Diffie Hellman prime (768, 1024, 2048, 3072 or 4096)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_dh_bits, NULL);
-        
+
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'c', "child-managers",
                            "List of managers address:port pair where messages should be gathered from",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_reverse_relay, NULL);
@@ -413,15 +413,15 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
          * server object has been created.
          */
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
-        
-        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'l', "listen", 
+
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'l', "listen",
                            "Address the sensors server should listen on (addr:port)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_listen_address, NULL);
-        
+
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'f', "failover",
                            "Enable failover for specified report plugin",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_report_plugin_failover, NULL);
-        
+
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
 
 
@@ -437,12 +437,12 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
 
         prelude_option_set_warnings(0, &old_warnings);
 
-        ret = prelude_option_read(init_first, &config.config_file, argc, argv, &err, NULL);        
+        ret = prelude_option_read(init_first, &config.config_file, argc, argv, &err, NULL);
         if ( ret < 0 && prelude_error_get_code(ret) != PRELUDE_ERROR_EOF )
                 prelude_perror(ret, "error processing prelude-manager options");
-        
+
         prelude_option_set_warnings(old_warnings, NULL);
-        
+
         return ret;
 }
 
@@ -452,23 +452,23 @@ int manager_options_read(prelude_option_t *manager_root_optlist, int *argc, char
 {
         int ret;
         prelude_string_t *err;
-        
-        ret = prelude_option_read(manager_root_optlist, &config.config_file, argc, argv, &err, manager_client);        
+
+        ret = prelude_option_read(manager_root_optlist, &config.config_file, argc, argv, &err, manager_client);
         if ( ret < 0 ) {
                 if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EOF )
                         return -1;
-                
+
                 if ( err )
                         prelude_log(PRELUDE_LOG_WARN, "Option error: %s.\n", prelude_string_get_string(err));
                 else
                         prelude_perror(ret, "error processing options");
-                
+
                 return -1;
         }
 
         while ( ret < *argc )
                 prelude_log(PRELUDE_LOG_WARN, "Unhandled command line argument: '%s'.\n", argv[ret++]);
-            
+
         if ( config.nserver == 0 )
                 ret = add_server_default();
 

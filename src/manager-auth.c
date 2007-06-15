@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2001, 2002, 2003, 2004, 2005 PreludeIDS Technologies. All Rights Reserved.
+* Copyright (C) 2001-2005,2006,2007 PreludeIDS Technologies. All Rights Reserved.
 * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
 * This file is part of the Prelude-Manager program.
@@ -239,7 +239,7 @@ static void dh_params_regenerate(void *data)
          */
         gnutls_dh_params_deinit(tmp);
 
-        prelude_log(PRELUDE_LOG_INFO, "- Regenerated %d bits Diffie-Hellman key for TLS.\n", global_dh_bits);
+        prelude_log(PRELUDE_LOG_INFO, "Regenerated %d bits Diffie-Hellman key for TLS.\n", global_dh_bits);
 
         dh_params_save(cur_dh_params, global_dh_bits);
         prelude_timer_set_expire(&dh_param_regeneration_timer, global_dh_lifetime);
@@ -600,7 +600,7 @@ int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
         if ( ret != -1 && dh_params_load(cur_dh_params, dh_bits) == 0 )
                 prelude_timer_set_expire(&dh_param_regeneration_timer, dh_lifetime - ret);
         else {
-                prelude_log(PRELUDE_LOG_INFO, "- Generating %d bits Diffie-Hellman key for TLS...\n", dh_bits);
+                prelude_log(PRELUDE_LOG_INFO, "Generating %d bits Diffie-Hellman key for TLS...\n", dh_bits);
 
                 gnutls_dh_params_generate2(cur_dh_params, dh_bits);
                 dh_params_save(cur_dh_params, dh_bits);
