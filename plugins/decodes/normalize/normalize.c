@@ -299,14 +299,14 @@ int normalize_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *root_opt
         manager_decode_plugin_set_running_func(&normalize, normalize_run);
         prelude_plugin_entry_set_plugin(pe, (void *) &normalize);
 
-        prelude_option_add(root_opt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG,
+        prelude_option_add(root_opt, &opt, PRELUDE_OPTION_TYPE_CFG,
                            0, "normalize", "Option for the normalize plugin", PRELUDE_OPTION_ARGUMENT_NONE, NULL, NULL);
 
-        prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG,
+        prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CFG,
                            '6', "ipv6-only", "Map IPv4 addresses to IPv6",
                            PRELUDE_OPTION_ARGUMENT_NONE, normalize_to_ipv6_cb, NULL);
 
-        prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG,
+        prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CFG,
                            '4', "keep-ipv4-mapped-ipv6",
                            "Do not normalize IPv4 mapped IPv6 address to IPv4",
                            PRELUDE_OPTION_ARGUMENT_NONE, normalize_keep_ipv6, NULL);
