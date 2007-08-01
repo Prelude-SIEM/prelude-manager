@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -111,7 +112,7 @@ int decode_plugins_init(const char *dirname, void *data)
                 if ( errno == ENOENT )
                         return 0;
 
-                prelude_log(PRELUDE_LOG_ERR, "could not access %s: %s.\n", dirname, strerror(errno));
+                prelude_log(PRELUDE_LOG_ERR, "could not access '%s': %s.\n", dirname, strerror(errno));
                 return -1;
         }
 
