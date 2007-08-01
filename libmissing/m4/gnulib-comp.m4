@@ -42,6 +42,7 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_ALLOCA
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
+  gl_FLOAT_H
   gl_GETADDRINFO
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
@@ -115,6 +116,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/alloca_.h
   lib/asnprintf.c
   lib/dummy.c
+  lib/float+.h
+  lib/float_.h
   lib/gai_strerror.c
   lib/getaddrinfo.c
   lib/getaddrinfo.h
@@ -147,13 +150,14 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/vsnprintf.c
   lib/wchar_.h
   lib/xsize.h
-  m4/absolute-header.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/eoverflow.m4
   m4/extensions.m4
+  m4/float_h.m4
   m4/getaddrinfo.m4
   m4/gnulib-common.m4
+  m4/include_next.m4
   m4/inet_ntop.m4
   m4/intmax_t.m4
   m4/inttypes_h.m4
