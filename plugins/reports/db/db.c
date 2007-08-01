@@ -88,6 +88,11 @@ static int db_run(prelude_plugin_instance_t *pi, idmef_message_t *message)
         if ( ret < 0 )
                 prelude_log(PRELUDE_LOG_WARN, "could not insert message into database: %s.\n", preludedb_strerror(ret));
 
+        if ( prelude_error_get_code(ret) == PRELUDEDB_ERROR_CONNECTION )
+                ret = MANAGER_REPORT_PLUGIN_FAILURE_GLOBAL;
+        else
+                ret = MANAGER_REPORT_PLUGIN_FAILURE_SINGLE;
+
         return ret;
 }
 

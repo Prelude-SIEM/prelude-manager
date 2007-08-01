@@ -54,10 +54,16 @@ static PRELUDE_LIST(report_plugins_instance);
 
 
 typedef struct {
-        int failover_enabled;
+        prelude_bool_t failover_enabled;
         prelude_timer_t timer;
+
         prelude_failover_t *failover;
+        prelude_failover_t *failed_failover;
 } plugin_failover_t;
+
+
+
+static int report_plugin_run_single(prelude_plugin_instance_t *pi, plugin_failover_t *pf, idmef_message_t *idmef);
 
 
 
@@ -94,8 +100,8 @@ static int recover_from_failover(prelude_plugin_instance_t *pi, plugin_failover_
                 if ( ret < 0 )
                         break;
 
-                ret = prelude_plugin_run(pi, manager_report_plugin_t, run, pi, idmef);
-                if ( ret < 0 && pf )
+                ret = report_plugin_run_single(pi, pf, idmef);
+                if ( ret < 0 && ret != MANAGER_REPORT_PLUGIN_FAILURE_SINGLE )
                         break;
 
                 prelude_msg_destroy(msg);
@@ -153,7 +159,7 @@ static int try_recovering_from_failover(prelude_plugin_instance_t *pi, plugin_fa
                 text = "failed recovering";
         else {
                 text = "recovered";
-                pf->failover_enabled = 0;
+                pf->failover_enabled = FALSE;
         }
 
         prelude_log(PRELUDE_LOG_WARN, "Plugin %s[%s]: %s from failover: %u/%u message flushed (%" PRELUDE_PRIu64 " bytes).\n",
@@ -192,7 +198,7 @@ static int setup_plugin_failover(prelude_plugin_instance_t *pi)
         get_failover_filename(pi, filename, sizeof(filename));
 
         if ( ! prelude_plugin_instance_has_commit_func(pi) ) {
-                prelude_log(PRELUDE_LOG_WARN, "plugin %s doesn't support failover.\n", plugin->name);
+                prelude_log(PRELUDE_LOG_WARN, "plugin %s does not support failover.\n", plugin->name);
                 return -1;
         }
 
@@ -209,11 +215,22 @@ static int setup_plugin_failover(prelude_plugin_instance_t *pi)
                 return -1;
         }
 
+        snprintf(filename + strlen(filename), sizeof(filename) - strlen(filename), "/invalid");
+
+        ret = prelude_failover_new(&pf->failed_failover, filename);
+        if ( ret < 0 ) {
+                prelude_perror(ret, "could not create failover object in %s", filename);
+                prelude_failover_destroy(pf->failover);
+                free(pf);
+                return -1;
+        }
+
         prelude_plugin_instance_set_data(pi, pf);
 
         try_recovering_from_failover(pi, pf);
         if ( pf->failover_enabled ) {
                 prelude_failover_destroy(pf->failover);
+                prelude_failover_destroy(pf->failed_failover);
                 free(pf);
                 return -1;
         }
@@ -251,9 +268,11 @@ static void unsubscribe(prelude_plugin_instance_t *pi)
 
 
 
-static void failover_init(prelude_plugin_generic_t *pg, prelude_plugin_instance_t *pi, plugin_failover_t *pf)
+static void failover_init(prelude_plugin_instance_t *pi, plugin_failover_t *pf)
 {
-        pf->failover_enabled = 1;
+        prelude_plugin_generic_t *pg = prelude_plugin_instance_get_plugin(pi);
+
+        pf->failover_enabled = TRUE;
 
         prelude_log(PRELUDE_LOG_WARN, "Plugin %s[%s]: failure. Enabling failover.\n",
                     pg->name, prelude_plugin_instance_get_name(pi));
@@ -271,9 +290,9 @@ static void failover_init(prelude_plugin_generic_t *pg, prelude_plugin_instance_
 static int save_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 {
         int ret;
-        plugin_failover_t *pf = prelude_msgbuf_get_data(msgbuf);
+        prelude_failover_t *pf = prelude_msgbuf_get_data(msgbuf);
 
-        ret = prelude_failover_save_msg(pf->failover, msg);
+        ret = prelude_failover_save_msg(pf, msg);
         if ( ret < 0 )
                 prelude_perror(ret, "error saving message to disk");
 
@@ -283,7 +302,7 @@ static int save_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 
 
 
-static void save_idmef_message(plugin_failover_t *pf, idmef_message_t *msg)
+static void save_idmef_message(prelude_failover_t *pf, idmef_message_t *msg)
 {
         /*
          * this is a message we generated ourself...
@@ -293,6 +312,24 @@ static void save_idmef_message(plugin_failover_t *pf, idmef_message_t *msg)
         prelude_msgbuf_mark_end(msgbuf);
 }
 
+
+
+static int report_plugin_run_single(prelude_plugin_instance_t *pi, plugin_failover_t *pf, idmef_message_t *idmef)
+{
+        int ret;
+
+        ret = prelude_plugin_run(pi, manager_report_plugin_t, run, pi, idmef);
+        if ( ret < 0 && pf ) {
+                if ( ret == MANAGER_REPORT_PLUGIN_FAILURE_SINGLE )
+                        save_idmef_message(pf->failed_failover, idmef);
+                else {
+                        failover_init(pi, pf);
+                        save_idmef_message(pf->failover, idmef);
+                }
+        }
+
+        return ret;
+}
 
 
 
@@ -322,16 +359,12 @@ void report_plugins_run(idmef_message_t *idmef)
                         continue;
 
                 if ( pf && pf->failover_enabled ) {
-                        save_idmef_message(pf, idmef);
+                        save_idmef_message(pf->failover, idmef);
                         continue;
                 }
 
-                ret = prelude_plugin_run(pi, manager_report_plugin_t, run, pi, idmef);
-                if ( ret < 0 && pf ) {
-                        failover_init(pg, pi, pf);
-                        save_idmef_message(pf, idmef);
-                }
-        }
+                report_plugin_run_single(pi, pf, idmef);
+         }
 }
 
 
