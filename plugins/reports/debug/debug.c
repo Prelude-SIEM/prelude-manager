@@ -132,27 +132,62 @@ static int debug_run(prelude_plugin_instance_t *pi, idmef_message_t *msg)
 }
 
 
+static void destroy_filter_path(debug_plugin_t *plugin)
+{
+        debug_object_t *object;
+        prelude_list_t *tmp, *bkp;
+
+        prelude_list_for_each_safe(&plugin->path_list, tmp, bkp) {
+                object = prelude_list_entry(tmp, debug_object_t, list);
+
+                prelude_list_del(&object->list);
+                idmef_path_destroy(object->path);
+
+                free(object);
+        }
+}
+
+
+static int set_filter_path(debug_plugin_t *plugin, const char *path)
+{
+        int ret = 0;
+        debug_object_t *elem;
+        char *ptr, *start, *dup;
+
+        start = dup = strdup(path);
+        if ( ! dup )
+                return prelude_error_from_errno(errno);
+
+        destroy_filter_path(plugin);
+
+        while ( (ptr = strsep(&dup, ", \t")) ) {
+                if ( *ptr == '\0' )
+                        continue;
+
+                elem = malloc(sizeof(*elem));
+                if ( ! elem ) {
+                        ret = prelude_error_from_errno(errno);
+                        break;
+                }
+
+                ret = idmef_path_new_fast(&elem->path, ptr);
+                if ( ret < 0 ) {
+                        free(elem);
+                        break;
+                }
+
+                prelude_list_add_tail(&plugin->path_list, &elem->list);
+        }
+
+        free(start);
+        return ret;
+}
+
 
 static int debug_set_object(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
 {
-        int ret;
-        debug_object_t *object;
         debug_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-
-        object = calloc(1, sizeof(*object));
-        if ( ! object )
-                return prelude_error_from_errno(errno);
-
-        ret = idmef_path_new(&object->path, "%s", arg);
-        if ( ret < 0 ) {
-                prelude_string_sprintf(err, "error creating path '%s': %s", arg, prelude_strerror(ret));
-                free(object);
-                return -1;
-        }
-
-        prelude_list_add_tail(&plugin->path_list, &object->list);
-
-        return 0;
+        return set_filter_path(plugin, arg);
 }
 
 
@@ -240,8 +275,6 @@ static int debug_new(prelude_option_t *opt, const char *arg, prelude_string_t *e
 static void debug_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
 {
         FILE *fd;
-        debug_object_t *object;
-        prelude_list_t *tmp, *bkp;
         debug_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 
         fd = prelude_io_get_fdptr(plugin->fd);
@@ -250,14 +283,7 @@ static void debug_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
 
         prelude_io_destroy(plugin->fd);
 
-        prelude_list_for_each_safe(&plugin->path_list, tmp, bkp) {
-                object = prelude_list_entry(tmp, debug_object_t, list);
-
-                prelude_list_del(&object->list);
-                idmef_path_destroy(object->path);
-
-                free(object);
-        }
+        destroy_filter_path(plugin);
 
         free(plugin->logfile);
         free(plugin);
