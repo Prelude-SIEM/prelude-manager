@@ -1,1 +1,1 @@
-SUBDIRS=api
+SUBDIRS=manpages

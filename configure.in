@@ -285,6 +285,8 @@ AC_SUBST(CFLAGS)
 AC_CONFIG_FILES([
 
 Makefile 
+docs/Makefile
+docs/manpages/Makefile
 
 libmissing/Makefile
 prelude-manager.conf

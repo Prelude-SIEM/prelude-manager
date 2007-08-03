@@ -1,0 +1,145 @@
+.TH "prelude-manager" 1
+.SH NAME
+prelude-manager - Collects and normalize events.
+.SH SYNOPSIS
+.B prelude-manager [options]
+.SH DESCRIPTION
+Prelude Manager is a high-availability server which can collect, filter, relay, reverse-relay, normalize and store events. Events can come from registered analyzers and/or managers. The common usage is to store nomalized events into a database, thus this can be extended to store informations in plain text or xml files. 
+
+.SH OPTIONS
+Some prelude-manager option are contextual, they have to be prefixed by another.
+
+.B --prelude
+Prelude generic options
+
+.B --profile=<name>
+Profile to use for this analyzer
+
+.B --heartbeat-interval=<interval>
+Number of seconds between two heartbeat
+
+.B --server-addr=<address>
+Address where this sensor should report to (addr:port)
+
+.B --analyzer-name=<name>
+Name for this analyzer
+
+.TP 5
+.B --db=<INAME>
+Options for the libpreludedb plugin
+
+.B -t, --type=<type>
+Type of database (mysql/pgsql/sqlite3)
+
+.B -l, --log=<file name>
+Log all queries in a file, should be only used for debugging purpose
+
+.B -h, --host=<address>
+The host where the database server is running (in case of client/server database)
+
+.B -f, --file=<file name>
+The file where the database is stored (in case of file based database)
+
+.B -p, --port=<port number>
+The port where the database server is listening (in case of client/server database)
+
+.B -d, --name=<name>
+The name of the database where the alerts will be stored
+
+.B -u, --user=<user>
+User of the database (in case of client/server database)
+
+.B -P, --pass=<password>
+Password for the user (in case of client/server database)
+.TP
+
+
+.B --debug=<INAME>
+Option for the debug plugin
+
+.B -o, --object=<name>
+Name of IDMEF object to print (no object provided will print the entire message)
+
+.B -l, --logfile=<file name>
+Specify output file to use (default to stdout)
+.TP
+
+
+.B --relaying=<INAME>
+Relaying plugin option
+
+.B -p, --parent-managers=<address>
+List of managers address:port pair where messages should be sent to
+.TP
+
+
+.B --textmod=<INAME>
+Option for the textmod plugin
+
+.B -l, --logfile=<file name>
+Specify logfile to use
+.TP
+
+
+.B --xmlmod=<INAME>
+Option for the xmlmod plugin
+
+.B -l, --logfile=<file name>
+Specify output file to use
+
+.B -v, --validate=<xml>
+Validate IDMEF XML output against DTD
+
+.B -f, --format=<format>
+Format XML output so that it is readable
+
+.B -d, --disable-buffering=<boolean>
+Disable output file buffering to prevent truncated tags
+
+.B --idmef-criteria-filter=<INAME>
+Filter message based on IDMEF criteria
+
+.B -r, --rule=<rule>
+Filter rule, or filename containing rule
+
+.B --hook=<value>
+Where the filter should be hooked (reporting|reverse-relaying|plugin name)
+.TP
+
+
+.B --config=<file name>
+Configuration file to use
+.TP
+.B -v, --version
+Print version number
+.TP
+.B -D, --debug-level=<level>
+Run in debug mode
+.TP
+.B -d, --daemon
+Run in daemon mode
+.TP
+.B -P, --pidfile=<file name>
+Write Prelude PID to pidfile
+.TP
+.B -c, --child-managers=<address>
+List of managers address:port pair where messages should be gathered from
+.TP
+.B -l, --listen=<address>
+Address the sensors server should listen on (addr:port)
+.TP
+.B -f, --failover=<boolean>
+Enable failover for specified report plugin
+.TP
+.B -h, --help
+Print help
+
+.SH FILES
+.B /etc/prelude/prelude-manager.conf 
+- the configuration file
+
+.SH BUGS
+This man page hadn't been proof-read yet.
+
+.SH "SEE ALSO"
+prelude-adduser(1)
