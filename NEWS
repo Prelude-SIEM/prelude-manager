@@ -1,3 +1,35 @@
+* 2007-08-03, prelude-manager-0.9.9:
+
+- Update configuration template, add documentation for Prelude
+  generic TCP options.
+
+- Implement modified patch from Pierre Chifflier <chifflier@inl.fr>
+  to fix the example log path (fix #224). 
+
+- Move IDMEF message normalization in the scheduler, rather than
+  doing it upon reception. This remove some load from the server
+  and allow Prelude-Manager own IDMEF messages to go through the
+  normalizer path. 
+
+- Implement heartbeat->analyzer normalization. 
+
+- Improve IPv4 / IPv6 address normalization.
+  IPv4 mapped IPv6 addresses are now mapped back to IPv4.
+  Additionally, the Normalize plugin now provide two additionals option:
+   ipv6-only: Map any incoming IPv4 address to IPv6.
+   keep-ipv4-mapped-ipv6: do not map IPv4 mapped IPv6 addresses back to IPv4.
+
+- Make a difference between exceptional report plugin failure (example:
+  a single message couldn't be processed) and "global" plugin failure
+  (example: database server is down). We use a different failover for
+  'exceptional' failure, so that we don't try to reinsert a bogus message 
+  (fix #247).
+
+- Start of a Prelude-Manager manpages (#236).
+
+- Various bug fixes.
+
+
 * 2007-05-02, prelude-manager-0.9.8:
 
         - Initial implementation of the 'thresholding' plugin, allowing you to 
