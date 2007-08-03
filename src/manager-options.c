@@ -67,8 +67,14 @@ static int print_version(prelude_option_t *opt, const char *arg, prelude_string_
 
 static int set_daemon_mode(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
-        prelude_daemonize(config.pidfile);
+        int ret;
+
+        ret = prelude_daemonize(config.pidfile);
+        if ( ret < 0 )
+                return ret;
+
         prelude_log_set_flags(prelude_log_get_flags() | PRELUDE_LOG_FLAGS_SYSLOG);
+
         return 0;
 }
 
