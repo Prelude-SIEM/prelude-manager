@@ -109,8 +109,11 @@ listen = 127.0.0.1
 
 # [db]
 
-# The type of database (mysql/pgsql).
+# The type of database: mysql, pgsql or sqlite3.
 # type = mysql
+
+# Only if you use sqlite3.
+# file = /your/path/to/your/db/idmef-db.sql
 
 # Host the database is listening on.
 # host = localhost
