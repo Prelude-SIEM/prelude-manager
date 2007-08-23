@@ -1,3 +1,11 @@
+* 2007-09-23, prelude-manager-0.9.9.1:
+
+- Fix for new libprelude (0.9.15) runtime warning.
+
+- Add documentation for SQLite3 in the template configuration file
+  (Sébastien Tricaud <toady at gscore.org>).
+
+
 * 2007-08-03, prelude-manager-0.9.9:
 
 - Update configuration template, add documentation for Prelude
