@@ -290,7 +290,6 @@ static int get_issuer_analyzerid(idmef_message_t *idmef, uint64_t *analyzerid)
                 alert = idmef_message_get_alert(idmef);
 
                 while ( (analyzer = idmef_alert_get_next_analyzer(alert, analyzer)) ) {
-
                         id = idmef_analyzer_get_analyzerid(analyzer);
                         if ( id )
                                 last = id;
