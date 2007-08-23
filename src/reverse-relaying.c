@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2004,2005,2006,2007 PreludeIDS Technologies. All Rights Reserved.
+* Copyright (C) 2004, 2005 PreludeIDS Technologies. All Rights Reserved.
 * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
 * This file is part of the Prelude-Manager program.
@@ -281,26 +281,37 @@ static int get_issuer_analyzerid(idmef_message_t *idmef, uint64_t *analyzerid)
         idmef_alert_t *alert;
         idmef_message_type_t type;
         idmef_heartbeat_t *heartbeat;
-        idmef_analyzer_t *analyzer, *last = NULL;
+        idmef_analyzer_t *analyzer = NULL;
+        prelude_string_t *id, *last = NULL;
 
         type = idmef_message_get_type(idmef);
 
         if ( type == IDMEF_MESSAGE_TYPE_ALERT ) {
                 alert = idmef_message_get_alert(idmef);
-                while ( (analyzer = idmef_alert_get_next_analyzer(alert, last)) )
-                        last = analyzer;
+
+                while ( (analyzer = idmef_alert_get_next_analyzer(alert, analyzer)) ) {
+
+                        id = idmef_analyzer_get_analyzerid(analyzer);
+                        if ( id )
+                                last = id;
+                }
         }
 
         else if ( type == IDMEF_MESSAGE_TYPE_HEARTBEAT ) {
                 heartbeat = idmef_message_get_heartbeat(idmef);
-                while ( (analyzer = idmef_heartbeat_get_next_analyzer(heartbeat, last)) )
-                        last = analyzer;
+
+                while ( (analyzer = idmef_heartbeat_get_next_analyzer(heartbeat, analyzer)) ) {
+                        id = idmef_analyzer_get_analyzerid(analyzer);
+                        if ( id )
+                                last = id;
+                }
+
         }
 
         else return -1;
 
-        if ( last && prelude_string_get_string(idmef_analyzer_get_analyzerid(last)) )
-                *analyzerid = strtoull(prelude_string_get_string(idmef_analyzer_get_analyzerid(last)), NULL, 10);
+        if ( last && prelude_string_get_string(last) )
+                *analyzerid = strtoull(prelude_string_get_string(last), NULL, 10);
         else
                 *analyzerid = 0;
 
