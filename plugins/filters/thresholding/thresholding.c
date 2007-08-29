@@ -45,14 +45,9 @@ typedef struct {
 
 
 typedef struct {
-        int count;
-        char *key;
-        prelude_timer_t timer;
-} hash_elem_t;
-
-
-typedef struct {
         prelude_list_t path_list;
+        prelude_hash_t *path_value_hash;
+
         int threshold;
         int limit;
         int block;
@@ -61,8 +56,15 @@ typedef struct {
 } filter_plugin_t;
 
 
-static int plugin_instance_no = 0;
-static prelude_hash_t *path_value_hash;
+typedef struct {
+        int count;
+        char *key;
+        prelude_timer_t timer;
+        filter_plugin_t *parent;
+} hash_elem_t;
+
+
+
 static manager_filter_plugin_t filter_plugin;
 
 
@@ -137,7 +139,7 @@ static void hash_entry_expire_cb(void *data)
         hash_elem_t *helem = data;
 
         prelude_log_debug(3, "[%s]: release suppression.\n", helem->key);
-        prelude_hash_elem_destroy(path_value_hash, helem->key);
+        prelude_hash_elem_destroy(helem->parent->path_value_hash, helem->key);
 }
 
 
@@ -146,13 +148,14 @@ static int check_filter(filter_plugin_t *plugin, const char *key)
         int ret;
         hash_elem_t *helem;
 
-        helem = prelude_hash_get(path_value_hash, key);
+        helem = prelude_hash_get(plugin->path_value_hash, key);
         if ( ! helem ) {
                 helem = malloc(sizeof(*helem));
                 if ( ! helem )
                         return -1;
 
                 helem->count = 0;
+                helem->parent = plugin;
                 helem->key = strdup(key);
 
                 prelude_timer_init_list(&helem->timer);
@@ -160,7 +163,7 @@ static int check_filter(filter_plugin_t *plugin, const char *key)
                 prelude_timer_set_data(&helem->timer, helem);
                 prelude_timer_set_callback(&helem->timer, hash_entry_expire_cb);
 
-                ret = prelude_hash_set(path_value_hash, helem->key, helem);
+                ret = prelude_hash_set(plugin->path_value_hash, helem->key, helem);
         }
 
         helem->count++;
@@ -400,15 +403,15 @@ static int filter_activate(prelude_option_t *opt, const char *optarg, prelude_st
         int ret;
         filter_plugin_t *new;
 
-        if ( plugin_instance_no++ == 0 ) {
-                ret = prelude_hash_new(&path_value_hash, NULL, NULL, NULL, hash_entry_destroy);
-                if ( ret < 0 )
-                        return ret;
-        }
-
         new = calloc(1, sizeof(*new));
         if ( ! new )
                 return prelude_error_from_errno(errno);
+
+        ret = prelude_hash_new(&new->path_value_hash, NULL, NULL, NULL, hash_entry_destroy);
+        if ( ret < 0 ) {
+                free(new);
+                return ret;
+        }
 
         prelude_list_init(&new->path_list);
         prelude_plugin_instance_set_plugin_data(context, new);
@@ -430,8 +433,8 @@ static void filter_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
         if ( plugin->hook_str )
                 free(plugin->hook_str);
 
-        if ( --plugin_instance_no == 0 )
-                prelude_hash_destroy(path_value_hash);
+        if ( plugin->path_value_hash )
+                prelude_hash_destroy(plugin->path_value_hash);
 
         free(plugin);
 }
