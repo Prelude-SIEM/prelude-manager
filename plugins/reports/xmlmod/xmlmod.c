@@ -48,7 +48,7 @@ typedef struct {
 } xmlmod_plugin_t;
 
 
-
+static int xml_needinit = 0;
 PRELUDE_PLUGIN_OPTION_DECLARE_STRING_CB(xmlmod, xmlmod_plugin_t, logfile)
 
 
@@ -990,6 +990,9 @@ static void xmlmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
                 free(plugin->logfile);
 
         free(plugin);
+
+        if ( --xml_needinit == 0 )
+                xmlCleanupParser();
 }
 
 
@@ -998,6 +1001,9 @@ static void xmlmod_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
 static int xmlmod_activate(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
         xmlmod_plugin_t *new;
+
+        if ( xml_needinit++ == 0 )
+                xmlInitParser();
 
         new = calloc(1, sizeof(*new));
         if ( ! new )
@@ -1093,8 +1099,6 @@ int xmlmod_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
         prelude_option_t *opt, *cur;
         static manager_report_plugin_t xmlmod_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
-
-        xmlInitParser();
 
         ret = prelude_option_add(rootopt, &opt, hook, 0, "xmlmod", "Option for the xmlmod plugin",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, xmlmod_activate, NULL);
