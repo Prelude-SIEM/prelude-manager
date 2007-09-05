@@ -380,7 +380,7 @@ void report_plugins_close(void)
 
         prelude_list_for_each_safe(&report_plugins_instance, tmp, bkp) {
                 pi = prelude_linked_object_get_object(tmp);
-                prelude_plugin_unload(prelude_plugin_instance_get_plugin(pi));
+                prelude_plugin_instance_unsubscribe(pi);
         }
 }
 
