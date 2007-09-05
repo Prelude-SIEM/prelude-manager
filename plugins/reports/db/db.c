@@ -130,6 +130,8 @@ static void db_destroy(prelude_plugin_instance_t *pi, prelude_string_t *out)
                 preludedb_destroy(plugin->db);
 
         free(plugin);
+
+        preludedb_deinit();
 }
 
 
@@ -202,7 +204,14 @@ static int db_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
 static int db_activate(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
 {
+        int ret;
         db_plugin_t *new;
+
+        ret = preludedb_init();
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "error initializing libpreludedb: %s", preludedb_strerror(ret));
+                return ret;
+        }
 
         new = calloc(1, sizeof(*new));
         if ( ! new )
@@ -228,12 +237,6 @@ int db_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
         prelude_option_t *opt;
         static manager_report_plugin_t db_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
-
-        ret = preludedb_init();
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "error initializing libpreludedb: %s", preludedb_strerror(ret));
-                return ret;
-        }
 
         ret = prelude_option_add(rootopt, &opt, hook, 0, "db", "Options for the libpreludedb plugin",
                                  PRELUDE_OPTION_ARGUMENT_OPTIONAL, db_activate, NULL);
