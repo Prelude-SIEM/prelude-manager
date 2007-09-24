@@ -50,7 +50,9 @@ typedef struct {
 
         int threshold;
         int limit;
-        int block;
+        int maxlimit;
+
+        int count;
         char *hook_str;
         manager_filter_hook_t *hook;
 } filter_plugin_t;
@@ -143,6 +145,60 @@ static void hash_entry_expire_cb(void *data)
 }
 
 
+
+/*
+ * Once COUNT number of events pass through this filter, stop further
+ * events from being reported for SECONDS.
+ */
+static int check_limit(const char *key, filter_plugin_t *plugin, hash_elem_t *helem)
+{
+        if ( helem->count == 1 ) {
+                prelude_timer_set_expire(&helem->timer, plugin->maxlimit);
+                prelude_timer_init(&helem->timer);
+        }
+
+        if ( helem->count == plugin->count ) {
+                prelude_timer_set_expire(&helem->timer, plugin->limit);
+                prelude_timer_reset(&helem->timer);
+
+                if ( ! plugin->threshold )
+                        prelude_log_debug(3, "[%s]: limit of %d events reached - will drop upcoming events for %d seconds.\n",
+                                            key, helem->count, plugin->limit);
+        }
+
+        return (helem->count > plugin->count) ? -1 : 0;
+}
+
+
+/*
+ * Alerts every m times we see this event during the time interval.
+ */
+static int check_threshold(const char *key, filter_plugin_t *plugin, hash_elem_t *helem)
+{
+        if ( helem->count == 1 ) {
+                prelude_timer_set_expire(&helem->timer, plugin->threshold);
+                prelude_timer_init(&helem->timer);
+        }
+
+        if ( helem->count % plugin->count )
+                return -1;
+
+        if ( plugin->limit ) {
+                if ( plugin->count == helem->count )
+                        prelude_log_debug(3, "[%s]: threshold of %d events in %d seconds reached - reporting event and limiting for %d seconds.\n",
+                                          key, plugin->count, plugin->threshold, plugin->limit);
+
+                return check_limit(key, plugin, helem);
+        }
+
+        prelude_log_debug(3, "[%s]: threshold of %d events in %d seconds reached - reporting event.\n",
+                          key, plugin->count, plugin->threshold);
+        return 0;
+}
+
+
+
+
 static int check_filter(filter_plugin_t *plugin, const char *key)
 {
         int ret;
@@ -159,7 +215,6 @@ static int check_filter(filter_plugin_t *plugin, const char *key)
                 helem->key = strdup(key);
 
                 prelude_timer_init_list(&helem->timer);
-                prelude_timer_set_expire(&helem->timer, plugin->block);
                 prelude_timer_set_data(&helem->timer, helem);
                 prelude_timer_set_callback(&helem->timer, hash_entry_expire_cb);
 
@@ -168,32 +223,11 @@ static int check_filter(filter_plugin_t *plugin, const char *key)
 
         helem->count++;
 
-        /*
-         * Check threshold: event with KEY can be reported THRESHOLD time in Y seconds.
-         */
-        if ( plugin->threshold ) {
-                if ( helem->count == 1 )
-                        prelude_timer_init(&helem->timer);
+        if ( plugin->threshold )
+                return check_threshold(key, plugin, helem);
 
-                if ( helem->count == plugin->threshold )
-                        prelude_log_debug(3, "[%s]: %d events in %d seconds reached - thresholding.\n",
-                                          key, helem->count, plugin->block);
-
-                return (helem->count > plugin->threshold) ? -1 : 0;
-        }
-
-        /*
-         * Check limit: event with KEY can be reported LIMIT time, then is blocked until Y seconds are elapsed.
-         */
-        else if ( plugin->limit ) {
-                if ( helem->count == plugin->limit ) {
-                        prelude_timer_init(&helem->timer);
-                        prelude_log_debug(3, "[%s]: limit of %d events per %d seconds reached - will drop upcoming events.\n",
-                                          key, helem->count, plugin->block);
-                }
-
-                return (helem->count > plugin->limit) ? -1 : 0;
-        }
+        else if ( plugin->limit )
+                return check_limit(key, plugin, helem);
 
         return 0;
 }
@@ -248,32 +282,44 @@ static int set_filter_threshold(prelude_option_t *opt, const char *optarg, prelu
 static int get_filter_limit(prelude_option_t *opt, prelude_string_t *out, void *context)
 {
         filter_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-        return prelude_string_sprintf(out, "%d", plugin->limit);
+        return prelude_string_sprintf(out, "%d/%d", plugin->limit, plugin->maxlimit);
 }
 
 
 
 static int set_filter_limit(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
 {
+        char *ptr;
         filter_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-        plugin->limit = atoi(optarg);
+
+        ptr = strchr(optarg, '/');
+        if ( ptr ) {
+                *ptr = 0;
+                plugin->maxlimit = atoi(ptr + 1);
+                plugin->limit = atoi(optarg);
+                *ptr = '/';
+        } else {
+                plugin->maxlimit = 86400;
+                plugin->limit = atoi(optarg);
+        }
+
         return 0;
 }
 
 
 
-static int get_filter_block(prelude_option_t *opt, prelude_string_t *out, void *context)
+static int get_filter_count(prelude_option_t *opt, prelude_string_t *out, void *context)
 {
         filter_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-        return prelude_string_sprintf(out, "%d", plugin->block);
+        return prelude_string_sprintf(out, "%d", plugin->count);
 }
 
 
 
-static int set_filter_block(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
+static int set_filter_count(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
 {
         filter_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-        plugin->block = atoi(optarg);
+        plugin->count = atoi(optarg);
         return 0;
 }
 
@@ -466,22 +512,22 @@ int thresholding_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *root_
 
         ret = prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
                                  |PRELUDE_OPTION_TYPE_WIDE, 't', "threshold",
-                                 "Number of events per suppression window", PRELUDE_OPTION_ARGUMENT_REQUIRED,
+                                 "Number of second to wait for threshold to occur", PRELUDE_OPTION_ARGUMENT_REQUIRED,
                                  set_filter_threshold, get_filter_threshold);
         if ( ret < 0 )
                 return ret;
 
         ret = prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
                                  |PRELUDE_OPTION_TYPE_WIDE, 'l', "limit",
-                                 "Number of events to report before suppressing for '#' of seconds",
+                                 "Number of seconds of suppression once count is reached",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED, set_filter_limit, get_filter_limit);
         if ( ret < 0 )
                 return ret;
 
         ret = prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG
-                                 |PRELUDE_OPTION_TYPE_WIDE, 's', "seconds",
-                                 "Number of seconds the suppression should remain", PRELUDE_OPTION_ARGUMENT_REQUIRED,
-                                 set_filter_block, get_filter_block);
+                                 |PRELUDE_OPTION_TYPE_WIDE, 'c', "count",
+                                 "Number of events needed to trigger the filter", PRELUDE_OPTION_ARGUMENT_REQUIRED,
+                                 set_filter_count, get_filter_count);
         if ( ret < 0 )
                 return ret;
 
