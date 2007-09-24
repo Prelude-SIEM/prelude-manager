@@ -156,7 +156,7 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
         uint8_t tag;
         uint32_t len;
         uint64_t ident;
-        uint32_t hop, tmp, target_len = 0;
+        uint32_t hop = 0, tmp, target_len = 0;
 
         *target_ptr = NULL;
         *instance_ptr = NULL;

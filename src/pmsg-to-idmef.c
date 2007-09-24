@@ -143,7 +143,7 @@ static int handle_alert_msg(prelude_msg_t *msg, idmef_message_t *idmef)
 static int handle_proprietary_msg(prelude_msg_t *msg, idmef_message_t *idmef, void *buf, uint32_t len)
 {
         int ret;
-        uint8_t tag;
+        uint8_t tag = 0;
 
         ret = prelude_extract_uint8_safe(&tag, buf, len);
         if ( ret < 0 )
