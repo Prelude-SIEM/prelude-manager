@@ -35,8 +35,11 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-#if (@GNULIB_FSEEKO@ && @REPLACE_FSEEKO@) || (@GNULIB_FTELLO@ && @REPLACE_FTELLO@)
-/* Get off_t.  */
+#if (@GNULIB_FSEEKO@ && @REPLACE_FSEEKO@) \
+  || (@GNULIB_FTELLO@ && @REPLACE_FTELLO@) \
+  || (@GNULIB_GETDELIM@ && !@HAVE_DECL_GETDELIM@) \
+  || (@GNULIB_GETLINE@ && (!@HAVE_DECL_GETLINE@ || @REPLACE_GETLINE@))
+/* Get off_t and ssize_t.  */
 # include <sys/types.h>
 #endif
 
@@ -301,6 +304,47 @@ extern long rpl_ftell (FILE *fp);
                      "use gnulib module fflush for portable " \
                      "POSIX compliance"), \
     fflush (f))
+#endif
+
+#if @GNULIB_GETDELIM@
+# if !@HAVE_DECL_GETDELIM@
+/* Read input, up to (and including) the next occurrence of DELIMITER, from
+   STREAM, store it in *LINEPTR (and NUL-terminate it).
+   *LINEPTR is a pointer returned from malloc (or NULL), pointing to *LINESIZE
+   bytes of space.  It is realloc'd as necessary.
+   Return the number of bytes read and stored at *LINEPTR (not including the
+   NUL terminator), or -1 on error or EOF.  */
+extern ssize_t getdelim (char **lineptr, size_t *linesize, int delimiter,
+			 FILE *stream);
+# endif
+#elif defined GNULIB_POSIXCHECK
+# undef getdelim
+# define getdelim(l, s, d, f)					    \
+  (GL_LINK_WARNING ("getdelim is unportable - "			    \
+		    "use gnulib module getdelim for portability"),  \
+   getdelim (l, s, d, f))
+#endif
+
+#if @GNULIB_GETLINE@
+# if @REPLACE_GETLINE@
+#  undef getline
+#  define getline rpl_getline
+# endif
+# if !@HAVE_DECL_GETLINE@ || @REPLACE_GETLINE@
+/* Read a line, up to (and including) the next newline, from STREAM, store it
+   in *LINEPTR (and NUL-terminate it).
+   *LINEPTR is a pointer returned from malloc (or NULL), pointing to *LINESIZE
+   bytes of space.  It is realloc'd as necessary.
+   Return the number of bytes read and stored at *LINEPTR (not including the
+   NUL terminator), or -1 on error or EOF.  */
+extern ssize_t getline (char **lineptr, size_t *linesize, FILE *stream);
+# endif
+#elif defined GNULIB_POSIXCHECK
+# undef getline
+# define getline(l, s, f)						\
+  (GL_LINK_WARNING ("getline is unportable - "				\
+		    "use gnulib module getline for portability"),	\
+   getline (l, s, f))
 #endif
 
 #ifdef __cplusplus

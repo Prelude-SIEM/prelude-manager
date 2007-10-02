@@ -25,7 +25,6 @@ AC_DEFUN([gl_EARLY],
   m4_pattern_allow([^gl_LIBOBJS$])dnl a variable
   m4_pattern_allow([^gl_LTLIBOBJS$])dnl a variable
   AC_REQUIRE([AC_PROG_RANLIB])
-  AC_REQUIRE([AC_GNU_SOURCE])
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
 ])
 
@@ -47,6 +46,8 @@ AC_DEFUN([gl_INIT],
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_INET_NTOP
+  gl_FUNC_MALLOC_POSIX
+  gl_STDLIB_MODULE_INDICATOR([malloc-posix])
   gl_FUNC_MEMSET
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
@@ -59,6 +60,7 @@ AC_DEFUN([gl_INIT],
   AM_STDBOOL_H
   gl_STDINT_H
   gl_STDIO_H
+  gl_STDLIB_H
   gl_FUNC_STRDUP
   gl_STRING_MODULE_INDICATOR([strdup])
   gl_HEADER_STRING_H
@@ -70,6 +72,7 @@ AC_DEFUN([gl_INIT],
   AC_PROG_MKDIR_P
   gl_HEADER_TIME_H
   gl_TIME_R
+  gl_UNISTD_H
   gl_FUNC_VASNPRINTF
   gl_FUNC_VSNPRINTF
   gl_STDIO_MODULE_INDICATOR([vsnprintf])
@@ -96,60 +99,77 @@ AC_DEFUN([gl_INIT],
 
 # Like AC_LIBOBJ, except that the module name goes
 # into gl_LIBOBJS instead of into LIBOBJS.
-AC_DEFUN([gl_LIBOBJ],
-  [gl_LIBOBJS="$gl_LIBOBJS $1.$ac_objext"])
+AC_DEFUN([gl_LIBOBJ], [
+  AS_LITERAL_IF([$1], [gl_LIBSOURCES([$1.c])])dnl
+  gl_LIBOBJS="$gl_LIBOBJS $1.$ac_objext"
+])
 
 # Like AC_REPLACE_FUNCS, except that the module name goes
 # into gl_LIBOBJS instead of into LIBOBJS.
-AC_DEFUN([gl_REPLACE_FUNCS],
-  [AC_CHECK_FUNCS([$1], , [gl_LIBOBJ($ac_func)])])
+AC_DEFUN([gl_REPLACE_FUNCS], [
+  m4_foreach_w([gl_NAME], [$1], [AC_LIBSOURCES(gl_NAME[.c])])dnl
+  AC_CHECK_FUNCS([$1], , [gl_LIBOBJ($ac_func)])
+])
 
-# Like AC_LIBSOURCES, except that it does nothing.
-# We rely on EXTRA_lib..._SOURCES instead.
-AC_DEFUN([gl_LIBSOURCES],
-  [])
+# Like AC_LIBSOURCES, except the directory where the source file is
+# expected is derived from the gnulib-tool parametrization,
+# and alloca is special cased (for the alloca-opt module).
+# We could also entirely rely on EXTRA_lib..._SOURCES.
+AC_DEFUN([gl_LIBSOURCES], [
+  m4_foreach([_gl_NAME], [$1], [
+    m4_if(_gl_NAME, [alloca.c], [], [
+      m4_syscmd([test -r libmissing/]_gl_NAME[ || test ! -d libmissing])dnl
+      m4_if(m4_sysval, [0], [],
+        [AC_FATAL([missing libmissing/]_gl_NAME)])
+    ])
+  ])
+])
 
 # This macro records the list of files which have been installed by
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
   build-aux/link-warning.h
-  lib/alloca_.h
+  lib/alloca.in.h
   lib/asnprintf.c
   lib/dummy.c
   lib/float+.h
-  lib/float_.h
+  lib/float.in.h
   lib/gai_strerror.c
   lib/getaddrinfo.c
   lib/getaddrinfo.h
   lib/gettext.h
   lib/inet_ntop.c
   lib/inet_ntop.h
+  lib/malloc.c
   lib/memset.c
-  lib/netinet_in_.h
+  lib/netinet_in.in.h
   lib/pathmax.h
   lib/poll.c
-  lib/poll_.h
+  lib/poll.in.h
   lib/printf-args.c
   lib/printf-args.h
   lib/printf-parse.c
   lib/printf-parse.h
   lib/size_max.h
   lib/snprintf.c
-  lib/stdbool_.h
-  lib/stdint_.h
-  lib/stdio_.h
+  lib/stdbool.in.h
+  lib/stdint.in.h
+  lib/stdio.in.h
+  lib/stdlib.in.h
   lib/strdup.c
-  lib/string_.h
-  lib/sys_select_.h
-  lib/sys_socket_.h
-  lib/sys_time_.h
-  lib/time_.h
+  lib/string.in.h
+  lib/sys_select.in.h
+  lib/sys_socket.in.h
+  lib/sys_time.in.h
+  lib/time.in.h
   lib/time_r.c
+  lib/unistd.in.h
   lib/vasnprintf.c
   lib/vasnprintf.h
   lib/vsnprintf.c
-  lib/wchar_.h
+  lib/wchar.in.h
   lib/xsize.h
+  m4/absolute-header.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/eoverflow.m4
@@ -162,6 +182,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/intmax_t.m4
   m4/inttypes_h.m4
   m4/longlong.m4
+  m4/malloc.m4
   m4/memset.m4
   m4/netinet_in_h.m4
   m4/onceonly_2_57.m4
@@ -175,6 +196,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/stdint.m4
   m4/stdint_h.m4
   m4/stdio_h.m4
+  m4/stdlib_h.m4
   m4/strdup.m4
   m4/string_h.m4
   m4/sys_select_h.m4
@@ -183,6 +205,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/time_h.m4
   m4/time_r.m4
   m4/ulonglong.m4
+  m4/unistd_h.m4
   m4/vasnprintf.m4
   m4/vsnprintf.m4
   m4/wchar.m4
