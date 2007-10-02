@@ -1,3 +1,18 @@
+* 2007-10-02, prelude-manager-0.9.10:
+
+- Make threshold act like a real threshold: pass every Nth events
+  in the defined amount of seconds.
+
+- Allow mixing Limit and Threshold.
+
+- Do not share the tresholding hash accross thresholding plugin instance:
+  previously, the shared hash would result in strange thresholding plugin
+  behavior if you had several instance of thresholding loaded.
+
+- Various bug fixes concerning plugin instance un-subscribtion (unsubscribtion
+  of certain plugin was not triggered).
+
+
 * 2007-09-23, prelude-manager-0.9.9.1:
 
 - Fix for new libprelude (0.9.15) runtime warning.
