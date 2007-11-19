@@ -35,13 +35,14 @@ prelude_manager_LDFLAGS = -export-dynamic @LIBPRELUDE_LDFLAGS@ \
         $(DLOPENED_OBJS)
 
 prelude_manager_SOURCES = \
+	bufpool.c	  \
         manager-options.c \
         prelude-manager.c \
         filter-plugins.c \
         manager-auth.c \
         pmsg-to-idmef.c \
         report-plugins.c \
-        server-logic.c \
+	server-logic.c	\
         server-generic.c \
         sensor-server.c \
         decode-plugins.c \

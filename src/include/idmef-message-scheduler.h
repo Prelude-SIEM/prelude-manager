@@ -42,4 +42,6 @@ void idmef_message_scheduler_stop_processing(void);
 
 void idmef_message_scheduler_start_processing(void);
 
+void idmef_message_scheduler_set_priority(unsigned int high, unsigned int medium, unsigned int low);
+
 #endif /* _MANAGER_IDMEF_MESSAGE_SCHEDULER_H */

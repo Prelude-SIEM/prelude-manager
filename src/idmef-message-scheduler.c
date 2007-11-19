@@ -37,6 +37,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <netinet/in.h> /* required by common.h */
+#include <ftw.h>
 
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -62,36 +63,42 @@
 #include "reverse-relaying.h"
 #include "pmsg-to-idmef.h"
 #include "idmef-message-scheduler.h"
-
-#define MESSAGE_PER_SENSOR 10
-
-#define ROUND_ROBBIN_HIGH 5
-#define ROUND_ROBBIN_MID  3
-#define ROUND_ROBBIN_LOW  2
+#include "bufpool.h"
 
 
-#define MAX_MESSAGE_IN_MEMORY 200
+/*
+ * On POSIX systems where clock_gettime() is available, the symbol
+ * _POSIX_TIMERS should be defined to a value greater than 0.
+ *
+ * However, some architecture (example True64), define it as:
+ * #define _POSIX_TIMERS
+ *
+ * This explain the - 0 hack, since we need to test for the explicit
+ * case where _POSIX_TIMERS is defined to a value higher than 0.
+ *
+ * If pthread_condattr_setclock and _POSIX_MONOTONIC_CLOCK are available,
+ * CLOCK_MONOTONIC will be used. This avoid possible race problem when
+ * calling pthread_cond_timedwait() if the system time is modified.
+ *
+ * If CLOCK_MONOTONIC is not available, revert to the standard CLOCK_REALTIME
+ * way.
+ *
+ * If neither of the above are available, use gettimeofday().
+ */
+#if _POSIX_TIMERS - 0 > 0
+# if defined(HAVE_PTHREAD_CONDATTR_SETCLOCK) && defined(_POSIX_MONOTONIC_CLOCK) && (_POSIX_MONOTONIC_CLOCK - 0 >= 0)
+#  define COND_CLOCK_TYPE CLOCK_MONOTONIC
+# else
+#  define COND_CLOCK_TYPE CLOCK_REALTIME
+# endif
+#endif
+
+
+#ifndef MIN
+# define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#endif
+
 #define QUEUE_STATE_DESTROYED 0x01
-
-
-typedef struct {
-
-        char *filename;
-        int input_available;
-
-        prelude_io_t *wfd;
-        prelude_io_t *rfd;
-
-} file_output_t;
-
-
-
-typedef struct {
-        prelude_list_t message_list;
-        unsigned int in_memory_count;
-        file_output_t disk_message_list;
-} message_queue_t;
-
 
 
 struct idmef_queue {
@@ -99,22 +106,24 @@ struct idmef_queue {
 
         int state;
 
-        message_queue_t high;
-        message_queue_t mid;
-        message_queue_t low;
-
-        pthread_mutex_t mutex;
+        bufpool_t *high;
+        bufpool_t *mid;
+        bufpool_t *low;
 };
 
 
 static PRELUDE_LIST(message_queue);
-static unsigned int global_id = 0;
 static pthread_mutex_t queue_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static unsigned int input_available = 0;
+static prelude_bool_t input_available = FALSE;
 static pthread_cond_t input_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t input_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t process_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static unsigned int sched_process_high   =  50;
+static unsigned int sched_process_medium =  30;
+static unsigned int sched_process_low    =  20;
+static unsigned int sched_process        = 100;
 
 
 /*
@@ -130,7 +139,7 @@ static void signal_input_available(void)
         pthread_mutex_lock(&input_mutex);
 
         if ( ! input_available ) {
-                input_available = 1;
+                input_available = TRUE;
                 pthread_cond_signal(&input_cond);
         }
 
@@ -138,35 +147,66 @@ static void signal_input_available(void)
 }
 
 
+
+static struct timespec *get_timespec(struct timespec *ts)
+{
+#if _POSIX_TIMERS - 0 > 0
+        int ret;
+
+        ret = clock_gettime(COND_CLOCK_TYPE, ts);
+        if ( ret < 0 )
+                prelude_log(PRELUDE_LOG_ERR, "clock_gettime: %s.\n", strerror(errno));
+
+#else
+        struct timeval now;
+
+        gettimeofday(&now, NULL);
+
+        ts->tv_sec = now.tv_sec;
+        ts->tv_nsec = now.tv_usec * 1000;
+#endif
+
+        return ts;
+}
+
+
+
+static int timespec_diff(struct timespec *end, struct timespec *start)
+{
+        int diff = end->tv_sec - start->tv_sec;
+
+        if ( end->tv_nsec < start->tv_nsec )
+                diff -= 1;
+
+        return diff;
+}
+
+static prelude_bool_t timespec_expired(struct timespec *end, struct timespec *start)
+{
+        return ( timespec_diff(end, start) >= 1 ) ? TRUE : FALSE;
+}
+
+
 /*
  * Wait until a message is queued.
  */
-static void wait_for_message(struct timeval *start)
+static void wait_for_message(struct timespec *last_wakeup)
 {
         int ret;
         struct timespec ts;
-        struct timeval end;
 
         pthread_mutex_lock(&input_mutex);
 
         while ( ! input_available && ! stop_processing ) {
 
-                if ( start->tv_sec == 0 ) {
-                        gettimeofday(start, NULL);
-                        start->tv_sec++;
-                }
-
-                ts.tv_sec = start->tv_sec;
-                ts.tv_nsec = start->tv_usec * 1000;
+                ts.tv_sec = last_wakeup->tv_sec + 1;
+                ts.tv_nsec = last_wakeup->tv_nsec;
 
                 ret = pthread_cond_timedwait(&input_cond, &input_mutex, &ts);
                 if ( ret == ETIMEDOUT ) {
-                        start->tv_sec = 0;
                         prelude_timer_wake_up();
-                } else {
-                        gettimeofday(&end, NULL);
-                        start->tv_sec += (end.tv_sec - start->tv_sec);
-                        start->tv_usec += (end.tv_usec - start->tv_usec);
+                        last_wakeup->tv_sec = ts.tv_sec;
+                        last_wakeup->tv_nsec = ts.tv_nsec;
                 }
         }
 
@@ -178,78 +218,9 @@ static void wait_for_message(struct timeval *start)
         /*
          * We are going to process all available data.
          */
-        input_available = 0;
+        input_available = FALSE;
         pthread_mutex_unlock(&input_mutex);
 }
-
-
-
-
-static int clear_fifo(file_output_t *out)
-{
-        int ret;
-
-        ret = ftruncate(prelude_io_get_fd(out->wfd), 0);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "error truncating fifo: %s.\n", strerror(errno));
-                return -1;
-        }
-
-        lseek(prelude_io_get_fd(out->rfd), 0, SEEK_SET);
-
-        return 0;
-}
-
-
-
-
-static void destroy_file_output(file_output_t *out)
-{
-        prelude_io_close(out->rfd);
-        prelude_io_destroy(out->rfd);
-
-        prelude_io_close(out->wfd);
-        prelude_io_destroy(out->wfd);
-
-        assert(out->input_available == 0);
-
-        unlink(out->filename);
-        free(out->filename);
-}
-
-
-
-
-/*
- * Get a low / mid priority queued message
- */
-static prelude_msg_t *get_message_from_file(file_output_t *out)
-{
-        int ret;
-        prelude_msg_t *msg = NULL;
-
-        if ( ! out->input_available )
-                return NULL;
-
-        ret = prelude_msg_read(&msg, out->rfd);
-        if ( ret == 0 )
-                return msg;
-
-        else if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EOF )
-                out->input_available = 0;
-
-        else {
-                /*
-                 * unfinished and error should never happen
-                 */
-                prelude_log(PRELUDE_LOG_ERR, "on disk message fifo is corrupted: %s %s.\n",
-                            prelude_strsource(ret), prelude_strerror(ret));
-                exit(1);
-        }
-
-        return msg;
-}
-
 
 
 
@@ -261,6 +232,11 @@ static int process_message(prelude_msg_t *msg)
         ret = pmsg_to_idmef(&idmef, msg);
         if ( ret < 0 ) {
                 prelude_msg_destroy(msg);
+
+                /*
+                 * FIXME: need a way to close connection on invalid message.
+                 */
+                prelude_log(PRELUDE_LOG_ERR, "Invalid message received.\n");
                 return ret;
         }
 
@@ -285,122 +261,88 @@ static void queue_destroy(idmef_queue_t *queue)
         prelude_list_del(&queue->list);
         pthread_mutex_unlock(&queue_list_mutex);
 
-        pthread_mutex_destroy(&queue->mutex);
-
-        destroy_file_output(&queue->high.disk_message_list);
-        destroy_file_output(&queue->mid.disk_message_list);
-        destroy_file_output(&queue->low.disk_message_list);
+        bufpool_destroy(queue->high);
+        bufpool_destroy(queue->mid);
+        bufpool_destroy(queue->low);
 
         free(queue);
 }
 
 
 
-
-static prelude_msg_t *get_message(message_queue_t *mqueue)
-{
-        prelude_msg_t *msg = NULL;
-
-        if ( ! prelude_list_is_empty(&mqueue->message_list) ) {
-                msg = prelude_linked_object_get_object(mqueue->message_list.next);
-
-                prelude_linked_object_del((prelude_linked_object_t *) msg);
-                mqueue->in_memory_count--;
-        }
-
-        return msg ? msg : get_message_from_file(&mqueue->disk_message_list);
-}
-
-
-
 static int is_queue_dirty(idmef_queue_t *queue)
 {
-        int ret;
-
-        pthread_mutex_lock(&queue->mutex);
-
-        ret =   ! prelude_list_is_empty(&queue->high.message_list) +
-                ! prelude_list_is_empty(&queue->mid.message_list) +
-                ! prelude_list_is_empty(&queue->low.message_list) +
-                queue->high.disk_message_list.input_available +
-                queue->mid.disk_message_list.input_available +
-                queue->low.disk_message_list.input_available;
-
-        pthread_mutex_unlock(&queue->mutex);
-
-        return ret;
+        return bufpool_get_message_count(queue->high) +
+               bufpool_get_message_count(queue->mid)  +
+               bufpool_get_message_count(queue->low);
 }
 
 
 
-
-static prelude_msg_t *get_first_message_in_queue(idmef_queue_t *queue)
+static size_t read_message_scheduled_from_pool(bufpool_t *pool, size_t count)
 {
+        size_t proc = 0;
         prelude_msg_t *msg;
 
-        msg = get_message(&queue->high);
-        if ( msg )
-                return msg;
+        while ( count-- ) {
+                prelude_return_val_if_fail(bufpool_get_message(pool, &msg) == 1, proc);
 
-        msg = get_message(&queue->mid);
-        if ( msg )
-                return msg;
+                process_message(msg);
+                proc++;
+        }
 
-        return get_message(&queue->low);
+        return proc;
 }
-
 
 
 
 static void read_message_scheduled(idmef_queue_t *queue)
 {
-        int ret, i = 0;
+        int ret, i = 0, j;
         prelude_msg_t *msg;
-        unsigned int msg_count = 0;
+        size_t total, hlen, mlen, llen, proc;
+        bufpool_t *btbl[] = { queue->high, queue->mid, queue->low };
+        const size_t btbl_size = sizeof(btbl) / sizeof(*btbl);
 
-        while ( i++ < MESSAGE_PER_SENSOR ) {
+        hlen = bufpool_get_message_count(queue->high);
+        mlen = bufpool_get_message_count(queue->mid);
+        llen = bufpool_get_message_count(queue->low);
 
-                msg = NULL;
+        proc  = read_message_scheduled_from_pool(queue->high, MIN(hlen, sched_process_high));
+        proc += read_message_scheduled_from_pool(queue->mid, MIN(mlen, sched_process_medium));
+        proc += read_message_scheduled_from_pool(queue->low, MIN(llen, sched_process_low));
 
-                pthread_mutex_lock(&queue->mutex);
+        total = MIN(hlen + mlen + llen - proc, sched_process - proc);
 
-                if ( msg_count < ROUND_ROBBIN_HIGH )
-                        msg = get_message(&queue->high);
+        while ( total ) {
+                ret = 0;
 
-                else if ( msg_count < (ROUND_ROBBIN_HIGH + ROUND_ROBBIN_MID) )
-                        msg = get_message(&queue->mid);
+                for ( j = 0; j < btbl_size; j++ ) {
+                        ret = bufpool_get_message(btbl[i++ % btbl_size], &msg);
+                        if ( ret == 1 ) {
+                                process_message(msg);
+                                break;
+                        }
+                }
 
-                else
-                        msg = get_message(&queue->low);
-
-                if ( ! msg && !(msg = get_first_message_in_queue(queue)) ) {
-                        pthread_mutex_unlock(&queue->mutex);
+                if ( ret != 1 )
                         break;
-                }
 
-                pthread_mutex_unlock(&queue->mutex);
-
-                ret = process_message(msg);
-                if ( ret < 0 ) {
-                        /*
-                         * FIXME: need a way to close connection on invalid message.
-                         */
-                        prelude_log(PRELUDE_LOG_ERR, "Invalid message received.\n");
-                }
-
-                msg_count = (msg_count + 1) % (ROUND_ROBBIN_HIGH + ROUND_ROBBIN_MID + ROUND_ROBBIN_LOW);
+                total--;
         }
+
+        prelude_return_if_fail(total == 0);
 }
 
 
 
-static void schedule_queued_message(void)
+static void schedule_queued_message(struct timespec *last_wakeup)
 {
+        struct timespec end;
         int dirty, any_queue_dirty;
-        idmef_queue_t *queue, *bkp = NULL;
+        idmef_queue_t *queue = NULL, *bkp = NULL;
 
         do {
-                queue = NULL;
                 any_queue_dirty = 0;
 
                 while ( 1 ) {
@@ -419,6 +361,12 @@ static void schedule_queued_message(void)
                         if ( ! dirty && queue->state & QUEUE_STATE_DESTROYED )
                                 queue_destroy(queue);
                 }
+
+                if ( timespec_expired(get_timespec(&end), last_wakeup) ) {
+                        prelude_timer_wake_up();
+                        last_wakeup->tv_sec = end.tv_sec;
+                        last_wakeup->tv_nsec = end.tv_nsec;
+                }
         } while ( any_queue_dirty );
 }
 
@@ -432,9 +380,8 @@ static void *message_reader(void *arg)
 {
         int ret;
         sigset_t set;
-        struct timeval tv;
+        struct timespec last_wakeup;
 
-        tv.tv_sec = 0;
         sigfillset(&set);
 
         ret = pthread_sigmask(SIG_SETMASK, &set, NULL);
@@ -443,204 +390,27 @@ static void *message_reader(void *arg)
                 return NULL;
         }
 
+        get_timespec(&last_wakeup);
+        last_wakeup.tv_sec--;
+
         while ( ! stop_processing ) {
-                schedule_queued_message();
-                wait_for_message(&tv);
+                schedule_queued_message(&last_wakeup);
+                wait_for_message(&last_wakeup);
         }
 
         /*
          * make sure we don't miss some.
          */
-        schedule_queued_message();
+        schedule_queued_message(&last_wakeup);
 
         return NULL;
 }
 
 
-
-static int queue_message_to_fd(file_output_t *out, prelude_msg_t *msg)
-{
-        ssize_t ret;
-
-        /*
-         * if this condition is true, then it mean the reader is positioned
-         * at EOF, and that we can truncate the file and reset the reader.
-         */
-        if ( out->input_available == 0 )
-                clear_fifo(out);
-
-        ret = prelude_msg_write(msg, out->wfd);
-        if ( ret < 0 )
-                prelude_perror(ret, "couldn't write message to fifo");
-
-        out->input_available = 1;
-
-        /*
-         * Message was copied to a file, we do not need it anymore.
-         */
-        prelude_msg_destroy(msg);
-
-        return (ret > 0) ? 0 : -1;
-}
-
-
-
-
-/*
- * Queue this message to memory.
- */
-static void queue_message(idmef_queue_t *queue, message_queue_t *mqueue, prelude_msg_t *msg)
-{
-        int queue_to_fd = 0;
-
-        pthread_mutex_lock(&queue->mutex);
-
-        if ( mqueue->in_memory_count < MAX_MESSAGE_IN_MEMORY ) {
-                mqueue->in_memory_count++;
-                prelude_linked_object_add_tail(&mqueue->message_list, (prelude_linked_object_t *) msg);
-        } else
-                queue_to_fd = 1;
-
-        pthread_mutex_unlock(&queue->mutex);
-
-        /*
-         * we don't need the lock.
-         */
-        if ( queue_to_fd )
-                queue_message_to_fd(&mqueue->disk_message_list, msg);
-}
-
-
-
-static int flush_existing_fifo(const char *filename, file_output_t *out, off_t size)
-{
-        int num = 0, ret;
-        prelude_msg_t *msg;
-
-        prelude_log(PRELUDE_LOG_WARN, "%s contain unflushed message (%lu bytes). Flushing.\n", filename, (unsigned long) size);
-
-        while ( 1 ) {
-
-                msg = get_message_from_file(out);
-                if ( ! msg )
-                        break;
-
-                ret = process_message(msg);
-                if ( ret < 0 )
-                        return -1;
-
-                num++;
-        }
-
-        prelude_log(PRELUDE_LOG_WARN, "Done - %d messages flushed.\n", num);
-
-        return 0;
-}
-
-
-
-
-static prelude_io_t *new_sysio_from_fd(int fd)
-{
-        int ret;
-        prelude_io_t *ptr;
-
-        ret = prelude_io_new(&ptr);
-        if ( ret < 0 )
-                return NULL;
-
-        prelude_io_set_sys_io(ptr, fd);
-
-        return ptr;
-}
-
-
-
-/*
- *
- */
-static int init_file_output(const char *filename, file_output_t *out)
-{
-        int rfd, wfd;
-
-        out->filename = strdup(filename);
-        if ( ! out->filename ) {
-                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
-                return -1;
-        }
-
-        wfd = open(filename, O_WRONLY|O_APPEND|O_CREAT, S_IRUSR|S_IWUSR);
-        if ( wfd < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't open %s in append mode: %s.\n", filename, strerror(errno));
-                return -1;
-        }
-
-        rfd = open(filename, O_RDONLY);
-        if ( rfd < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't open %s for reading: %s.\n", filename, strerror(errno));
-                close(wfd);
-                return -1;
-        }
-
-        out->wfd = new_sysio_from_fd(wfd);
-        if ( ! out->wfd ){
-                close(rfd);
-                close(wfd);
-                return -1;
-        }
-
-        out->rfd = new_sysio_from_fd(rfd);
-        if ( ! out->rfd ) {
-                close(rfd);
-                prelude_io_close(out->wfd);
-                prelude_io_destroy(out->wfd);
-                return -1;
-        }
-
-        out->input_available = 0;
-
-        return 0;
-}
-
-
-
-
-static int flush_orphan_fifo(const char *filename)
-{
-        int ret;
-        struct stat st;
-        file_output_t tmp;
-
-        ret = stat(filename, &st);
-        if ( ret < 0 ) {
-                if ( errno != ENOENT )
-                        prelude_log(PRELUDE_LOG_ERR, "could not stats %s: %s.\n", filename, strerror(errno));
-
-                return -1;
-        }
-
-        if ( st.st_size > 0 ) {
-                ret = init_file_output(filename, &tmp);
-                if ( ret < 0 )
-                        return -1;
-
-                tmp.input_available = 1;
-                flush_existing_fifo(filename, &tmp, st.st_size);
-
-                destroy_file_output(&tmp);
-        }
-
-        unlink(filename);
-
-        return 0;
-}
-
-
-
-
 int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg)
 {
-        message_queue_t *mqueue;
+        int ret;
+        bufpool_t *mqueue;
 
         if ( ! queue )
                 return -1;
@@ -648,32 +418,52 @@ int idmef_message_schedule(idmef_queue_t *queue, prelude_msg_t *msg)
         switch (prelude_msg_get_priority(msg)) {
 
         case PRELUDE_MSG_PRIORITY_HIGH:
-                mqueue = &queue->high;
+                mqueue = queue->high;
                 break;
 
         case PRELUDE_MSG_PRIORITY_MID:
-                mqueue = &queue->mid;
+                mqueue = queue->mid;
                 break;
 
         default:
-                mqueue = &queue->low;
+                mqueue = queue->low;
                 break;
         }
 
-        queue_message(queue, mqueue, msg);
+        ret = bufpool_add_message(mqueue, msg);
         signal_input_available();
 
-        return 0;
+        return ret;
 }
 
 
+
+static uint64_t get_unique_id(void)
+{
+        unsigned int id;
+        struct timeval tv;
+        static unsigned int global_id = 0, last_sec = 0;
+
+        gettimeofday(&tv, NULL);
+
+        pthread_mutex_lock(&queue_list_mutex);
+        if ( tv.tv_sec > last_sec ) {
+                last_sec = tv.tv_sec;
+                global_id = 0;
+        }
+
+        id = global_id++;
+        pthread_mutex_unlock(&queue_list_mutex);
+
+        return ((uint64_t) id << 32) | last_sec;
+}
 
 
 
 idmef_queue_t *idmef_message_scheduler_queue_new(prelude_client_t *client)
 {
         int ret;
-        unsigned int id;
+        uint64_t id;
         idmef_queue_t *queue;
         char buf[PATH_MAX], bdir[PATH_MAX];
 
@@ -683,41 +473,32 @@ idmef_queue_t *idmef_message_scheduler_queue_new(prelude_client_t *client)
                 return NULL;
         }
 
-        prelude_list_init(&queue->high.message_list);
-        prelude_list_init(&queue->mid.message_list);
-        prelude_list_init(&queue->low.message_list);
-
-        pthread_mutex_lock(&queue_list_mutex);
-        id = global_id++;
-        pthread_mutex_unlock(&queue_list_mutex);
-
+        id = get_unique_id();
         prelude_client_profile_get_backup_dirname(prelude_client_get_profile(client), bdir, sizeof(bdir));
 
-        snprintf(buf, sizeof(buf), "%s/high-priority-fifo.%u", bdir, id);
-        ret = init_file_output(buf, &queue->high.disk_message_list);
+        snprintf(buf, sizeof(buf), "%s/high-buffer.%" PRELUDE_PRIu64, bdir, id);
+        ret = bufpool_new(&queue->high, buf);
         if ( ret < 0 ) {
                 free(queue);
                 return NULL;
         }
 
-        snprintf(buf, sizeof(buf), "%s/mid-priority-fifo.%u", bdir, id);
-        ret = init_file_output(buf, &queue->mid.disk_message_list);
+        snprintf(buf, sizeof(buf), "%s/medium-buffer.%" PRELUDE_PRIu64, bdir, id);
+        ret = bufpool_new(&queue->mid, buf);
         if ( ret < 0 ) {
-                destroy_file_output(&queue->high.disk_message_list);
+                bufpool_destroy(queue->high);
                 free(queue);
                 return NULL;
         }
 
-        snprintf(buf, sizeof(buf), "%s/low-priority-fifo.%u", bdir, id);
-        ret = init_file_output(buf, &queue->low.disk_message_list);
+        snprintf(buf, sizeof(buf), "%s/low-buffer.%" PRELUDE_PRIu64, bdir, id);
+        ret = bufpool_new(&queue->low, buf);
         if ( ret < 0 ) {
-                destroy_file_output(&queue->high.disk_message_list);
-                destroy_file_output(&queue->mid.disk_message_list);
+                bufpool_destroy(queue->high);
+                bufpool_destroy(queue->mid);
                 free(queue);
                 return NULL;
         }
-
-        pthread_mutex_init(&queue->mutex, NULL);
 
         pthread_mutex_lock(&queue_list_mutex);
         prelude_list_add_tail(&message_queue, &queue->list);
@@ -737,41 +518,102 @@ void idmef_message_scheduler_queue_destroy(idmef_queue_t *queue)
 
 
 
+#include <libprelude/prelude-failover.h>
+extern prelude_client_t *manager_client;
+
+
+static int flush_failover(prelude_failover_t *failover, const char *name)
+{
+        int ret;
+        prelude_msg_t *msg;
+        unsigned long available;
+
+        available = prelude_failover_get_available_msg_count(failover);
+
+        if ( available == 0 )
+                return 0;
+
+        prelude_log(PRELUDE_LOG_INFO, "%s: flushing %lu buffered messages from a previous run.\n",
+                    name, available);
+
+        do {
+                ret = prelude_failover_get_saved_msg(failover, &msg);
+                if ( ret <= 0 )
+                        break;
+
+                process_message(msg);
+        } while ( 1 );
+
+        return ret;
+}
+
+
+
+static int del_cb(const char *filename, const struct stat *st, int flag)
+{
+        int ret;
+
+        ret = unlink(filename);
+        return ( ret < 0 && errno != EISDIR ) ? prelude_error_from_errno(errno) : 0;
+}
+
+
+static int failover_unlink(const char *dirname)
+{
+        int ret;
+
+        ret = ftw(dirname, del_cb, 10);
+        if ( ret < 0 )
+                return prelude_error_from_errno(errno);
+
+        ret = rmdir(dirname);
+        return (ret < 0) ? prelude_error_from_errno(errno) : 0;
+}
+
+
 
 int idmef_message_scheduler_init(void)
 {
         int ret;
         DIR *dir;
         struct dirent *de;
+        char bdir[PATH_MAX];
         char filename[PATH_MAX];
+        prelude_failover_t *failover;
 
-        dir = opendir(MANAGER_SCHEDULER_DIR);
+        prelude_client_profile_get_backup_dirname(prelude_client_get_profile(manager_client), bdir, sizeof(bdir));
+
+        dir = opendir(bdir);
         if ( ! dir ) {
-                prelude_log(PRELUDE_LOG_ERR, "could not open %s: %s.\n", MANAGER_SCHEDULER_DIR, strerror(errno));
+                prelude_log(PRELUDE_LOG_ERR, "error opening directory '%s': %s.\n", bdir, strerror(errno));
                 return -1;
         }
 
         while ( (de = readdir(dir)) ) {
-
-                if ( de->d_name[0] == '.' )
+                if ( ! strstr(de->d_name, "buffer") )
                         continue;
 
-                snprintf(filename, sizeof(filename), MANAGER_SCHEDULER_DIR "/%s", de->d_name);
+                snprintf(filename, sizeof(filename), "%s/%s", bdir, de->d_name);
 
-                ret = flush_orphan_fifo(filename);
-                if ( ret != 0 )
-                        break;
+                ret = prelude_failover_new(&failover, filename);
+                if ( ret < 0 )
+                        return ret;
+
+                flush_failover(failover, de->d_name);
+                prelude_failover_destroy(failover);
+
+                ret = failover_unlink(filename);
+                if ( ret < 0 )
+                        prelude_log(PRELUDE_LOG_ERR, "couldn't remove failover '%s': %s.\n", filename, prelude_strerror(ret));
         }
 
         closedir(dir);
 
         ret = pthread_create(&thread, NULL, &message_reader, NULL);
-        if ( ret < 0 ) {
+        if ( ret < 0 )
                 prelude_log(PRELUDE_LOG_ERR, "couldn't create message processing thread.\n");
-                return -1;
-        }
 
-        return 0;
+        return ret;
 }
 
 
@@ -847,4 +689,10 @@ void idmef_message_scheduler_start_processing(void)
 
 
 
-
+void idmef_message_scheduler_set_priority(unsigned int high, unsigned int medium, unsigned int low)
+{
+        sched_process_high = high;
+        sched_process_medium = medium;
+        sched_process_low = low;
+        sched_process = high + medium + low;
+}
