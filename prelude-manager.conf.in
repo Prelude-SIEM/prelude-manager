@@ -2,9 +2,9 @@
 #
 # <IMPORTANT>
 #
-# Sections are importants, and things won't work correctly if they are not
-# un-commented. For example you need to uncomment [db] if you want the
-# database plugin to be loaded.
+# Sections are importants, and things won't work correctly if they are
+# not un-commented. For example you need to uncomment [db] if you want
+# the database plugin to be loaded.
 #
 # </IMPORTANT>
 
@@ -13,8 +13,8 @@ include = @LIBPRELUDE_CONFIG_PREFIX@/default/global.conf
 
 
 # Address where the prelude-manager server is listening on.
-# if value is unix, or unix:/path/to/unix/socket, an UNIX domain
-# socket will be used.
+# if value is unix, or unix:/path/to/unix/socket, an UNIX domain socket
+# will be used.
 #
 # Multiple listen address are supported.
 #
@@ -26,22 +26,58 @@ listen = 127.0.0.1
 
 
 # Sets the user/group ID as which prelude-manager will run.
-# In order to use this option, prelude-manager must be run initially as root
+# In order to use this option, prelude-manager must be run initially as
+# root
 #
 # user = prelude
 # group = prelude
 
 
+#
+# Scheduler settings for Prelude-Manager
+#
+# On systems with many concurrent sensors sending events to
+# Prelude-Manager, Prelude-Manager might have an hard time keeping up
+# with the demand for events reporting.
+#
+# The Prelude Manager scheduler allocate reporting time per sensor,
+# allowing to define the maximum number of events processed for one
+# sensor before processing others sensors events (in case a sensor is
+# sending a continuous events burst, this prevent other sensors
+# starvation).
+#
+# By default, for each sensor connected, a maximum of 100 events will
+# be processed before processing others sensors events.
+#
+# Additionally, priority will be given to events depending on their
+# priority. Assuming there is enough events of each priority, 50 high
+# priority message will be processed, 30 medium, and 20 low (totalling
+# the maximum of 100 described above).
+#
+# You might use the sched-priority option in order to change this
+# setting:
+#
+# sched-priority = high:50 medium:30 low:20
+#
+#
+# When the number of events waiting to be processed exceed the defined
+# amount of reserved memory (default is 1 Megabyte), Prelude-Manager
+# will start storing events on disk:
+#
+# sched-buffer-size = 1M
+
+
+#
 # Number of bits of the prime used in the Diffie Hellman key exchange.
-# Note that the bits value should be one of 768, 1024, 2048, 3072 or 4096.
+# Note that the value should be one of 768, 1024, 2048, 3072 or 4096.
 # The default is 1024.
 #
 # dh-prime-length = 1024
 
 
 # How often to regenerate the parameters used in the Diffie Hellman key
-# exchange. These should be discarded and regenerated once a day, once a
-# week or once a month. Depending on the security requirements.
+# exchange. These should be discarded and regenerated once a day, once
+# a week or once a month. Depending on the security requirements.
 #
 # Generation is a CPU intensive operation. The value is in hours,
 # 0 disables regeneration entirely. The default is 24 hours.
@@ -49,17 +85,17 @@ listen = 127.0.0.1
 # dh-parameters-regenerate = 24
 
 
-# If you want this Manager to retrieve message from another
-# Manager (useful if the other Manager is inside a DMZ):
+# If you want this Manager to retrieve message from another Manager
+# (useful if the other Manager is located within a DMZ):
 #
 # child-managers = x.x.x.x
 #
 # This mean the messages should be gathered from x.x.x.x
 
 #
-# If you want a given reporting plugin to be protected against
-# possible failure, use the failover option. Failover will prevent
-# the data sent to the report plugin to be lost in case this one fail.
+# If you want a given reporting plugin to be protected against possible
+# failure, use the failover option. Failover will prevent data sent to
+# the report plugin to be lost in case this one fail.
 #
 # You might use this option multiple time for different plugins.
 #
@@ -69,7 +105,9 @@ listen = 127.0.0.1
 #
 # Events normalization parameters
 #
-# Un-comment the following section in case you want to define any parameters:
+# Un-comment the following section in case you want to define any
+# normalization parameters:
+#
 # [normalize]
 #
 # For each incoming events, Prelude-Manager will run a number of
@@ -79,13 +117,13 @@ listen = 127.0.0.1
 # default behavior is to map it back to raw IPv4. For example,
 # ::ffff:192.168.0.1 will be mapped back to 192.168.0.1
 #
-# If you do not want IPv4 mapped IPv6 addresses, un-comment the following
-# option:
+# If you do not want IPv4 mapped IPv6 addresses, un-comment the
+# following option:
 #
 # keep-ipv4-mapped-ipv6
 #
-# Alternatively, if you wish for any input IPv4 addresses to be converted to
-# IPv6, un-comment the following option:
+# Alternatively, if you wish for any input IPv4 addresses to be
+# converted to IPv6, un-comment the following option:
 #
 # ipv6-only
 
@@ -101,10 +139,10 @@ listen = 127.0.0.1
 #
 # parent-managers = x.x.x.x || y.y.y.y && z.z.z.z
 #
-# This mean the emission should occur on x.x.x.x or, if it fail,
-# on y.y.y.y and z.z.z.z (if one of the two host in the AND fail,
-# the emission will be considered as failed involving saving the
-# message locally).
+# This mean the emission should occur on x.x.x.x or, if it fail, on
+# y.y.y.y and z.z.z.z (if one of the two host in the AND fail, the
+# emission will be considered as failed involving saving the message
+# locally).
 
 
 # [db]
@@ -167,8 +205,9 @@ listen = 127.0.0.1
 # logfile = stderr
 # logfile = /var/log/prelude.log
 #
-# You can specify the name of the IDMEF object to print (you might select multiple
-# objects). If no object are provided, 'Debug' will print out the entire message.
+# You can specify the name of the IDMEF object to print (you might
+# select multiple objects). If no object are provided, 'Debug' will
+# print out the entire message.
 #
 # object = alert.classification.text, alert.source(0).node.address(0).address
 
@@ -189,19 +228,22 @@ listen = 127.0.0.1
 # Filtering plugins configuration  #
 ####################################
 
-# The idmef-criteria filtering plugin allow you to filter events basing on specific IDMEF-Criteria.
+# The idmef-criteria filtering plugin allow you to filter events based
+# on specific IDMEF-Criteria.
 #
 # [idmef-criteria]
 # rule = alert.classification.text == 'User login successful'
 # hook = relaying[default]
 #
-# Will forward any events that match the defined criteria to the default instance of the relaying
-# reporting plugin. The rule argument might also be a filename containing the rules. Example:
+# Will forward any events that match the defined criteria to the
+# default instance of the relaying reporting plugin. The rule argument
+# might also be a filename containing the rules. Example:
 #
 # rule = /path/to/rule.file
 
 
-# The thresholding filtering plugin allow you to suppress events based on their value.
+# The thresholding filtering plugin allow you to suppress events based
+# on their value.
 #
 # [thresholding]
 # path = alert.classification.text, alert.source.node.address.address
@@ -209,9 +251,10 @@ listen = 127.0.0.1
 # count = 1
 # hook = relaying[default]
 #
-# Will forward one event with the unique alert.classification.text, alert.source.node.address.address
-# value combination to the 'default' instance of the 'relaying' reporting plugin. Further events with
-# the same value will be suppressed for 3600 seconds.
+# Will forward one event with the unique alert.classification.text,
+# alert.source.node.address.address value combination to the 'default'
+# instance of the 'relaying' reporting plugin. Further events with the
+# same value will be suppressed for 3600 seconds.
 #
 #
 # [thresholding]
@@ -220,12 +263,13 @@ listen = 127.0.0.1
 # count = 10
 # hook = relaying[default]
 #
-# Will forward every tenth event per 3600 seconds with the unique alert.classification.text,
-# alert.source.node.address.address value combination to the 'default' instance of the 'relaying'
-# reporting plugin.
+# Will forward every tenth event per 3600 seconds with the unique
+# alert.classification.text, alert.source.node.address.address value
+# combination to the 'default' instance of the 'relaying' reporting
+# plugin.
 #
-# Note that limit and threshold might be combined, allowing to setup a limit as soon as the
-# first threshold is reached.
+# Note that limit and threshold might be combined, allowing to setup a
+# limit as soon as the first threshold is reached.
 
 
 
@@ -235,9 +279,9 @@ listen = 127.0.0.1
 
 # [prelude]
 #
-# This is the global prelude section, where you can define Prelude related
-# options. Option of matter for Prelude-Manager, are, most specifically, in
-# the context of relaying, the connection options:
+# This is the global prelude section, where you can define Prelude
+# related options. Option of matter for Prelude-Manager, are, most
+# specifically, in the context of relaying, the connection options:
 #
 # The following settings instruct the operating system when to consider
 # a connection dead in case sent data is left unacknowledged.
@@ -251,14 +295,14 @@ listen = 127.0.0.1
 # tcp-keepalive-probes = 9
 # tcp-keepalive-intvl  = 75
 #
-# tcp-keepalive-time represents the number of seconds the connection needs
-# to be idle before TCP begins sending out keep-alive probes.
+# tcp-keepalive-time represents the number of seconds the connection
+# needs to be idle before TCP begins sending out keep-alive probes.
 #
-# tcp-keepalive-probes represent the number of not acknowledged probes to
-# send before considering the connection dead.
+# tcp-keepalive-probes represent the number of not acknowledged probes
+# to send before considering the connection dead.
 #
-# tcp-keepalive-intvl represents the interval between subsequent keepalive
-# probes.
+# tcp-keepalive-intvl represents the interval between subsequent
+# keepalive probes.
 #
 # The average time to notice a dead connection can be calculated using:
 # tcp-keepalive-time + (tcp-keepalive-probes * tcp-keepalive-intvl)
@@ -268,5 +312,6 @@ listen = 127.0.0.1
 # tcp-keepalive-probes = 3
 # tcp-keepalive-intvl  = 10
 #
-# Using the above settings, a dead connection will be detected within 90 seconds.
+# Using the above settings, a dead connection will be detected within
+# 90 seconds.
 

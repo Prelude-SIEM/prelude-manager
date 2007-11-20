@@ -36,6 +36,7 @@
 #include <libprelude/daemonize.h>
 #include <libprelude/prelude-log.h>
 
+#include "bufpool.h"
 #include "server-generic.h"
 #include "sensor-server.h"
 #include "manager-options.h"
@@ -274,6 +275,93 @@ static int set_dh_regenerate(prelude_option_t *opt, const char *arg, prelude_str
 
 
 
+static char *const2char(const char *val)
+{
+        union {
+                const char *ro;
+                char *rw;
+        } uval;
+
+        uval.ro = val;
+
+        return uval.rw;
+}
+
+
+static int set_sched_priority(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
+{
+        int i;
+        char *name, *prio, *value = const2char(arg);
+        struct {
+                const char *name;
+                unsigned int priority;
+        } tbl[] = {
+                { "high", 5 },
+                { "medium", 3 },
+                { "low", 2 }
+        };
+
+        while ( (name = strsep(&value, " ")) ) {
+                prio = strchr(name, ':');
+                if ( ! prio ) {
+                        prelude_log(PRELUDE_LOG_ERR, "could not find colon delimiter in: '%s'.\n", name);
+                        return -1;
+                }
+
+                *prio++ = 0;
+
+                for ( i = 0; i < sizeof(tbl) / sizeof(*tbl); i++ ) {
+                        if ( strcmp(name, tbl[i].name) == 0 ) {
+                                tbl[i].priority = atoi(prio);
+                                break;
+                        }
+                }
+
+                if ( i == sizeof(tbl) / sizeof(*tbl) ) {
+                        prelude_log(PRELUDE_LOG_ERR, "priority '%s' does not exist.\n", name);
+                        *prio = ':';
+                        return -1;
+                }
+
+                *prio = ':';
+        }
+
+        idmef_message_scheduler_set_priority(tbl[0].priority, tbl[1].priority, tbl[2].priority);
+        return 0;
+}
+
+
+static int set_sched_buffer_size(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
+{
+        char *eptr = NULL;
+        unsigned long int value;
+
+        value = strtoul(arg, &eptr, 10);
+        if ( value == ULONG_MAX ) {
+                prelude_log(PRELUDE_LOG_ERR, "Invalid buffer size specified: '%s'.\n", arg);
+                return -1;
+        }
+
+        if ( *eptr == 'K' || *eptr == 'k' )
+                value = value * 1024;
+
+        else if ( *eptr == 'M' || *eptr == 'm' )
+                value = value * 1024 * 1024;
+
+        else if ( *eptr == 'G' || *eptr == 'g' )
+                value = value * 1024 * 1024 * 1024;
+
+        else if ( eptr != arg ) {
+                prelude_log(PRELUDE_LOG_ERR, "Invalid buffer suffix specified: '%s'.\n", arg);
+                return -1;
+        }
+
+        bufpool_set_disk_threshold(value);
+        return 0;
+}
+
+
+
 static int set_user(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
 {
         int ret;
@@ -410,6 +498,12 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-prime-length",
                            "Size of the Diffie Hellman prime (768, 1024, 2048, 3072 or 4096)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_dh_bits, NULL);
+
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "sched-priority",
+                           NULL, PRELUDE_OPTION_ARGUMENT_REQUIRED, set_sched_priority, NULL);
+
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "sched-buffer-size",
+                           NULL, PRELUDE_OPTION_ARGUMENT_REQUIRED, set_sched_buffer_size, NULL);
 
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'c', "child-managers",
                            "List of managers address:port pair where messages should be gathered from",
