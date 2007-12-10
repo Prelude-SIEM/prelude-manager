@@ -333,7 +333,7 @@ size_t bufpool_get_message_count(bufpool_t *bp)
 
 void bufpool_print_stats(void)
 {
-        size_t dl, dc, ml, mc;
+        uint64_t dl, dc, ml, mc;
 
         pthread_mutex_lock(&mutex);
         dl = disk_msglen;
@@ -342,5 +342,5 @@ void bufpool_print_stats(void)
         mc = mem_msgcount;
         pthread_mutex_unlock(&mutex);
 
-        prelude_log(PRELUDE_LOG_INFO, "disk_len=%lu disk_count=%lu mem_len=%lu mem_count=%lu\n", dl, dc, ml, mc);
+        prelude_log(PRELUDE_LOG_INFO, "disk_len=%" PRELUDE_PRIu64 " disk_count=%" PRELUDE_PRIu64 " mem_len=%" PRELUDE_PRIu64 " mem_count=%" PRELUDE_PRIu64 "\n", dl, dc, ml, mc);
 }
