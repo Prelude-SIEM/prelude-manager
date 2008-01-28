@@ -48,9 +48,9 @@ extern prelude_client_t *manager_client;
 static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 {
         prelude_connection_pool_t *pool = prelude_msgbuf_get_data(msgbuf);
-        
+
         prelude_connection_pool_broadcast(pool, msg);
-                
+
         return 0;
 }
 
@@ -61,9 +61,9 @@ static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idme
         int ret;
         relaying_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(pi);
 
-        if ( ! plugin->conn_pool ) 
+        if ( ! plugin->conn_pool )
                 return 0;
-        
+
         if ( ! msgbuf ) {
                 ret = prelude_msgbuf_new(&msgbuf);
                 if ( ret < 0 )
@@ -72,10 +72,10 @@ static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idme
                 prelude_msgbuf_set_callback(msgbuf, send_msgbuf);
                 prelude_msgbuf_set_data(msgbuf, plugin->conn_pool);
         }
-        
+
         idmef_message_write(idmef, msgbuf);
         prelude_msgbuf_mark_end(msgbuf);
-        
+
         return 0;
 }
 
@@ -86,11 +86,11 @@ static int relaying_activate(prelude_option_t *opt, const char *optarg, prelude_
         relaying_plugin_t *new;
 
         new = calloc(1, sizeof(*new));
-        if ( ! new ) 
+        if ( ! new )
                 return prelude_error_from_errno(errno);
-                
+
         prelude_plugin_instance_set_plugin_data(context, new);
-        
+
         return 0;
 }
 
@@ -104,7 +104,7 @@ static int relaying_set_manager(prelude_option_t *opt, const char *optarg, prelu
 
         if ( ! plugin->conn_pool ) {
                 cp = prelude_client_get_profile(manager_client);
-                
+
                 ret = prelude_connection_pool_new(&plugin->conn_pool, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_WRITE);
                 if ( ! plugin->conn_pool )
                         return ret;
@@ -113,7 +113,7 @@ static int relaying_set_manager(prelude_option_t *opt, const char *optarg, prelu
                                                   | PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
                 prelude_client_set_flags(manager_client, prelude_client_get_flags(manager_client) | PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
         }
-                
+
         ret = prelude_connection_pool_set_connection_string(plugin->conn_pool, optarg);
         if ( ret < 0 )
                 return ret;
@@ -148,7 +148,7 @@ static void relaying_destroy(prelude_plugin_instance_t *pi, prelude_string_t *ou
 
         if ( plugin->conn_pool )
                 prelude_connection_pool_destroy(plugin->conn_pool);
-        
+
         free(plugin);
 }
 
@@ -160,29 +160,29 @@ int relaying_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
         prelude_option_t *opt;
         static manager_report_plugin_t relaying_plugin;
         int hook = PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG|PRELUDE_OPTION_TYPE_WIDE;
-        
+
         ret = prelude_option_add(rootopt, &opt, hook, 0, "relaying",
                                  "Relaying plugin option", PRELUDE_OPTION_ARGUMENT_OPTIONAL,
                                  relaying_activate, NULL);
         if ( ret < 0 )
                 return ret;
-        
+
         prelude_plugin_set_activation_option(pe, opt, NULL);
-        
+
         ret = prelude_option_add(opt, NULL, hook, 'p', "parent-managers",
                                  "List of managers address:port pair where messages should be sent to",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED, relaying_set_manager, relaying_get_manager);
         if ( ret < 0 )
                 return ret;
-        
+
         prelude_plugin_set_name(&relaying_plugin, "Relaying");
         prelude_plugin_set_destroy_func(&relaying_plugin, relaying_destroy);
-        
+
         manager_report_plugin_set_running_func(&relaying_plugin, relaying_process);
-        
+
         prelude_plugin_entry_set_plugin(pe, (void *) &relaying_plugin);
-                
-	return 0;
+
+        return 0;
 }
 
 
