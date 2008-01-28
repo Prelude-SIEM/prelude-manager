@@ -70,8 +70,9 @@ static int relaying_process(prelude_plugin_instance_t *pi, idmef_message_t *idme
                         return ret;
 
                 prelude_msgbuf_set_callback(msgbuf, send_msgbuf);
-                prelude_msgbuf_set_data(msgbuf, plugin->conn_pool);
         }
+
+        prelude_msgbuf_set_data(msgbuf, plugin->conn_pool);
 
         idmef_message_write(idmef, msgbuf);
         prelude_msgbuf_mark_end(msgbuf);
