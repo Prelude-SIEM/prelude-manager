@@ -1,13 +1,13 @@
 /* Emulation for poll(2)
    Contributed by Paolo Bonzini.
 
-   Copyright 2001, 2002, 2003, 2006, 2007 Free Software Foundation, Inc.
+   Copyright 2001, 2002, 2003, 2006, 2007, 2008 Free Software Foundation, Inc.
 
    This file is part of gnulib.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
-   the Free Software Foundation; either version 2.1, or (at your option)
+   the Free Software Foundation; either version 2, or (at your option)
    any later version.
 
    This program is distributed in the hope that it will be useful,
@@ -19,7 +19,7 @@
    with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
+#include <config.h>
 
 #include <sys/types.h>
 #include "poll.h"
@@ -132,7 +132,7 @@ poll (pfd, nfd, timeout)
 	  maxfd = pfd[i].fd;
 
 	  /* Windows use a linear array of sockets (of size FD_SETSIZE). The
-	     descriptor value is not used to address the array.  */ 
+	     descriptor value is not used to address the array.  */
 #if defined __CYGWIN__ || (!defined _WIN32 && !defined __WIN32__)
 	  if (maxfd > FD_SETSIZE)
 	    {

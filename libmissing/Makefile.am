@@ -291,6 +291,8 @@ stdio.h: stdio.in.h
 	      -e 's|@''GNULIB_VSNPRINTF''@|$(GNULIB_VSNPRINTF)|g' \
 	      -e 's|@''GNULIB_VSPRINTF_POSIX''@|$(GNULIB_VSPRINTF_POSIX)|g' \
 	      -e 's|@''GNULIB_VASPRINTF''@|$(GNULIB_VASPRINTF)|g' \
+	      -e 's|@''GNULIB_FOPEN''@|$(GNULIB_FOPEN)|g' \
+	      -e 's|@''GNULIB_FREOPEN''@|$(GNULIB_FREOPEN)|g' \
 	      -e 's|@''GNULIB_FSEEK''@|$(GNULIB_FSEEK)|g' \
 	      -e 's|@''GNULIB_FSEEKO''@|$(GNULIB_FSEEKO)|g' \
 	      -e 's|@''GNULIB_FTELL''@|$(GNULIB_FTELL)|g' \
@@ -310,6 +312,8 @@ stdio.h: stdio.in.h
 	      -e 's|@''REPLACE_VSPRINTF''@|$(REPLACE_VSPRINTF)|g' \
 	      -e 's|@''HAVE_VASPRINTF''@|$(HAVE_VASPRINTF)|g' \
 	      -e 's|@''REPLACE_VASPRINTF''@|$(REPLACE_VASPRINTF)|g' \
+	      -e 's|@''REPLACE_FOPEN''@|$(REPLACE_FOPEN)|g' \
+	      -e 's|@''REPLACE_FREOPEN''@|$(REPLACE_FREOPEN)|g' \
 	      -e 's|@''REPLACE_FSEEKO''@|$(REPLACE_FSEEKO)|g' \
 	      -e 's|@''REPLACE_FSEEK''@|$(REPLACE_FSEEK)|g' \
 	      -e 's|@''REPLACE_FTELLO''@|$(REPLACE_FTELLO)|g' \
@@ -345,12 +349,19 @@ stdlib.h: stdlib.in.h
 	      -e 's|@''GNULIB_GETSUBOPT''@|$(GNULIB_GETSUBOPT)|g' \
 	      -e 's|@''GNULIB_MKDTEMP''@|$(GNULIB_MKDTEMP)|g' \
 	      -e 's|@''GNULIB_MKSTEMP''@|$(GNULIB_MKSTEMP)|g' \
+	      -e 's|@''GNULIB_PUTENV''@|$(GNULIB_PUTENV)|g' \
+	      -e 's|@''GNULIB_SETENV''@|$(GNULIB_SETENV)|g' \
+	      -e 's|@''GNULIB_UNSETENV''@|$(GNULIB_UNSETENV)|g' \
 	      -e 's|@''HAVE_CALLOC_POSIX''@|$(HAVE_CALLOC_POSIX)|g' \
 	      -e 's|@''HAVE_GETSUBOPT''@|$(HAVE_GETSUBOPT)|g' \
 	      -e 's|@''HAVE_MALLOC_POSIX''@|$(HAVE_MALLOC_POSIX)|g' \
 	      -e 's|@''HAVE_MKDTEMP''@|$(HAVE_MKDTEMP)|g' \
 	      -e 's|@''HAVE_REALLOC_POSIX''@|$(HAVE_REALLOC_POSIX)|g' \
+	      -e 's|@''HAVE_SETENV''@|$(HAVE_SETENV)|g' \
+	      -e 's|@''HAVE_UNSETENV''@|$(HAVE_UNSETENV)|g' \
 	      -e 's|@''REPLACE_MKSTEMP''@|$(REPLACE_MKSTEMP)|g' \
+	      -e 's|@''REPLACE_PUTENV''@|$(REPLACE_PUTENV)|g' \
+	      -e 's|@''VOID_UNSETENV''@|$(VOID_UNSETENV)|g' \
 	      -e '/definition of GL_LINK_WARNING/r $(LINK_WARNING_H)' \
 	      < $(srcdir)/stdlib.in.h; \
 	} > $@-t
@@ -406,16 +417,16 @@ string.h: string.in.h
 	      -e 's|@''GNULIB_STRNLEN''@|$(GNULIB_STRNLEN)|g' \
 	      -e 's|@''GNULIB_STRPBRK''@|$(GNULIB_STRPBRK)|g' \
 	      -e 's|@''GNULIB_STRSEP''@|$(GNULIB_STRSEP)|g' \
+	      -e 's|@''GNULIB_STRSTR''@|$(GNULIB_STRSTR)|g' \
 	      -e 's|@''GNULIB_STRCASESTR''@|$(GNULIB_STRCASESTR)|g' \
 	      -e 's|@''GNULIB_STRTOK_R''@|$(GNULIB_STRTOK_R)|g' \
 	      -e 's|@''GNULIB_STRERROR''@|$(GNULIB_STRERROR)|g' \
+	      -e 's|@''GNULIB_STRSIGNAL''@|$(GNULIB_STRSIGNAL)|g' \
 	      -e 's|@''HAVE_DECL_MEMMEM''@|$(HAVE_DECL_MEMMEM)|g' \
 	      -e 's|@''HAVE_MEMPCPY''@|$(HAVE_MEMPCPY)|g' \
 	      -e 's|@''HAVE_DECL_MEMRCHR''@|$(HAVE_DECL_MEMRCHR)|g' \
 	      -e 's|@''HAVE_STPCPY''@|$(HAVE_STPCPY)|g' \
 	      -e 's|@''HAVE_STPNCPY''@|$(HAVE_STPNCPY)|g' \
-	      -e 's|@''HAVE_STRCASECMP''@|$(HAVE_STRCASECMP)|g' \
-	      -e 's|@''HAVE_DECL_STRNCASECMP''@|$(HAVE_DECL_STRNCASECMP)|g' \
 	      -e 's|@''HAVE_STRCHRNUL''@|$(HAVE_STRCHRNUL)|g' \
 	      -e 's|@''HAVE_DECL_STRDUP''@|$(HAVE_DECL_STRDUP)|g' \
 	      -e 's|@''HAVE_STRNDUP''@|$(HAVE_STRNDUP)|g' \
@@ -426,7 +437,12 @@ string.h: string.in.h
 	      -e 's|@''HAVE_STRCASESTR''@|$(HAVE_STRCASESTR)|g' \
 	      -e 's|@''HAVE_DECL_STRTOK_R''@|$(HAVE_DECL_STRTOK_R)|g' \
 	      -e 's|@''HAVE_DECL_STRERROR''@|$(HAVE_DECL_STRERROR)|g' \
+	      -e 's|@''HAVE_DECL_STRSIGNAL''@|$(HAVE_DECL_STRSIGNAL)|g' \
+	      -e 's|@''REPLACE_MEMMEM''@|$(REPLACE_MEMMEM)|g' \
+	      -e 's|@''REPLACE_STRCASESTR''@|$(REPLACE_STRCASESTR)|g' \
+	      -e 's|@''REPLACE_STRSTR''@|$(REPLACE_STRSTR)|g' \
 	      -e 's|@''REPLACE_STRERROR''@|$(REPLACE_STRERROR)|g' \
+	      -e 's|@''REPLACE_STRSIGNAL''@|$(REPLACE_STRSIGNAL)|g' \
 	      -e '/definition of GL_LINK_WARNING/r $(LINK_WARNING_H)' \
 	      < $(srcdir)/string.in.h; \
 	} > $@-t
@@ -561,18 +577,23 @@ unistd.h: unistd.in.h
 	      -e 's|@''GNULIB_FTRUNCATE''@|$(GNULIB_FTRUNCATE)|g' \
 	      -e 's|@''GNULIB_GETCWD''@|$(GNULIB_GETCWD)|g' \
 	      -e 's|@''GNULIB_GETLOGIN_R''@|$(GNULIB_GETLOGIN_R)|g' \
+	      -e 's|@''GNULIB_GETPAGESIZE''@|$(GNULIB_GETPAGESIZE)|g' \
 	      -e 's|@''GNULIB_LCHOWN''@|$(GNULIB_LCHOWN)|g' \
 	      -e 's|@''GNULIB_LSEEK''@|$(GNULIB_LSEEK)|g' \
 	      -e 's|@''GNULIB_READLINK''@|$(GNULIB_READLINK)|g' \
 	      -e 's|@''GNULIB_SLEEP''@|$(GNULIB_SLEEP)|g' \
 	      -e 's|@''HAVE_DUP2''@|$(HAVE_DUP2)|g' \
 	      -e 's|@''HAVE_FTRUNCATE''@|$(HAVE_FTRUNCATE)|g' \
+	      -e 's|@''HAVE_GETPAGESIZE''@|$(HAVE_GETPAGESIZE)|g' \
 	      -e 's|@''HAVE_READLINK''@|$(HAVE_READLINK)|g' \
 	      -e 's|@''HAVE_SLEEP''@|$(HAVE_SLEEP)|g' \
 	      -e 's|@''HAVE_DECL_GETLOGIN_R''@|$(HAVE_DECL_GETLOGIN_R)|g' \
+	      -e 's|@''HAVE_OS_H''@|$(HAVE_OS_H)|g' \
+	      -e 's|@''HAVE_SYS_PARAM_H''@|$(HAVE_SYS_PARAM_H)|g' \
 	      -e 's|@''REPLACE_CHOWN''@|$(REPLACE_CHOWN)|g' \
 	      -e 's|@''REPLACE_FCHDIR''@|$(REPLACE_FCHDIR)|g' \
 	      -e 's|@''REPLACE_GETCWD''@|$(REPLACE_GETCWD)|g' \
+	      -e 's|@''REPLACE_GETPAGESIZE''@|$(REPLACE_GETPAGESIZE)|g' \
 	      -e 's|@''REPLACE_LCHOWN''@|$(REPLACE_LCHOWN)|g' \
 	      -e 's|@''REPLACE_LSEEK''@|$(REPLACE_LSEEK)|g' \
 	      < $(srcdir)/unistd.in.h; \

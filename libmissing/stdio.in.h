@@ -1,10 +1,10 @@
 /* A GNU-like <stdio.h>.
 
-   Copyright (C) 2004, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2007-2008 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
-   the Free Software Foundation; either version 2.1, or (at your option)
+   the Free Software Foundation; either version 2, or (at your option)
    any later version.
 
    This program is distributed in the hope that it will be useful,
@@ -45,7 +45,7 @@
 
 #ifndef __attribute__
 /* This feature is available in gcc versions 2.5 and later.  */
-# if __GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR__ < 5) || __STRICT_ANSI__
+# if __GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR__ < 5)
 #  define __attribute__(Spec) /* empty */
 # endif
 /* The __-protected variants of `format' and `printf' attributes
@@ -210,6 +210,32 @@ extern int vsprintf (char *str, const char *format, va_list args)
   extern int vasprintf (char **result, const char *format, va_list args)
     __attribute__ ((__format__ (__printf__, 2, 0)));
 # endif
+#endif
+
+#if @GNULIB_FOPEN@
+# if @REPLACE_FOPEN@
+#  define fopen rpl_fopen
+extern FILE * fopen (const char *filename, const char *mode);
+# endif
+#elif defined GNULIB_POSIXCHECK
+# undef fopen
+# define fopen(f,m) \
+   (GL_LINK_WARNING ("fopen on Win32 platforms is not POSIX compatible - " \
+                     "use gnulib module fopen for portability"), \
+    fopen (f, m))
+#endif
+
+#if @GNULIB_FREOPEN@
+# if @REPLACE_FREOPEN@
+#  define freopen rpl_freopen
+extern FILE * freopen (const char *filename, const char *mode, FILE *stream);
+# endif
+#elif defined GNULIB_POSIXCHECK
+# undef freopen
+# define freopen(f,m,s) \
+   (GL_LINK_WARNING ("freopen on Win32 platforms is not POSIX compatible - " \
+                     "use gnulib module freopen for portability"), \
+    freopen (f, m, s))
 #endif
 
 #if @GNULIB_FSEEKO@
