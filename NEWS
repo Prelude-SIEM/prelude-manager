@@ -1,3 +1,27 @@
+* 2008-02-05, prelude-manager-0.9.11:
+
+- In case a lot of message were being processed, the heartbeat timer
+  could be delayed for a long period of time.
+
+- The old scheduler algorithm could be unfair when certain message priority
+  were not available for processing. We now appropriatly handle repartition
+  to others priority messages.
+
+- Message of the same priority could be processed in the wrong order when
+  on-disk buffers were used.
+
+- No integrity check were performed on orphan on-disk buffer in case of an
+  operating system crash. By using the prelude-failover API, we can now
+  detect possibly corrupted disk buffer, or resume at the time we stopped
+  recovering them.
+
+- New sched-priority and sched-buffer-size configuration options. 
+
+- Fix a bug where several relaying plugin instance would only forward
+  their message to a single Manager.
+
+
+
 * 2007-10-02, prelude-manager-0.9.10:
 
 - Make threshold act like a real threshold: pass every Nth events
