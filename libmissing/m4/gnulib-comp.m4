@@ -64,6 +64,10 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_STRDUP
   gl_STRING_MODULE_INDICATOR([strdup])
   gl_HEADER_STRING_H
+  gl_FUNC_STRPBRK
+  gl_STRING_MODULE_INDICATOR([strpbrk])
+  gl_FUNC_STRSEP
+  gl_STRING_MODULE_INDICATOR([strsep])
   gl_HEADER_SYS_SELECT
   AC_PROG_MKDIR_P
   gl_HEADER_SYS_SOCKET
@@ -223,6 +227,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/stdlib.in.h
   lib/strdup.c
   lib/string.in.h
+  lib/strpbrk.c
+  lib/strsep.c
   lib/sys_select.in.h
   lib/sys_socket.in.h
   lib/sys_time.in.h
@@ -264,6 +270,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/stdlib_h.m4
   m4/strdup.m4
   m4/string_h.m4
+  m4/strpbrk.m4
+  m4/strsep.m4
   m4/sys_select_h.m4
   m4/sys_socket_h.m4
   m4/sys_time_h.m4
