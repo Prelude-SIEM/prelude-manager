@@ -1,7 +1,15 @@
+* 2008-02-07, prelude-manager-0.9.11.2:
+
+- Missing config.h inclusion, leading to GnuLib module compilation failure
+  on some architecture (Solaris). Fix #278.
+
+
+
 * 2008-02-06, prelude-manager-0.9.11.1:
 
 - Add missing strsep module from GnuLib, fix build failure on architecture
   missing strsep (Solaris). Fix #277.
+
 
 
 * 2008-02-05, prelude-manager-0.9.11:
