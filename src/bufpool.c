@@ -21,6 +21,9 @@
 *
 *****/
 
+#include "config.h"
+#include "libmissing.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
