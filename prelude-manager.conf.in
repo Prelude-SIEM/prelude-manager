@@ -33,6 +33,12 @@ listen = 127.0.0.1
 # group = prelude
 
 
+# Number of second prelude-manager wait for an incoming client to
+# successfully authenticate before droping the connection.
+#
+# connection-timeout = 10
+
+
 #
 # Scheduler settings for Prelude-Manager
 #

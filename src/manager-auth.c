@@ -289,7 +289,7 @@ static int handle_gnutls_error(prelude_io_t *pio, gnutls_session session, server
 
         if ( ret == GNUTLS_E_AGAIN ) {
                 if ( gnutls_record_get_direction(session) == 1 )
-                        server_logic_notify_write_enable((server_logic_client_t *) client);
+                        server_generic_notify_write_enable(client);
 
                 return 0;
         }

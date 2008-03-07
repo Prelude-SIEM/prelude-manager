@@ -47,7 +47,6 @@
 #include "reverse-relaying.h"
 #include "manager-auth.h"
 
-
 #define MANAGER_MODEL "Prelude Manager"
 #define MANAGER_CLASS "Concentrator"
 #define MANAGER_MANUFACTURER "http://www.prelude-ids.com"
@@ -56,6 +55,7 @@
 extern manager_config_t config;
 
 prelude_client_t *manager_client;
+struct ev_loop *manager_event_loop;
 
 static char **global_argv;
 static volatile sig_atomic_t got_signal = 0;
@@ -84,7 +84,7 @@ static void restart_manager(void)
 {
         int ret;
 
-        prelude_log(PRELUDE_LOG_WARN, "Restarting Prelude Manager (%s).\n", global_argv[0]);
+        prelude_log(PRELUDE_LOG_INFO, "Restarting Prelude Manager (%s).\n", global_argv[0]);
 
         ret = execvp(global_argv[0], global_argv);
         if ( ret < 0 )
@@ -134,6 +134,26 @@ static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
 
 
 
+static void sig_cb(struct ev_loop *loop, struct ev_signal *s, int revent)
+{
+        if ( s->signum == SIGHUP )
+                signal(SIGHUP, SIG_IGN);
+
+        handle_signal(s->signum);
+        ev_unloop(manager_event_loop, EVUNLOOP_ALL);
+
+        return;
+}
+
+
+static void add_signal(int signo, struct sigaction *action)
+{
+        ev_signal *s = malloc(sizeof(*s));
+        ev_signal_init(s, sig_cb, signo);
+        ev_signal_start(manager_event_loop, s);
+}
+
+
 int main(int argc, char **argv)
 {
         int ret;
@@ -141,6 +161,11 @@ int main(int argc, char **argv)
         prelude_option_t *manager_root_optlist;
 
         prelude_init(&argc, argv);
+
+        manager_event_loop = ev_default_loop_init(EVFLAG_AUTO);
+        if ( ! manager_event_loop )
+                return -1;
+
 
         global_argv = argv;
         prelude_option_new_root(&manager_root_optlist);
@@ -239,11 +264,11 @@ int main(int argc, char **argv)
         sigaction(SIGPIPE, &action, NULL);
 
         action.sa_handler = handle_signal;
-        sigaction(SIGINT, &action, NULL);
-        sigaction(SIGTERM, &action, NULL);
-        sigaction(SIGABRT, &action, NULL);
-        sigaction(SIGQUIT, &action, NULL);
-        sigaction(SIGHUP, &action, NULL);
+        add_signal(SIGINT, &action);
+        add_signal(SIGTERM, &action);
+        add_signal(SIGABRT, &action);
+        add_signal(SIGQUIT, &action);
+        add_signal(SIGHUP, &action);
 
         server_generic_start(config.server, config.nserver);
 
@@ -273,3 +298,4 @@ int main(int argc, char **argv)
 
         exit(0);
 }
+

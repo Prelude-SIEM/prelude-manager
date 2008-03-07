@@ -12,7 +12,6 @@ noinst_HEADERS = 			\
         pmsg-to-idmef.h 		\
 	report-plugins.h		\
         reverse-relaying.h 		\
-	server-logic.h			\
         server-generic.h 		\
         sensor-server.h                        
 

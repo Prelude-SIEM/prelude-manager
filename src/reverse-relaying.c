@@ -37,7 +37,6 @@
 #include <libprelude/prelude-connection-pool.h>
 
 #include "reverse-relaying.h"
-#include "server-logic.h"
 #include "server-generic.h"
 #include "sensor-server.h"
 #include "manager-options.h"
@@ -46,7 +45,6 @@
 
 
 typedef struct {
-        pthread_mutex_t mutex;
         prelude_connection_pool_t *pool;
 } reverse_relay_t;
 
@@ -58,7 +56,7 @@ struct reverse_relay_receiver {
         uint64_t analyzerid;
 
         unsigned int count;
-        pthread_mutex_t mutex;
+
         prelude_failover_t *failover;
         server_generic_client_t *client;
 };
@@ -66,8 +64,8 @@ struct reverse_relay_receiver {
 
 static PRELUDE_LIST(receiver_list);
 static prelude_msgbuf_t *msgbuf;
-static pthread_mutex_t receiver_mutex = PTHREAD_MUTEX_INITIALIZER;
-static reverse_relay_t initiator = { PTHREAD_MUTEX_INITIALIZER, NULL};
+
+static reverse_relay_t initiator = { NULL };
 
 extern manager_config_t config;
 extern prelude_client_t *manager_client;
@@ -103,14 +101,10 @@ static reverse_relay_receiver_t *get_next_receiver(prelude_list_t **iter)
         prelude_list_t *tmp;
         reverse_relay_receiver_t *rrr = NULL;
 
-        pthread_mutex_lock(&receiver_mutex);
-
         prelude_list_for_each_continue_safe(&receiver_list, tmp, *iter) {
                 rrr = prelude_list_entry(tmp, reverse_relay_receiver_t, list);
                 break;
         }
-
-        pthread_mutex_unlock(&receiver_mutex);
 
         return rrr;
 }
@@ -125,13 +119,9 @@ int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_gener
         prelude_msg_t *msg;
         prelude_failover_t *failover = rrr->failover;
 
-        pthread_mutex_lock(&rrr->mutex);
-
         size = prelude_failover_get_saved_msg(failover, &msg);
         if ( size == 0 )
                 rrr->client = client;
-
-        pthread_mutex_unlock(&rrr->mutex);
 
         if ( size < 0 ) {
                 prelude_perror((prelude_error_t) size, "could not retrieve saved message from disk");
@@ -153,7 +143,7 @@ int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_gener
                         return ret;
                 }
 
-                server_logic_notify_write_enable((server_logic_client_t *) client);
+                server_generic_notify_write_enable(client);
                 return 1;
         }
 
@@ -174,10 +164,8 @@ int reverse_relay_set_initiator_dead(prelude_connection_t *cnx)
 {
         int ret = -1;
 
-        pthread_mutex_lock(&initiator.mutex);
         if ( initiator.pool )
                 ret = prelude_connection_pool_set_connection_dead(initiator.pool, cnx);
-        pthread_mutex_unlock(&initiator.mutex);
 
         return ret;
 }
@@ -186,9 +174,7 @@ int reverse_relay_set_initiator_dead(prelude_connection_t *cnx)
 
 void reverse_relay_set_receiver_dead(reverse_relay_receiver_t *rrr)
 {
-        pthread_mutex_lock(&rrr->mutex);
         rrr->client = NULL;
-        pthread_mutex_unlock(&rrr->mutex);
 }
 
 
@@ -217,12 +203,7 @@ int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_cl
                 return -1;
         }
 
-        pthread_mutex_init(&new->mutex, NULL);
-
-        pthread_mutex_lock(&receiver_mutex);
         prelude_list_add_tail(&receiver_list, &new->list);
-        pthread_mutex_unlock(&receiver_mutex);
-
         *rrr = new;
 
         return 0;
@@ -250,8 +231,6 @@ static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
         int ret;
         reverse_relay_receiver_t *item = prelude_msgbuf_get_data(msgbuf);
 
-        pthread_mutex_lock(&item->mutex);
-
         if ( item->client ) {
                 /*
                  * We cannot safely write to the gnutls session that is
@@ -259,12 +238,9 @@ static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
                  * processing.
                  */
                 sensor_server_queue_write_client(item->client, msg);
-                pthread_mutex_unlock(&item->mutex);
-
                 return 0;
         }
 
-        pthread_mutex_unlock(&item->mutex);
         ret = prelude_failover_save_msg(item->failover, msg);
         if ( ret < 0 )
                 prelude_perror(ret, "could not save message to disk");
@@ -382,7 +358,6 @@ int reverse_relay_create_initiator(const char *arg)
 
         cp = prelude_client_get_profile(manager_client);
 
-        pthread_mutex_lock(&initiator.mutex);
         if ( initiator.pool )
                 destroy_current_initiator();
 
@@ -407,8 +382,6 @@ int reverse_relay_create_initiator(const char *arg)
         }
 
  out:
-        pthread_mutex_unlock(&initiator.mutex);
-
         return ret;
 }
 

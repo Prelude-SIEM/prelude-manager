@@ -41,7 +41,7 @@
 #include <sys/stat.h>
 #include <signal.h>
 
-#include <libprelude/common.h>
+#include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-io.h>
 #include <libprelude/prelude-msg.h>
@@ -52,11 +52,15 @@
 #include <gnutls/gnutls.h>
 
 #include "manager-auth.h"
-#include "server-logic.h"
+#include "manager-options.h"
 #include "server-generic.h"
 
 
+#define STATE_ACCEPTED_TIMEOUT 20
+
+
 struct server_generic {
+        ev_io evio;
 
         int sock;
 
@@ -64,7 +68,6 @@ struct server_generic {
         struct sockaddr *sa;
 
         size_t clientlen;
-        struct server_logic *logic;
         server_generic_read_func_t *read;
         server_generic_write_func_t *write;
         server_generic_close_func_t *close;
@@ -78,9 +81,10 @@ struct server_generic_client {
 
 
 
+extern manager_config_t config;
 extern prelude_client_t *manager_client;
+extern struct ev_loop *manager_event_loop;
 static volatile sig_atomic_t continue_processing = 1;
-
 
 
 
@@ -105,7 +109,7 @@ static int send_auth_result(server_generic_client_t *client, int result)
 
         if ( ret < 0 ) {
                 if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
-                        server_logic_notify_write_enable((server_logic_client_t *) client);
+                        server_generic_notify_write_enable(client);
                         return 0;
                 }
 
@@ -131,7 +135,7 @@ static int send_queued_alert(server_generic_client_t *client)
         } while ( ret < 0 && ret == GNUTLS_E_INTERRUPTED );
 
         if ( ret == GNUTLS_E_AGAIN ) {
-                server_logic_notify_write_enable((server_logic_client_t *) client);
+                server_generic_notify_write_enable(client);
                 return 0;
         }
 
@@ -201,6 +205,7 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
         }
 
         client->state |= SERVER_GENERIC_CLIENT_STATE_ACCEPTED;
+        ev_timer_stop(manager_event_loop, &client->evtimer);
 
         return server->accept(client);
 }
@@ -208,16 +213,17 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
 
 
 
-static int write_connection_cb(void *sdata, server_logic_client_t *ptr)
+static int write_connection_cb(void *sdata, server_generic_client_t *client)
 {
         server_generic_t *server = sdata;
-        server_generic_client_t *client = (server_generic_client_t *) ptr;
+
+        assert(!(client->state & SERVER_GENERIC_CLIENT_STATE_CLOSING));
 
         if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
                 return server->write(client);
         else {
-                server_logic_notify_write_disable(ptr);
-                return authenticate_client(sdata, (server_generic_client_t *) ptr);
+                server_generic_notify_write_disable(client);
+                return authenticate_client(sdata, client);
         }
 }
 
@@ -232,11 +238,10 @@ static int write_connection_cb(void *sdata, server_logic_client_t *ptr)
  * If the authentication function return -1 (error), this will cause
  * server-logic to call the close_connection_cb callback.
  */
-static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
+static int read_connection_cb(void *sdata, server_generic_client_t *client)
 {
         int ret = 0;
         server_generic_t *server = sdata;
-        server_generic_client_t *client = (server_generic_client_t *) ptr;
 
         assert(!(client->state & SERVER_GENERIC_CLIENT_STATE_CLOSING));
 
@@ -249,32 +254,32 @@ static int read_connection_cb(void *sdata, server_logic_client_t *ptr)
 }
 
 
-
 static int do_close_fd(server_generic_client_t *client)
 {
         int ret;
         void *fd_ptr;
-        prelude_error_code_t code;
 
         do {
                 ret = prelude_io_close(client->fd);
                 if ( ret == 0 )
                         break;
 
-                code = prelude_error_get_code(ret);
-                if ( code == PRELUDE_ERROR_EAGAIN ) {
+                else if ( ret < 0 && prelude_io_is_error_fatal(client->fd, ret) )
+                        return 0;
+
+                if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
                         fd_ptr = prelude_io_get_fdptr(client->fd);
                         if ( fd_ptr && gnutls_record_get_direction(fd_ptr) == 1 )
-                                server_logic_notify_write_enable((server_logic_client_t *) client);
+                                server_generic_notify_write_enable(client);
 
                         return -1;
                 }
 
                 server_generic_log_client(client, PRELUDE_LOG_WARN, "connection closure error: %s.\n", prelude_strerror(ret));
 
-        } while ( ret < 0 && ! prelude_io_is_error_fatal(client->fd, ret));
+        } while ( ret < 0 );
 
-        return 0;
+        return ret;
 }
 
 
@@ -283,11 +288,10 @@ static int do_close_fd(server_generic_client_t *client)
  * if the authentication process succeed for this connection, call
  * the real close() callback function.
  */
-static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
+static int close_connection_cb(void *sdata, server_generic_client_t *client)
 {
         int ret;
         server_generic_t *server = sdata;
-        server_generic_client_t *client = (server_generic_client_t *) ptr;
 
         client->state |= SERVER_GENERIC_CLIENT_STATE_CLOSING;
 
@@ -313,8 +317,7 @@ static int close_connection_cb(void *sdata, server_logic_client_t *ptr)
                 server_generic_log_client(client, PRELUDE_LOG_INFO, "closing connection.\n");
         }
 
-        free(client->permission_string);
-        free(client->addr);
+        server_generic_remove_client(client->server, client);
         free(client);
 
         return 0;
@@ -345,7 +348,7 @@ static int tcpd_auth(server_generic_client_t *cdata, int clnt_sock)
 
         ret = hosts_access(&request);
         if ( ! ret ) {
-                server_generic_log_client(cdata, PRELUDE_LOG_WARN, "tcp wrapper refused connection.\n", cdata->addr);
+                server_generic_log_client(cdata, PRELUDE_LOG_WARN, "tcp wrapper refused connection.\n");
                 return -1;
         }
 
@@ -404,15 +407,9 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
         socklen_t addrlen;
         int ret, sock, on = 1;
 
-#ifndef HAVE_IPV6
-        struct sockaddr_in addr;
-#else
-        struct sockaddr_in6 addr;
-#endif
+        addrlen = sizeof(cdata->sa);
 
-        addrlen = sizeof(addr);
-
-        sock = accept(server->sock, (struct sockaddr *) &addr, &addrlen);
+        sock = accept(server->sock, (struct sockaddr *) &cdata->sa, &addrlen);
         if ( sock < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "accept error: %s.\n", strerror(errno));
                 return -1;
@@ -421,37 +418,6 @@ static int accept_connection(server_generic_t *server, server_generic_client_t *
         ret = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(int));
         if ( ret < 0 )
                 prelude_log(PRELUDE_LOG_ERR, "could not set SO_KEEPALIVE socket option: %s.\n", strerror(errno));
-
-        if ( server->sa->sa_family == AF_UNIX )
-                cdata->addr = strdup(((struct sockaddr_un *) server->sa)->sun_path);
-        else {
-                void *in_addr;
-                char out[128];
-                const char *str;
-                struct sockaddr *sa = (struct sockaddr *) &addr;
-
-#ifdef HAVE_IPV6
-                cdata->port = ntohs(addr.sin6_port);
-#else
-                cdata->port = ntohs(addr.sin_port);
-#endif
-                in_addr = prelude_sockaddr_get_inaddr(sa);
-                if ( ! in_addr ) {
-                        close(sock);
-                        return -1;
-                }
-
-                str = inet_ntop(sa->sa_family, in_addr, out, sizeof(out));
-                if ( str ) {
-                        snprintf(out + strlen(out), sizeof(out) - strlen(out), ":%d", cdata->port);
-                        cdata->addr = strdup(out);
-                }
-        }
-
-        if ( ! cdata->addr ) {
-                close(sock);
-                return -1;
-        }
 
         return sock;
 }
@@ -486,12 +452,11 @@ static int handle_connection(server_generic_t *server)
                 return -1;
         }
 
-        ret = server_logic_process_requests(server->logic, (server_logic_client_t *) cdata);
+        ret = server_generic_process_requests(server, cdata);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "queueing client FD for server logic processing failed.\n");
                 prelude_io_close(cdata->fd);
                 prelude_io_destroy(cdata->fd);
-                free(cdata->addr);
                 free(cdata);
                 return -1;
         }
@@ -500,37 +465,54 @@ static int handle_connection(server_generic_t *server)
 }
 
 
-
-
-
-
 /*
  * Wait for client to connect on the Prelude Manager.
  */
+static void libev_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
+{
+        server_generic_client_t *client = w->data;
+        close_connection_cb(client->server, client);
+}
+
+
+static void libev_notification_cb(struct ev_loop *loop, struct ev_io *w, int revents)
+{
+        int ret = 0;
+        server_generic_client_t *cdata = (server_generic_client_t *) w;
+
+        if ( ! (cdata->state & SERVER_GENERIC_CLIENT_STATE_CLOSING) ) {
+                if ( revents & EV_WRITE )
+                        ret = write_connection_cb(cdata->server, cdata);
+
+                if ( ret >= 0 && revents & EV_READ )
+                        ret = read_connection_cb(cdata->server, cdata);
+        }
+
+        if ( ret < 0 || cdata->state & SERVER_GENERIC_CLIENT_STATE_CLOSING ) {
+                ret = close_connection_cb(cdata->server, cdata);
+                if ( ret >= 0 )
+                        return;
+        }
+}
+
+
+static void connection_cb(struct ev_loop *loop, struct ev_io *w, int revents)
+{
+        handle_connection((server_generic_t *) w);
+}
+
+
 static int wait_connection(server_generic_t **server, size_t nserver)
 {
-        size_t i;
-        int active_fd;
-        struct pollfd pfd[nserver];
+        int i;
 
         for ( i = 0; i < nserver; i++ ) {
-                pfd[i].events = POLLIN;
-                pfd[i].fd = server[i]->sock;
+                ev_io_init(&server[i]->evio, connection_cb, server[i]->sock, EV_READ);
+                ev_io_start(manager_event_loop, &server[i]->evio);
         }
 
-        while ( continue_processing ) {
-
-                active_fd = poll(pfd, nserver, -1);
-                if ( active_fd < 0 )
-                        continue;
-
-                for ( i = 0; i < nserver && active_fd > 0; i++ ) {
-                        if ( pfd[i].revents & POLLIN ) {
-                                active_fd--;
-                                handle_connection(server[i]);
-                        }
-                }
-        }
+        while ( continue_processing )
+                ev_loop(manager_event_loop, 0);
 
         return 0;
 }
@@ -801,13 +783,6 @@ server_generic_t *server_generic_new(size_t clientlen, server_generic_accept_fun
         server->close = closef;
         server->clientlen = clientlen;
 
-        server->logic = server_logic_new(server, read_connection_cb, write_connection_cb, close_connection_cb);
-        if ( ! server->logic ) {
-                prelude_log(PRELUDE_LOG_WARN, "couldn't initialize server pool.\n");
-                free(server);
-                return NULL;
-        }
-
         return server;
 }
 
@@ -885,21 +860,44 @@ void server_generic_destroy(server_generic_t *server)
                 free(server->sa);
         }
 
-        server_logic_destroy(server->logic);
         free(server);
 }
 
 
-
-void server_generic_process_requests(server_generic_t *server, server_generic_client_t *client)
+void server_generic_notify_write_enable(server_generic_client_t *client)
 {
-        server_logic_process_requests(server->logic, (server_logic_client_t *) client);
+        ev_io_set(&client->evio, (int) prelude_io_get_fd(client->fd), EV_READ|EV_WRITE);
+}
+
+
+void server_generic_notify_write_disable(server_generic_client_t *client)
+{
+        ev_io_set(&client->evio, (int) prelude_io_get_fd(client->fd), EV_READ);
+}
+
+
+int server_generic_process_requests(server_generic_t *server, server_generic_client_t *client)
+{
+        client->server = server;
+
+        ev_io_init(&client->evio, libev_notification_cb, (int) prelude_io_get_fd(client->fd), EV_READ);
+        ev_io_start(manager_event_loop, &client->evio);
+
+        if ( ! (client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED) ) {
+                ev_timer_init(&client->evtimer, libev_timer_cb, 0, config.connection_timeout);
+                client->evtimer.data = client;
+
+                ev_timer_again(manager_event_loop, &client->evtimer);
+        }
+
+        return 0;
 }
 
 
 void server_generic_remove_client(server_generic_t *server, server_generic_client_t *client)
 {
-        server_logic_remove_client((server_logic_client_t *) client);
+        ev_io_stop(manager_event_loop, &client->evio);
+        ev_timer_stop(manager_event_loop, &client->evtimer);
 }
 
 
@@ -907,23 +905,53 @@ void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t prior
 {
         va_list ap;
         int ret = 0;
-        char buf[1024];
+        prelude_string_t *out;
+        char addr[128] = { 0 };
 
-        if ( cnx->ident && cnx->permission_string ) {
-                ret = snprintf(buf, sizeof(buf), " 0x%" PRELUDE_PRIx64 " %s]: ", cnx->ident, cnx->permission_string);
-                if ( ret < 0 || ret >= sizeof(buf) )
-                        return;
-        } else {
-                ret = snprintf(buf, sizeof(buf), "]: ");
-                if ( ret < 0 || ret >= sizeof(buf) )
-                        return;
+        prelude_string_new(&out);
+
+        if ( ((struct sockaddr *) &cnx->sa)->sa_family == AF_UNIX )
+                snprintf(addr, sizeof(addr), "unix");
+
+        else {
+                void *in_addr;
+                const char *str;
+                unsigned int port;
+
+#ifdef HAVE_IPV6
+                port = ntohs(cnx->sa.sin6_port);
+#else
+                port = ntohs(cnx->sa.sin_port);
+#endif
+                in_addr = prelude_sockaddr_get_inaddr((struct sockaddr *) &cnx->sa);
+                if ( ! in_addr )
+                        goto out;
+
+                str = inet_ntop(((struct sockaddr *)&cnx->sa)->sa_family, in_addr, addr, sizeof(addr));
+                if ( str )
+                        snprintf(addr + strlen(addr), sizeof(addr) - strlen(addr), ":%u", port);
         }
 
+        if ( cnx->ident && cnx->permission ) {
+                ret = prelude_string_sprintf(out, " 0x%" PRELUDE_PRIx64, cnx->ident);
+                if ( ret < 0 )
+                        goto out;
+
+                ret = prelude_connection_permission_to_string(cnx->permission, out);
+        }
+
+        ret = prelude_string_sprintf(out, "]: ");
+        if ( ret < 0  )
+                goto out;
+
         va_start(ap, fmt);
-        vsnprintf(buf + ret, sizeof(buf) - ret, fmt, ap);
+        ret = prelude_string_vprintf(out, fmt, ap);
         va_end(ap);
 
-        prelude_log(priority, "[%s%s", cnx->addr, buf);
+        prelude_log(priority, "[%s%s", addr, prelude_string_get_string(out));
+
+    out:
+        prelude_string_destroy(out);
 }
 
 
@@ -949,26 +977,6 @@ int server_generic_client_get_state(server_generic_client_t *client)
 
 int server_generic_client_set_permission(server_generic_client_t *client, prelude_connection_permission_t permission)
 {
-        int ret;
-        prelude_string_t *out;
-
-        ret = prelude_string_new(&out);
-        if ( ret < 0 )
-                return ret;
-
-        ret = prelude_connection_permission_to_string(permission, out);
-        if ( ret < 0 ) {
-                prelude_string_destroy(out);
-                return ret;
-        }
-
-        ret = prelude_string_get_string_released(out, &client->permission_string);
-        prelude_string_destroy(out);
-
-        if ( ret < 0 )
-                return ret;
-
         client->permission = permission;
-
         return 0;
 }

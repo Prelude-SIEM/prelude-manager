@@ -24,20 +24,20 @@
 #ifndef _MANAGER_SENSOR_SERVER_H
 #define _MANAGER_SENSOR_SERVER_H
 
-#include "server-logic.h"
 #include "idmef-message-scheduler.h"
 #include "reverse-relaying.h"
 
 typedef struct {
         SERVER_GENERIC_OBJECT;
         prelude_list_t list;
-        
+
         idmef_queue_t *queue;
         prelude_connection_t *cnx;
         prelude_bool_t we_connected;
+        pthread_mutex_t write_mutex;
         prelude_list_t write_msg_list;
         reverse_relay_receiver_t *rrr;
-        pthread_mutex_t mutex;
+
         uint32_t instance_id;
 } sensor_fd_t;
 

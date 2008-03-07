@@ -159,6 +159,15 @@ if test x$with_libwrap = xyes; then
 fi
 
 
+
+dnl ********************************************************
+dnl * Configure embedded libev                             *
+dnl ********************************************************
+
+m4_include([libev/libev.m4])
+
+
+
 dnl **************************************************
 dnl * Check for Ipv6.                                *
 dnl **************************************************
@@ -176,7 +185,7 @@ AC_CHECK_DECL(AF_INET6, have_ipv6_def=yes,, [
 ])
 
 if test x$have_ipv6_type = xyes && test x$have_ipv6_def = xyes; then
-        AC_DEFINE_UNQUOTED(HAVE_IPV6, , Define wether Ipv6 is available on this system)
+	AC_DEFINE_UNQUOTED(HAVE_IPV6, , Define whether Ipv6 is available on this system)
 fi
 
 
@@ -282,6 +291,7 @@ Makefile
 docs/Makefile
 docs/manpages/Makefile
 
+libev/Makefile
 libmissing/Makefile
 prelude-manager.conf
 

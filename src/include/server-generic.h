@@ -6,7 +6,7 @@
 * This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by 
+* it under the terms of the GNU General Public License as published by
 * the Free Software Foundation; either version 2, or (at your option)
 * any later version.
 *
@@ -24,6 +24,7 @@
 #ifndef _MANAGER_SERVER_GENERIC_H
 #define _MANAGER_SERVER_GENERIC_H
 
+
 #include <gnutls/gnutls.h>
 #include <libprelude/prelude-inttypes.h>
 
@@ -34,17 +35,25 @@
 #define SERVER_GENERIC_CLIENT_STATE_CLOSING        0x08
 #define SERVER_GENERIC_CLIENT_STATE_CLOSED         0x10
 
+#ifdef HAVE_IPV6
+# define SERVER_SOCKADDR_TYPE struct sockaddr_in6
+#else
+# define SERVER_SOCKADDR_TYPE struct sockaddr_in
+#endif
+
+#include "ev.h"
 
 #define SERVER_GENERIC_OBJECT        \
-        SERVER_LOGIC_CLIENT_OBJECT;  \
+        ev_io evio;                  \
+        ev_timer evtimer;            \
+        prelude_io_t *fd;            \
         prelude_msg_t *msg;          \
         int state;                   \
-        char *addr;                  \
-        unsigned int port;           \
         uint64_t ident;              \
-        char *permission_string;     \
         prelude_connection_permission_t permission; \
-        gnutls_alert_description alert
+        gnutls_alert_description alert; \
+        SERVER_SOCKADDR_TYPE sa; \
+        server_generic_t *server
 
 
 typedef struct server_generic server_generic_t;
@@ -92,7 +101,7 @@ void server_generic_destroy(server_generic_t *server);
 
 void server_generic_stop(server_generic_t *server);
 
-void server_generic_process_requests(server_generic_t *server, server_generic_client_t *client);
+int server_generic_process_requests(server_generic_t *server, server_generic_client_t *client);
 
 void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t priority, const char *fmt, ...);
 
@@ -105,6 +114,10 @@ int server_generic_client_get_state(server_generic_client_t *client);
 void server_generic_client_set_state(server_generic_client_t *client, int state);
 
 void server_generic_remove_client(server_generic_t *server, server_generic_client_t *client);
+
+void server_generic_notify_write_enable(server_generic_client_t *client);
+
+void server_generic_notify_write_disable(server_generic_client_t *client);
 
 #endif /* _MANAGER_SERVER_GENERIC_H */
 

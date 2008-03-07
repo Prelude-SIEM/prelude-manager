@@ -75,6 +75,7 @@ static int set_daemon_mode(prelude_option_t *opt, const char *arg, prelude_strin
                 return ret;
 
         prelude_log_set_flags(prelude_log_get_flags() | PRELUDE_LOG_FLAGS_SYSLOG);
+        ev_default_fork();
 
         return 0;
 }
@@ -256,6 +257,14 @@ static int set_report_plugin_failover(prelude_option_t *opt, const char *arg, pr
                 prelude_log(PRELUDE_LOG_INFO, "Failover capability enabled for reporting plugin %s.\n", arg);
 
         return ret;
+}
+
+
+
+static int set_connection_timeout(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
+{
+        config.connection_timeout = atoi(arg);
+        return 0;
 }
 
 
@@ -448,7 +457,9 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
 
         /* Default */
         memset(&config, 0, sizeof(config));
+
         config.dh_regenerate = 24 * 60 * 60;
+        config.connection_timeout = 10;
         config.config_file = PRELUDE_MANAGER_CONF;
 
         prelude_option_new_root(&init_first);
@@ -490,6 +501,10 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CFG, 0, "group",
                            "Set the group ID used by prelude-manager", PRELUDE_OPTION_ARGUMENT_REQUIRED, set_group, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
+
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "connection-timeout",
+                           "Number of seconds a client has to successfully authenticate (default 10)",
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED, set_connection_timeout, NULL);
 
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-parameters-regenerate",
                            "How often to regenerate the Diffie Hellman parameters (in hours)",

@@ -37,6 +37,7 @@ typedef struct manager_config {
         
         int dh_bits;
         int dh_regenerate;
+        int connection_timeout;
 
         size_t nserver;
         server_generic_t **server;
