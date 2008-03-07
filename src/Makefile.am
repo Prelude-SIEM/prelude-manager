@@ -1,13 +1,7 @@
 SUBDIRS = include
 
-AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing @LIBGNUTLS_CFLAGS@ \
-        @defined@ -DCONFIG_DIR=\"@configdir@\" \
-        -DREPORT_PLUGIN_DIR=\"@report_plugin_dir@\" \
-        -DDECODE_PLUGIN_DIR=\"@decode_plugin_dir@\" \
-        -DFILTER_PLUGIN_DIR=\"@filter_plugin_dir@\" \
-        -DMANAGER_SCHEDULER_DIR=\"@manager_scheduler_dir@\" \
-        -DMANAGER_FAILOVER_DIR=\"@manager_failover_dir@\" \
-        -DMANAGER_RUN_DIR=\"@manager_run_dir@\"
+AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing @LIBPRELUDE_PTHREAD_CFLAGS@ @LIBGNUTLS_CFLAGS@
+AM_CFLAGS = @PRELUDE_MANAGER_CFLAGS@ @GLOBAL_CFLAGS@
 
 bin_PROGRAMS = prelude-manager
 prelude_manager_LDADD = @LIBWRAP_LIBS@ @LIBPRELUDE_LIBS@ $(top_builddir)/libmissing/libmissing.la
@@ -29,6 +23,7 @@ DLOPENED_OBJS=$(XML_OBJS) $(DB_OBJS)
 prelude_manager_LDFLAGS = -export-dynamic @LIBPRELUDE_LDFLAGS@ \
         -dlopen $(top_builddir)/plugins/decodes/normalize/normalize.la \
         -dlopen $(top_builddir)/plugins/filters/idmef-criteria/idmef-criteria.la \
+        -dlopen $(top_builddir)/plugins/filters/thresholding/thresholding.la \
         -dlopen $(top_builddir)/plugins/reports/debug/debug.la \
         -dlopen $(top_builddir)/plugins/reports/relaying/relaying.la \
         -dlopen $(top_builddir)/plugins/reports/textmod/textmod.la \

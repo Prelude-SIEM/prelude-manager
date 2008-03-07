@@ -1,5 +1,5 @@
-AM_CPPFLAGS=-I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing	\
-	@XML_CPPFLAGS@ @defined@ -DIDMEF_DTD=\"@manager_data_dir@/xmlmod/idmef-message.dtd\" 
+AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @XML_CPPFLAGS@ @LIBPRELUDE_PTHREAD_CFLAGS@ -DIDMEF_DTD=\"@MANAGER_DATA_DIR@/xmlmod/idmef-message.dtd\"
+AM_CFLAGS = @GLOBAL_CFLAGS@
 
 xmlmod_la_LDFLAGS = -module -avoid-version
 
@@ -7,11 +7,11 @@ if HAVE_XML2
 
 xmlmod_la_SOURCES = xmlmod.c
 xmlmod_la_LIBADD  = @XML_LIBS@
-xmlmoddir = $(report_plugin_dir)
+xmlmoddir = $(libdir)/prelude-manager/reports
 xmlmod_LTLIBRARIES = xmlmod.la
 
 xmldtd_DATA = idmef-message.dtd
-xmldtddir   = $(manager_data_dir)/xmlmod
+xmldtddir   = $(MANAGER_DATA_DIR)/xmlmod
 
 EXTRA_DIST = $(xmldtd_DATA)
 

@@ -1,4 +1,5 @@
-AM_CPPFLAGS=-I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @defined@ @LIBPRELUDEDB_CFLAGS@
+AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @LIBPRELUDE_PTHREAD_CFLAGS@ @LIBPRELUDEDB_CFLAGS@
+AM_CFLAGS = @GLOBAL_CFLAGS@ 
 
 db_la_LDFLAGS = -module -avoid-version
 

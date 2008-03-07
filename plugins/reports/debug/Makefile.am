@@ -1,4 +1,5 @@
-AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @defined@
+AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @LIBPRELUDE_PTHREAD_CFLAGS@
+AM_CFLAGS = @GLOBAL_CFLAGS@ 
 
 debug_la_SOURCES = debug.c
 debug_la_LIBADD = 
