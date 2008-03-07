@@ -52,7 +52,6 @@ AC_DEFUN([gl_INIT],
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
   gl_PATHMAX
-  gl_FUNC_POLL
   gl_SIZE_MAX
   gl_FUNC_SNPRINTF
   gl_STDIO_MODULE_INDICATOR([snprintf])
@@ -68,11 +67,7 @@ AC_DEFUN([gl_INIT],
   gl_STRING_MODULE_INDICATOR([strpbrk])
   gl_FUNC_STRSEP
   gl_STRING_MODULE_INDICATOR([strsep])
-  gl_HEADER_SYS_SELECT
-  AC_PROG_MKDIR_P
   gl_HEADER_SYS_SOCKET
-  AC_PROG_MKDIR_P
-  gl_HEADER_SYS_TIME_H
   AC_PROG_MKDIR_P
   gl_HEADER_TIME_H
   gl_TIME_R
@@ -213,8 +208,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/memset.c
   lib/netinet_in.in.h
   lib/pathmax.h
-  lib/poll.c
-  lib/poll.in.h
   lib/printf-args.c
   lib/printf-args.h
   lib/printf-parse.c
@@ -229,9 +222,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/string.in.h
   lib/strpbrk.c
   lib/strsep.c
-  lib/sys_select.in.h
   lib/sys_socket.in.h
-  lib/sys_time.in.h
   lib/time.in.h
   lib/time_r.c
   lib/unistd.in.h
@@ -258,7 +249,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/netinet_in_h.m4
   m4/onceonly_2_57.m4
   m4/pathmax.m4
-  m4/poll.m4
   m4/size_max.m4
   m4/snprintf.m4
   m4/socklen.m4
@@ -272,9 +262,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/string_h.m4
   m4/strpbrk.m4
   m4/strsep.m4
-  m4/sys_select_h.m4
   m4/sys_socket_h.m4
-  m4/sys_time_h.m4
   m4/time_h.m4
   m4/time_r.m4
   m4/unistd_h.m4
