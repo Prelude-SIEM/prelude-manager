@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @XML_CPPFLAGS@ @LIBPRELUDE_PTHREAD_CFLAGS@ -DIDMEF_DTD=\"@MANAGER_DATA_DIR@/xmlmod/idmef-message.dtd\"
+AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_srcdir)/libmissing @XML_CPPFLAGS@ @LIBPRELUDE_CFLAGS@ -DIDMEF_DTD=\"@MANAGER_DATA_DIR@/xmlmod/idmef-message.dtd\"
 AM_CFLAGS = @GLOBAL_CFLAGS@
 
 xmlmod_la_LDFLAGS = -module -avoid-version

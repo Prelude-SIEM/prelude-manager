@@ -1,10 +1,10 @@
 SUBDIRS = include
 
-AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing -I$(top_srcdir)/libev @LIBPRELUDE_PTHREAD_CFLAGS@ @LIBGNUTLS_CFLAGS@
+AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing -I$(top_srcdir)/libev @LIBPRELUDE_CFLAGS@ @LIBGNUTLS_CFLAGS@
 AM_CFLAGS = @PRELUDE_MANAGER_CFLAGS@ @GLOBAL_CFLAGS@
 
 bin_PROGRAMS = prelude-manager
-prelude_manager_LDADD = @LIBPRELUDE_LIBS@ @LIBWRAP_LIBS@ $(top_builddir)/libev/libev.la $(top_builddir)/libmissing/libmissing.la
+prelude_manager_LDADD = @LIBPRELUDE_LIBS@ @LIBWRAP_LIBS@ $(top_builddir)/libev/libev.la $(top_builddir)/libmissing/libmissing.la @PTHREAD_LIBS@
 
 if HAVE_XML2
  XML_OBJS= -dlopen $(top_builddir)/plugins/reports/xmlmod/xmlmod.la
@@ -20,7 +20,7 @@ endif
 
 DLOPENED_OBJS=$(XML_OBJS) $(DB_OBJS)
 
-prelude_manager_LDFLAGS = -export-dynamic @LIBPRELUDE_LDFLAGS@ \
+prelude_manager_LDFLAGS =  @PTHREAD_CFLAGS@ -export-dynamic @LIBPRELUDE_LDFLAGS@ \
         -dlopen $(top_builddir)/plugins/decodes/normalize/normalize.la \
         -dlopen $(top_builddir)/plugins/filters/idmef-criteria/idmef-criteria.la \
         -dlopen $(top_builddir)/plugins/filters/thresholding/thresholding.la \

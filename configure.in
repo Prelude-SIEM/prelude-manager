@@ -36,6 +36,16 @@ gl_SOURCE_BASE(libmissing)
 gl_M4_BASE(libmissing/m4)
 gl_INIT
 
+dnl **************************************************
+dnl * Check for Pthread library                      *
+dnl **************************************************
+
+ACX_PTHREAD(, AC_MSG_ERROR(could not find suitable pthread implementation))
+dnl Export pthread stuff wide for libmissing and libprelude-error
+
+CPPFLAGS="$PTHREAD_CFLAGS"
+CC="$PTHREAD_CC"
+
 
 dnl **************************************************
 dnl * Check for libprelude                           *
@@ -185,7 +195,7 @@ AC_CHECK_DECL(AF_INET6, have_ipv6_def=yes,, [
 ])
 
 if test x$have_ipv6_type = xyes && test x$have_ipv6_def = xyes; then
-	AC_DEFINE_UNQUOTED(HAVE_IPV6, , Define whether Ipv6 is available on this system)
+        AC_DEFINE_UNQUOTED(HAVE_IPV6, , Define whether Ipv6 is available on this system)
 fi
 
 
