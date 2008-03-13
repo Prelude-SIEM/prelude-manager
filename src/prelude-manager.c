@@ -239,6 +239,15 @@ int main(int argc, char **argv)
                 return -1;
 
         /*
+         * start server
+         */
+        ret = manager_auth_init(manager_client, config.dh_bits, config.dh_regenerate);
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_WARN, "%s\n", prelude_client_get_setup_error(manager_client));
+                return -1;
+        }
+
+        /*
          * prelude_client_start() should send it's initial heartbeat
          * before the scheduler start handling IDMEF messages, so that we don't refcount
          * the shared manager_client analyzer object from two different thread.
@@ -246,15 +255,6 @@ int main(int argc, char **argv)
         ret = idmef_message_scheduler_init();
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "couldn't initialize alert scheduler.\n");
-                return -1;
-        }
-
-        /*
-         * start server
-         */
-        ret = manager_auth_init(manager_client, config.dh_bits, config.dh_regenerate);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "%s\n", prelude_client_get_setup_error(manager_client));
                 return -1;
         }
 
