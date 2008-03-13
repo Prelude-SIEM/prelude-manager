@@ -866,13 +866,17 @@ void server_generic_destroy(server_generic_t *server)
 
 void server_generic_notify_write_enable(server_generic_client_t *client)
 {
+        ev_io_stop(manager_event_loop, &client->evio);
         ev_io_set(&client->evio, (int) prelude_io_get_fd(client->fd), EV_READ|EV_WRITE);
+        ev_io_start(manager_event_loop, &client->evio);
 }
 
 
 void server_generic_notify_write_disable(server_generic_client_t *client)
 {
+        ev_io_stop(manager_event_loop, &client->evio);
         ev_io_set(&client->evio, (int) prelude_io_get_fd(client->fd), EV_READ);
+        ev_io_start(manager_event_loop, &client->evio);
 }
 
 
