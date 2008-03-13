@@ -1,4 +1,4 @@
-dnl as-ac-expand.m4 0.1.0
+dnl as-ac-expand.m4 0.2.0
 dnl autostars m4 macro for expanding directories using configure's prefix
 dnl thomas@apestaart.org
 
@@ -18,7 +18,7 @@ AC_DEFUN([AS_AC_EXPAND],
 
   dnl if no prefix given, then use /usr/local, the default prefix
   if test "x$prefix" = "xNONE"; then
-    prefix=/usr/local
+    prefix="$ac_default_prefix"
   fi
   dnl if no exec_prefix given, then use prefix
   if test "x$exec_prefix" = "xNONE"; then
@@ -29,7 +29,7 @@ AC_DEFUN([AS_AC_EXPAND],
   dnl loop until it doesn't change anymore
   while true; do
     new_full_var="`eval echo $full_var`"
-    if test "x$new_full_var"="x$full_var"; then break; fi
+    if test "x$new_full_var" = "x$full_var"; then break; fi
     full_var=$new_full_var
   done
 
