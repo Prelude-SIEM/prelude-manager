@@ -6,7 +6,7 @@
 * This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by 
+* it under the terms of the GNU General Public License as published by
 * the Free Software Foundation; either version 2, or (at your option)
 * any later version.
 *
@@ -36,6 +36,8 @@ int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_gener
 int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_client_t *client, uint64_t analyzerid);
 
 reverse_relay_receiver_t *reverse_relay_search_receiver(uint64_t analyzerid);
+
+void reverse_relay_send_prepared(void);
 
 void reverse_relay_send_receiver(idmef_message_t *idmef);
 

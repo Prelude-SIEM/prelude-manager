@@ -41,6 +41,12 @@
 # define SERVER_SOCKADDR_TYPE struct sockaddr_in
 #endif
 
+#define EV_PERIODIC_ENABLE 0
+#define EV_STAT_ENABLE 0
+#define EV_IDLE_ENABLE 0
+#define EV_FORK_ENABLE 0
+#define EV_EMBED_ENABLE 0
+
 #include "ev.h"
 
 #define SERVER_GENERIC_OBJECT        \
@@ -114,6 +120,8 @@ int server_generic_client_get_state(server_generic_client_t *client);
 void server_generic_client_set_state(server_generic_client_t *client, int state);
 
 void server_generic_remove_client(server_generic_t *server, server_generic_client_t *client);
+
+void server_generic_notify_event(void);
 
 void server_generic_notify_write_enable(server_generic_client_t *client);
 

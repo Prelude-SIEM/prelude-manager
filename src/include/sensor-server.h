@@ -34,7 +34,6 @@ typedef struct {
         idmef_queue_t *queue;
         prelude_connection_t *cnx;
         prelude_bool_t we_connected;
-        pthread_mutex_t write_mutex;
         prelude_list_t write_msg_list;
         reverse_relay_receiver_t *rrr;
 

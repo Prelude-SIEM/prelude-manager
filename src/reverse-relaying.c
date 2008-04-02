@@ -44,10 +44,6 @@
 #include "sensor-server.h"
 
 
-typedef struct {
-        prelude_connection_pool_t *pool;
-} reverse_relay_t;
-
 
 struct reverse_relay_receiver {
         prelude_list_t list;
@@ -62,14 +58,25 @@ struct reverse_relay_receiver {
 };
 
 
-static PRELUDE_LIST(receiver_list);
-static prelude_msgbuf_t *msgbuf;
+typedef struct {
+        prelude_list_t list;
 
-static reverse_relay_t initiator = { NULL };
+        uint64_t analyzerid;
+        prelude_msg_t *msg;
+} mqueue_t;
+
+
+static prelude_msgbuf_t *msgbuf;
+static PRELUDE_LIST(mqueue_list);
+static pthread_mutex_t mqueue_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+static PRELUDE_LIST(receiver_list);
+static pthread_mutex_t receiver_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 extern manager_config_t config;
 extern prelude_client_t *manager_client;
-
+static prelude_connection_pool_t *initiator = NULL;
 
 
 static int connection_event_cb(prelude_connection_pool_t *pool,
@@ -101,6 +108,11 @@ static reverse_relay_receiver_t *get_next_receiver(prelude_list_t **iter)
         prelude_list_t *tmp;
         reverse_relay_receiver_t *rrr = NULL;
 
+        /*
+         * Locking here is not required since the list is never
+         * modified by the worker thread. We only protect writing
+         * of the list, and reading it from the worker thread.
+         */
         prelude_list_for_each_continue_safe(&receiver_list, tmp, *iter) {
                 rrr = prelude_list_entry(tmp, reverse_relay_receiver_t, list);
                 break;
@@ -164,8 +176,8 @@ int reverse_relay_set_initiator_dead(prelude_connection_t *cnx)
 {
         int ret = -1;
 
-        if ( initiator.pool )
-                ret = prelude_connection_pool_set_connection_dead(initiator.pool, cnx);
+        if ( initiator )
+                ret = prelude_connection_pool_set_connection_dead(initiator, cnx);
 
         return ret;
 }
@@ -203,7 +215,9 @@ int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_cl
                 return -1;
         }
 
+        pthread_mutex_lock(&receiver_list_mutex);
         prelude_list_add_tail(&receiver_list, &new->list);
+        pthread_mutex_unlock(&receiver_list_mutex);
         *rrr = new;
 
         return 0;
@@ -228,24 +242,20 @@ reverse_relay_receiver_t *reverse_relay_search_receiver(uint64_t analyzerid)
 
 static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 {
-        int ret;
-        reverse_relay_receiver_t *item = prelude_msgbuf_get_data(msgbuf);
+        mqueue_t *mq;
 
-        if ( item->client ) {
-                /*
-                 * We cannot safely write to the gnutls session that is
-                 * shared by another thread, thus queue the message for
-                 * processing.
-                 */
-                sensor_server_queue_write_client(item->client, msg);
-                return 0;
+        mq = malloc(sizeof(*mq));
+        if ( ! mq ) {
+                prelude_log(PRELUDE_LOG_ERR, "memory exhausted: %s.\n", strerror(errno));
+                return -1;
         }
 
-        ret = prelude_failover_save_msg(item->failover, msg);
-        if ( ret < 0 )
-                prelude_perror(ret, "could not save message to disk");
+        mq->msg = msg;
+        mq->analyzerid = *(uint64_t *) prelude_msgbuf_get_data(msgbuf);
 
-        prelude_msg_destroy(msg);
+        pthread_mutex_lock(&mqueue_mutex);
+        prelude_list_add_tail(&mqueue_list, &mq->list);
+        pthread_mutex_unlock(&mqueue_mutex);
 
         return 0;
 }
@@ -295,37 +305,97 @@ static int get_issuer_analyzerid(idmef_message_t *idmef, uint64_t *analyzerid)
 
 
 
+static mqueue_t *mqueue_get_next(void)
+{
+        mqueue_t *q = NULL;
+
+        pthread_mutex_lock(&mqueue_mutex);
+
+        if ( prelude_list_is_empty(&mqueue_list) )
+                goto out;
+
+        q = prelude_list_entry(mqueue_list.next, mqueue_t, list);
+        prelude_list_del(&q->list);
+
+out:
+        pthread_mutex_unlock(&mqueue_mutex);
+        return q;
+}
+
+
+
 void reverse_relay_send_receiver(idmef_message_t *idmef)
 {
         int ret;
         uint64_t analyzerid;
-        prelude_list_t *iter = NULL;
-        reverse_relay_receiver_t *item;
+        prelude_bool_t empty;
 
+        /*
+         * If there is no receiver, no need to queue the message.
+         */
+        pthread_mutex_lock(&receiver_list_mutex);
+        empty = prelude_list_is_empty(&receiver_list);
+        pthread_mutex_unlock(&receiver_list_mutex);
+
+        if ( empty )
+                return;
+
+        /*
+         * Create a new item in the message queue, containing
+         * the message to be sent, as well as the analyzerid of the
+         * emitter.
+         */
         ret = get_issuer_analyzerid(idmef, &analyzerid);
         if ( ret < 0 )
                 return;
 
         /*
-         * FIXME: this is dirty since we are encoding
-         * the IDMEF message once per receiver.
-         *
-         * Implement a better scheme where we create an intermediate
-         * "linking" object, which share a refcount, a message, and
-         * a mutex, but hold it's list member private.
+         * Convert from idmef_message_t to prelude_msg_t,
+         * this will trigger the msgbuf callback where an mqueue_t
+         * object will be created, and attached to the list of message
+         * to be emited.
          */
-        while ( (item = get_next_receiver(&iter)) ) {
+        prelude_msgbuf_set_data(msgbuf, &analyzerid);
+        idmef_message_write(idmef, msgbuf);
+        prelude_msgbuf_mark_end(msgbuf);
 
-                if ( analyzerid == item->analyzerid )
-                        /* we're not an echo server, let's skip the sender */
-                        continue;
-
-                prelude_msgbuf_set_data(msgbuf, item);
-                idmef_message_write(idmef, msgbuf);
-                prelude_msgbuf_mark_end(msgbuf);
-        }
+        /*
+         * Finally, restart the main server event loop so that it
+         * take into account the event to be written, and call
+         * reverse_relay_send_prepared().
+         */
+        server_generic_notify_event();
 }
 
+
+
+void reverse_relay_send_prepared(void)
+{
+        int ret;
+        mqueue_t *mq;
+        prelude_list_t *iter = NULL;
+        reverse_relay_receiver_t *receiver;
+
+        while ( (mq = mqueue_get_next()) ) {
+
+                while ( (receiver = get_next_receiver(&iter)) ) {
+
+                        if ( mq->analyzerid == receiver->analyzerid )
+                                continue;
+
+                        if ( receiver->client )
+                                sensor_server_write_client(receiver->client, prelude_msg_ref(mq->msg));
+                        else {
+                                ret = prelude_failover_save_msg(receiver->failover, mq->msg);
+                                if ( ret < 0 )
+                                        prelude_perror(ret, "could not save message to disk");
+                        }
+                }
+
+                prelude_msg_destroy(mq->msg);
+                free(mq);
+        }
+}
 
 
 static void destroy_current_initiator(void)
@@ -334,7 +404,7 @@ static void destroy_current_initiator(void)
         prelude_list_t *tmp;
         prelude_connection_t *cnx;
 
-        prelude_list_for_each(prelude_connection_pool_get_connection_list(initiator.pool), tmp) {
+        prelude_list_for_each(prelude_connection_pool_get_connection_list(initiator), tmp) {
                 cnx = prelude_linked_object_get_object(tmp);
 
                 client = prelude_connection_get_data(cnx);
@@ -345,8 +415,8 @@ static void destroy_current_initiator(void)
                 }
         }
 
-        prelude_connection_pool_destroy(initiator.pool);
-        initiator.pool = NULL;
+        prelude_connection_pool_destroy(initiator);
+        initiator = NULL;
 }
 
 
@@ -358,26 +428,26 @@ int reverse_relay_create_initiator(const char *arg)
 
         cp = prelude_client_get_profile(manager_client);
 
-        if ( initiator.pool )
+        if ( initiator )
                 destroy_current_initiator();
 
-        ret = prelude_connection_pool_new(&initiator.pool, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_READ);
+        ret = prelude_connection_pool_new(&initiator, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_READ);
         if ( ret < 0 )
                 goto out;
 
-        prelude_connection_pool_set_flags(initiator.pool, PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
-        prelude_connection_pool_set_event_handler(initiator.pool, PRELUDE_CONNECTION_POOL_EVENT_DEAD |
+        prelude_connection_pool_set_flags(initiator, PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
+        prelude_connection_pool_set_event_handler(initiator, PRELUDE_CONNECTION_POOL_EVENT_DEAD |
                                                   PRELUDE_CONNECTION_POOL_EVENT_ALIVE, connection_event_cb);
 
-        ret = prelude_connection_pool_set_connection_string(initiator.pool, arg);
+        ret = prelude_connection_pool_set_connection_string(initiator, arg);
         if ( ret < 0 ) {
-                prelude_connection_pool_destroy(initiator.pool);
+                prelude_connection_pool_destroy(initiator);
                 goto out;
         }
 
-        ret = prelude_connection_pool_init(initiator.pool);
+        ret = prelude_connection_pool_init(initiator);
         if ( ret < 0 ) {
-                prelude_connection_pool_destroy(initiator.pool);
+                prelude_connection_pool_destroy(initiator);
                 goto out;
         }
 

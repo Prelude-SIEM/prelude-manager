@@ -521,8 +521,6 @@ static int write_connection_cb(server_generic_client_t *client)
         prelude_msg_t *cur = NULL;
         sensor_fd_t *sclient = (sensor_fd_t *) client;
 
-        pthread_mutex_lock(&sclient->write_mutex);
-
         prelude_list_for_each(&sclient->write_msg_list, tmp) {
                 cur = prelude_linked_object_get_object(tmp);
                 prelude_linked_object_del((prelude_linked_object_t *) cur);
@@ -530,14 +528,11 @@ static int write_connection_cb(server_generic_client_t *client)
                 ret = write_client(sclient, cur);
                 if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
                         ret = 0;
-                        pthread_mutex_unlock(&sclient->write_mutex);
                         goto out;
                 }
 
                 break;
         }
-
-        pthread_mutex_unlock(&sclient->write_mutex);
 
         if ( prelude_list_is_empty(&sclient->write_msg_list) ) {
                 server_generic_notify_write_disable(client);
@@ -623,8 +618,6 @@ static int close_connection_cb(server_generic_client_t *ptr)
         if ( cnx->queue )
                 idmef_message_scheduler_queue_destroy(cnx->queue);
 
-        pthread_mutex_destroy(&cnx->write_mutex);
-
         return 0;
 }
 
@@ -639,7 +632,6 @@ static int accept_connection_cb(server_generic_client_t *ptr)
         fd->we_connected = FALSE;
         prelude_list_init(&fd->list);
         prelude_list_init(&fd->write_msg_list);
-        pthread_mutex_init(&fd->write_mutex, NULL);
 
         ret = handle_declare_client(fd);
         if ( ret < 0 )
@@ -701,7 +693,6 @@ int sensor_server_add_client(server_generic_t *server, server_generic_client_t *
 
         cdata->server = server;
 
-        pthread_mutex_init(&cdata->write_mutex, NULL);
         prelude_list_init(&cdata->write_msg_list);
         cdata->ident = prelude_connection_get_peer_analyzerid(cnx);
 
@@ -717,16 +708,12 @@ int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *m
         int ret;
         sensor_fd_t *dst = (sensor_fd_t *) client;
 
-        pthread_mutex_lock(&dst->write_mutex);
-
         if ( prelude_list_is_empty(&dst->write_msg_list) )
                 ret = write_client(dst, msg);
         else {
                 ret = 0;
                 prelude_linked_object_add_tail(&dst->write_msg_list, (prelude_linked_object_t *) msg);
         }
-
-        pthread_mutex_unlock(&dst->write_mutex);
 
         return ret;
 }
@@ -738,13 +725,9 @@ void sensor_server_queue_write_client(server_generic_client_t *client, prelude_m
         prelude_bool_t need_notify_write;
         sensor_fd_t *dst = (sensor_fd_t *) client;
 
-        pthread_mutex_lock(&dst->write_mutex);
-
         need_notify_write = prelude_list_is_empty(&dst->write_msg_list);
         prelude_linked_object_add_tail(&dst->write_msg_list, (prelude_linked_object_t *) msg);
 
         if ( need_notify_write )
                 server_generic_notify_write_enable((server_generic_client_t *) dst);
-
-        pthread_mutex_unlock(&dst->write_mutex);
 }

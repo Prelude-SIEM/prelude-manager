@@ -54,6 +54,7 @@
 #include "manager-auth.h"
 #include "manager-options.h"
 #include "server-generic.h"
+#include "reverse-relaying.h"
 
 
 #define STATE_ACCEPTED_TIMEOUT 20
@@ -83,11 +84,11 @@ struct server_generic_client {
 
 extern manager_config_t config;
 extern prelude_client_t *manager_client;
+
+
+static struct ev_async ev_trigger;
 extern struct ev_loop *manager_event_loop;
 static volatile sig_atomic_t continue_processing = 1;
-
-
-
 
 static int send_auth_result(server_generic_client_t *client, int result)
 {
@@ -488,11 +489,8 @@ static void libev_notification_cb(struct ev_loop *loop, struct ev_io *w, int rev
                         ret = read_connection_cb(cdata->server, cdata);
         }
 
-        if ( ret < 0 || cdata->state & SERVER_GENERIC_CLIENT_STATE_CLOSING ) {
+        if ( ret < 0 || cdata->state & SERVER_GENERIC_CLIENT_STATE_CLOSING )
                 ret = close_connection_cb(cdata->server, cdata);
-                if ( ret >= 0 )
-                        return;
-        }
 }
 
 
@@ -502,9 +500,19 @@ static void connection_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 }
 
 
+static void ev_trigger_cb(struct ev_loop *loop, struct ev_async *w, int revents)
+{
+        reverse_relay_send_prepared();
+}
+
+
+
 static int wait_connection(server_generic_t **server, size_t nserver)
 {
         int i;
+
+        ev_async_init(&ev_trigger, ev_trigger_cb);
+        ev_async_start(manager_event_loop, &ev_trigger);
 
         for ( i = 0; i < nserver; i++ ) {
                 ev_io_init(&server[i]->evio, connection_cb, server[i]->sock, EV_READ);
@@ -861,6 +869,12 @@ void server_generic_destroy(server_generic_t *server)
         }
 
         free(server);
+}
+
+
+void server_generic_notify_event(void)
+{
+        ev_async_send(manager_event_loop, &ev_trigger);
 }
 
 
