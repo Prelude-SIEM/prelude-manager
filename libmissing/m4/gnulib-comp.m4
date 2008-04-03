@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2004-2007 Free Software Foundation, Inc.
+# Copyright (C) 2002-2008 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -38,6 +38,7 @@ AC_DEFUN([gl_INIT],
   m4_pushdef([AC_REPLACE_FUNCS], m4_defn([gl_REPLACE_FUNCS]))
   m4_pushdef([AC_LIBSOURCES], m4_defn([gl_LIBSOURCES]))
   gl_source_base='libmissing'
+  gl_EOVERFLOW
   gl_FUNC_ALLOCA
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
@@ -231,7 +232,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/vsnprintf.c
   lib/wchar.in.h
   lib/xsize.h
-  m4/absolute-header.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/eoverflow.m4
