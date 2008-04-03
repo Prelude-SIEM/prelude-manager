@@ -51,6 +51,4 @@ int sensor_server_add_client(server_generic_t *server, server_generic_client_t *
 
 int sensor_server_write_client(server_generic_client_t *dst, prelude_msg_t *msg);
 
-void sensor_server_queue_write_client(server_generic_client_t *client, prelude_msg_t *msg);
-
 #endif /* _MANAGER_SENSOR_SERVER_H */

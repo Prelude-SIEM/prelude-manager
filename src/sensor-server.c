@@ -717,17 +717,3 @@ int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *m
 
         return ret;
 }
-
-
-
-void sensor_server_queue_write_client(server_generic_client_t *client, prelude_msg_t *msg)
-{
-        prelude_bool_t need_notify_write;
-        sensor_fd_t *dst = (sensor_fd_t *) client;
-
-        need_notify_write = prelude_list_is_empty(&dst->write_msg_list);
-        prelude_linked_object_add_tail(&dst->write_msg_list, (prelude_linked_object_t *) msg);
-
-        if ( need_notify_write )
-                server_generic_notify_write_enable((server_generic_client_t *) dst);
-}
