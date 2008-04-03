@@ -29,7 +29,7 @@
   detect possibly corrupted disk buffer, or resume at the time we stopped
   recovering them.
 
-- New sched-priority and sched-buffer-size configuration options. 
+- New sched-priority and sched-buffer-size configuration options.
 
 - Fix a bug where several relaying plugin instance would only forward
   their message to a single Manager.
@@ -65,14 +65,14 @@
   generic TCP options.
 
 - Implement modified patch from Pierre Chifflier <chifflier@inl.fr>
-  to fix the example log path (fix #224). 
+  to fix the example log path (fix #224).
 
 - Move IDMEF message normalization in the scheduler, rather than
   doing it upon reception. This remove some load from the server
   and allow Prelude-Manager own IDMEF messages to go through the
-  normalizer path. 
+  normalizer path.
 
-- Implement heartbeat->analyzer normalization. 
+- Implement heartbeat->analyzer normalization.
 
 - Improve IPv4 / IPv6 address normalization.
   IPv4 mapped IPv6 addresses are now mapped back to IPv4.
@@ -83,7 +83,7 @@
 - Make a difference between exceptional report plugin failure (example:
   a single message couldn't be processed) and "global" plugin failure
   (example: database server is down). We use a different failover for
-  'exceptional' failure, so that we don't try to reinsert a bogus message 
+  'exceptional' failure, so that we don't try to reinsert a bogus message
   (fix #247).
 
 - Start of a Prelude-Manager manpages (#236).
@@ -93,478 +93,478 @@
 
 * 2007-05-02, prelude-manager-0.9.8:
 
-        - Initial implementation of the 'thresholding' plugin, allowing you to 
+        - Initial implementation of the 'thresholding' plugin, allowing you to
           suppress events after a certain limit/threshold.
 
         - Filters hooking to a reporting plugin are now OR'ed instead of being
-          AND'ed. AND is already possible by hooking filtering plugin one with 
+          AND'ed. AND is already possible by hooking filtering plugin one with
           another.
 
         - Improved error reporting.
-        
+
         - Minor bug fixes.
-        
+
 
 * 2007-03-16, prelude-manager-0.9.7.2:
 
         - Allow filtering plugins to hook others filters plugins.
 
-        - Update reporting code to latest specification for the SNMPService class. 
+        - Update reporting code to latest specification for the SNMPService class.
 
         - Warn about Un-handled command line arguments.
-        
+
         - Properly dump IDMEF-XML output (fix #186).
 
         - Various bug fixes.
-        
-        
+
+
 * 2006-12-21, prelude-manager-0.9.7.1:
 
-        - Fix compilation issue on system where ferror is not declared as a function, 
+        - Fix compilation issue on system where ferror is not declared as a function,
           regression introduced in 0.9.7 (#186).
 
-        
+
 * 2006-12-20, prelude-manager-0.9.7:
 
         - Fix a startup problem on system with different address of different family
           mapping to the same IP.
-        
+
         - Fix for system using the GnuLib poll replacement modules. The module was
           broken when used in conjunction with server socket.
-          
+
         - Various portability fixes (this release should compile and run on OSX out of the box).
-          
+
 
 * 2006-10-04, prelude-manager-0.9.6.1:
 
-	- Fix possible undefined reference to GnuLib symbols.
+        - Fix possible undefined reference to GnuLib symbols.
 
-	- Verbose error message in case of Authentication initialization failure.
+        - Verbose error message in case of Authentication initialization failure.
 
 
 
 * 2006-08-24, prelude-manager-0.9.6:
 
-	- In case an IDMEF-Service object contain neither name or port 
-	  attribute, set name to "unknown" in order to avoid IDMEF DTD 
-	  validation issue.
+        - In case an IDMEF-Service object contain neither name or port
+          attribute, set name to "unknown" in order to avoid IDMEF DTD
+          validation issue.
 
-	- Normalize analyzer(*).node.
+        - Normalize analyzer(*).node.
 
-	- Fix OpenBSD getaddrinfo() problem.
+        - Fix OpenBSD getaddrinfo() problem.
 
 
 
 * 2006-06-14, prelude-manager-0.9.5:
 
-	- Store Prelude-Manager FIFO into the profile backup directory so that FIFO 
-	  are per profile. Fix #151. 	
+        - Store Prelude-Manager FIFO into the profile backup directory so that FIFO
+          are per profile. Fix #151.
 
-	- Update libwrap check, don't statically link libwrap. Cleanup. Fix #144. 
+        - Update libwrap check, don't statically link libwrap. Cleanup. Fix #144.
 
-	- XMLmod: Implement CorrelationAlert processing.
-    
-	- XMLmod: No ntpstamp attribute in File/Inode element datetime fields.
-    
-	- XMLmod: permission -> Permission, as per IDMEF DTD requirements.
-    	
-	- XMLmod: Process the Checksum IDMEF element.
+        - XMLmod: Implement CorrelationAlert processing.
 
- 	- XMLmod: Make AdditionalData validation pass (IDMEF v15 -> v16 change).
+        - XMLmod: No ntpstamp attribute in File/Inode element datetime fields.
 
-	- XMLmod: disable-buffering option argument is optional.
+        - XMLmod: permission -> Permission, as per IDMEF DTD requirements.
 
-    	- XMLmod: Correct DTD loading error. 
+        - XMLmod: Process the Checksum IDMEF element.
 
-	- XMLmod: Avoid NULL libxml warning.
+        - XMLmod: Make AdditionalData validation pass (IDMEF v15 -> v16 change).
+
+        - XMLmod: disable-buffering option argument is optional.
+
+        - XMLmod: Correct DTD loading error.
+
+        - XMLmod: Avoid NULL libxml warning.
 
 
 
 * 2006-03-28, prelude-manager-0.9.4.1:
 
-	- Enable write notification on queued write (Fix reverse relaying).
+        - Enable write notification on queued write (Fix reverse relaying).
 
-	- Fix IDMEF message scheduler warning when plugin failover is enabled.
-	
+        - Fix IDMEF message scheduler warning when plugin failover is enabled.
+
 
 * 2006-03-17, prelude-manager-0.9.4:
 
-	- Fix reverse relaying on some architecture due to thread safety
-	  issue. 
+        - Fix reverse relaying on some architecture due to thread safety
+          issue.
 
-	- Server scalability improvement in case of message burst.
+        - Server scalability improvement in case of message burst.
 
-	- Start work on a normalization plugin. Very simple for now, mostly 
-	  sanitize IDMEF Address and IDMEF Service classes. 
+        - Start work on a normalization plugin. Very simple for now, mostly
+          sanitize IDMEF Address and IDMEF Service classes.
 
-	- When an analyzer have read and write permission to prelude-manager, 
-	  avoid acting as an echo server, don't send received message from this 
-	  analyzer to itself. 
+        - When an analyzer have read and write permission to prelude-manager,
+          avoid acting as an echo server, don't send received message from this
+          analyzer to itself.
 
-	- When no listen address is specified, try to bind all
-	  system address (both ipv4/ipv6).
+        - When no listen address is specified, try to bind all
+          system address (both ipv4/ipv6).
 
-	- Send an alert to the peer on handshake failure, so that
-	  the peer have some information on what happened.
+        - Send an alert to the peer on handshake failure, so that
+          the peer have some information on what happened.
 
-	- Consistency work accross all plugin logfile option.
+        - Consistency work accross all plugin logfile option.
 
-	- Various bug fixes and improvements.
+        - Various bug fixes and improvements.
 
 
 * 2006-02-09, prelude-manager-0.9.3:
 
-	- Only send TLS alert if there is one queued, fix a possible crash.
+        - Only send TLS alert if there is one queued, fix a possible crash.
 
-	- Emit warning if prelude-failover problem arise.
-	
-	- Improve error handling.
+        - Emit warning if prelude-failover problem arise.
 
-	- Improve db plugin log option, "-" now mean stdout.
-	
-	- Various bug fixes.
+        - Improve error handling.
+
+        - Improve db plugin log option, "-" now mean stdout.
+
+        - Various bug fixes.
 
 
 * 2006-01-30, prelude-manager-0.9.2:
 
-	- Allow "file" configuration settings to be set from the
-	  database plugin, to handle file based database (SQLite).
+        - Allow "file" configuration settings to be set from the
+          database plugin, to handle file based database (SQLite).
 
-	- prelude-manager has been updated to check the loaded revocation 
-	  list, if available. This was needed since the recent prelude-adduser
-	  addition allowing to create analyzer revocation list.
+        - prelude-manager has been updated to check the loaded revocation
+          list, if available. This was needed since the recent prelude-adduser
+          addition allowing to create analyzer revocation list.
 
-	- Remove line size limitation on specified IDMEF-criteria.
+        - Remove line size limitation on specified IDMEF-criteria.
 
-	- Remove all ancillary groups as well as setgid-ing.
+        - Remove all ancillary groups as well as setgid-ing.
 
-	- Fix idmef-criteria-filter option conflict.
+        - Fix idmef-criteria-filter option conflict.
 
-	- Fix a possible crash if no listen address is specified, but a 
-	  reverse relay is used. 
+        - Fix a possible crash if no listen address is specified, but a
+          reverse relay is used.
 
-	- Much better error reporting.
+        - Much better error reporting.
 
 
 * 2005-11-14, prelude-manager-0.9.1:
 
-	- Ability to listen on multiple IP address.
+        - Ability to listen on multiple IP address.
 
-	- Fix possible race condition with per-sensor queue creation.
+        - Fix possible race condition with per-sensor queue creation.
 
-	- Fix orphaned disk queues that could remain un-flushed in case 
-	  of incorrect Manager shutdown.
+        - Fix orphaned disk queues that could remain un-flushed in case
+          of incorrect Manager shutdown.
 
-	- Cleanup.
+        - Cleanup.
 
 
 * 2005-09-20, prelude-manager-0.9.0:
 
-	- 0.9.0 final.
+        - 0.9.0 final.
 
-	- Improve error reporting.
+        - Improve error reporting.
 
-	- Fix failover on relaying.
+        - Fix failover on relaying.
 
-	- Fix warnings.
+        - Fix warnings.
 
 
 * 2005-08-17, prelude-manager-0.9.0-rc8:
 
-	- Re-establish signal handler for older Unix.
+        - Re-establish signal handler for older Unix.
 
-	- New user/group configuration option, that might be used so
-	  that prelude-manager, if started as root, drop privilege.
+        - New user/group configuration option, that might be used so
+          that prelude-manager, if started as root, drop privilege.
 
-	- Change from old port number (5554) to IANA assignated port number 
-	  for Prelude (4690).
-	
+        - Change from old port number (5554) to IANA assignated port number
+          for Prelude (4690).
+
 
 * 2005-08-01, prelude-manager-0.9.0-rc7:
 
-	- Allocate an unique instance ID per connecting analyzer. Allow 
-	  to make the difference between two parallel connection from the
-	  same analyzer.
+        - Allocate an unique instance ID per connecting analyzer. Allow
+          to make the difference between two parallel connection from the
+          same analyzer.
 
-	- FD_CLOEXEC on opened fd: Fix file descriptor leak on SIGHUP.
+        - FD_CLOEXEC on opened fd: Fix file descriptor leak on SIGHUP.
 
 
 * 2005-07-01, prelude-manager-0.9.0-rc6:
 
-	- Correct textmod printing of microseconds.
+        - Correct textmod printing of microseconds.
 
-	- Check permission on startup and refuse to start if there
-	  is a problem. Should prevent some users mistake.
+        - Check permission on startup and refuse to start if there
+          is a problem. Should prevent some users mistake.
 
-	- Fix problem with Xmlmod handling of text data (was creating
-	  problem in case they contained the & character).
+        - Fix problem with Xmlmod handling of text data (was creating
+          problem in case they contained the & character).
 
-	- More detailed error messages.
+        - More detailed error messages.
 
-	- GCC4 warnings fixes & 64bits platform warnings fixes. 
-	  More C89 compliance.
+        - GCC4 warnings fixes & 64bits platform warnings fixes.
+          More C89 compliance.
 
 
 * 2005-05-26, prelude-manager-0.9.0-rc5:
 
-	- Fix leak on local configuration message.
-	
-	- Default to listening on localhost instead of UNIX domain socket.
+        - Fix leak on local configuration message.
 
-	- Fix compilation problem on system lacking PRIu64 definition.
+        - Default to listening on localhost instead of UNIX domain socket.
+
+        - Fix compilation problem on system lacking PRIu64 definition.
 
 
 * 2005-05-13, prelude-manager-0.9.0-rc4:
 
-	- Make filter option handling more consistant.
+        - Make filter option handling more consistant.
 
-	- Fix recursive analyzer routing, endianess issue.
+        - Fix recursive analyzer routing, endianess issue.
 
-	- Error return triggered by option beautification.
+        - Error return triggered by option beautification.
 
-	- More detailed error messages.
+        - More detailed error messages.
 
-	- Option priority re-ordering.
+        - Option priority re-ordering.
 
-	- Decrease verbosity level.
+        - Decrease verbosity level.
 
 
 * 2005-04-17, prelude-manager-0.9.0-rc3:
 
-	- Don't declare the client to be a reader until we get to the capability message.
-	  This way, if the user get permission wrong (applying more permission than needed),
-	  only client hardwired permission apply.
+        - Don't declare the client to be a reader until we get to the capability message.
+          This way, if the user get permission wrong (applying more permission than needed),
+          only client hardwired permission apply.
 
-	- Fix memory leak.
+        - Fix memory leak.
 
 
 * 2005-04-09, prelude-manager-0.9.0-rc2:
-	
-	- Xmlmod fixes.
-	
-	- Change analyzer class from "Manager" to "Concentrator"
 
-	- Better database plugin error reporting.
+        - Xmlmod fixes.
 
-	- Fix an error when starting the database plugin from command line.
+        - Change analyzer class from "Manager" to "Concentrator"
 
-	- Safe filter plugin destroy hook.
+        - Better database plugin error reporting.
 
-	- Relaying plugin now provide a destroy hook.
+        - Fix an error when starting the database plugin from command line.
 
-	- Fix IRIX & OpenBSD compilation.
+        - Safe filter plugin destroy hook.
 
-	- Direct GnuTLS CFLAGS handling.
-	
+        - Relaying plugin now provide a destroy hook.
+
+        - Fix IRIX & OpenBSD compilation.
+
+        - Direct GnuTLS CFLAGS handling.
+
 
 * 2005-03-29, prelude-manager-0.9.0-rc1:
 
-	Note: due to several years of work and the habit of working with the 
-	new version, it is hard to remind all the enhancement made in this release.
-	Please bear with us and try it for yourself :-)
-	
-	- Clients using libprelude can now request copies of alert from a 
-	  Manager. Additionally, Prelude-Manager will backup alerts received 
-	  while a 'querying' analyzer was offline and emit them when it reconnect.
+        Note: due to several years of work and the habit of working with the
+        new version, it is hard to remind all the enhancement made in this release.
+        Please bear with us and try it for yourself :-)
 
-	- New access control system, allowing to specify the type of operation a 
-	  given client is allowed to do.
+        - Clients using libprelude can now request copies of alert from a
+          Manager. Additionally, Prelude-Manager will backup alerts received
+          while a 'querying' analyzer was offline and emit them when it reconnect.
 
-	- Support failover at the Report plugin level, allowing for example to setup 
-	  a fallback if one of the report plugin fail (example: if the database used 
-	  by a report plugin goes down).
+        - New access control system, allowing to specify the type of operation a
+          given client is allowed to do.
 
-	- Improved scheduler fairness across different sensors.
+        - Support failover at the Report plugin level, allowing for example to setup
+          a fallback if one of the report plugin fail (example: if the database used
+          by a report plugin goes down).
 
-	- Use ephemeral Diffie Hellman parameters.
+        - Improved scheduler fairness across different sensors.
 
-	- Allow loading of multiple instances of the same plugin, your Manager can now 
-	  report to an unlimited number plugin instances (example: you can now have multiple 
-	  database).
+        - Use ephemeral Diffie Hellman parameters.
 
-	- Modular filtering system, allowing to define IDMEF criteria, and to bind action 
-	  to be issued when an event match theses rules.
+        - Allow loading of multiple instances of the same plugin, your Manager can now
+          report to an unlimited number plugin instances (example: you can now have multiple
+          database).
 
-	- Use libpreludedb.
+        - Modular filtering system, allowing to define IDMEF criteria, and to bind action
+          to be issued when an event match theses rules.
 
-	- Ipv6 support.
-	- Enhanced portability (Should now build successfully on architecture such as Tru64/AIX).
-	- Support plugin dl-preopening on platform without dlopen() or dlsym().
+        - Use libpreludedb.
+
+        - Ipv6 support.
+        - Enhanced portability (Should now build successfully on architecture such as Tru64/AIX).
+        - Support plugin dl-preopening on platform without dlopen() or dlsym().
 
 
 * 2003-12-09, prelude-manager-0.8.10:
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
-	  Fix logfile creation permission.
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          Fix logfile creation permission.
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
-	- Nicolas Delon <delon.nicolas@wanadoo.fr>    :
-	  Workaround a bug in SSL mode that could introduce
-	  an alert processing delay because OpenSSL use it's own
-	  data buffering.
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+        - Nicolas Delon <delon.nicolas@wanadoo.fr>    :
+          Workaround a bug in SSL mode that could introduce
+          an alert processing delay because OpenSSL use it's own
+          data buffering.
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
-	  Add missing COPYING.OpenSSL file.
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          Add missing COPYING.OpenSSL file.
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
-	- Nicolas Delon <delon.nicolas@wanadoo.fr>    :
-	  Fixed a bug preventing the manager from being ran as a 
-	  normal user without manual permission customisation.
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+        - Nicolas Delon <delon.nicolas@wanadoo.fr>    :
+          Fixed a bug preventing the manager from being ran as a
+          normal user without manual permission customisation.
 
 * 2003-10-22, prelude-manager-0.8.9
 
-	- James Horvath <james.horvath@steelcase.com>:
-	  Fix an occasional SIGSEGV due to a NULL pointer dereference 
-	  when using the pgsql database plugin. 
+        - James Horvath <james.horvath@steelcase.com>:
+          Fix an occasional SIGSEGV due to a NULL pointer dereference
+          when using the pgsql database plugin.
 
 * 2003-09-21, prelude-manager-0.8.8
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
-	- Laurent Pautet <landmir@landmir.net>:
-          Avoid inserting quoted NULL entry in database, which the 
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+        - Laurent Pautet <landmir@landmir.net>:
+          Avoid inserting quoted NULL entry in database, which the
           query client would interpret as being valid.
 
-	- Fabrice Alphonso <fabrice@alphonso.dyndns.org>:
-	  Fix Pgsql database creation script (the user was created, 
-	  but the table were not).
+        - Fabrice Alphonso <fabrice@alphonso.dyndns.org>:
+          Fix Pgsql database creation script (the user was created,
+          but the table were not).
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
-	  Use LOG_ERR in MySQL plugin to tell the user that connection information
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          Use LOG_ERR in MySQL plugin to tell the user that connection information
           are missing. Some user were confused by thinking the output
           looked okay, and didn't thought it was an error.
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
-	  Fix insertion of correlated alert.
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          Fix insertion of correlated alert.
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
-	  Fix a crash in the Xml plugin, on system using libxml 2.5.8.
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          Fix a crash in the Xml plugin, on system using libxml 2.5.8.
 
-	- Laurent Pautet <landmir@landmir.net>:
-	  Try to speed up DB access by setting up some INDEX.
+        - Laurent Pautet <landmir@landmir.net>:
+          Try to speed up DB access by setting up some INDEX.
 
-	- Laurent Pautet <landmir@landmir.net>:
-	  A space was missing in inserted timestamp. only worked for
-          MySQL 3.2x to 4.0.x, not for MySQL 4.1.x nor PostgreSQL 
-	  (fix bug #84).
+        - Laurent Pautet <landmir@landmir.net>:
+          A space was missing in inserted timestamp. only worked for
+          MySQL 3.2x to 4.0.x, not for MySQL 4.1.x nor PostgreSQL
+          (fix bug #84).
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
-	- Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>:
-	  Bring the "keepalive" and "prompt" option to the 
-	  manager-adduser program.
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+        - Krzysztof Zaraska <kzaraska@student.uci.agh.edu.pl>:
+          Bring the "keepalive" and "prompt" option to the
+          manager-adduser program.
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
-	  We are now able to accept both Ipv6 and Ipv4 connection.
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          We are now able to accept both Ipv6 and Ipv4 connection.
 
-	- Sylvain Gil <prelude-code@tootella.org>:
-	  MacosX port.
+        - Sylvain Gil <prelude-code@tootella.org>:
+          MacosX port.
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
-	  Added support for dumping ECNECHO and CWR flags when
-	  they are set in the prelude-nids decoding plugin.
-	
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
-	  Fix a bug were ip_len would always be dumped as being 0
-	  in the prelude-nids decoding plugin.
-	
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:	
-	  Fix a possible assertion failure in the Passive OS Fingerprinting
-	  code.	
-	
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          Added support for dumping ECNECHO and CWR flags when
+          they are set in the prelude-nids decoding plugin.
+
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          Fix a bug were ip_len would always be dumped as being 0
+          in the prelude-nids decoding plugin.
+
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          Fix a possible assertion failure in the Passive OS Fingerprinting
+          code.
+
 * 2003-04-28, prelude-manager-0.8.7
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
-	  Update server-logic code. This newer version fix every known
-	  bug and race (was tested on an heavily loaded IRC server).
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          Update server-logic code. This newer version fix every known
+          bug and race (was tested on an heavily loaded IRC server).
 
-	- Nicolas Delon <delon.nicolas@wanadoo.fr>:
-	  UTC time was used to build the string instead of localtime.
-	  GMT offset was badly calculated (using tm_hour field of struct tm).
-	  
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
-	  You can now provide a prefix for pgsql, mysql, and xml2.
-	  Fix bug #0000070 ("Problems with the --enable-pgsql configuration 
-	  options").
+        - Nicolas Delon <delon.nicolas@wanadoo.fr>:
+          UTC time was used to build the string instead of localtime.
+          GMT offset was badly calculated (using tm_hour field of struct tm).
+
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          You can now provide a prefix for pgsql, mysql, and xml2.
+          Fix bug #0000070 ("Problems with the --enable-pgsql configuration
+          options").
 
         - Patrick Marie <mycroft@virgaria.org>:
-          Fixed bug #0000072 and part of #0000073: Full rewrite of the 
-	  PostgreSQL database/user/tables creation.
-			
-	- Patrick Marie <mycroft@virgaria.org>:
-	  Fixed bug #0000074 : "prelude-manager-db-create.sh doesn't 
-	  work with FreeBSD. /bin/sh. Multi conditionnal "if" in test(1) 
-	  are not supported, neither [[ ]] syntax."
-	  
-	- Michael Boman <michael.boman@securecirt.com>:
-	  Fixed bug #0000073 : "prelude-manager-db-create.sh can only 
-	  use local databases".
-	  
-	- Michael Boman <michael.boman@securecirt.com>:
-	  Both mysql and pgsql now have a new command line option to assign 
-	  port number : dbport. Now works with MySQL v4.0+.
-	  
-	- Yoann Vandoorselaere  <yoann@prelude-ids.org>:
-	- Laurent Oudot <oudot.laurent@wanadoo.fr>:
-	  Implement passive os fingerprint, adding a fingerprint to the 
-	  alert additional data.
+          Fixed bug #0000072 and part of #0000073: Full rewrite of the
+          PostgreSQL database/user/tables creation.
 
-	- Yoann Vandoorselaere  <yoann@prelude-ids.org>:
-	  Fix a bug pointed out by Laurent Oudot <oudot.laurent@wanadoo.fr>,
+        - Patrick Marie <mycroft@virgaria.org>:
+          Fixed bug #0000074 : "prelude-manager-db-create.sh doesn't
+          work with FreeBSD. /bin/sh. Multi conditionnal "if" in test(1)
+          are not supported, neither [[ ]] syntax."
+
+        - Michael Boman <michael.boman@securecirt.com>:
+          Fixed bug #0000073 : "prelude-manager-db-create.sh can only
+          use local databases".
+
+        - Michael Boman <michael.boman@securecirt.com>:
+          Both mysql and pgsql now have a new command line option to assign
+          port number : dbport. Now works with MySQL v4.0+.
+
+        - Yoann Vandoorselaere  <yoann@prelude-ids.org>:
+        - Laurent Oudot <oudot.laurent@wanadoo.fr>:
+          Implement passive os fingerprint, adding a fingerprint to the
+          alert additional data.
+
+        - Yoann Vandoorselaere  <yoann@prelude-ids.org>:
+          Fix a bug pointed out by Laurent Oudot <oudot.laurent@wanadoo.fr>,
           where packet dumped wouldn't show the DF (Don't Fragment) flag.
 
-	- Yoann Vandoorselaere  <yoann@prelude-ids.org>:
-	  Fix some bug in ARP packet dump.
+        - Yoann Vandoorselaere  <yoann@prelude-ids.org>:
+          Fix some bug in ARP packet dump.
 
-	- Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>:
-	  Allow the use of an arbitrary length certificate buffer.
+        - Krzysztof Zaraska  <kzaraska@student.uci.agh.edu.pl>:
+          Allow the use of an arbitrary length certificate buffer.
 
-	- Yoann Vandoorselaere <yoann@prelude-ids.org>:
-	  Permit linking with OpenSSL so that Debian package might 
-	  be distributed.
+        - Yoann Vandoorselaere <yoann@prelude-ids.org>:
+          Permit linking with OpenSSL so that Debian package might
+          be distributed.
 
-	- Sylvain Gil <prelude-code@tootella.org>:
-	  Added a -d option to the XML plugin that will disable file 
-	  buffering for xml output file.
+        - Sylvain Gil <prelude-code@tootella.org>:
+          Added a -d option to the XML plugin that will disable file
+          buffering for xml output file.
 
 * 2002-09-23, prelude-manager-0.8.6:
-	
-	- Fix a communication problem on linux kernel 2.2.x
+
+        - Fix a communication problem on linux kernel 2.2.x
           due to the non standard compliant poll() implementation.
-	  (Yoann Vandoorselaere).
-	
-	- Fix server-logic thread cancelation.
-	  (Yoann Vandoorselaere).
+          (Yoann Vandoorselaere).
 
-	- Add missing field in mysql / pgsql database schema.
-	  (Yoann Vandoorselaere).
+        - Fix server-logic thread cancelation.
+          (Yoann Vandoorselaere).
 
-	- Fix a FreeBSD compilation problem in the XML reporting plugin.
-	  (Krzysztof Zaraska, Yoann Vandoorselaere).
+        - Add missing field in mysql / pgsql database schema.
+          (Yoann Vandoorselaere).
 
-	
+        - Fix a FreeBSD compilation problem in the XML reporting plugin.
+          (Krzysztof Zaraska, Yoann Vandoorselaere).
+
+
 * 2002-09-10, prelude-manager-0.8.5:
-	- Fix possible heartbeat insertion problem.
-	  (Yoann Vandoorselaere)
+        - Fix possible heartbeat insertion problem.
+          (Yoann Vandoorselaere)
 
 * 2002-09-02, prelude-manager-0.8.4:
 
-	- New XML reporting plugin, to report alert in IDMEF-XML.
-	  This support dumping to a file, stderr. And might be used
-	  to check the message against the IDMEF-XML DTD.		
-	  (Yoann Vandoorselaere).
+        - New XML reporting plugin, to report alert in IDMEF-XML.
+          This support dumping to a file, stderr. And might be used
+          to check the message against the IDMEF-XML DTD.
+          (Yoann Vandoorselaere).
 
-	- correct OpenSSL, PgSQL, MySQL detection.
-	  (Yoann Vandoorselaere).
+        - correct OpenSSL, PgSQL, MySQL detection.
+          (Yoann Vandoorselaere).
 
 * 2002-08-26, prelude-manager-0.8.3:
-	- Fix off by one error in dynamic database query generation (Yoann Vandoorselaere).
-	- Textmod plugin formatting fix (Yoann Vandoorselaere).
-	- Handle message containing inode information (Yoann Vandoorselaere).
-	- Fix memory leak in PostgreSQL plugin (Krzysztof Zaraska).
-	- More detailed MySQL error messages (Krzysztof Zaraska).
-	- Avoid potentially missing \0 on really long filename (Guillaume Pelat).
+        - Fix off by one error in dynamic database query generation (Yoann Vandoorselaere).
+        - Textmod plugin formatting fix (Yoann Vandoorselaere).
+        - Handle message containing inode information (Yoann Vandoorselaere).
+        - Fix memory leak in PostgreSQL plugin (Krzysztof Zaraska).
+        - More detailed MySQL error messages (Krzysztof Zaraska).
+        - Avoid potentially missing \0 on really long filename (Guillaume Pelat).
 
 * 2002-08-01, prelude-manager-0.8.2:
-	- Fix possible MySQL plugin compilation problem (Yann Droneaud).
+        - Fix possible MySQL plugin compilation problem (Yann Droneaud).
 
 * 2002-08-01, prelude-manager-0.8.1:
-	- Compile again on FreeBSD-STABLE (Krzysztof Zaraska).
+        - Compile again on FreeBSD-STABLE (Krzysztof Zaraska).
