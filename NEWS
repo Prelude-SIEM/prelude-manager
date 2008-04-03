@@ -1,3 +1,27 @@
+* 2008-04-01, prelude-manager-0.9.12:
+
+- Use libev in place of the server-logic architecture: libev provides
+  the most scalable event notification mechanism available on a given
+  operating system.
+
+- New connection-timeout option, governing the maximum number of
+  seconds a client might take to authenticate (default: 10 seconds).
+
+- Fix a possible file descriptor leak on connection closure error.
+
+- Massive cleanup of the build process, enable RELRO when possible.
+
+- Fix a number of potential race in the reverse relaying code.
+
+- When reverse relaying messages, encode the same message once for all
+  recipients: this improve performance with more than one reverse
+  relaying client (was a long time FIXME).
+
+- Libev introduction also fix a rare issue where server-logic would not
+  notice a dead connection.
+
+
+
 * 2008-02-07, prelude-manager-0.9.11.2:
 
 - Missing config.h inclusion, leading to GnuLib module compilation failure
