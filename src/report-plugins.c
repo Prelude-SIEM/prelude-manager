@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998-2005,2006,2007 PreludeIDS Technologies. All Rights Reserved.
+* Copyright (C) 1998-2007,2008 PreludeIDS Technologies. All Rights Reserved.
 * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
 * This file is part of the Prelude-Manager program.
@@ -191,8 +191,8 @@ static void failover_timer_expire_cb(void *data)
 static int setup_plugin_failover(prelude_plugin_instance_t *pi)
 {
         int ret;
-        char filename[256];
         plugin_failover_t *pf;
+        char filename[PATH_MAX];
         prelude_plugin_generic_t *plugin = prelude_plugin_instance_get_plugin(pi);
 
         get_failover_filename(pi, filename, sizeof(filename));

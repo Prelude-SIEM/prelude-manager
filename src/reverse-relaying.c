@@ -194,7 +194,7 @@ void reverse_relay_set_receiver_dead(reverse_relay_receiver_t *rrr)
 int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_client_t *client, uint64_t analyzerid)
 {
         int ret;
-        char buf[512];
+        char fname[PATH_MAX];
         reverse_relay_receiver_t *new;
 
         new = malloc(sizeof(*new));
@@ -205,10 +205,10 @@ int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_cl
         new->client = client;
         new->analyzerid = analyzerid;
 
-        prelude_client_profile_get_backup_dirname(prelude_client_get_profile(manager_client), buf, sizeof(buf));
-        snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "/%" PRELUDE_PRIu64, analyzerid);
+        prelude_client_profile_get_backup_dirname(prelude_client_get_profile(manager_client), fname, sizeof(fname));
+        snprintf(fname + strlen(fname), sizeof(fname) - strlen(fname), "/%" PRELUDE_PRIu64, analyzerid);
 
-        ret = prelude_failover_new(&new->failover, buf);
+        ret = prelude_failover_new(&new->failover, fname);
         if ( ret < 0 ) {
                 prelude_perror(ret, "could not create failover");
                 free(new);
