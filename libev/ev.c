@@ -41,6 +41,7 @@
 extern "C" {
 #endif
 
+/* this big block deduces configuration from config.h */
 #ifndef EV_STANDALONE
 # ifdef EV_CONFIG_H
 #  include EV_CONFIG_H
@@ -120,6 +121,14 @@ extern "C" {
 #  endif
 # endif
 
+# ifndef EV_USE_EVENTFD
+#  if HAVE_EVENTFD
+#   define EV_USE_EVENTFD 1
+#  else
+#   define EV_USE_EVENTFD 0
+#  endif
+# endif
+   
 #endif
 
 #include <math.h>
@@ -154,7 +163,7 @@ extern "C" {
 # endif
 #endif
 
-/**/
+/* this block tries to deduce configuration from header-defined symbols and defaults */
 
 #ifndef EV_USE_MONOTONIC
 # define EV_USE_MONOTONIC 0
@@ -181,7 +190,11 @@ extern "C" {
 #endif
 
 #ifndef EV_USE_EPOLL
-# define EV_USE_EPOLL 0
+# if __linux && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 4))
+#  define EV_USE_EPOLL 1
+# else
+#  define EV_USE_EPOLL 0
+# endif
 #endif
 
 #ifndef EV_USE_KQUEUE
@@ -193,7 +206,11 @@ extern "C" {
 #endif
 
 #ifndef EV_USE_INOTIFY
-# define EV_USE_INOTIFY 0
+# if __linux && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 4))
+#  define EV_USE_INOTIFY 1
+# else
+#  define EV_USE_INOTIFY 0
+# endif
 #endif
 
 #ifndef EV_PID_HASHSIZE
@@ -212,7 +229,15 @@ extern "C" {
 # endif
 #endif
 
-/**/
+#ifndef EV_USE_EVENTFD
+# if __linux && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 7))
+#  define EV_USE_EVENTFD 1
+# else
+#  define EV_USE_EVENTFD 0
+# endif
+#endif
+
+/* this block fixes any misconfiguration where we know we run into trouble otherwise */
 
 #ifndef CLOCK_MONOTONIC
 # undef EV_USE_MONOTONIC
@@ -243,6 +268,18 @@ extern "C" {
 # include <winsock.h>
 #endif
 
+#if EV_USE_EVENTFD
+/* our minimum requirement is glibc 2.7 which has the stub, but not the header */
+# include <stdint.h>
+# ifdef __cplusplus
+extern "C" {
+# endif
+int eventfd (unsigned int initval, int flags);
+# ifdef __cplusplus
+}
+# endif
+#endif
+
 /**/
 
 /*
@@ -265,7 +302,7 @@ extern "C" {
 #else
 # define expect(expr,value)         (expr)
 # define noinline
-# if __STDC_VERSION__ < 199901L
+# if __STDC_VERSION__ < 199901L && __GNUC__ < 2
 #  define inline
 # endif
 #endif
@@ -325,7 +362,22 @@ syserr (const char *msg)
     }
 }
 
-static void *(*alloc)(void *ptr, long size);
+static void *
+ev_realloc_emul (void *ptr, long size)
+{
+  /* some systems, notably openbsd and darwin, fail to properly
+   * implement realloc (x, 0) (as required by both ansi c-98 and
+   * the single unix specification, so work around them here.
+   */
+
+  if (size)
+    return realloc (ptr, size);
+
+  free (ptr);
+  return 0;
+}
+
+static void *(*alloc)(void *ptr, long size) = ev_realloc_emul;
 
 void
 ev_set_allocator (void *(*cb)(void *ptr, long size))
@@ -336,7 +388,7 @@ ev_set_allocator (void *(*cb)(void *ptr, long size))
 inline_speed void *
 ev_realloc (void *ptr, long size)
 {
-  ptr = alloc ? alloc (ptr, size) : realloc (ptr, size);
+  ptr = alloc (ptr, size);
 
   if (!ptr && size)
     {
@@ -453,7 +505,7 @@ ev_sleep (ev_tstamp delay)
 
       nanosleep (&ts, 0);
 #elif defined(_WIN32)
-      Sleep (delay * 1e3);
+      Sleep ((unsigned long)(delay * 1e3));
 #else
       struct timeval tv;
 
@@ -804,13 +856,24 @@ evpipe_init (EV_P)
 {
   if (!ev_is_active (&pipeev))
     {
-      while (pipe (evpipe))
-        syserr ("(libev) error creating signal/async pipe");
+#if EV_USE_EVENTFD
+      if ((evfd = eventfd (0, 0)) >= 0)
+        {
+          evpipe [0] = -1;
+          fd_intern (evfd);
+          ev_io_set (&pipeev, evfd, EV_READ);
+        }
+      else
+#endif
+        {
+          while (pipe (evpipe))
+            syserr ("(libev) error creating signal/async pipe");
 
-      fd_intern (evpipe [0]);
-      fd_intern (evpipe [1]);
+          fd_intern (evpipe [0]);
+          fd_intern (evpipe [1]);
+          ev_io_set (&pipeev, evpipe [0], EV_READ);
+        }
 
-      ev_io_set (&pipeev, evpipe [0], EV_READ);
       ev_io_start (EV_A_ &pipeev);
       ev_unref (EV_A); /* watcher should not keep loop alive */
     }
@@ -824,7 +887,16 @@ evpipe_write (EV_P_ EV_ATOMIC_T *flag)
       int old_errno = errno; /* save errno because write might clobber it */
 
       *flag = 1;
-      write (evpipe [1], &old_errno, 1);
+
+#if EV_USE_EVENTFD
+      if (evfd >= 0)
+        {
+          uint64_t counter = 1;
+          write (evfd, &counter, sizeof (uint64_t));
+        }
+      else
+#endif
+        write (evpipe [1], &old_errno, 1);
 
       errno = old_errno;
     }
@@ -833,10 +905,18 @@ evpipe_write (EV_P_ EV_ATOMIC_T *flag)
 static void
 pipecb (EV_P_ ev_io *iow, int revents)
 {
-  {
-    int dummy;
-    read (evpipe [0], &dummy, 1);
-  }
+#if EV_USE_EVENTFD
+  if (evfd >= 0)
+    {
+      uint64_t counter = 1;
+      read (evfd, &counter, sizeof (uint64_t));
+    }
+  else
+#endif
+    {
+      char dummy;
+      read (evpipe [0], &dummy, 1);
+    }
 
   if (gotsig && ev_is_default_loop (EV_A))
     {    
@@ -867,14 +947,14 @@ pipecb (EV_P_ ev_io *iow, int revents)
 /*****************************************************************************/
 
 static void
-sighandler (int signum)
+ev_sighandler (int signum)
 {
 #if EV_MULTIPLICITY
   struct ev_loop *loop = &default_loop_struct;
 #endif
 
 #if _WIN32
-  signal (signum, sighandler);
+  signal (signum, ev_sighandler);
 #endif
 
   signals [signum - 1].gotsig = 1;
@@ -1107,7 +1187,7 @@ loop_init (EV_P_ unsigned int flags)
           && getenv ("LIBEV_FLAGS"))
         flags = atoi (getenv ("LIBEV_FLAGS"));
 
-      if (!(flags & 0x0000ffffUL))
+      if (!(flags & 0x0000ffffU))
         flags |= ev_recommended_backends ();
 
 #if EV_USE_PORT
@@ -1141,8 +1221,16 @@ loop_destroy (EV_P)
       ev_ref (EV_A); /* signal watcher */
       ev_io_stop (EV_A_ &pipeev);
 
-      close (evpipe [0]); evpipe [0] = 0;
-      close (evpipe [1]); evpipe [1] = 0;
+#if EV_USE_EVENTFD
+      if (evfd >= 0)
+        close (evfd);
+#endif
+
+      if (evpipe [0] >= 0)
+        {
+          close (evpipe [0]);
+          close (evpipe [1]);
+        }
     }
 
 #if EV_USE_INOTIFY
@@ -1226,8 +1314,17 @@ loop_fork (EV_P)
 
       ev_ref (EV_A);
       ev_io_stop (EV_A_ &pipeev);
-      close (evpipe [0]);
-      close (evpipe [1]);
+
+#if EV_USE_EVENTFD
+      if (evfd >= 0)
+        close (evfd);
+#endif
+
+      if (evpipe [0] >= 0)
+        {
+          close (evpipe [0]);
+          close (evpipe [1]);
+        }
 
       evpipe_init (EV_A);
       /* now iterate over everything, in case we missed something */
@@ -1544,9 +1641,7 @@ static int loop_done;
 void
 ev_loop (EV_P_ int flags)
 {
-  loop_done = flags & (EVLOOP_ONESHOT | EVLOOP_NONBLOCK)
-            ? EVUNLOOP_ONE
-            : EVUNLOOP_CANCEL;
+  loop_done = EVUNLOOP_CANCEL;
 
   call_pending (EV_A); /* in case we recurse, ensure ordering stays nice and clean */
 
@@ -1652,9 +1747,12 @@ ev_loop (EV_P_ int flags)
         queue_events (EV_A_ (W *)checks, checkcnt, EV_CHECK);
 
       call_pending (EV_A);
-
     }
-  while (expect_true (activecnt && !loop_done));
+  while (expect_true (
+    activecnt
+    && !loop_done
+    && !(flags & (EVLOOP_ONESHOT | EVLOOP_NONBLOCK))
+  ));
 
   if (loop_done == EVUNLOOP_ONE)
     loop_done = EVUNLOOP_CANCEL;
@@ -1932,10 +2030,10 @@ ev_signal_start (EV_P_ ev_signal *w)
   if (!((WL)w)->next)
     {
 #if _WIN32
-      signal (w->signum, sighandler);
+      signal (w->signum, ev_sighandler);
 #else
       struct sigaction sa;
-      sa.sa_handler = sighandler;
+      sa.sa_handler = ev_sighandler;
       sigfillset (&sa.sa_mask);
       sa.sa_flags = SA_RESTART; /* if restarting works we save one iteration */
       sigaction (w->signum, &sa, 0);

@@ -100,6 +100,8 @@ struct ev_loop;
 # define EV_P_ EV_P,
 # define EV_A loop
 # define EV_A_ EV_A,
+# define EV_DEFAULT_UC ev_default_loop_uc ()
+# define EV_DEFAULT_UC_ EV_DEFAULT_UC,
 # define EV_DEFAULT ev_default_loop (0)
 # define EV_DEFAULT_ EV_DEFAULT,
 #else
@@ -109,28 +111,37 @@ struct ev_loop;
 # define EV_A_
 # define EV_DEFAULT
 # define EV_DEFAULT_
-
+# define EV_DEFAULT_UC
+# define EV_DEFAULT_UC_
 # undef EV_EMBED_ENABLE
 #endif
 
+#if __STDC_VERSION__ >= 199901L || __GNUC__ >= 3
+# define EV_INLINE static inline
+#else
+# define EV_INLINE static
+#endif
+
+/*****************************************************************************/
+
 /* eventmask, revents, events... */
-#define EV_UNDEF            -1L /* guaranteed to be invalid */
-#define EV_NONE           0x00L /* no events */
-#define EV_READ           0x01L /* ev_io detected read will not block */
-#define EV_WRITE          0x02L /* ev_io detected write will not block */
-#define EV_IOFDSET        0x80L /* internal use only */
-#define EV_TIMEOUT  0x00000100L /* timer timed out */
-#define EV_PERIODIC 0x00000200L /* periodic timer timed out */
-#define EV_SIGNAL   0x00000400L /* signal was received */
-#define EV_CHILD    0x00000800L /* child/pid had status change */
-#define EV_STAT     0x00001000L /* stat data changed */
-#define EV_IDLE     0x00002000L /* event loop is idling */
-#define EV_PREPARE  0x00004000L /* event loop about to poll */
-#define EV_CHECK    0x00008000L /* event loop finished poll */
-#define EV_EMBED    0x00010000L /* embedded event loop needs sweep */
-#define EV_FORK     0x00020000L /* event loop resumed in child */
-#define EV_ASYNC    0x00040000L /* async intra-loop signal */
-#define EV_ERROR    0x80000000L /* sent when an error occurs */
+#define EV_UNDEF            -1 /* guaranteed to be invalid */
+#define EV_NONE           0x00 /* no events */
+#define EV_READ           0x01 /* ev_io detected read will not block */
+#define EV_WRITE          0x02 /* ev_io detected write will not block */
+#define EV_IOFDSET        0x80 /* internal use only */
+#define EV_TIMEOUT  0x00000100 /* timer timed out */
+#define EV_PERIODIC 0x00000200 /* periodic timer timed out */
+#define EV_SIGNAL   0x00000400 /* signal was received */
+#define EV_CHILD    0x00000800 /* child/pid had status change */
+#define EV_STAT     0x00001000 /* stat data changed */
+#define EV_IDLE     0x00002000 /* event loop is idling */
+#define EV_PREPARE  0x00004000 /* event loop about to poll */
+#define EV_CHECK    0x00008000 /* event loop finished poll */
+#define EV_EMBED    0x00010000 /* embedded event loop needs sweep */
+#define EV_FORK     0x00020000 /* event loop resumed in child */
+#define EV_ASYNC    0x00040000 /* async intra-loop signal */
+#define EV_ERROR    0x80000000 /* sent when an error occurs */
 
 /* can be used to add custom fields to all watchers, while losing binary compatibility */
 #ifndef EV_COMMON
@@ -326,6 +337,8 @@ typedef struct ev_async
 
   EV_ATOMIC_T sent; /* private */
 } ev_async;
+
+# define ev_async_pending(w) ((w)->sent + 0)
 #endif
 
 /* the presence of this union forces similar struct layout */
@@ -353,24 +366,24 @@ union ev_any_watcher
 #if EV_EMBED_ENABLE
   struct ev_embed embed;
 #endif
-#if EV_ASYND_ENABLE
+#if EV_ASYNC_ENABLE
   struct ev_async async;
 #endif
 };
 
 /* bits for ev_default_loop and ev_loop_new */
 /* the default */
-#define EVFLAG_AUTO       0x00000000UL /* not quite a mask */
+#define EVFLAG_AUTO       0x00000000U /* not quite a mask */
 /* flag bits */
-#define EVFLAG_NOENV      0x01000000UL /* do NOT consult environment */
-#define EVFLAG_FORKCHECK  0x02000000UL /* check for a fork in each iteration */
+#define EVFLAG_NOENV      0x01000000U /* do NOT consult environment */
+#define EVFLAG_FORKCHECK  0x02000000U /* check for a fork in each iteration */
 /* method bits to be ored together */
-#define EVBACKEND_SELECT  0x00000001UL /* about anywhere */
-#define EVBACKEND_POLL    0x00000002UL /* !win */
-#define EVBACKEND_EPOLL   0x00000004UL /* linux */
-#define EVBACKEND_KQUEUE  0x00000008UL /* bsd */
-#define EVBACKEND_DEVPOLL 0x00000010UL /* solaris 8 */ /* NYI */
-#define EVBACKEND_PORT    0x00000020UL /* solaris 10 */
+#define EVBACKEND_SELECT  0x00000001U /* about anywhere */
+#define EVBACKEND_POLL    0x00000002U /* !win */
+#define EVBACKEND_EPOLL   0x00000004U /* linux */
+#define EVBACKEND_KQUEUE  0x00000008U /* bsd */
+#define EVBACKEND_DEVPOLL 0x00000010U /* solaris 8 */ /* NYI */
+#define EVBACKEND_PORT    0x00000020U /* solaris 10 */
 
 #if EV_PROTOTYPES
 int ev_version_major (void);
@@ -398,19 +411,28 @@ void ev_set_allocator (void *(*cb)(void *ptr, long size));
 void ev_set_syserr_cb (void (*cb)(const char *msg));
 
 # if EV_MULTIPLICITY
-/* the default loop is the only one that handles signals and child watchers */
-/* you can call this as often as you like */
-
 extern struct ev_loop *ev_default_loop_ptr;
 extern struct ev_loop *ev_default_loop_init (unsigned int flags);
 
-inline static struct ev_loop *
+EV_INLINE struct ev_loop *
+ev_default_loop_uc (void)
+{
+  return ev_default_loop_ptr;
+}
+
+/* the default loop is the only one that handles signals and child watchers */
+/* you can call this as often as you like */
+EV_INLINE struct ev_loop *
 ev_default_loop (unsigned int flags)
 {
-  if (!ev_default_loop_ptr)
-    ev_default_loop_init (flags);
+  struct ev_loop *loop = ev_default_loop_uc ();
 
-  return ev_default_loop_ptr;
+  if (!loop)
+    {
+      loop = ev_default_loop_init (flags);
+    }
+
+  return loop;
 }
 
 /* create and destroy alternative loops that don't handle signals */
@@ -421,23 +443,18 @@ void ev_loop_fork (EV_P);
 ev_tstamp ev_now (EV_P); /* time w.r.t. timers and the eventloop, updated after each poll */
 
 # else
+extern ev_tstamp ev_rt_now;
 
 int ev_default_loop (unsigned int flags); /* returns true when successful */
 
-static ev_tstamp
+EV_INLINE ev_tstamp
 ev_now (void)
 {
-  extern ev_tstamp ev_rt_now;
-
   return ev_rt_now;
 }
 # endif
 
-#if EV_MULTIPLICITY
-extern struct ev_loop *ev_default_loop_ptr;
-#endif
-
-inline static int
+EV_INLINE int
 ev_is_default_loop (EV_P)
 {
 #if EV_MULTIPLICITY
