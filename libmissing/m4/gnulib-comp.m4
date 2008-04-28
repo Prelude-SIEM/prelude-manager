@@ -37,6 +37,7 @@ AC_DEFUN([gl_INIT],
   m4_pushdef([AC_LIBOBJ], m4_defn([gl_LIBOBJ]))
   m4_pushdef([AC_REPLACE_FUNCS], m4_defn([gl_REPLACE_FUNCS]))
   m4_pushdef([AC_LIBSOURCES], m4_defn([gl_LIBSOURCES]))
+  gl_COMMON
   gl_source_base='libmissing'
   gl_EOVERFLOW
   gl_FUNC_ALLOCA
@@ -47,6 +48,7 @@ AC_DEFUN([gl_INIT],
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_INET_NTOP
+  gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
   gl_FUNC_MALLOC_POSIX
   gl_STDLIB_MODULE_INDICATOR([malloc-posix])
   gl_FUNC_MEMSET
@@ -100,6 +102,7 @@ AC_DEFUN([gl_INIT],
   m4_pushdef([AC_LIBOBJ], m4_defn([gltests_LIBOBJ]))
   m4_pushdef([AC_REPLACE_FUNCS], m4_defn([gltests_REPLACE_FUNCS]))
   m4_pushdef([AC_LIBSOURCES], m4_defn([gltests_LIBSOURCES]))
+  gl_COMMON
   gl_source_base='tests'
   m4_popdef([AC_LIBSOURCES])
   m4_popdef([AC_REPLACE_FUNCS])
@@ -195,6 +198,7 @@ AC_DEFUN([gltests_LIBSOURCES], [
 AC_DEFUN([gl_FILE_LIST], [
   build-aux/link-warning.h
   lib/alloca.in.h
+  lib/arpa_inet.in.h
   lib/asnprintf.c
   lib/dummy.c
   lib/float+.h
@@ -247,8 +251,9 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/malloc.m4
   m4/memset.m4
   m4/netinet_in_h.m4
-  m4/onceonly_2_57.m4
+  m4/onceonly.m4
   m4/pathmax.m4
+  m4/printf.m4
   m4/size_max.m4
   m4/snprintf.m4
   m4/socklen.m4
