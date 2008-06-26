@@ -1,1 +1,1 @@
-SUBDIRS = db debug relaying textmod xmlmod
+SUBDIRS = db debug relaying smtp textmod xmlmod

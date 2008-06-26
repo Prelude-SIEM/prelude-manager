@@ -229,6 +229,52 @@ listen = 127.0.0.1
 # logfile = /var/log/prelude.log
 
 
+#[smtp]
+#
+# Sender to use for the mail message.
+# sender = prelude@myhostname.
+#
+# Who the mail should be sent to.
+# recipients = recipient1@hostname, recipient2@hostname
+#
+# SMTP server to use for sending mail
+# smtp-server = localhost
+#
+# By default, the SMTP plugin send mail containing the whole IDMEF
+# event. If you wish to send a subset of the information, you may
+# customize the content of the generated mail through several options:
+#
+# You can define a specific subject to use with mail notification.
+# The subject can include information from the event using IDMEF path.
+# subject = Alert: $alert.classification.text
+#
+# You can define a specific message body to use for mail notification.
+# As with the "subject" option, the template can include information
+# from the event using IDMEF path.
+#
+# (Template example available in @DOCDIR@/smtp/template.example)
+# template = /path/to/my/template
+#
+# You can provide your database settings here, so that the SMTP plugin
+# retrieve alert linked to received CorrelationAlert from the database.
+#
+# dbtype = mysql
+# dbname = prelude
+# dbuser = prelude
+# dbpass = passwd
+# dbhost = localhost
+# Other database options available include dbport, and dbfile (for
+# sqlite3 database).
+#
+# If you have specified your database settings above, you can also
+# use the correlated-alert-template option, which is like the "template"
+# option but is specific to Correlated Alerts retrieved from database.
+#
+# (Template example available in @DOCDIR@/smtp/template.example)
+# correlated-alert-template = /path/to/my/template
+
+
+
 
 ####################################
 # Filtering plugins configuration  #

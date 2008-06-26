@@ -1,0 +1,11 @@
+***
+* http://127.0.0.1:8000/?view=alert_summary&origin=alert_listing&analyzerid=$alert.analyzer(-1).analyzerid&messageid=$alert.messageid
+* $alert.classification.text : $alert.source(0).node.address(0).address -> $alert.target(0).node.address(0).address
+* 
+* Create Time: $alert.create_time
+* Sensor: $alert.analyzer(-1).name - $alert.analyzer(-1).node.name - $alert.analyzer(-1).node.address(0).address
+* 
+#if $alert.correlation_alert.name
+* CorrelationAlert name: $alert.correlation_alert.name
+#end if
+***
