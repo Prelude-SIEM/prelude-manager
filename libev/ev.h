@@ -166,6 +166,15 @@ struct ev_loop;
  * private: you can look at them, but not change them, and they might not mean anything to you.
  * ro: can be read anytime, but only changed when the watcher isn't active
  * rw: can be read and modified anytime, even when the watcher is active
+ *
+ * some internal details that might be helpful for debugging:
+ *
+ * active is either 0, which means the watcher is not active,
+ *           or the array index of the watcher (periodics, timers)
+ *           or the array index + 1 (most other watchers)
+ *           or simply 1 for watchers that aren't in some array.
+ * pending is either 0, in which case the watcher isn't,
+ *            or the array index + 1 in the pendings array.
  */
 
 /* shared by all watchers */
@@ -410,9 +419,10 @@ void ev_set_allocator (void *(*cb)(void *ptr, long size));
  */
 void ev_set_syserr_cb (void (*cb)(const char *msg));
 
-# if EV_MULTIPLICITY
+#if EV_MULTIPLICITY
 extern struct ev_loop *ev_default_loop_ptr;
 extern struct ev_loop *ev_default_loop_init (unsigned int flags);
+
 
 EV_INLINE struct ev_loop *
 ev_default_loop_uc (void)
@@ -439,20 +449,22 @@ ev_default_loop (unsigned int flags)
 struct ev_loop *ev_loop_new (unsigned int flags);
 void ev_loop_destroy (EV_P);
 void ev_loop_fork (EV_P);
+void ev_loop_verify (EV_P);
 
 ev_tstamp ev_now (EV_P); /* time w.r.t. timers and the eventloop, updated after each poll */
 
-# else
-extern ev_tstamp ev_rt_now;
+#else
 
 int ev_default_loop (unsigned int flags); /* returns true when successful */
 
 EV_INLINE ev_tstamp
 ev_now (void)
 {
+  extern ev_tstamp ev_rt_now;
+
   return ev_rt_now;
 }
-# endif
+#endif /* multiplicity */
 
 EV_INLINE int
 ev_is_default_loop (EV_P)
@@ -473,7 +485,7 @@ void ev_default_fork (void);
 
 unsigned int ev_backend (EV_P);    /* backend in use by loop */
 unsigned int ev_loop_count (EV_P); /* number of loop iterations */
-#endif
+#endif /* prototypes */
 
 #define EVLOOP_NONBLOCK	1 /* do not block/wait */
 #define EVLOOP_ONESHOT	2 /* block *once* only */
@@ -511,7 +523,7 @@ void ev_once (EV_P_ int fd, int events, ev_tstamp timeout, void (*cb)(int revent
 } while (0)
 
 #define ev_io_set(ev,fd_,events_)           do { (ev)->fd = (fd_); (ev)->events = (events_) | EV_IOFDSET; } while (0)
-#define ev_timer_set(ev,after_,repeat_)     do { (ev)->at = (after_); (ev)->repeat = (repeat_); } while (0)
+#define ev_timer_set(ev,after_,repeat_)     do { ((ev_watcher_time *)(ev))->at = (after_); (ev)->repeat = (repeat_); } while (0)
 #define ev_periodic_set(ev,ofs_,ival_,res_) do { (ev)->offset = (ofs_); (ev)->interval = (ival_); (ev)->reschedule_cb= (res_); } while (0)
 #define ev_signal_set(ev,signum_)           do { (ev)->signum = (signum_); } while (0)
 #define ev_child_set(ev,pid_,trace_)        do { (ev)->pid = (pid_); (ev)->flags = !!(trace_); } while (0)
@@ -542,6 +554,8 @@ void ev_once (EV_P_ int fd, int events, ev_tstamp timeout, void (*cb)(int revent
 #define ev_priority(ev)                     ((((ev_watcher *)(void *)(ev))->priority) + 0)
 #define ev_cb(ev)                           (ev)->cb /* rw */
 #define ev_set_priority(ev,pri)             ((ev_watcher *)(void *)(ev))->priority = (pri)
+
+#define ev_periodic_at(ev)                  (((ev_watcher_time *)(ev))->at + 0.)
 
 #ifndef ev_set_cb
 # define ev_set_cb(ev,cb_)                  ev_cb (ev) = (cb_)

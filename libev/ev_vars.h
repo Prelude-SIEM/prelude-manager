@@ -72,6 +72,9 @@ VARx(void *, vec_ri)
 VARx(void *, vec_ro)
 VARx(void *, vec_wi)
 VARx(void *, vec_wo)
+#if defined(_WIN32) || EV_GENWRAP
+VARx(void *, vec_eo)
+#endif
 VARx(int, vec_max)
 #endif
 
@@ -112,12 +115,12 @@ VARx(int *, fdchanges)
 VARx(int, fdchangemax)
 VARx(int, fdchangecnt)
 
-VARx(WT *, timers)
+VARx(ANHE *, timers)
 VARx(int, timermax)
 VARx(int, timercnt)
 
 #if EV_PERIODIC_ENABLE || EV_GENWRAP
-VARx(WT *, periodics)
+VARx(ANHE *, periodics)
 VARx(int, periodicmax)
 VARx(int, periodiccnt)
 #endif
