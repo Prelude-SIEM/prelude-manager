@@ -10,5 +10,5 @@ smtp_LTLIBRARIES = smtp.la
 smtptemplate_DATA = template.example
 smtptemplatedir   = $(docdir)/smtp
 
-EXTRA_DIST = $(smtp_DATA)
+EXTRA_DIST = $(smtptemplate_DATA)
 
