@@ -31,14 +31,13 @@
 
 #include "config.h"
 
-#include <poll.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <time.h>
 #include "getaddrinfo.h"
-#include "inet_ntop.h"
 #include "pathmax.h"
 
 #endif /* _PRELUDE_MANAGER_LIBMISSING_H */
