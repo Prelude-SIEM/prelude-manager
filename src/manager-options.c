@@ -283,6 +283,12 @@ static int set_dh_regenerate(prelude_option_t *opt, const char *arg, prelude_str
 }
 
 
+static int set_tls_options(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
+{
+        config.tls_options = strdup(arg);
+        return 0;
+}
+
 
 static char *const2char(const char *val)
 {
@@ -461,6 +467,7 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         config.dh_regenerate = 24 * 60 * 60;
         config.connection_timeout = 10;
         config.config_file = PRELUDE_MANAGER_CONF;
+        config.tls_options = NULL;
 
         prelude_option_new_root(&init_first);
 
@@ -505,6 +512,10 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "connection-timeout",
                            "Number of seconds a client has to successfully authenticate (default 10)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_connection_timeout, NULL);
+
+        prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "tls-options",
+                           "TLS ciphers, key exchange methods, protocols, macs, and compression options",
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED, set_tls_options, NULL);
 
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "dh-parameters-regenerate",
                            "How often to regenerate the Diffie Hellman parameters (in hours)",

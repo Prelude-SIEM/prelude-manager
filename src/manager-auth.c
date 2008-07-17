@@ -64,6 +64,12 @@
 
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
+#ifdef HAVE_GNUTLS_STRING_PRIORITY
+
+static gnutls_priority_t tls_priority;
+
+#endif
+
 
 static int global_dh_lifetime;
 static unsigned int global_dh_bits;
@@ -442,6 +448,15 @@ static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnut
 }
 
 
+static void set_default_priority(gnutls_session session)
+{
+#ifdef HAVE_GNUTLS_STRING_PRIORITY
+                gnutls_priority_set(session, tls_priority);
+#else
+                gnutls_set_default_priority(session);
+#endif
+}
+
 
 int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnutls_alert_description *alert)
 {
@@ -458,12 +473,15 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnut
         session = prelude_io_get_fdptr(pio);
         if ( ! session ) {
                 union { int fd; void *ptr; } data;
-                const int kx_prio[] = { GNUTLS_KX_DHE_RSA, 0 };
 
                 ret = gnutls_init(&session, GNUTLS_SERVER);
+                if ( ret < 0 ) {
+                        server_generic_log_client(client, PRELUDE_LOG_WARN, "error initializing TLS session: %s.\n",
+                                                  gnutls_strerror(ret));
+                        return -1;
+                }
 
-                gnutls_set_default_priority(session);
-                gnutls_kx_set_priority(session, kx_prio);
+                set_default_priority(session);
 
                 gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, cred);
                 gnutls_certificate_server_set_request(session, GNUTLS_CERT_REQUEST);
@@ -531,8 +549,28 @@ int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_
 }
 
 
+static int tls_priority_init(const char *tlsopts)
+{
+#ifdef HAVE_GNUTLS_STRING_PRIORITY
+        int ret;
+        const char *errptr;
 
-int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
+        ret = gnutls_priority_init(&tls_priority, (tlsopts) ? tlsopts : "NORMAL", &errptr);
+        if ( ret < 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "TLS priority error: %s: '%s'.\n", gnutls_strerror(ret), errptr);
+                return -2;
+        }
+#else
+        if ( tlsopts ) {
+                prelude_log(PRELUDE_LOG_ERR, "settings TLS options require GnuTLS 2.2.0 or above.\n");
+                return -2;
+        }
+#endif
+
+        return 0;
+}
+
+int manager_auth_init(prelude_client_t *client, const char *tlsopts, int dh_bits, int dh_lifetime)
 {
         int ret;
         char keyfile[PATH_MAX], certfile[PATH_MAX], crlfile[PATH_MAX];
@@ -547,6 +585,7 @@ int manager_auth_init(prelude_client_t *client, int dh_bits, int dh_lifetime)
         gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
         gnutls_global_init();
 
+        tls_priority_init(tlsopts);
         gnutls_certificate_allocate_credentials(&cred);
 
         prelude_client_profile_get_tls_key_filename(cp, keyfile, sizeof(keyfile));

@@ -6,7 +6,7 @@
 * This file is part of the Prelude-Manager program.
 *
 * This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by 
+* it under the terms of the GNU General Public License as published by
 * the Free Software Foundation; either version 2, or (at your option)
 * any later version.
 *
@@ -34,7 +34,8 @@ typedef struct manager_config {
 
         const char *pidfile;
         const char *config_file;
-        
+        const char *tls_options;
+
         int dh_bits;
         int dh_regenerate;
         int connection_timeout;

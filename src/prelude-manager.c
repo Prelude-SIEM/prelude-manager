@@ -241,9 +241,11 @@ int main(int argc, char **argv)
         /*
          * start server
          */
-        ret = manager_auth_init(manager_client, config.dh_bits, config.dh_regenerate);
+        ret = manager_auth_init(manager_client, config.tls_options, config.dh_bits, config.dh_regenerate);
         if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "%s\n", prelude_client_get_setup_error(manager_client));
+                if ( ret != -2 )
+                        prelude_log(PRELUDE_LOG_WARN, "%s\n", prelude_client_get_setup_error(manager_client));
+
                 return -1;
         }
 

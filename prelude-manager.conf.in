@@ -74,6 +74,33 @@ listen = 127.0.0.1
 
 
 #
+# TLS options (only available with GnuTLS 2.2.0 or higher):
+# sets availables ciphers, key exchange methods, macs and compression
+# methods.
+#
+# "NORMAL" option enables all "secure" ciphersuites, 256-bit ciphers
+# included.
+#
+# "SECURE128" flag enables all "secure" ciphersuites with ciphers up to
+# 128 bits.
+#
+# "SECURE256" flag enables all "secure" ciphersuites including the 256
+# bit ciphers.
+#
+# "EXPORT" all the ciphersuites are enabled, including the low-security
+# 40 bit ciphers.
+#
+# "NONE" nothing is enabled. This disables even protocols and
+# compression methods.
+#
+# Note that much more settings might be enabled or disabled using this
+# option: please see gnutls_priority_init(3) for more details.
+#
+# The default settings is "NORMAL".
+# tls-options = NORMAL
+
+
+#
 # Number of bits of the prime used in the Diffie Hellman key exchange.
 # Note that the value should be one of 768, 1024, 2048, 3072 or 4096.
 # The default is 1024.
