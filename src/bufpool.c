@@ -148,7 +148,7 @@ static int flush_bufpool_to_disk(bufpool_t *bp)
                 prelude_msg_destroy(msg);
         }
 
-        prelude_list_del(&bp->list);
+        prelude_list_del_init(&bp->list);
 
 err:
         pthread_mutex_unlock(&bp->mutex);
