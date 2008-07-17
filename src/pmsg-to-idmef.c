@@ -165,6 +165,7 @@ int pmsg_to_idmef(idmef_message_t **idmef, prelude_msg_t *msg)
         void *buf;
         uint8_t tag;
         uint32_t len;
+        prelude_string_t *tmp;
 
         ret = idmef_message_new(idmef);
         if ( ret < 0 ) {
@@ -182,6 +183,19 @@ int pmsg_to_idmef(idmef_message_t **idmef, prelude_msg_t *msg)
 
                 else if ( tag == IDMEF_MSG_OWN_FORMAT )
                         ret = handle_proprietary_msg(msg, *idmef, buf, len);
+
+                else if ( tag == IDMEF_MSG_MESSAGE_VERSION ) {
+                        /*
+                         * we use len - 1 since len is supposed to include \0 to avoid making a dup.
+                         */
+                        ret = prelude_string_new_ref_fast(&tmp, buf, len - 1);
+                        if ( ret < 0 ) {
+                                prelude_perror(ret, "could not extract version string: %s", prelude_strerror(ret));
+                                break;
+                        }
+
+                        idmef_message_set_version(*idmef, tmp);
+                }
 
                 else if ( tag == IDMEF_MSG_END_OF_TAG )
                         continue;
