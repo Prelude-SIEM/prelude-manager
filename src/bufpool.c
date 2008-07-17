@@ -57,6 +57,7 @@ struct bufpool {
 static PRELUDE_LIST(pool_list);
 static size_t on_disk_threshold = DISK_THRESHOLD_DEFAULT;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t destroy_prevention = PTHREAD_MUTEX_INITIALIZER;
 
 static size_t mem_msglen = 0, mem_msgcount = 0;
 static size_t disk_msglen = 0, disk_msgcount = 0;
@@ -126,11 +127,9 @@ static int flush_bufpool_to_disk(bufpool_t *bp)
         prelude_msg_t *msg;
         prelude_list_t *tmp, *bkp;
 
-        pthread_mutex_lock(&bp->mutex);
-
         ret = prelude_failover_new(&bp->failover, bp->filename);
         if ( ret < 0 )
-                goto err;
+                return ret;
 
         prelude_list_for_each_safe(&bp->msglist, tmp, bkp) {
                 msg = prelude_linked_object_get_object(tmp);
@@ -148,10 +147,9 @@ static int flush_bufpool_to_disk(bufpool_t *bp)
                 prelude_msg_destroy(msg);
         }
 
+        pthread_mutex_lock(&mutex);
         prelude_list_del_init(&bp->list);
-
-err:
-        pthread_mutex_unlock(&bp->mutex);
+        pthread_mutex_unlock(&mutex);
 
         return ret;
 }
@@ -159,26 +157,50 @@ err:
 
 static int evict_from_memory(void)
 {
+        int ret;
         size_t prev_len = 0;
-        prelude_list_t *tmp;
-        bufpool_t *bp, *evict = NULL;
+        bufpool_t *bp = NULL, *evict = NULL;
 
-        prelude_list_for_each(&pool_list, tmp) {
-                bp = prelude_list_entry(tmp, bufpool_t, list);
+        while ( 1 ) {
+                pthread_mutex_lock(&destroy_prevention);
 
-                if ( bp->failover )
+                pthread_mutex_lock(&mutex);
+                bp = prelude_list_get_next(&pool_list, bp, bufpool_t, list);
+                pthread_mutex_unlock(&mutex);
+
+                if ( ! bp ) {
+                        pthread_mutex_unlock(&destroy_prevention);
+                        break;
+                }
+
+                pthread_mutex_lock(&bp->mutex);
+                pthread_mutex_unlock(&destroy_prevention);
+
+                if ( bp->failover ) {
+                        pthread_mutex_unlock(&bp->mutex);
                         continue;
+                }
 
                 if ( ! evict )
                         evict = bp;
 
-                if ( bp->len > prev_len ) {
+                else if ( bp->len > prev_len ) {
+                        pthread_mutex_unlock(&evict->mutex);
+
                         evict = bp;
                         prev_len = bp->len;
-                }
+                } else
+                        pthread_mutex_unlock(&bp->mutex);
         }
 
-        return (evict) ? flush_bufpool_to_disk(evict) : 0;
+
+        if ( evict ) {
+                ret = flush_bufpool_to_disk(evict);
+                pthread_mutex_unlock(&evict->mutex);
+                return ret;
+        }
+
+        return 0;
 }
 
 
@@ -223,7 +245,10 @@ static void failover_destroy(bufpool_t *bp)
 {
         prelude_failover_destroy(bp->failover);
         bp->failover = NULL;
+
+        pthread_mutex_lock(&mutex);
         prelude_list_add_tail(&pool_list, &bp->list);
+        pthread_mutex_unlock(&mutex);
 }
 
 
@@ -301,6 +326,10 @@ int bufpool_new(bufpool_t **bp, const char *filename)
 
 void bufpool_destroy(bufpool_t *bp)
 {
+        pthread_mutex_lock(&destroy_prevention);
+        pthread_mutex_lock(&bp->mutex);
+        pthread_mutex_unlock(&destroy_prevention);
+
         pthread_mutex_lock(&mutex);
         prelude_list_del(&bp->list);
         pthread_mutex_unlock(&mutex);
@@ -308,6 +337,7 @@ void bufpool_destroy(bufpool_t *bp)
         if ( bp->failover )
                 prelude_failover_destroy(bp->failover);
 
+        pthread_mutex_unlock(&bp->mutex);
         pthread_mutex_destroy(&bp->mutex);
 
         free(bp->filename);
