@@ -346,7 +346,7 @@ static int set_sched_buffer_size(prelude_option_t *opt, const char *arg, prelude
         unsigned long int value;
 
         value = strtoul(arg, &eptr, 10);
-        if ( value == ULONG_MAX ) {
+        if ( value == ULONG_MAX || eptr == arg ) {
                 prelude_log(PRELUDE_LOG_ERR, "Invalid buffer size specified: '%s'.\n", arg);
                 return -1;
         }
