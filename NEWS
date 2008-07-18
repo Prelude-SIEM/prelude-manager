@@ -1,3 +1,20 @@
+* 2008-07-18, prelude-manager-0.9.14:
+
+- Improve thread safety when evicting events to disk.
+
+- Handle IDMEF message version tag, which will be used in upcoming
+  libprelude version.
+
+- Add support for newer GnuTLS 2.2.0 session priority functions. When
+  the option is available, the user might specify TLS settings through
+  the "tls-options" configuration entry.
+
+- Fix a possible crash upon destruction of a bufpool that is writing to
+  a failover.
+
+- Correct strtoul() error checking, when verifying scheduler options.
+
+
 * 2008-04-28, prelude-manager-0.9.13:
 
 - Update libev, and GnuLib code.
