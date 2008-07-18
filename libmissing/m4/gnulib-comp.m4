@@ -57,6 +57,12 @@ AC_DEFUN([gl_INIT],
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
   gl_PATHMAX
+  AC_REPLACE_FUNCS(raise)
+  gl_SIGACTION
+  gl_SIGNAL_MODULE_INDICATOR([sigaction])
+  gl_SIGNAL_H
+  gl_SIGNALBLOCKING
+  gl_SIGNAL_MODULE_INDICATOR([sigprocmask])
   gl_SIZE_MAX
   gl_FUNC_SNPRINTF
   gl_STDIO_MODULE_INDICATOR([snprintf])
@@ -230,6 +236,11 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/printf-args.h
   lib/printf-parse.c
   lib/printf-parse.h
+  lib/raise.c
+  lib/sig-handler.h
+  lib/sigaction.c
+  lib/signal.in.h
+  lib/sigprocmask.c
   lib/size_max.h
   lib/snprintf.c
   lib/stdbool.in.h
@@ -267,6 +278,9 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/onceonly.m4
   m4/pathmax.m4
   m4/printf.m4
+  m4/sigaction.m4
+  m4/signal_h.m4
+  m4/signalblocking.m4
   m4/size_max.m4
   m4/snprintf.m4
   m4/socklen.m4
