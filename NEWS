@@ -1,3 +1,9 @@
+* 2008-07-29, prelude-manager-0.9.14.1:
+
+- Correctly define HAVE_LIBPRELUDEDB, so that more SMTP plugin
+  features are enabled.
+
+
 * 2008-07-18, prelude-manager-0.9.14:
 
 - Improve thread safety when evicting events to disk.

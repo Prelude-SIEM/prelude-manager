@@ -1,7 +1,7 @@
 AC_INIT
 AC_PREREQ(2.59)
 AC_CANONICAL_TARGET([])
-AM_INIT_AUTOMAKE(prelude-manager, 0.9.14)
+AM_INIT_AUTOMAKE(prelude-manager, 0.9.14.1)
 AM_CONFIG_HEADER(config.h)
 AM_DISABLE_STATIC
 
@@ -115,6 +115,10 @@ dnl **************************************************
 
 AM_PATH_LIBPRELUDEDB(0.9.4, enable_libpreludedb=yes, enable_libpreludedb=no)
 AM_CONDITIONAL(HAVE_LIBPRELUDEDB, test x$enable_libpreludedb = xyes)
+if test x$enable_libpreludedb = xyes; then
+	AC_DEFINE_UNQUOTED(HAVE_LIBPRELUDEDB, , Define whether libpreludedb is available)
+fi
+
 
 
 dnl ********************************************************
