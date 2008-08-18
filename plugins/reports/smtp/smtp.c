@@ -48,8 +48,9 @@
 #define DEFAULT_MAIL_SENDER "prelude-manager"
 
 
-
-#define MIN(x, y) ((x < y) ? (x) : (y))
+#ifndef MIN
+# define MIN(x, y) ((x < y) ? (x) : (y))
+#endif
 
 
 int smtp_LTX_prelude_plugin_version(void);
