@@ -116,7 +116,7 @@ dnl **************************************************
 AM_PATH_LIBPRELUDEDB(0.9.4, enable_libpreludedb=yes, enable_libpreludedb=no)
 AM_CONDITIONAL(HAVE_LIBPRELUDEDB, test x$enable_libpreludedb = xyes)
 if test x$enable_libpreludedb = xyes; then
-	AC_DEFINE_UNQUOTED(HAVE_LIBPRELUDEDB, , Define whether libpreludedb is available)
+        AC_DEFINE_UNQUOTED(HAVE_LIBPRELUDEDB, , Define whether libpreludedb is available)
 fi
 
 
@@ -186,6 +186,13 @@ fi
 dnl ********************************************************
 dnl * Configure embedded libev                             *
 dnl ********************************************************
+
+AC_DEFINE_UNQUOTED(EV_USE_INOTIFY, 0, Disable unused libev inotify backend)
+AC_DEFINE_UNQUOTED(EV_PERIODIC_ENABLE, 0, Disable unused libev periodic timers)
+AC_DEFINE_UNQUOTED(EV_STAT_ENABLE, 0, Disable unused libev stat watchers)
+AC_DEFINE_UNQUOTED(EV_IDLE_ENABLE, 0, Disable unused libev idle watchers)
+AC_DEFINE_UNQUOTED(EV_FORK_ENABLE, 0, Disable unused libev fork watchers)
+AC_DEFINE_UNQUOTED(EV_EMBED_ENABLE, 0, Disable unused libev embed watchers)
 
 m4_include([libev/libev.m4])
 

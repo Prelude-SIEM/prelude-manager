@@ -41,12 +41,6 @@
 # define SERVER_SOCKADDR_TYPE struct sockaddr_in
 #endif
 
-#define EV_PERIODIC_ENABLE 0
-#define EV_STAT_ENABLE 0
-#define EV_IDLE_ENABLE 0
-#define EV_FORK_ENABLE 0
-#define EV_EMBED_ENABLE 0
-
 #include "ev.h"
 
 #define SERVER_GENERIC_OBJECT        \
