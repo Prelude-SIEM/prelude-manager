@@ -424,11 +424,12 @@ void ev_set_allocator (void *(*cb)(void *ptr, long size));
 void ev_set_syserr_cb (void (*cb)(const char *msg));
 
 #if EV_MULTIPLICITY
+extern struct ev_loop *ev_default_loop_ptr;
+extern struct ev_loop *ev_default_loop_init (unsigned int flags);
+
 EV_INLINE struct ev_loop *
 ev_default_loop_uc (void)
 {
-  extern struct ev_loop *ev_default_loop_ptr;
-
   return ev_default_loop_ptr;
 }
 
@@ -441,8 +442,6 @@ ev_default_loop (unsigned int flags)
 
   if (!loop)
     {
-      extern struct ev_loop *ev_default_loop_init (unsigned int flags);
-
       loop = ev_default_loop_init (flags);
     }
 
@@ -474,8 +473,6 @@ EV_INLINE int
 ev_is_default_loop (EV_P)
 {
 #if EV_MULTIPLICITY
-  extern struct ev_loop *ev_default_loop_ptr;
-
   return !!(EV_A == ev_default_loop_ptr);
 #else
   return 1;
