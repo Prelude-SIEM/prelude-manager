@@ -1,3 +1,8 @@
+* 2008-08-21, prelude-manager-0.9.14.2:
+
+- Various build fixes (#306).
+
+
 * 2008-07-29, prelude-manager-0.9.14.1:
 
 - Correctly define HAVE_LIBPRELUDEDB, so that more SMTP plugin
