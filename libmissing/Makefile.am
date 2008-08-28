@@ -12,6 +12,7 @@
 # Reproduce by: gnulib-tool --import --dir=. --lib=libmissing --source-base=libmissing --m4-base=libmissing/m4 --doc-base=libmissing/doc --aux-dir=. --with-tests --lgpl --libtool --macro-prefix=gl --no-vc-files cond getaddrinfo inet_ntop lock memset pathmax sigaction snprintf socklen strdup strsep thread time_r vsnprintf
 
 AUTOMAKE_OPTIONS = 1.5 gnits subdir-objects
+SUBDIRS = tests
 
 noinst_HEADERS =
 noinst_LIBRARIES =
