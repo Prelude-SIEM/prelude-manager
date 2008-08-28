@@ -15,13 +15,15 @@
 
 
 # Specification in the form of a command-line invocation:
-#   gnulib-tool --import --dir=. --lib=libmissing --source-base=libmissing --m4-base=libmissing/m4 --doc-base=libmissing/doc --aux-dir=. --with-tests --lgpl --libtool --macro-prefix=gl --no-vc-files getaddrinfo inet_ntop memset pathmax sigaction snprintf socklen strdup strsep time_r vsnprintf
+#   gnulib-tool --import --dir=. --lib=libmissing --source-base=libmissing --m4-base=libmissing/m4 --doc-base=libmissing/doc --aux-dir=. --with-tests --lgpl --libtool --macro-prefix=gl --no-vc-files cond getaddrinfo inet_ntop lock memset pathmax sigaction snprintf socklen strdup strsep thread time_r vsnprintf
 
 # Specification in the form of a few gnulib-tool.m4 macro invocations:
 gl_LOCAL_DIR([])
 gl_MODULES([
+  cond
   getaddrinfo
   inet_ntop
+  lock
   memset
   pathmax
   sigaction
@@ -29,6 +31,7 @@ gl_MODULES([
   socklen
   strdup
   strsep
+  thread
   time_r
   vsnprintf
 ])

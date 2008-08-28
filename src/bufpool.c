@@ -29,13 +29,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <pthread.h>
 
 #include <assert.h>
 
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-failover.h>
 
+#include "glthread/lock.h"
 #include "bufpool.h"
 
 #define DISK_THRESHOLD_DEFAULT 1 * (1024 * 1024)
@@ -48,7 +48,7 @@ struct bufpool {
         prelude_list_t msglist;
         char *filename;
 
-        pthread_mutex_t mutex;
+        gl_lock_t mutex;
 
         size_t len;
         size_t count;
@@ -57,8 +57,8 @@ struct bufpool {
 
 static PRELUDE_LIST(pool_list);
 static size_t on_disk_threshold = DISK_THRESHOLD_DEFAULT;
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t destroy_prevention = PTHREAD_MUTEX_INITIALIZER;
+static gl_lock_t mutex = gl_lock_initializer;
+static gl_lock_t destroy_prevention = gl_lock_initializer;
 
 static size_t mem_msglen = 0, mem_msgcount = 0;
 static size_t disk_msglen = 0, disk_msgcount = 0;
@@ -77,10 +77,10 @@ static size_t disk_msglen = 0, disk_msgcount = 0;
 
 static inline void inc_dlen(bufpool_t *bp, size_t len)
 {
-        pthread_mutex_lock(&mutex);
+        gl_lock_lock(mutex);
         disk_msglen += len;
         disk_msgcount++;
-        pthread_mutex_unlock(&mutex);
+        gl_lock_unlock(mutex);
 
         bp->count++;
 }
@@ -88,20 +88,20 @@ static inline void inc_dlen(bufpool_t *bp, size_t len)
 
 static inline void dec_dlen(bufpool_t *bp, size_t len)
 {
-        pthread_mutex_lock(&mutex);
+        gl_lock_lock(mutex);
         disk_msglen -= len;
         disk_msgcount--;
-        pthread_mutex_unlock(&mutex);
+        gl_lock_unlock(mutex);
 
         bp->count--;
 }
 
 static inline void inc_len(bufpool_t *bp, size_t len)
 {
-        pthread_mutex_lock(&mutex);
+        gl_lock_lock(mutex);
         mem_msglen += len;
         mem_msgcount++;
-        pthread_mutex_unlock(&mutex);
+        gl_lock_unlock(mutex);
 
         bp->len += len;
         bp->count++;
@@ -111,10 +111,10 @@ static inline void inc_len(bufpool_t *bp, size_t len)
 
 static inline void dec_len(bufpool_t *bp, size_t len)
 {
-        pthread_mutex_lock(&mutex);
+        gl_lock_lock(mutex);
         mem_msglen -= len;
         mem_msgcount--;
-        pthread_mutex_unlock(&mutex);
+        gl_lock_unlock(mutex);
 
         bp->len -= len;
         bp->count--;
@@ -148,9 +148,9 @@ static int flush_bufpool_to_disk(bufpool_t *bp)
                 prelude_msg_destroy(msg);
         }
 
-        pthread_mutex_lock(&mutex);
+        gl_lock_lock(mutex);
         prelude_list_del_init(&bp->list);
-        pthread_mutex_unlock(&mutex);
+        gl_lock_unlock(mutex);
 
         return ret;
 }
@@ -163,22 +163,22 @@ static int evict_from_memory(void)
         bufpool_t *bp = NULL, *evict = NULL;
 
         while ( 1 ) {
-                pthread_mutex_lock(&destroy_prevention);
+                gl_lock_lock(destroy_prevention);
 
-                pthread_mutex_lock(&mutex);
+                gl_lock_lock(mutex);
                 bp = prelude_list_get_next(&pool_list, bp, bufpool_t, list);
-                pthread_mutex_unlock(&mutex);
+                gl_lock_unlock(mutex);
 
                 if ( ! bp ) {
-                        pthread_mutex_unlock(&destroy_prevention);
+                        gl_lock_unlock(destroy_prevention);
                         break;
                 }
 
-                pthread_mutex_lock(&bp->mutex);
-                pthread_mutex_unlock(&destroy_prevention);
+                gl_lock_lock(bp->mutex);
+                gl_lock_unlock(destroy_prevention);
 
                 if ( bp->failover ) {
-                        pthread_mutex_unlock(&bp->mutex);
+                        gl_lock_unlock(bp->mutex);
                         continue;
                 }
 
@@ -186,18 +186,18 @@ static int evict_from_memory(void)
                         evict = bp;
 
                 else if ( bp->len > prev_len ) {
-                        pthread_mutex_unlock(&evict->mutex);
+                        gl_lock_unlock(evict->mutex);
 
                         evict = bp;
                         prev_len = bp->len;
                 } else
-                        pthread_mutex_unlock(&bp->mutex);
+                        gl_lock_unlock(bp->mutex);
         }
 
 
         if ( evict ) {
                 ret = flush_bufpool_to_disk(evict);
-                pthread_mutex_unlock(&evict->mutex);
+                gl_lock_unlock(evict->mutex);
                 return ret;
         }
 
@@ -211,16 +211,16 @@ int bufpool_add_message(bufpool_t *bp, prelude_msg_t *msg)
         int ret = 0;
         size_t total, len = prelude_msg_get_len(msg);
 
-        pthread_mutex_lock(&mutex);
+        gl_lock_lock(mutex);
         total = mem_msglen;
-        pthread_mutex_unlock(&mutex);
+        gl_lock_unlock(mutex);
 
-        pthread_mutex_lock(&bp->mutex);
+        gl_lock_lock(bp->mutex);
 
         if ( total + len < on_disk_threshold && ! bp->failover ) {
                 prelude_linked_object_add_tail(&bp->msglist, (prelude_linked_object_t *) msg);
                 inc_len(bp, len);
-                pthread_mutex_unlock(&bp->mutex);
+                gl_lock_unlock(bp->mutex);
         }
 
         else if ( bp->failover ) {
@@ -228,11 +228,11 @@ int bufpool_add_message(bufpool_t *bp, prelude_msg_t *msg)
                 inc_dlen(bp, prelude_msg_get_len(msg));
                 prelude_msg_destroy(msg);
 
-                pthread_mutex_unlock(&bp->mutex);
+                gl_lock_unlock(bp->mutex);
         }
 
         else {
-                pthread_mutex_unlock(&bp->mutex);
+                gl_lock_unlock(bp->mutex);
 
                 evict_from_memory();
                 ret = bufpool_add_message(bp, msg);
@@ -247,9 +247,9 @@ static void failover_destroy(bufpool_t *bp)
         prelude_failover_destroy(bp->failover);
         bp->failover = NULL;
 
-        pthread_mutex_lock(&mutex);
+        gl_lock_lock(mutex);
         prelude_list_add_tail(&pool_list, &bp->list);
-        pthread_mutex_unlock(&mutex);
+        gl_lock_unlock(mutex);
 }
 
 
@@ -260,7 +260,7 @@ int bufpool_get_message(bufpool_t *bp, prelude_msg_t **out)
         prelude_list_t *tmp;
         prelude_msg_t *msg = NULL;
 
-        pthread_mutex_lock(&bp->mutex);
+        gl_lock_lock(bp->mutex);
 
         prelude_list_for_each(&bp->msglist, tmp) {
                 msg = prelude_linked_object_get_object(tmp);
@@ -290,7 +290,7 @@ int bufpool_get_message(bufpool_t *bp, prelude_msg_t **out)
         }
 
         assert(msg || bp->count == 0);
-        pthread_mutex_unlock(&bp->mutex);
+        gl_lock_unlock(bp->mutex);
 
         *out = msg;
         return (msg) ? 1 : 0;
@@ -315,11 +315,11 @@ int bufpool_new(bufpool_t **bp, const char *filename)
                 return prelude_error_from_errno(errno);
         }
 
-        pthread_mutex_init(&(*bp)->mutex, NULL);
+        gl_lock_init((*bp)->mutex);
 
-        pthread_mutex_lock(&mutex);
+        gl_lock_lock(mutex);
         prelude_list_add_tail(&pool_list, &(*bp)->list);
-        pthread_mutex_unlock(&mutex);
+        gl_lock_unlock(mutex);
 
         return 0;
 }
@@ -327,19 +327,19 @@ int bufpool_new(bufpool_t **bp, const char *filename)
 
 void bufpool_destroy(bufpool_t *bp)
 {
-        pthread_mutex_lock(&destroy_prevention);
-        pthread_mutex_lock(&bp->mutex);
-        pthread_mutex_unlock(&destroy_prevention);
+        gl_lock_lock(destroy_prevention);
+        gl_lock_lock(bp->mutex);
+        gl_lock_unlock(destroy_prevention);
 
-        pthread_mutex_lock(&mutex);
+        gl_lock_lock(mutex);
         prelude_list_del(&bp->list);
-        pthread_mutex_unlock(&mutex);
+        gl_lock_unlock(mutex);
 
         if ( bp->failover )
                 prelude_failover_destroy(bp->failover);
 
-        pthread_mutex_unlock(&bp->mutex);
-        pthread_mutex_destroy(&bp->mutex);
+        gl_lock_unlock(bp->mutex);
+        gl_lock_destroy(bp->mutex);
 
         free(bp->filename);
         free(bp);
@@ -356,9 +356,9 @@ size_t bufpool_get_message_count(bufpool_t *bp)
 {
         size_t count;
 
-        pthread_mutex_lock(&bp->mutex);
+        gl_lock_lock(bp->mutex);
         count = bp->count;
-        pthread_mutex_unlock(&bp->mutex);
+        gl_lock_unlock(bp->mutex);
 
         return count;
 }
@@ -369,12 +369,12 @@ void bufpool_print_stats(void)
 {
         uint64_t dl, dc, ml, mc;
 
-        pthread_mutex_lock(&mutex);
+        gl_lock_lock(mutex);
         dl = disk_msglen;
         dc = disk_msgcount;
         ml = mem_msglen;
         mc = mem_msgcount;
-        pthread_mutex_unlock(&mutex);
+        gl_lock_unlock(mutex);
 
         prelude_log(PRELUDE_LOG_INFO, "disk_len=%" PRELUDE_PRIu64 " disk_count=%" PRELUDE_PRIu64 " mem_len=%" PRELUDE_PRIu64 " mem_count=%" PRELUDE_PRIu64 "\n", dl, dc, ml, mc);
 }

@@ -68,6 +68,15 @@ EXTRA_DIST += test-arpa_inet.c
 
 ## end   gnulib module arpa_inet-tests
 
+## begin gnulib module cond-tests
+
+TESTS += test-cond
+check_PROGRAMS += test-cond
+test_cond_LDADD = $(LDADD) @LIBMULTITHREAD@ @YIELD_LIB@
+EXTRA_DIST += test-cond.c
+
+## end   gnulib module cond-tests
+
 ## begin gnulib module getaddrinfo-tests
 
 TESTS += test-getaddrinfo
@@ -84,6 +93,15 @@ EXTRA_DIST += test-getaddrinfo.c
 EXTRA_DIST += intprops.h
 
 ## end   gnulib module intprops
+
+## begin gnulib module lock-tests
+
+TESTS += test-lock
+check_PROGRAMS += test-lock
+test_lock_LDADD = $(LDADD) @LIBMULTITHREAD@ @YIELD_LIB@
+EXTRA_DIST += test-lock.c
+
+## end   gnulib module lock-tests
 
 ## begin gnulib module netinet_in-tests
 
@@ -215,6 +233,12 @@ check_PROGRAMS += test-wchar
 EXTRA_DIST += test-wchar.c
 
 ## end   gnulib module wchar-tests
+
+## begin gnulib module yield
+
+libtests_a_SOURCES += glthread/yield.h 
+
+## end   gnulib module yield
 
 ## begin gnulib module dummy
 

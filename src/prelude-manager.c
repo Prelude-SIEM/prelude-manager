@@ -31,7 +31,6 @@
 #include <syslog.h>
 #include <signal.h>
 #include <assert.h>
-#include <pthread.h>
 
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>

@@ -29,12 +29,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <pthread.h>
 
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-failover.h>
 #include <libprelude/prelude-connection-pool.h>
+
+#include "glthread/lock.h"
 
 #include "reverse-relaying.h"
 #include "server-generic.h"
@@ -68,11 +69,11 @@ typedef struct {
 
 static prelude_msgbuf_t *msgbuf;
 static PRELUDE_LIST(mqueue_list);
-static pthread_mutex_t mqueue_mutex = PTHREAD_MUTEX_INITIALIZER;
+static gl_lock_t mqueue_mutex = gl_lock_initializer;
 
 
 static PRELUDE_LIST(receiver_list);
-static pthread_mutex_t receiver_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+static gl_lock_t receiver_list_mutex = gl_lock_initializer;
 
 extern manager_config_t config;
 extern prelude_client_t *manager_client;
@@ -215,9 +216,9 @@ int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_cl
                 return -1;
         }
 
-        pthread_mutex_lock(&receiver_list_mutex);
+        gl_lock_lock(receiver_list_mutex);
         prelude_list_add_tail(&receiver_list, &new->list);
-        pthread_mutex_unlock(&receiver_list_mutex);
+        gl_lock_unlock(receiver_list_mutex);
         *rrr = new;
 
         return 0;
@@ -253,9 +254,9 @@ static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
         mq->msg = msg;
         mq->analyzerid = *(uint64_t *) prelude_msgbuf_get_data(msgbuf);
 
-        pthread_mutex_lock(&mqueue_mutex);
+        gl_lock_lock(mqueue_mutex);
         prelude_list_add_tail(&mqueue_list, &mq->list);
-        pthread_mutex_unlock(&mqueue_mutex);
+        gl_lock_unlock(mqueue_mutex);
 
         return 0;
 }
@@ -309,7 +310,7 @@ static mqueue_t *mqueue_get_next(void)
 {
         mqueue_t *q = NULL;
 
-        pthread_mutex_lock(&mqueue_mutex);
+        gl_lock_lock(mqueue_mutex);
 
         if ( prelude_list_is_empty(&mqueue_list) )
                 goto out;
@@ -318,7 +319,7 @@ static mqueue_t *mqueue_get_next(void)
         prelude_list_del(&q->list);
 
 out:
-        pthread_mutex_unlock(&mqueue_mutex);
+        gl_lock_unlock(mqueue_mutex);
         return q;
 }
 
@@ -333,9 +334,9 @@ void reverse_relay_send_receiver(idmef_message_t *idmef)
         /*
          * If there is no receiver, no need to queue the message.
          */
-        pthread_mutex_lock(&receiver_list_mutex);
+        gl_lock_lock(receiver_list_mutex);
         empty = prelude_list_is_empty(&receiver_list);
-        pthread_mutex_unlock(&receiver_list_mutex);
+        gl_lock_unlock(receiver_list_mutex);
 
         if ( empty )
                 return;

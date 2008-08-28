@@ -36,16 +36,6 @@ gl_SOURCE_BASE(libmissing)
 gl_M4_BASE(libmissing/m4)
 gl_INIT
 
-dnl **************************************************
-dnl * Check for Pthread library                      *
-dnl **************************************************
-
-ACX_PTHREAD(, AC_MSG_ERROR(could not find suitable pthread implementation))
-dnl Export pthread stuff wide for libmissing and libprelude-error
-
-CPPFLAGS="$PTHREAD_CFLAGS"
-CC="$PTHREAD_CC"
-
 
 dnl **************************************************
 dnl * Check for libprelude                           *
@@ -134,7 +124,7 @@ dnl **************************************************
 dnl * TCP WRAPPER CHECK                              *
 dnl **************************************************
 
-AC_ARG_WITH(libwrap, AC_HELP_STRING(--with-libwrap@<:@=PFX@:>@,
+AC_ARG_WITH(libwrap-prefix, AC_HELP_STRING(--with-libwrap-prefix@<:@=PFX@:>@,
                                     Compile in libwrap (tcp_wrappers) support @<:@default=auto@:>@.),
             libwrap_required=true, with_libwrap="yes")
 

@@ -32,7 +32,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <assert.h>
-#include <pthread.h>
 #include <signal.h>
 #include <dirent.h>
 #include <errno.h>
@@ -54,6 +53,10 @@
 #include <libprelude/prelude-log.h>
 #include <libprelude/prelude-timer.h>
 #include <libprelude/prelude-error.h>
+
+#include "glthread/thread.h"
+#include "glthread/lock.h"
+#include "glthread/cond.h"
 
 #include "prelude-manager.h"
 #include "filter-plugins.h"
@@ -113,12 +116,12 @@ struct idmef_queue {
 
 
 static PRELUDE_LIST(message_queue);
-static pthread_mutex_t queue_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+static gl_lock_t queue_list_mutex = gl_lock_initializer;
 
 static prelude_bool_t input_available = FALSE;
-static pthread_cond_t input_cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t input_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t process_mutex = PTHREAD_MUTEX_INITIALIZER;
+static gl_cond_t input_cond = gl_cond_initializer;
+static gl_lock_t input_mutex = gl_lock_initializer;
+static gl_lock_t process_mutex = gl_lock_initializer;
 
 static unsigned int sched_process_high   =  50;
 static unsigned int sched_process_medium =  30;
@@ -129,42 +132,33 @@ static unsigned int sched_process        = 100;
 /*
  * Thread controling stuff.
  */
-static pthread_t thread;
+static gl_thread_t thread;
 static volatile sig_atomic_t stop_processing = 0;
 
 
 
 static void signal_input_available(void)
 {
-        pthread_mutex_lock(&input_mutex);
+        gl_lock_lock(input_mutex);
 
         if ( ! input_available ) {
                 input_available = TRUE;
-                pthread_cond_signal(&input_cond);
+                gl_cond_signal(input_cond);
         }
 
-        pthread_mutex_unlock(&input_mutex);
+        gl_lock_unlock(input_mutex);
 }
 
 
 
-static struct timespec *get_timespec(struct timespec *ts)
+static inline struct timespec *get_timespec(struct timespec *ts)
 {
-#if _POSIX_TIMERS - 0 > 0
-        int ret;
-
-        ret = clock_gettime(COND_CLOCK_TYPE, ts);
-        if ( ret < 0 )
-                prelude_log(PRELUDE_LOG_ERR, "clock_gettime: %s.\n", strerror(errno));
-
-#else
         struct timeval now;
 
         gettimeofday(&now, NULL);
 
         ts->tv_sec = now.tv_sec;
         ts->tv_nsec = now.tv_usec * 1000;
-#endif
 
         return ts;
 }
@@ -195,14 +189,14 @@ static void wait_for_message(struct timespec *last_wakeup)
         int ret;
         struct timespec ts;
 
-        pthread_mutex_lock(&input_mutex);
+        gl_lock_lock(input_mutex);
 
         while ( ! input_available && ! stop_processing ) {
 
                 ts.tv_sec = last_wakeup->tv_sec + 1;
                 ts.tv_nsec = last_wakeup->tv_nsec;
 
-                ret = pthread_cond_timedwait(&input_cond, &input_mutex, &ts);
+                ret = gl_cond_timedwait(input_cond, input_mutex, &ts);
                 if ( ret == ETIMEDOUT ) {
                         prelude_timer_wake_up();
                         last_wakeup->tv_sec = ts.tv_sec;
@@ -211,15 +205,15 @@ static void wait_for_message(struct timespec *last_wakeup)
         }
 
         if ( ! input_available && stop_processing ) {
-                pthread_mutex_unlock(&input_mutex);
-                pthread_exit(NULL);
+                gl_lock_unlock(input_mutex);
+                gl_thread_exit(NULL);
         }
 
         /*
          * We are going to process all available data.
          */
         input_available = FALSE;
-        pthread_mutex_unlock(&input_mutex);
+        gl_lock_unlock(input_mutex);
 }
 
 
@@ -257,9 +251,9 @@ static int process_message(prelude_msg_t *msg)
 
 static void queue_destroy(idmef_queue_t *queue)
 {
-        pthread_mutex_lock(&queue_list_mutex);
+        gl_lock_lock(queue_list_mutex);
         prelude_list_del(&queue->list);
-        pthread_mutex_unlock(&queue_list_mutex);
+        gl_lock_unlock(queue_list_mutex);
 
         bufpool_destroy(queue->high);
         bufpool_destroy(queue->mid);
@@ -346,9 +340,9 @@ static void schedule_queued_message(struct timespec *last_wakeup)
                 any_queue_dirty = 0;
 
                 while ( 1 ) {
-                        pthread_mutex_lock(&queue_list_mutex);
+                        gl_lock_lock(queue_list_mutex);
                         queue = prelude_list_get_next_safe(&message_queue, queue, bkp, idmef_queue_t, list);
-                        pthread_mutex_unlock(&queue_list_mutex);
+                        gl_lock_unlock(queue_list_mutex);
 
                         if ( ! queue )
                                 break;
@@ -384,7 +378,7 @@ static void *message_reader(void *arg)
 
         sigfillset(&set);
 
-        ret = pthread_sigmask(SIG_SETMASK, &set, NULL);
+        ret = glthread_sigmask(SIG_SETMASK, &set, NULL);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "couldn't set thread signal mask.\n");
                 return NULL;
@@ -446,14 +440,14 @@ static uint64_t get_unique_id(void)
 
         gettimeofday(&tv, NULL);
 
-        pthread_mutex_lock(&queue_list_mutex);
+        gl_lock_lock(queue_list_mutex);
         if ( tv.tv_sec > last_sec ) {
                 last_sec = tv.tv_sec;
                 global_id = 0;
         }
 
         id = global_id++;
-        pthread_mutex_unlock(&queue_list_mutex);
+        gl_lock_unlock(queue_list_mutex);
 
         return ((uint64_t) id << 32) | last_sec;
 }
@@ -500,9 +494,9 @@ idmef_queue_t *idmef_message_scheduler_queue_new(prelude_client_t *client)
                 return NULL;
         }
 
-        pthread_mutex_lock(&queue_list_mutex);
+        gl_lock_lock(queue_list_mutex);
         prelude_list_add_tail(&message_queue, &queue->list);
-        pthread_mutex_unlock(&queue_list_mutex);
+        gl_lock_unlock(queue_list_mutex);
 
         return queue;
 }
@@ -609,7 +603,7 @@ int idmef_message_scheduler_init(void)
 
         closedir(dir);
 
-        ret = pthread_create(&thread, NULL, &message_reader, NULL);
+        ret = glthread_create(&thread, &message_reader, NULL);
         if ( ret < 0 )
                 prelude_log(PRELUDE_LOG_ERR, "couldn't create message processing thread.\n");
 
@@ -624,18 +618,18 @@ void idmef_message_scheduler_exit(void)
         idmef_queue_t *queue;
         prelude_list_t *tmp, *bkp;
 
-        pthread_mutex_lock(&input_mutex);
+        gl_lock_lock(input_mutex);
 
         stop_processing = 1;
-        pthread_cond_signal(&input_cond);
+        gl_cond_signal(input_cond);
 
-        pthread_mutex_unlock(&input_mutex);
+        gl_lock_unlock(input_mutex);
 
         prelude_log(PRELUDE_LOG_INFO, "Waiting queued message to be processed.\n");
-        pthread_join(thread, NULL);
+        gl_thread_join(thread, NULL);
 
-        pthread_cond_destroy(&input_cond);
-        pthread_mutex_destroy(&input_mutex);
+        gl_cond_destroy(input_cond);
+        gl_lock_destroy(input_mutex);
 
         prelude_list_for_each_safe(&message_queue, tmp, bkp) {
                 queue = prelude_list_entry(tmp, idmef_queue_t, list);
@@ -651,7 +645,7 @@ void idmef_message_process(idmef_message_t *idmef)
         int ret = 0;
         prelude_bool_t relay_filter_available = 0;
 
-        pthread_mutex_lock(&process_mutex);
+        gl_lock_lock(process_mutex);
 
         /*
          * run normalization plugin.
@@ -667,7 +661,7 @@ void idmef_message_process(idmef_message_t *idmef)
         if ( relay_filter_available )
                 ret = filter_plugins_run_by_category(idmef, MANAGER_FILTER_CATEGORY_REVERSE_RELAYING);
 
-        pthread_mutex_unlock(&process_mutex);
+        gl_lock_unlock(process_mutex);
 
         if ( ret == 0 )
                 reverse_relay_send_receiver(idmef);
@@ -677,14 +671,14 @@ void idmef_message_process(idmef_message_t *idmef)
 
 void idmef_message_scheduler_stop_processing(void)
 {
-        pthread_mutex_lock(&process_mutex);
+        gl_lock_lock(process_mutex);
 }
 
 
 
 void idmef_message_scheduler_start_processing(void)
 {
-        pthread_mutex_unlock(&process_mutex);
+        gl_lock_unlock(process_mutex);
 }
 
 

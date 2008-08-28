@@ -31,7 +31,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <pthread.h>
 #include <errno.h>
 
 #if TIME_WITH_SYS_TIME
@@ -55,14 +54,13 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 
+#include "glthread/lock.h"
 #include "manager-auth.h"
 
 
 #define DEFAULT_DH_BITS 1024
 #define DH_FILENAME MANAGER_RUN_DIR "/tls-parameters.data"
 
-
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 #ifdef HAVE_GNUTLS_STRING_PRIORITY
 
@@ -76,7 +74,54 @@ static unsigned int global_dh_bits;
 static gnutls_certificate_credentials cred;
 static gnutls_dh_params cur_dh_params = NULL;
 static prelude_timer_t dh_param_regeneration_timer;
-static pthread_mutex_t dh_regen_mutex = PTHREAD_MUTEX_INITIALIZER;
+static gl_lock_t dh_regen_mutex = gl_lock_initializer;
+
+
+
+static int gcry_prelude_mutex_init(void **retval)
+{
+        int ret;
+        gl_lock_t *lock;
+
+        *retval = lock = malloc(sizeof(*lock));
+        if ( ! lock )
+                return ENOMEM;
+
+        ret = glthread_lock_init(lock);
+        if ( ret < 0 )
+                free(lock);
+
+        return ret;
+}
+
+
+static int gcry_prelude_mutex_destroy(void **lock)
+{
+        return glthread_lock_destroy(*lock);
+}
+
+
+
+static int gcry_prelude_mutex_lock(void **lock)
+{
+        return glthread_lock_lock((gl_lock_t *) *lock);
+}
+
+
+static int gcry_prelude_mutex_unlock(void **lock)
+{
+        return glthread_lock_unlock((gl_lock_t *) *lock);
+}
+
+
+static struct gcry_thread_cbs gcry_threads_prelude = {
+        GCRY_THREAD_OPTION_USER,
+        NULL,
+        gcry_prelude_mutex_init,
+        gcry_prelude_mutex_destroy,
+        gcry_prelude_mutex_lock,
+        gcry_prelude_mutex_unlock
+};
 
 
 
@@ -235,10 +280,10 @@ static void dh_params_regenerate(void *data)
 
         gnutls_dh_params_generate2(new, global_dh_bits);
 
-        pthread_mutex_lock(&dh_regen_mutex);
+        gl_lock_lock(dh_regen_mutex);
         tmp = cur_dh_params;
         cur_dh_params = new;
-        pthread_mutex_unlock(&dh_regen_mutex);
+        gl_lock_unlock(dh_regen_mutex);
 
         /*
          * clear the old dh_params.
@@ -268,9 +313,9 @@ static int get_params(gnutls_session session, gnutls_params_type type, gnutls_pa
                 return -1;
         }
 
-        pthread_mutex_lock(&dh_regen_mutex);
+        gl_lock_lock(dh_regen_mutex);
         ret = gnutls_dh_params_cpy(cpy, cur_dh_params);
-        pthread_mutex_unlock(&dh_regen_mutex);
+        gl_lock_unlock(dh_regen_mutex);
 
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_WARN, "could not copy dh params for sessions: %s.\n", gnutls_strerror(ret));
@@ -582,7 +627,7 @@ int manager_auth_init(prelude_client_t *client, const char *tlsopts, int dh_bits
         global_dh_bits = dh_bits;
         global_dh_lifetime = dh_lifetime;
 
-        gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+        gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_prelude);
         gnutls_global_init();
 
         tls_priority_init(tlsopts);

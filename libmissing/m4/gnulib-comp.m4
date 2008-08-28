@@ -25,7 +25,10 @@ AC_DEFUN([gl_EARLY],
   m4_pattern_allow([^gl_LIBOBJS$])dnl a variable
   m4_pattern_allow([^gl_LTLIBOBJS$])dnl a variable
   AC_REQUIRE([AC_PROG_RANLIB])
+  AC_REQUIRE([AM_PROG_CC_C_O])
+  AC_REQUIRE([AC_GNU_SOURCE])
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
+  gl_THREADLIB_EARLY
 ])
 
 # This macro should be invoked from ./configure.in, in the section
@@ -45,12 +48,14 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_ALLOCA
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
+  gl_COND
   gl_FLOAT_H
   gl_GETADDRINFO
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_INET_NTOP
   gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
+  gl_LOCK
   gl_FUNC_MALLOC_POSIX
   gl_STDLIB_MODULE_INDICATOR([malloc-posix])
   gl_FUNC_MEMSET
@@ -80,6 +85,8 @@ AC_DEFUN([gl_INIT],
   gl_STRING_MODULE_INDICATOR([strsep])
   gl_HEADER_SYS_SOCKET
   AC_PROG_MKDIR_P
+  gl_THREAD
+  gl_THREADLIB
   gl_HEADER_TIME_H
   gl_TIME_R
   gl_UNISTD_H
@@ -130,6 +137,7 @@ AC_DEFUN([gl_INIT],
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
   AC_CHECK_FUNCS([shutdown])
+  gl_YIELD
   m4_ifval(gltests_LIBSOURCES_LIST, [
     m4_syscmd([test ! -d ]m4_defn([gltests_LIBSOURCES_DIR])[ ||
       for gl_file in ]gltests_LIBSOURCES_LIST[ ; do
@@ -221,17 +229,24 @@ AC_DEFUN([gltests_LIBSOURCES], [
 # This macro records the list of files which have been installed by
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
+  build-aux/config.rpath
   build-aux/link-warning.h
   lib/alloca.in.h
   lib/arpa_inet.in.h
   lib/asnprintf.c
-  lib/dummy.c
   lib/float+.h
   lib/float.in.h
   lib/gai_strerror.c
   lib/getaddrinfo.c
   lib/getaddrinfo.h
   lib/gettext.h
+  lib/glthread/cond.c
+  lib/glthread/cond.h
+  lib/glthread/lock.c
+  lib/glthread/lock.h
+  lib/glthread/thread.c
+  lib/glthread/thread.h
+  lib/glthread/threadlib.c
   lib/inet_ntop.c
   lib/malloc.c
   lib/memset.c
@@ -267,6 +282,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/xsize.h
   m4/alloca.m4
   m4/arpa_inet_h.m4
+  m4/cond.m4
   m4/eoverflow.m4
   m4/extensions.m4
   m4/float_h.m4
@@ -276,6 +292,10 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/inet_ntop.m4
   m4/intmax_t.m4
   m4/inttypes_h.m4
+  m4/lib-ld.m4
+  m4/lib-link.m4
+  m4/lib-prefix.m4
+  m4/lock.m4
   m4/longlong.m4
   m4/malloc.m4
   m4/memset.m4
@@ -300,6 +320,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/strpbrk.m4
   m4/strsep.m4
   m4/sys_socket_h.m4
+  m4/thread.m4
+  m4/threadlib.m4
   m4/time_h.m4
   m4/time_r.m4
   m4/unistd_h.m4
@@ -309,10 +331,13 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/wchar_t.m4
   m4/wint_t.m4
   m4/xsize.m4
+  m4/yield.m4
   tests/test-EOVERFLOW.c
   tests/test-alloca-opt.c
   tests/test-arpa_inet.c
+  tests/test-cond.c
   tests/test-getaddrinfo.c
+  tests/test-lock.c
   tests/test-netinet_in.c
   tests/test-sigaction.c
   tests/test-snprintf.c
@@ -328,6 +353,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-vsnprintf.c
   tests/test-wchar.c
   tests=lib/dummy.c
+  tests=lib/glthread/yield.h
   tests=lib/intprops.h
   tests=lib/verify.h
 ])
