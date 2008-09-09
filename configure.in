@@ -42,7 +42,7 @@ dnl * Check for libprelude                           *
 dnl **************************************************
 
 AM_PATH_LIBPRELUDE(0.9.7, ,
-  AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?) )
+  AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?), no)
 
 dnl ***
 dnl *** Can we use -Werror -Wmissing-braces for some checks ? ***
@@ -103,7 +103,7 @@ dnl **************************************************
 dnl * Check for libpreludedb                         *
 dnl **************************************************
 
-AM_PATH_LIBPRELUDEDB(0.9.4, enable_libpreludedb=yes, enable_libpreludedb=no)
+AM_PATH_LIBPRELUDEDB(0.9.4, enable_libpreludedb=yes, enable_libpreludedb=no, no)
 AM_CONDITIONAL(HAVE_LIBPRELUDEDB, test x$enable_libpreludedb = xyes)
 if test x$enable_libpreludedb = xyes; then
         AC_DEFINE_UNQUOTED(HAVE_LIBPRELUDEDB, , Define whether libpreludedb is available)

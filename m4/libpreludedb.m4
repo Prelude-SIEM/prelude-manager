@@ -7,7 +7,7 @@ dnl $id$
 # Shamelessly stolen from the one of XDELTA by Owen Taylor
 # Werner Koch   99-12-09
 
-dnl AM_PATH_LIBPRELUDEDB([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]]])
+dnl AM_PATH_LIBPRELUDEDB([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]]], THREAD_SUPPORT)
 dnl Test for libpreludedb, and define LIBPRELUDEDB_CFLAGS, LIBPRELUDEDB_LDFLAGS, and LIBPRELUDEDB_LIBS
 dnl
 AC_DEFUN([AM_PATH_LIBPRELUDEDB],
@@ -25,15 +25,24 @@ AC_ARG_WITH(libpreludedb-prefix, AC_HELP_STRING(--with-libpreludedb-prefix=PFX,
   fi
 
   AC_PATH_PROG(LIBPRELUDEDB_CONFIG, libpreludedb-config, no)
+
+  if test "$LIBPRELUDEDB_CONFIG" != "no"; then
+        if $($LIBPRELUDEDB_CONFIG --thread > /dev/null 2>&1); then
+                if test x$4 = xtrue || test x$4 = xyes; then
+                        libpreludedb_config_args="--thread"
+                fi
+        fi
+  fi
+
   min_libpreludedb_version=ifelse([$1], ,0.1.0,$1)
   AC_MSG_CHECKING(for libpreludedb - version >= $min_libpreludedb_version)
   no_libpreludedb=""
   if test "$LIBPRELUDEDB_CONFIG" = "no" ; then
     no_libpreludedb=yes
   else
-    LIBPRELUDEDB_CFLAGS=`$LIBPRELUDEDB_CONFIG $libpreludedb_config_args --cflags`
-    LIBPRELUDEDB_LDFLAGS=`$LIBPRELUDEDB_CONFIG $libpreludedb_config_args --ldflags`
-    LIBPRELUDEDB_LIBS=`$LIBPRELUDEDB_CONFIG $libpreludedb_config_args --libs`
+    LIBPRELUDEDB_CFLAGS=`$LIBPRELUDEDB_CONFIG $libpreludedb_config_args $libpreludedb_config_args --cflags`
+    LIBPRELUDEDB_LDFLAGS=`$LIBPRELUDEDB_CONFIG $libpreludedb_config_args $libpreludedb_config_args --ldflags`
+    LIBPRELUDEDB_LIBS=`$LIBPRELUDEDB_CONFIG $libpreludedb_config_args $libpreludedb_config_args --libs`
     libpreludedb_config_version=`$LIBPRELUDEDB_CONFIG $libpreludedb_config_args --version`
 
 
