@@ -36,7 +36,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <netinet/in.h> /* required by common.h */
-#include <ftw.h>
+#include <ftw_.h>
 
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -196,7 +196,7 @@ static void wait_for_message(struct timespec *last_wakeup)
                 ts.tv_sec = last_wakeup->tv_sec + 1;
                 ts.tv_nsec = last_wakeup->tv_nsec;
 
-                ret = gl_cond_timedwait(input_cond, input_mutex, &ts);
+                ret = glthread_cond_timedwait(&input_cond, &input_mutex, &ts);
                 if ( ret == ETIMEDOUT ) {
                         prelude_timer_wake_up();
                         last_wakeup->tv_sec = ts.tv_sec;
