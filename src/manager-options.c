@@ -29,8 +29,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <pwd.h>
-#include <grp.h>
+
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
+# include <pwd.h>
+# include <grp.h>
+#endif
 
 #include <libprelude/prelude.h>
 #include <libprelude/daemonize.h>
@@ -377,6 +380,7 @@ static int set_sched_buffer_size(prelude_option_t *opt, const char *arg, prelude
 
 
 
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
 static int set_user(prelude_option_t *opt, const char *optarg, prelude_string_t *err, void *context)
 {
         int ret;
@@ -443,6 +447,7 @@ static int set_group(prelude_option_t *opt, const char *optarg, prelude_string_t
 
         return 0;
 }
+#endif
 
 
 
@@ -502,12 +507,14 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_IMMEDIATE);
 
 
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "user",
                            "Set the user ID used by prelude-manager", PRELUDE_OPTION_ARGUMENT_REQUIRED, set_user, NULL);
 
         prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CFG, 0, "group",
                            "Set the group ID used by prelude-manager", PRELUDE_OPTION_ARGUMENT_REQUIRED, set_group, NULL);
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_FIRST);
+#endif
 
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "connection-timeout",
                            "Number of seconds a client has to successfully authenticate (default 10)",

@@ -29,7 +29,6 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
 
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-timer.h>

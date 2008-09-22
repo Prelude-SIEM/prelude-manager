@@ -32,14 +32,17 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <netinet/in.h>
-#include <sys/un.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
-#include <syslog.h>
 #include <assert.h>
 #include <sys/stat.h>
 #include <signal.h>
+
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
+# include <syslog.h>
+# include <sys/un.h>
+#endif
 
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
@@ -382,11 +385,13 @@ static int setup_client_socket(server_generic_t *server,
         /*
          * set client socket non blocking.
          */
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         ret = fcntl(client, F_SETFL, O_NONBLOCK);
         if ( ret < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set non blocking mode for client: %s", strerror(errno));
 
         fcntl(client, F_SETFD, fcntl(client, F_GETFD) | FD_CLOEXEC);
+#endif
 
         ret = prelude_io_new(&cdata->fd);
         if ( ret < 0 )
@@ -441,7 +446,6 @@ static int handle_connection(server_generic_t *server)
 
         client = accept_connection(server, cdata);
         if ( client < 0 ) {
-                prelude_log(PRELUDE_LOG_ERR, "couldn't accept connection.\n");
                 free(cdata);
                 return -1;
         }
@@ -549,6 +553,7 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
 
 
 
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
 /*
  * If the UNIX socket already exist, check if it is in use.
  * if it is not, delete it.
@@ -626,7 +631,7 @@ static int unix_server_start(server_generic_t *server)
 
         return 0;
 }
-
+#endif
 
 
 
@@ -660,6 +665,7 @@ static int inet_server_start(server_generic_t *server, struct sockaddr *addr, so
 
 
 
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
 static prelude_bool_t is_unix_addr(const char **out, const char *addr)
 {
         int ret;
@@ -677,6 +683,7 @@ static prelude_bool_t is_unix_addr(const char **out, const char *addr)
 
         return TRUE;
 }
+#endif
 
 
 
@@ -706,8 +713,10 @@ static int do_getaddrinfo(struct addrinfo **ai, const char *addr, unsigned int p
 static int resolve_addr(server_generic_t *server, const char *addr, unsigned int port)
 {
         struct addrinfo *ai;
-        const char *unixpath = NULL;
         int ret, ai_family, ai_addrlen;
+
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
+        const char *unixpath = NULL;
 
         if ( is_unix_addr(&unixpath, addr) ) {
                 ai_family = AF_UNIX;
@@ -715,13 +724,16 @@ static int resolve_addr(server_generic_t *server, const char *addr, unsigned int
         }
 
         else {
+#endif
                 ret = do_getaddrinfo(&ai, addr, port);
                 if ( ret < 0 )
                         return ret;
 
                 ai_family = ai->ai_family;
                 ai_addrlen = ai->ai_addrlen;
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         }
+#endif
 
         server->sa = malloc(ai_addrlen);
         if ( ! server->sa ) {
@@ -735,10 +747,14 @@ static int resolve_addr(server_generic_t *server, const char *addr, unsigned int
         if ( ai_family != AF_UNIX ) {
                 memcpy(server->sa, ai->ai_addr, ai->ai_addrlen);
                 freeaddrinfo(ai);
-        } else {
+        }
+
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
+        else {
                 struct sockaddr_un *un = (struct sockaddr_un *) server->sa;
                 strncpy(un->sun_path, unixpath, sizeof(un->sun_path));
         }
+#endif
 
         return 0;
 }
@@ -750,18 +766,22 @@ static int sg_bind_common(server_generic_t *server, unsigned int port)
         char out[128];
         void *in_addr;
 
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         fcntl(server->sock, F_SETFD, fcntl(server->sock, F_GETFD) | FD_CLOEXEC);
 
         if ( server->sa->sa_family == AF_UNIX )
                 prelude_log(PRELUDE_LOG_INFO, "server started (listening on %s).\n",
                             ((struct sockaddr_un *) server->sa)->sun_path);
         else {
+#endif
                 in_addr = prelude_sockaddr_get_inaddr(server->sa);
                 assert(in_addr);
 
                 inet_ntop(server->sa->sa_family, in_addr, out, sizeof(out));
                 prelude_log(PRELUDE_LOG_INFO, "server started (listening on %s port %u).\n", out, port);
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         }
+#endif
 
         return 0;
 }
@@ -827,9 +847,11 @@ int server_generic_bind(server_generic_t *server, const char *saddr, unsigned in
         if ( ret < 0 )
                 return ret;
 
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         if ( server->sa->sa_family == AF_UNIX )
                 ret = unix_server_start(server);
         else
+#endif
                 ret = inet_server_start(server, server->sa, server->slen);
 
         if ( ret < 0 ) {
@@ -862,8 +884,10 @@ void server_generic_destroy(server_generic_t *server)
         close(server->sock);
 
         if ( server->sa ) {
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
                 if ( server->sa->sa_family == AF_UNIX )
                         unlink(((struct sockaddr_un *)server->sa)->sun_path);
+#endif
 
                 free(server->sa);
         }

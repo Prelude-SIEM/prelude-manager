@@ -26,7 +26,10 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <netdb.h>
+
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
+# include <netdb.h>
+#endif
 
 #include <libprelude/prelude.h>
 #include "prelude-manager.h"
@@ -291,7 +294,9 @@ int normalize_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *root_opt
         prelude_plugin_instance_t *pi;
         static manager_decode_plugin_t normalize;
 
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         setprotoent(1);
+#endif
 
         memset(&normalize, 0, sizeof(normalize));
 

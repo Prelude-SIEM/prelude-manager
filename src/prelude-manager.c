@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <unistd.h>
-#include <syslog.h>
 #include <signal.h>
 #include <assert.h>
 
@@ -79,6 +78,7 @@ static RETSIGTYPE handle_signal(int sig)
 
 
 
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
 static void restart_manager(void)
 {
         int ret;
@@ -87,8 +87,9 @@ static void restart_manager(void)
 
         ret = execvp(global_argv[0], global_argv);
         if ( ret < 0 )
-                prelude_log(LOG_ERR, "Error restarting Prelude Manager (%s).\n", global_argv[0]);
+                prelude_log(PRELUDE_LOG_ERR, "Error restarting Prelude Manager (%s).\n", global_argv[0]);
 }
+#endif
 
 
 
@@ -135,8 +136,10 @@ static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
 
 static void sig_cb(struct ev_loop *loop, struct ev_signal *s, int revent)
 {
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         if ( s->signum == SIGHUP )
                 signal(SIGHUP, SIG_IGN);
+#endif
 
         handle_signal(s->signum);
         ev_unloop(manager_event_loop, EVUNLOOP_ALL);
@@ -153,6 +156,17 @@ static void add_signal(int signo, struct sigaction *action)
 }
 
 
+static const char *get_restart_string(void)
+{
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
+        if ( got_signal == SIGHUP )
+                return "will restart";
+#endif
+
+        return "terminating";
+}
+
+
 int main(int argc, char **argv)
 {
         int ret;
@@ -162,8 +176,10 @@ int main(int argc, char **argv)
         prelude_init(&argc, argv);
 
         manager_event_loop = ev_default_loop_init(EVFLAG_AUTO);
-        if ( ! manager_event_loop )
+        if ( ! manager_event_loop ) {
+                prelude_log(PRELUDE_LOG_ERR, "error initializing libev.\n");
                 return -1;
+        }
 
 
         global_argv = argv;
@@ -177,9 +193,12 @@ int main(int argc, char **argv)
 #else
         action.sa_flags = 0;
 #endif
+
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         action.sa_handler = SIG_IGN;
         sigemptyset(&action.sa_mask);
         sigaction(SIGHUP, &action, NULL);
+#endif
 
         /*
          * Initialize plugin first.
@@ -262,14 +281,19 @@ int main(int argc, char **argv)
         /*
          * setup signal handling
          */
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         sigaction(SIGPIPE, &action, NULL);
+#endif
 
         action.sa_handler = handle_signal;
         add_signal(SIGINT, &action);
         add_signal(SIGTERM, &action);
         add_signal(SIGABRT, &action);
+
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         add_signal(SIGQUIT, &action);
         add_signal(SIGHUP, &action);
+#endif
 
         server_generic_start(config.server, config.nserver);
 
@@ -278,7 +302,7 @@ int main(int argc, char **argv)
          */
         if ( got_signal )
                 prelude_log(PRELUDE_LOG_WARN, "signal %d received, %s prelude-manager.\n",
-                            got_signal, (got_signal == SIGHUP) ? "will restart" : "terminating");
+                            got_signal, get_restart_string());
 
         idmef_message_scheduler_exit();
         prelude_client_destroy(manager_client, PRELUDE_CLIENT_EXIT_STATUS_FAILURE);
@@ -291,8 +315,10 @@ int main(int argc, char **argv)
          */
         prelude_deinit();
 
+#if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
         if ( got_signal == SIGHUP )
                 restart_manager();
+#endif
 
         if ( config.pidfile )
                 unlink(config.pidfile);

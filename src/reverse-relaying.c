@@ -89,9 +89,11 @@ static int connection_event_cb(prelude_connection_pool_t *pool,
         if ( ! (event & PRELUDE_CONNECTION_POOL_EVENT_ALIVE) )
                 return 0;
 
+#if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
         ret = fcntl(prelude_io_get_fd(prelude_connection_get_fd(cnx)), F_SETFL, O_NONBLOCK);
         if ( ret < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set non blocking mode for client: %s", strerror(errno));
+#endif
 
         ret = sensor_server_add_client(config.server[0], &client, cnx);
         if ( ret < 0 )
