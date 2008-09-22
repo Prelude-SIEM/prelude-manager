@@ -42,14 +42,6 @@ libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
 EXTRA_libtests_a_SOURCES =
 AM_LIBTOOLFLAGS = --preserve-dup-deps
 
-## begin gnulib module EOVERFLOW-tests
-
-TESTS += test-EOVERFLOW
-check_PROGRAMS += test-EOVERFLOW
-EXTRA_DIST += test-EOVERFLOW.c
-
-## end   gnulib module EOVERFLOW-tests
-
 ## begin gnulib module alloca-opt-tests
 
 TESTS += test-alloca-opt
@@ -77,6 +69,24 @@ EXTRA_DIST += test-cond.c
 
 ## end   gnulib module cond-tests
 
+## begin gnulib module errno-tests
+
+TESTS += test-errno
+check_PROGRAMS += test-errno
+
+EXTRA_DIST += test-errno.c
+
+## end   gnulib module errno-tests
+
+## begin gnulib module fcntl-tests
+
+TESTS += test-fcntl
+check_PROGRAMS += test-fcntl
+
+EXTRA_DIST += test-fcntl.c
+
+## end   gnulib module fcntl-tests
+
 ## begin gnulib module getaddrinfo-tests
 
 TESTS += test-getaddrinfo
@@ -86,6 +96,15 @@ test_getaddrinfo_LDADD = $(LDADD) @LIBINTL@
 EXTRA_DIST += test-getaddrinfo.c
 
 ## end   gnulib module getaddrinfo-tests
+
+## begin gnulib module gettimeofday-tests
+
+TESTS += test-gettimeofday
+check_PROGRAMS += test-gettimeofday
+
+EXTRA_DIST += test-gettimeofday.c
+
+## end   gnulib module gettimeofday-tests
 
 ## begin gnulib module intprops
 
@@ -119,6 +138,24 @@ check_PROGRAMS += test-sigaction
 EXTRA_DIST += test-sigaction.c
 
 ## end   gnulib module sigaction-tests
+
+## begin gnulib module sleep
+
+
+EXTRA_DIST += sleep.c
+
+EXTRA_libtests_a_SOURCES += sleep.c
+
+## end   gnulib module sleep
+
+## begin gnulib module sleep-tests
+
+TESTS += test-sleep
+check_PROGRAMS += test-sleep
+
+EXTRA_DIST += test-sleep.c
+
+## end   gnulib module sleep-tests
 
 ## begin gnulib module snprintf-tests
 
@@ -156,15 +193,6 @@ EXTRA_DIST += test-stdio.c
 
 ## end   gnulib module stdio-tests
 
-## begin gnulib module stdlib-tests
-
-TESTS += test-stdlib
-check_PROGRAMS += test-stdlib
-
-EXTRA_DIST += test-stdlib.c
-
-## end   gnulib module stdlib-tests
-
 ## begin gnulib module string-tests
 
 TESTS += test-string
@@ -182,6 +210,15 @@ check_PROGRAMS += test-sys_socket
 EXTRA_DIST += test-sys_socket.c
 
 ## end   gnulib module sys_socket-tests
+
+## begin gnulib module sys_time-tests
+
+TESTS += test-sys_time
+check_PROGRAMS += test-sys_time
+
+EXTRA_DIST += test-sys_time.c
+
+## end   gnulib module sys_time-tests
 
 ## begin gnulib module time-tests
 

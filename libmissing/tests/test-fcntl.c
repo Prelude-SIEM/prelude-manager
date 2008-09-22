@@ -1,5 +1,5 @@
-/* Test of EOVERFLOW macro.
-   Copyright (C) 2008 Free Software Foundation, Inc.
+/* Test of <fcntl.h> substitute.
+   Copyright (C) 2007 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -14,19 +14,22 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
+/* Written by Bruno Haible <bruno@clisp.org>, 2007.  */
+
 #include <config.h>
 
-#include <errno.h>
+#include <fcntl.h>
 
-/* Check that it can be used as an initializer outside of a function.  */
-static int err = EOVERFLOW;
+/* Check that the various O_* macros are defined.  */
+int o = O_DIRECT | O_DIRECTORY | O_DSYNC | O_NDELAY | O_NOATIME | O_NONBLOCK
+	| O_NOCTTY | O_NOFOLLOW | O_NOLINKS | O_RSYNC | O_SYNC
+	| O_BINARY | O_TEXT;
+
+/* Check that the various SEEK_* macros are defined.  */
+int sk[] = { SEEK_CUR, SEEK_END, SEEK_SET };
 
 int
 main ()
 {
-  /* snprintf() callers want to distinguish EINVAL and EOVERFLOW.  */
-  if (err == EINVAL)
-    return 1;
-
   return 0;
 }

@@ -27,6 +27,8 @@
 
 #if @HAVE_SYS_SOCKET_H@
 
+@PRAGMA_SYSTEM_HEADER@
+
 /* On many platforms, <sys/socket.h> assumes prior inclusion of
    <sys/types.h>.  */
 # include <sys/types.h>
@@ -90,16 +92,6 @@
 # endif
 # if !defined SHUT_RDWR && defined SD_BOTH
 #  define SHUT_RDWR SD_BOTH
-# endif
-
-# if defined _WIN32 || defined __WIN32__
-#  define ENOTSOCK                WSAENOTSOCK
-#  define EADDRINUSE              WSAEADDRINUSE
-#  define ENETRESET               WSAENETRESET
-#  define ECONNABORTED            WSAECONNABORTED
-#  define ECONNRESET              WSAECONNRESET
-#  define ENOTCONN                WSAENOTCONN
-#  define ESHUTDOWN               WSAESHUTDOWN
 # endif
 
 # if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__

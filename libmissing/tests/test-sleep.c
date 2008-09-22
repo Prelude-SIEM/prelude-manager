@@ -1,4 +1,4 @@
-/* Test of <wchar.h> substitute.
+/* Test of sleep() function.
    Copyright (C) 2007-2008 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -18,14 +18,30 @@
 
 #include <config.h>
 
-#include <wchar.h>
+#include <unistd.h>
 
-/* Check that the types wchar_t and wint_t are defined.  */
-wchar_t a = 'c';
-wint_t b = 'x';
+#include <stdio.h>
+#include <stdlib.h>
+
+#define ASSERT(expr) \
+  do									     \
+    {									     \
+      if (!(expr))							     \
+        {								     \
+          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
+          fflush (stderr);						     \
+          abort ();							     \
+        }								     \
+    }									     \
+  while (0)
 
 int
-main ()
+main()
 {
+  ASSERT (sleep (1) <= 1);
+
+  ASSERT (sleep (0) == 0);
+
   return 0;
 }
+

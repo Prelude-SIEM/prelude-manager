@@ -52,6 +52,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "glthread/lock.h"
 
@@ -239,8 +240,6 @@ extern "C" {
 
 /* -------------------------- gl_cond_t datatype -------------------------- */
 
-#define ETIMEDOUT ETIME
-
 typedef pthread_cond_t gl_cond_t;
 # define gl_cond_define(STORAGECLASS, NAME) \
     STORAGECLASS cond_t NAME;
@@ -253,13 +252,67 @@ typedef pthread_cond_t gl_cond_t;
 # define glthread_cond_wait(COND, LOCK) \
     (pthread_in_use () ? cond_wait (COND, LOCK) : 0)
 # define glthread_cond_timedwait(COND, LOCK, ABSTIME) \
-    (pthread_in_use () ? cond_timedwait (COND, LOCK, ABSTIME) : 0)
+    (pthread_in_use () ? glthread_cond_timedwait_multithreaded (COND, LOCK, ABSTIME) : 0)
 # define glthread_cond_signal(COND) \
     (pthread_in_use () ? cond_signal (COND) : 0)
 # define glthread_cond_broadcast(COND) \
     (pthread_in_use () ? cond_broadcast (COND) : 0)
 # define glthread_cond_destroy(COND) \
     (pthread_in_use () ? cond_destroy (COND) : 0)
+extern int glthread_cond_timedwait_multithreaded (gl_cond_t *cond, gl_lock_t *lock, struct timespec *abstime);
+
+# ifdef __cplusplus
+}
+# endif
+
+#endif
+
+
+/* ========================================================================= */
+
+#if USE_WIN32_THREADS
+
+# ifdef __cplusplus
+extern "C" {
+# endif
+
+/* -------------------------- gl_cond_t datatype -------------------------- */
+
+typedef struct {
+  gl_spinlock_t guard;
+  CRITICAL_SECTION lock;
+
+  int waiters_count;
+  int release_count;
+  int wait_generation_count;
+  HANDLE event;
+} gl_cond_t;
+
+# define gl_cond_define(STORAGECLASS, NAME) \
+    STORAGECLASS gl_cond_t NAME;
+# define gl_cond_define_initialized(STORAGECLASS, NAME) \
+    STORAGECLASS gl_cond_t NAME = gl_cond_initializer;
+# define gl_cond_initializer \
+    { { 0, -1 } }
+# define glthread_cond_init(COND) \
+    glthread_cond_init_func (COND)
+# define glthread_cond_wait(COND, LOCK) \
+    glthread_cond_wait_func (COND, LOCK)
+# define glthread_cond_timedwait(COND, LOCK, ABSTIME) \
+    glthread_cond_timedwait_func (COND, LOCK, ABSTIME)
+# define glthread_cond_signal(COND) \
+    glthread_cond_signal_func (COND)
+# define glthread_cond_broadcast(COND) \
+    glthread_cond_broadcast_func (COND)
+# define glthread_cond_destroy(COND) \
+    glthread_cond_destroy_func (COND)
+
+int glthread_cond_init_func(gl_cond_t *cv);
+int glthread_cond_signal_func(gl_cond_t *cv);
+int glthread_cond_broadcast_func(gl_cond_t *cv);
+int glthread_cond_wait_func(gl_cond_t *cv, gl_lock_t *external_mutex);
+int glthread_cond_timedwait_func(gl_cond_t *cv, gl_lock_t *external_mutex, struct timespec *ts);
+int glthread_cond_destroy_func(gl_cond_t *cv);
 
 # ifdef __cplusplus
 }
@@ -274,6 +327,7 @@ typedef pthread_cond_t gl_cond_t;
 /* Provide dummy implementation if threads are not supported.  */
 
 typedef int gl_cond_t;
+# define gl_cond_initializer 0
 # define gl_cond_define(STORAGECLASS, NAME)
 # define gl_cond_define_initialized(STORAGECLASS, NAME)
 # define glthread_cond_init(COND) 0

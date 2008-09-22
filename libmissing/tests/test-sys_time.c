@@ -1,4 +1,4 @@
-/* Test of <stdlib.h> substitute.
+/* Test of <sys/time.h> substitute.
    Copyright (C) 2007 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -18,20 +18,12 @@
 
 #include <config.h>
 
-#include <stdlib.h>
+#include <sys/time.h>
 
-int exitcode;
+struct timeval a;
 
 int
 main ()
 {
-  /* Check that some macros are defined and different integer constants.  */
-  switch (exitcode)
-    {
-    case EXIT_SUCCESS:
-    case EXIT_FAILURE:
-      break;
-    }
-
   return 0;
 }

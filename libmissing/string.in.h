@@ -18,6 +18,8 @@
 
 #ifndef _GL_STRING_H
 
+@PRAGMA_SYSTEM_HEADER@
+
 /* The include_next requires a split double-inclusion guard.  */
 #@INCLUDE_NEXT@ @NEXT_STRING_H@
 
@@ -165,7 +167,11 @@ extern char *strchrnul (char const *__s, int __c_in)
 
 /* Duplicate S, returning an identical malloc'd string.  */
 #if @GNULIB_STRDUP@
-# if ! @HAVE_DECL_STRDUP@ && ! defined strdup
+# if @REPLACE_STRDUP@
+#  undef strdup
+#  define strdup rpl_strdup
+# endif
+# if !(@HAVE_DECL_STRDUP@ || defined strdup) || @REPLACE_STRDUP@
 extern char *strdup (char const *__s);
 # endif
 #elif defined GNULIB_POSIXCHECK

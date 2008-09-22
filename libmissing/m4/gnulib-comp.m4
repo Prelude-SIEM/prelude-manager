@@ -44,20 +44,21 @@ AC_DEFUN([gl_INIT],
   m4_pushdef([gl_LIBSOURCES_DIR], [])
   gl_COMMON
   gl_source_base='libmissing'
-  gl_EOVERFLOW
   gl_FUNC_ALLOCA
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
   gl_COND
+  gl_HEADER_ERRNO_H
+  gl_FCNTL_H
   gl_FLOAT_H
+  gl_FUNC_FTW
   gl_GETADDRINFO
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
+  gl_FUNC_GETTIMEOFDAY
   gl_INET_NTOP
   gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
   gl_LOCK
-  gl_FUNC_MALLOC_POSIX
-  gl_STDLIB_MODULE_INDICATOR([malloc-posix])
   gl_FUNC_MEMSET
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
@@ -75,7 +76,6 @@ AC_DEFUN([gl_INIT],
   AM_STDBOOL_H
   gl_STDINT_H
   gl_STDIO_H
-  gl_STDLIB_H
   gl_FUNC_STRDUP
   gl_STRING_MODULE_INDICATOR([strdup])
   gl_HEADER_STRING_H
@@ -84,6 +84,8 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_STRSEP
   gl_STRING_MODULE_INDICATOR([strsep])
   gl_HEADER_SYS_SOCKET
+  AC_PROG_MKDIR_P
+  gl_HEADER_SYS_TIME_H
   AC_PROG_MKDIR_P
   gl_THREAD
   gl_THREADLIB
@@ -134,6 +136,8 @@ AC_DEFUN([gl_INIT],
   m4_pushdef([gltests_LIBSOURCES_DIR], [])
   gl_COMMON
   gl_source_base='libmissing/tests'
+  gl_FUNC_SLEEP
+  gl_UNISTD_MODULE_INDICATOR([sleep])
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
   AC_CHECK_FUNCS([shutdown])
@@ -234,12 +238,17 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/alloca.in.h
   lib/arpa_inet.in.h
   lib/asnprintf.c
+  lib/errno.in.h
+  lib/fcntl.in.h
   lib/float+.h
   lib/float.in.h
+  lib/ftw.c
+  lib/ftw_.h
   lib/gai_strerror.c
   lib/getaddrinfo.c
   lib/getaddrinfo.h
   lib/gettext.h
+  lib/gettimeofday.c
   lib/glthread/cond.c
   lib/glthread/cond.h
   lib/glthread/lock.c
@@ -248,7 +257,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/glthread/thread.h
   lib/glthread/threadlib.c
   lib/inet_ntop.c
-  lib/malloc.c
   lib/memset.c
   lib/netinet_in.in.h
   lib/pathmax.h
@@ -266,12 +274,12 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/stdbool.in.h
   lib/stdint.in.h
   lib/stdio.in.h
-  lib/stdlib.in.h
   lib/strdup.c
   lib/string.in.h
   lib/strpbrk.c
   lib/strsep.c
   lib/sys_socket.in.h
+  lib/sys_time.in.h
   lib/time.in.h
   lib/time_r.c
   lib/unistd.in.h
@@ -283,10 +291,13 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/cond.m4
-  m4/eoverflow.m4
+  m4/errno_h.m4
   m4/extensions.m4
+  m4/fcntl_h.m4
   m4/float_h.m4
+  m4/ftw.m4
   m4/getaddrinfo.m4
+  m4/gettimeofday.m4
   m4/gnulib-common.m4
   m4/include_next.m4
   m4/inet_ntop.m4
@@ -297,7 +308,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lib-prefix.m4
   m4/lock.m4
   m4/longlong.m4
-  m4/malloc.m4
   m4/memset.m4
   m4/netinet_in_h.m4
   m4/onceonly.m4
@@ -307,6 +317,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/signal_h.m4
   m4/signalblocking.m4
   m4/size_max.m4
+  m4/sleep.m4
   m4/snprintf.m4
   m4/socklen.m4
   m4/sockpfaf.m4
@@ -314,12 +325,12 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/stdint.m4
   m4/stdint_h.m4
   m4/stdio_h.m4
-  m4/stdlib_h.m4
   m4/strdup.m4
   m4/string_h.m4
   m4/strpbrk.m4
   m4/strsep.m4
   m4/sys_socket_h.m4
+  m4/sys_time_h.m4
   m4/thread.m4
   m4/threadlib.m4
   m4/time_h.m4
@@ -332,21 +343,24 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/wint_t.m4
   m4/xsize.m4
   m4/yield.m4
-  tests/test-EOVERFLOW.c
   tests/test-alloca-opt.c
   tests/test-arpa_inet.c
   tests/test-cond.c
+  tests/test-errno.c
+  tests/test-fcntl.c
   tests/test-getaddrinfo.c
+  tests/test-gettimeofday.c
   tests/test-lock.c
   tests/test-netinet_in.c
   tests/test-sigaction.c
+  tests/test-sleep.c
   tests/test-snprintf.c
   tests/test-stdbool.c
   tests/test-stdint.c
   tests/test-stdio.c
-  tests/test-stdlib.c
   tests/test-string.c
   tests/test-sys_socket.c
+  tests/test-sys_time.c
   tests/test-time.c
   tests/test-unistd.c
   tests/test-vasnprintf.c
@@ -355,5 +369,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/dummy.c
   tests=lib/glthread/yield.h
   tests=lib/intprops.h
+  tests=lib/sleep.c
   tests=lib/verify.h
 ])
