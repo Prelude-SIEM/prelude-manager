@@ -156,7 +156,7 @@ static int flush_bufpool_to_disk(bufpool_t *bp)
 }
 
 
-static int evict_from_memory(void)
+static bufpool_t *evict_from_memory(void)
 {
         int ret;
         size_t prev_len = 0;
@@ -198,45 +198,51 @@ static int evict_from_memory(void)
         if ( evict ) {
                 ret = flush_bufpool_to_disk(evict);
                 gl_lock_unlock(evict->mutex);
-                return ret;
+                return evict;
         }
 
-        return 0;
+        return NULL;
 }
 
 
-
-int bufpool_add_message(bufpool_t *bp, prelude_msg_t *msg)
+static inline size_t get_total_mem(void)
 {
-        int ret = 0;
-        size_t total, len = prelude_msg_get_len(msg);
+        size_t total;
 
         gl_lock_lock(mutex);
         total = mem_msglen;
         gl_lock_unlock(mutex);
 
-        gl_lock_lock(bp->mutex);
+        return total;
+}
 
-        if ( total + len < on_disk_threshold && ! bp->failover ) {
-                prelude_linked_object_add_tail(&bp->msglist, (prelude_linked_object_t *) msg);
-                inc_len(bp, len);
-                gl_lock_unlock(bp->mutex);
+
+int bufpool_add_message(bufpool_t *bp, prelude_msg_t *msg)
+{
+        int ret = 0;
+        bufpool_t *evicted;
+        size_t len = prelude_msg_get_len(msg);
+
+        while ( get_total_mem() + len >= on_disk_threshold ) {
+                evicted = evict_from_memory();
+                if ( evicted == bp )
+                        break;
         }
 
-        else if ( bp->failover ) {
-                prelude_failover_save_msg(bp->failover, msg);
-                inc_dlen(bp, prelude_msg_get_len(msg));
-                prelude_msg_destroy(msg);
+        gl_lock_lock(bp->mutex);
 
-                gl_lock_unlock(bp->mutex);
+        if ( ! bp->failover ) {
+                prelude_linked_object_add_tail(&bp->msglist, (prelude_linked_object_t *) msg);
+                inc_len(bp, len);
         }
 
         else {
-                gl_lock_unlock(bp->mutex);
-
-                evict_from_memory();
-                ret = bufpool_add_message(bp, msg);
+                ret = prelude_failover_save_msg(bp->failover, msg);
+                inc_dlen(bp, prelude_msg_get_len(msg));
+                prelude_msg_destroy(msg);
         }
+
+        gl_lock_unlock(bp->mutex);
 
         return ret;
 }
