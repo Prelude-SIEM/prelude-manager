@@ -444,7 +444,6 @@ prelude_bool_t report_plugins_available(void)
 int report_plugin_activate_failover(const char *plugin)
 {
         int ret;
-        plugin_failover_t *pf;
         char pname[256], iname[256];
         prelude_plugin_instance_t *pi;
 
@@ -453,12 +452,6 @@ int report_plugin_activate_failover(const char *plugin)
         pi = prelude_plugin_search_instance_by_name(NULL, pname, (ret == 2) ? iname : NULL);
         if ( ! pi ) {
                 prelude_log(PRELUDE_LOG_WARN, "couldn't find plugin %s.\n", plugin);
-                return -1;
-        }
-
-        pf = calloc(1, sizeof(*pf));
-        if ( ! pf ) {
-                prelude_log(PRELUDE_LOG_ERR, "memory exhausted.\n");
                 return -1;
         }
 
