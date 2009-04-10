@@ -1,7 +1,7 @@
 /*
  * libev native API header
  *
- * Copyright (c) 2007,2008 Marc Alexander Lehmann <libev@schmorp.de>
+ * Copyright (c) 2007,2008,2009 Marc Alexander Lehmann <libev@schmorp.de>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modifica-
@@ -167,9 +167,10 @@ struct ev_loop;
 
 /*
  * struct member types:
- * private: you can look at them, but not change them, and they might not mean anything to you.
- * ro: can be read anytime, but only changed when the watcher isn't active
- * rw: can be read and modified anytime, even when the watcher is active
+ * private: you may look at them, but not change them,
+ *          and they might not mean anything to you.
+ * ro: can be read anytime, but only changed when the watcher isn't active.
+ * rw: can be read and modified anytime, even when the watcher is active.
  *
  * some internal details that might be helpful for debugging:
  *
@@ -178,7 +179,7 @@ struct ev_loop;
  *           or the array index + 1 (most other watchers)
  *           or simply 1 for watchers that aren't in some array.
  * pending is either 0, in which case the watcher isn't,
- *            or the array index + 1 in the pendings array.
+ *           or the array index + 1 in the pendings array.
  */
 
 /* shared by all watchers */
@@ -337,7 +338,7 @@ typedef struct ev_embed
   ev_timer timer;        /* unused */
   ev_periodic periodic;  /* unused */
   ev_idle idle;          /* unused */
-  ev_fork fork;          /* unused */
+  ev_fork fork;          /* private */
 } ev_embed;
 #endif
 
@@ -424,12 +425,11 @@ void ev_set_allocator (void *(*cb)(void *ptr, long size));
 void ev_set_syserr_cb (void (*cb)(const char *msg));
 
 #if EV_MULTIPLICITY
-extern struct ev_loop *ev_default_loop_ptr;
-extern struct ev_loop *ev_default_loop_init (unsigned int flags);
-
 EV_INLINE struct ev_loop *
 ev_default_loop_uc (void)
 {
+  extern struct ev_loop *ev_default_loop_ptr;
+
   return ev_default_loop_ptr;
 }
 
@@ -442,6 +442,8 @@ ev_default_loop (unsigned int flags)
 
   if (!loop)
     {
+      extern struct ev_loop *ev_default_loop_init (unsigned int flags);
+
       loop = ev_default_loop_init (flags);
     }
 
@@ -455,6 +457,7 @@ void ev_loop_fork (EV_P);
 void ev_loop_verify (EV_P);
 
 ev_tstamp ev_now (EV_P); /* time w.r.t. timers and the eventloop, updated after each poll */
+void ev_now_update (EV_P);
 
 #else
 
@@ -473,6 +476,8 @@ EV_INLINE int
 ev_is_default_loop (EV_P)
 {
 #if EV_MULTIPLICITY
+  extern struct ev_loop *ev_default_loop_ptr;
+
   return !!(EV_A == ev_default_loop_ptr);
 #else
   return 1;
@@ -511,7 +516,7 @@ void ev_set_timeout_collect_interval (EV_P_ ev_tstamp interval); /* sleep at lea
 void ev_ref   (EV_P);
 void ev_unref (EV_P);
 
-/* convinience function, wait for a single event, without registering an event watcher */
+/* convenience function, wait for a single event, without registering an event watcher */
 /* if timeout is < 0, do wait indefinitely */
 void ev_once (EV_P_ int fd, int events, ev_tstamp timeout, void (*cb)(int revents, void *arg), void *arg);
 #endif

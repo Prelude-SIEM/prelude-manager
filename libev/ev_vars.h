@@ -65,7 +65,7 @@ VARx(ev_io, pipeev)
 VARx(pid_t, curpid)
 #endif
 
-VARx(int, postfork)  /* true if we need to recreate kernel state after fork */
+VARx(char, postfork)  /* true if we need to recreate kernel state after fork */
 
 #if EV_USE_SELECT || EV_GENWRAP
 VARx(void *, vec_ri)
@@ -156,6 +156,7 @@ VARx(int, asynccnt)
 #if EV_USE_INOTIFY || EV_GENWRAP
 VARx(int, fs_fd)
 VARx(ev_io, fs_w)
+VARx(char, fs_2625) /* whether we are running in linux 2.6.25 or newer */
 VAR (fs_hash, ANFS fs_hash [EV_INOTIFY_HASHSIZE])
 #endif
 

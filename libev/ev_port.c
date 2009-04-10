@@ -59,7 +59,7 @@ port_associate_and_check (EV_P_ int fd, int ev)
       if (errno == EBADFD)
         fd_kill (EV_A_ fd);
       else
-        syserr ("(libev) port_associate");
+        ev_syserr ("(libev) port_associate");
     }
 }
 
@@ -89,10 +89,10 @@ port_poll (EV_P_ ev_tstamp timeout)
   ts.tv_nsec = (long)(timeout - (ev_tstamp)ts.tv_sec) * 1e9;
   res = port_getn (backend_fd, port_events, port_eventmax, &nget, &ts);
 
-  if (res < 0)
+  if (res == -1)
     { 
       if (errno != EINTR && errno != ETIME)
-        syserr ("(libev) port_getn");
+        ev_syserr ("(libev) port_getn");
 
       return;
     } 
@@ -153,7 +153,7 @@ port_fork (EV_P)
   close (backend_fd);
 
   while ((backend_fd = port_create ()) < 0)
-    syserr ("(libev) port");
+    ev_syserr ("(libev) port");
 
   fcntl (backend_fd, F_SETFD, FD_CLOEXEC);
 
