@@ -217,17 +217,15 @@ static int authenticate_client(server_generic_t *server, server_generic_client_t
 
 
 
-static int write_connection_cb(void *sdata, server_generic_client_t *client)
+static int write_connection_cb(server_generic_client_t *client)
 {
-        server_generic_t *server = sdata;
-
         assert(!(client->state & SERVER_GENERIC_CLIENT_STATE_CLOSING));
 
         if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
-                return server->write(client);
+                return client->server->write(client);
         else {
                 server_generic_notify_write_disable(client);
-                return authenticate_client(sdata, client);
+                return authenticate_client(client->server, client);
         }
 }
 
@@ -242,17 +240,16 @@ static int write_connection_cb(void *sdata, server_generic_client_t *client)
  * If the authentication function return -1 (error), this will cause
  * server-logic to call the close_connection_cb callback.
  */
-static int read_connection_cb(void *sdata, server_generic_client_t *client)
+static int read_connection_cb(server_generic_client_t *client)
 {
         int ret = 0;
-        server_generic_t *server = sdata;
 
         assert(!(client->state & SERVER_GENERIC_CLIENT_STATE_CLOSING));
 
         if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED )
-                ret = server->read(client);
+                ret = client->server->read(client);
         else
-                ret = authenticate_client(server, client);
+                ret = authenticate_client(client->server, client);
 
         return ret;
 }
@@ -292,16 +289,15 @@ static int do_close_fd(server_generic_client_t *client)
  * if the authentication process succeed for this connection, call
  * the real close() callback function.
  */
-static int close_connection_cb(void *sdata, server_generic_client_t *client)
+static int close_connection_cb(server_generic_client_t *client)
 {
         int ret;
-        server_generic_t *server = sdata;
 
         client->state |= SERVER_GENERIC_CLIENT_STATE_CLOSING;
 
         if ( client->state & SERVER_GENERIC_CLIENT_STATE_ACCEPTED && ! (client->state & SERVER_GENERIC_CLIENT_STATE_CLOSED) ) {
 
-                ret = server->close(client);
+                ret = client->server->close(client);
                 if ( ret < 0 )
                         return ret;
 
@@ -476,7 +472,7 @@ static int handle_connection(server_generic_t *server)
 static void libev_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
         server_generic_client_t *client = w->data;
-        close_connection_cb(client->server, client);
+        close_connection_cb(client);
 }
 
 
@@ -487,14 +483,14 @@ static void libev_notification_cb(struct ev_loop *loop, struct ev_io *w, int rev
 
         if ( ! (cdata->state & SERVER_GENERIC_CLIENT_STATE_CLOSING) ) {
                 if ( revents & EV_WRITE )
-                        ret = write_connection_cb(cdata->server, cdata);
+                        ret = write_connection_cb(cdata);
 
                 if ( ret >= 0 && revents & EV_READ )
-                        ret = read_connection_cb(cdata->server, cdata);
+                        ret = read_connection_cb(cdata);
         }
 
         if ( ret < 0 || cdata->state & SERVER_GENERIC_CLIENT_STATE_CLOSING )
-                ret = close_connection_cb(cdata->server, cdata);
+                ret = close_connection_cb(cdata);
 }
 
 
