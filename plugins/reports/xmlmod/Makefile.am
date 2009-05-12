@@ -16,3 +16,5 @@ xmldtddir   = $(MANAGER_DATA_DIR)/xmlmod
 EXTRA_DIST = $(xmldtd_DATA)
 
 endif
+
+-include $(top_srcdir)/git.mk

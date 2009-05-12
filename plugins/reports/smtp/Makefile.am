@@ -12,3 +12,5 @@ smtptemplatedir   = $(docdir)/smtp
 
 EXTRA_DIST = $(smtptemplate_DATA)
 
+
+-include $(top_srcdir)/git.mk

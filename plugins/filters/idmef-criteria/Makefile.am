@@ -5,3 +5,5 @@ idmef_criteria_la_SOURCES = idmef-criteria.c
 idmef_criteria_la_LDFLAGS = -module -avoid-version
 idmef_criteriadir = $(libdir)/prelude-manager/filters
 idmef_criteria_LTLIBRARIES = idmef-criteria.la
+
+-include $(top_srcdir)/git.mk

@@ -11,3 +11,5 @@ dbdir = $(libdir)/prelude-manager/reports
 db_LTLIBRARIES = db.la
 
 endif
+
+-include $(top_srcdir)/git.mk

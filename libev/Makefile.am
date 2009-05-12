@@ -2,3 +2,5 @@ EXTRA_DIST=LICENSE Changes README ev_epoll.c ev_kqueue.c ev_poll.c ev_port.c ev_
 noinst_HEADERS = ev.h ev_vars.h ev_wrap.h
 noinst_LTLIBRARIES = libev.la
 libev_la_SOURCES = ev.c
+
+-include $(top_srcdir)/git.mk

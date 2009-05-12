@@ -178,3 +178,5 @@ dist-hook: dist-hook-local
 	done
 
 .PHONY : dist-hook-local
+
+-include $(top_srcdir)/git.mk

@@ -315,6 +315,9 @@ docs/manpages/Makefile
 libev/Makefile
 libmissing/Makefile
 libmissing/tests/Makefile
+
+m4/Makefile
+
 prelude-manager.conf
 
 src/Makefile

@@ -5,3 +5,5 @@ normalize_la_SOURCES = normalize.c
 normalize_la_LDFLAGS = -module -avoid-version
 normalizedir = $(libdir)/prelude-manager/decodes
 normalize_LTLIBRARIES = normalize.la
+
+-include $(top_srcdir)/git.mk

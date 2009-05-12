@@ -43,3 +43,5 @@ prelude_manager_SOURCES = \
         decode-plugins.c \
         idmef-message-scheduler.c \
         reverse-relaying.c 
+
+-include $(top_srcdir)/git.mk

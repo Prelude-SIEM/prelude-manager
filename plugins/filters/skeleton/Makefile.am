@@ -5,3 +5,5 @@ skeleton_la_SOURCES = skeleton.c
 skeleton_la_LDFLAGS = -module -avoid-version
 skeletondir = $(libdir)/prelude-manager/filters
 skeleton_LTLIBRARIES = skeleton.la
+
+-include $(top_srcdir)/git.mk

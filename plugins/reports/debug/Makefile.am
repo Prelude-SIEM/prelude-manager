@@ -6,3 +6,5 @@ debug_la_LIBADD =
 debug_la_LDFLAGS = -module -avoid-version
 debugdir = $(libdir)/prelude-manager/reports
 debug_LTLIBRARIES = debug.la
+
+-include $(top_srcdir)/git.mk

@@ -17,3 +17,5 @@ noinst_HEADERS = 			\
 
 include_HEADERS = 		\
 	prelude-manager.h
+
+-include $(top_srcdir)/git.mk

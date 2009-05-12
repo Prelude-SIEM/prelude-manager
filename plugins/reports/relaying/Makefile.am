@@ -6,3 +6,5 @@ relaying_la_SOURCES = relaying.c
 relayingdir = $(libdir)/prelude-manager/reports
 relaying_LTLIBRARIES = relaying.la
 
+
+-include $(top_srcdir)/git.mk
