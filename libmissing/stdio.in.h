@@ -16,7 +16,9 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
+#if __GNUC__ >= 3
 @PRAGMA_SYSTEM_HEADER@
+#endif
 
 #if defined __need_FILE || defined __need___FILE
 /* Special invocation convention inside glibc header files.  */
@@ -73,6 +75,10 @@ extern "C" {
 extern int fprintf (FILE *fp, const char *format, ...)
        __attribute__ ((__format__ (__printf__, 2, 3)));
 # endif
+#elif @GNULIB_FPRINTF@ && @REPLACE_STDIO_WRITE_FUNCS@ && @GNULIB_STDIO_H_SIGPIPE@
+# define fprintf rpl_fprintf
+extern int fprintf (FILE *fp, const char *format, ...)
+       __attribute__ ((__format__ (__printf__, 2, 3)));
 #elif defined GNULIB_POSIXCHECK
 # undef fprintf
 # define fprintf \
@@ -88,6 +94,10 @@ extern int fprintf (FILE *fp, const char *format, ...)
 extern int vfprintf (FILE *fp, const char *format, va_list args)
        __attribute__ ((__format__ (__printf__, 2, 0)));
 # endif
+#elif @GNULIB_VFPRINTF@ && @REPLACE_STDIO_WRITE_FUNCS@ && @GNULIB_STDIO_H_SIGPIPE@
+# define vfprintf rpl_vfprintf
+extern int vfprintf (FILE *fp, const char *format, va_list args)
+       __attribute__ ((__format__ (__printf__, 2, 0)));
 #elif defined GNULIB_POSIXCHECK
 # undef vfprintf
 # define vfprintf(s,f,a) \
@@ -104,6 +114,11 @@ extern int vfprintf (FILE *fp, const char *format, va_list args)
 extern int printf (const char *format, ...)
        __attribute__ ((__format__ (__printf__, 1, 2)));
 # endif
+#elif @GNULIB_PRINTF@ && @REPLACE_STDIO_WRITE_FUNCS@ && @GNULIB_STDIO_H_SIGPIPE@
+/* Don't break __attribute__((format(printf,M,N))).  */
+# define printf __printf__
+extern int printf (const char *format, ...)
+       __attribute__ ((__format__ (__printf__, 1, 2)));
 #elif defined GNULIB_POSIXCHECK
 # undef printf
 # define printf \
@@ -126,6 +141,10 @@ extern int printf (const char *format, ...)
 extern int vprintf (const char *format, va_list args)
        __attribute__ ((__format__ (__printf__, 1, 0)));
 # endif
+#elif @GNULIB_VPRINTF@ && @REPLACE_STDIO_WRITE_FUNCS@ && @GNULIB_STDIO_H_SIGPIPE@
+# define vprintf rpl_vprintf
+extern int vprintf (const char *format, va_list args)
+       __attribute__ ((__format__ (__printf__, 1, 0)));
 #elif defined GNULIB_POSIXCHECK
 # undef vprintf
 # define vprintf(f,a) \
@@ -197,6 +216,38 @@ extern int vsprintf (char *str, const char *format, va_list args)
      vsprintf (b, f, a))
 #endif
 
+#if @GNULIB_DPRINTF@
+# if @REPLACE_DPRINTF@
+#  define dprintf rpl_dprintf
+# endif
+# if @REPLACE_DPRINTF@ || !@HAVE_DPRINTF@
+extern int dprintf (int fd, const char *format, ...)
+       __attribute__ ((__format__ (__printf__, 2, 3)));
+# endif
+#elif defined GNULIB_POSIXCHECK
+# undef dprintf
+# define dprintf(d,f,a) \
+    (GL_LINK_WARNING ("dprintf is unportable - " \
+                      "use gnulib module dprintf for portability"), \
+     dprintf (d, f, a))
+#endif
+
+#if @GNULIB_VDPRINTF@
+# if @REPLACE_VDPRINTF@
+#  define vdprintf rpl_vdprintf
+# endif
+# if @REPLACE_VDPRINTF@ || !@HAVE_VDPRINTF@
+extern int vdprintf (int fd, const char *format, va_list args)
+       __attribute__ ((__format__ (__printf__, 2, 0)));
+# endif
+#elif defined GNULIB_POSIXCHECK
+# undef vdprintf
+# define vdprintf(d,f,a) \
+    (GL_LINK_WARNING ("vdprintf is unportable - " \
+                      "use gnulib module vdprintf for portability"), \
+     vdprintf (d, f, a))
+#endif
+
 #if @GNULIB_VASPRINTF@
 # if @REPLACE_VASPRINTF@
 #  define asprintf rpl_asprintf
@@ -236,6 +287,7 @@ extern int vsprintf (char *str, const char *format, va_list args)
 
 #if @GNULIB_FOPEN@
 # if @REPLACE_FOPEN@
+#  undef fopen
 #  define fopen rpl_fopen
 extern FILE * fopen (const char *filename, const char *mode);
 # endif
@@ -249,6 +301,7 @@ extern FILE * fopen (const char *filename, const char *mode);
 
 #if @GNULIB_FREOPEN@
 # if @REPLACE_FREOPEN@
+#  undef freopen
 #  define freopen rpl_freopen
 extern FILE * freopen (const char *filename, const char *mode, FILE *stream);
 # endif
@@ -352,6 +405,57 @@ extern long rpl_ftell (FILE *fp);
                      "use gnulib module fflush for portable " \
                      "POSIX compliance"), \
     fflush (f))
+#endif
+
+#if @GNULIB_FCLOSE@
+# if @REPLACE_FCLOSE@
+#  define fclose rpl_fclose
+  /* Close STREAM and its underlying file descriptor.  */
+extern int fclose (FILE *stream);
+# endif
+#elif defined GNULIB_POSIXCHECK
+# undef fclose
+# define fclose(f) \
+   (GL_LINK_WARNING ("fclose is not always POSIX compliant - " \
+                     "use gnulib module fclose for portable " \
+                     "POSIX compliance"), \
+    fclose (f))
+#endif
+
+#if @GNULIB_FPUTC@ && @REPLACE_STDIO_WRITE_FUNCS@ && @GNULIB_STDIO_H_SIGPIPE@
+# undef fputc
+# define fputc rpl_fputc
+extern int fputc (int c, FILE *stream);
+#endif
+
+#if @GNULIB_PUTC@ && @REPLACE_STDIO_WRITE_FUNCS@ && @GNULIB_STDIO_H_SIGPIPE@
+# undef putc
+# define putc rpl_fputc
+extern int putc (int c, FILE *stream);
+#endif
+
+#if @GNULIB_PUTCHAR@ && @REPLACE_STDIO_WRITE_FUNCS@ && @GNULIB_STDIO_H_SIGPIPE@
+# undef putchar
+# define putchar rpl_putchar
+extern int putchar (int c);
+#endif
+
+#if @GNULIB_FPUTS@ && @REPLACE_STDIO_WRITE_FUNCS@ && @GNULIB_STDIO_H_SIGPIPE@
+# undef fputs
+# define fputs rpl_fputs
+extern int fputs (const char *string, FILE *stream);
+#endif
+
+#if @GNULIB_PUTS@ && @REPLACE_STDIO_WRITE_FUNCS@ && @GNULIB_STDIO_H_SIGPIPE@
+# undef puts
+# define puts rpl_puts
+extern int puts (const char *string);
+#endif
+
+#if @GNULIB_FWRITE@ && @REPLACE_STDIO_WRITE_FUNCS@ && @GNULIB_STDIO_H_SIGPIPE@
+# undef fwrite
+# define fwrite rpl_fwrite
+extern size_t fwrite (const void *ptr, size_t s, size_t n, FILE *stream);
 #endif
 
 #if @GNULIB_GETDELIM@

@@ -1,6 +1,6 @@
 ## DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## Process this file with automake to produce Makefile.in.
-# Copyright (C) 2002-2008 Free Software Foundation, Inc.
+# Copyright (C) 2002-2009 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -91,7 +91,7 @@ EXTRA_DIST += test-fcntl.c
 
 TESTS += test-getaddrinfo
 check_PROGRAMS += test-getaddrinfo
-test_getaddrinfo_LDADD = $(LDADD) @LIBINTL@
+test_getaddrinfo_LDADD = $(LDADD) @GETADDRINFO_LIB@ @LIBINTL@
 
 EXTRA_DIST += test-getaddrinfo.c
 
@@ -122,6 +122,15 @@ EXTRA_DIST += test-lock.c
 
 ## end   gnulib module lock-tests
 
+## begin gnulib module netdb-tests
+
+TESTS += test-netdb
+check_PROGRAMS += test-netdb
+
+EXTRA_DIST += test-netdb.c
+
+## end   gnulib module netdb-tests
+
 ## begin gnulib module netinet_in-tests
 
 TESTS += test-netinet_in
@@ -138,6 +147,15 @@ check_PROGRAMS += test-sigaction
 EXTRA_DIST += test-sigaction.c
 
 ## end   gnulib module sigaction-tests
+
+## begin gnulib module signal-tests
+
+TESTS += test-signal
+check_PROGRAMS += test-signal
+
+EXTRA_DIST += test-signal.c
+
+## end   gnulib module signal-tests
 
 ## begin gnulib module sleep
 
@@ -192,6 +210,23 @@ check_PROGRAMS += test-stdio
 EXTRA_DIST += test-stdio.c
 
 ## end   gnulib module stdio-tests
+
+## begin gnulib module strerror
+
+
+EXTRA_DIST += strerror.c
+
+EXTRA_libtests_a_SOURCES += strerror.c
+
+## end   gnulib module strerror
+
+## begin gnulib module strerror-tests
+
+TESTS += test-strerror
+check_PROGRAMS += test-strerror
+EXTRA_DIST += test-strerror.c
+
+## end   gnulib module strerror-tests
 
 ## begin gnulib module string-tests
 
@@ -273,7 +308,7 @@ EXTRA_DIST += test-wchar.c
 
 ## begin gnulib module yield
 
-libtests_a_SOURCES += glthread/yield.h 
+libtests_a_SOURCES += glthread/yield.h
 
 ## end   gnulib module yield
 
@@ -294,5 +329,3 @@ mostlyclean-local: mostlyclean-generic
 	  fi; \
 	done; \
 	:
-
--include $(top_srcdir)/git.mk

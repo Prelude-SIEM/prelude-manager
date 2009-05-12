@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2008 Free Software Foundation, Inc.
+# Copyright (C) 2002-2009 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -26,7 +26,6 @@ AC_DEFUN([gl_EARLY],
   m4_pattern_allow([^gl_LTLIBOBJS$])dnl a variable
   AC_REQUIRE([AC_PROG_RANLIB])
   AC_REQUIRE([AM_PROG_CC_C_O])
-  AC_REQUIRE([AC_GNU_SOURCE])
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
   gl_THREADLIB_EARLY
 ])
@@ -53,17 +52,21 @@ AC_DEFUN([gl_INIT],
   gl_FLOAT_H
   gl_FUNC_FTW
   gl_GETADDRINFO
+  gl_NETDB_MODULE_INDICATOR([getaddrinfo])
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_FUNC_GETTIMEOFDAY
+  gl_HOSTENT
   gl_INET_NTOP
   gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
   gl_LOCK
   gl_FUNC_MEMSET
+  gl_MULTIARCH
+  gl_HEADER_NETDB
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
   gl_PATHMAX
-  AC_REPLACE_FUNCS(raise)
+  gl_SERVENT
   gl_SIGACTION
   gl_SIGNAL_MODULE_INDICATOR([sigaction])
   gl_SIGNAL_H
@@ -79,8 +82,6 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_STRDUP
   gl_STRING_MODULE_INDICATOR([strdup])
   gl_HEADER_STRING_H
-  gl_FUNC_STRPBRK
-  gl_STRING_MODULE_INDICATOR([strpbrk])
   gl_FUNC_STRSEP
   gl_STRING_MODULE_INDICATOR([strsep])
   gl_HEADER_SYS_SOCKET
@@ -140,6 +141,8 @@ AC_DEFUN([gl_INIT],
   gl_UNISTD_MODULE_INDICATOR([sleep])
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
+  gl_FUNC_STRERROR
+  gl_STRING_MODULE_INDICATOR([strerror])
   AC_CHECK_FUNCS([shutdown])
   gl_YIELD
   m4_ifval(gltests_LIBSOURCES_LIST, [
@@ -235,6 +238,7 @@ AC_DEFUN([gltests_LIBSOURCES], [
 AC_DEFUN([gl_FILE_LIST], [
   build-aux/config.rpath
   build-aux/link-warning.h
+  lib/alignof.h
   lib/alloca.in.h
   lib/arpa_inet.in.h
   lib/asnprintf.c
@@ -246,7 +250,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/ftw_.h
   lib/gai_strerror.c
   lib/getaddrinfo.c
-  lib/getaddrinfo.h
   lib/gettext.h
   lib/gettimeofday.c
   lib/glthread/cond.c
@@ -258,13 +261,13 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/glthread/threadlib.c
   lib/inet_ntop.c
   lib/memset.c
+  lib/netdb.in.h
   lib/netinet_in.in.h
   lib/pathmax.h
   lib/printf-args.c
   lib/printf-args.h
   lib/printf-parse.c
   lib/printf-parse.h
-  lib/raise.c
   lib/sig-handler.h
   lib/sigaction.c
   lib/signal.in.h
@@ -273,10 +276,10 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/snprintf.c
   lib/stdbool.in.h
   lib/stdint.in.h
+  lib/stdio-write.c
   lib/stdio.in.h
   lib/strdup.c
   lib/string.in.h
-  lib/strpbrk.c
   lib/strsep.c
   lib/sys_socket.in.h
   lib/sys_time.in.h
@@ -288,6 +291,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/vsnprintf.c
   lib/wchar.in.h
   lib/xsize.h
+  m4/00gnulib.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/cond.m4
@@ -299,6 +303,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/getaddrinfo.m4
   m4/gettimeofday.m4
   m4/gnulib-common.m4
+  m4/hostent.m4
   m4/include_next.m4
   m4/inet_ntop.m4
   m4/intmax_t.m4
@@ -309,10 +314,13 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lock.m4
   m4/longlong.m4
   m4/memset.m4
+  m4/multiarch.m4
+  m4/netdb_h.m4
   m4/netinet_in_h.m4
   m4/onceonly.m4
   m4/pathmax.m4
   m4/printf.m4
+  m4/servent.m4
   m4/sigaction.m4
   m4/signal_h.m4
   m4/signalblocking.m4
@@ -326,8 +334,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/stdint_h.m4
   m4/stdio_h.m4
   m4/strdup.m4
+  m4/strerror.m4
   m4/string_h.m4
-  m4/strpbrk.m4
   m4/strsep.m4
   m4/sys_socket_h.m4
   m4/sys_time_h.m4
@@ -351,13 +359,16 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-getaddrinfo.c
   tests/test-gettimeofday.c
   tests/test-lock.c
+  tests/test-netdb.c
   tests/test-netinet_in.c
   tests/test-sigaction.c
+  tests/test-signal.c
   tests/test-sleep.c
   tests/test-snprintf.c
   tests/test-stdbool.c
   tests/test-stdint.c
   tests/test-stdio.c
+  tests/test-strerror.c
   tests/test-string.c
   tests/test-sys_socket.c
   tests/test-sys_time.c
@@ -370,5 +381,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/glthread/yield.h
   tests=lib/intprops.h
   tests=lib/sleep.c
+  tests=lib/strerror.c
   tests=lib/verify.h
 ])

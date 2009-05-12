@@ -123,9 +123,9 @@ extern int glthread_in_use (void);
 
 typedef pthread_cond_t gl_cond_t;
 # define gl_cond_define(STORAGECLASS, NAME) \
-    STORAGECLASS pthread_cond_t NAME;
+    STORAGECLASS gl_cond_t NAME;
 # define gl_cond_define_initialized(STORAGECLASS, NAME) \
-    STORAGECLASS pthread_cond_t NAME = gl_cond_initializer;
+    STORAGECLASS gl_cond_t NAME = gl_cond_initializer;
 # define gl_cond_initializer \
     PTHREAD_COND_INITIALIZER
 # define glthread_cond_init(COND) \
@@ -182,9 +182,9 @@ extern "C" {
 
 typedef pth_cond_t gl_cond_t;
 # define gl_cond_define(STORAGECLASS, NAME) \
-    STORAGECLASS pth_cond_t NAME;
+    STORAGECLASS gl_cond_t NAME;
 # define gl_cond_define_initialized(STORAGECLASS, NAME) \
-    STORAGECLASS pth_cond_t NAME = gl_cond_initializer;
+    STORAGECLASS gl_cond_t NAME = gl_cond_initializer;
 # define gl_cond_initializer \
     PTH_COND_INIT
 # define glthread_cond_init(COND) \
@@ -240,11 +240,11 @@ extern "C" {
 
 /* -------------------------- gl_cond_t datatype -------------------------- */
 
-typedef pthread_cond_t gl_cond_t;
+typedef cond_t gl_cond_t;
 # define gl_cond_define(STORAGECLASS, NAME) \
-    STORAGECLASS cond_t NAME;
+    STORAGECLASS gl_cond_t NAME;
 # define gl_cond_define_initialized(STORAGECLASS, NAME) \
-    STORAGECLASS cond_t NAME = gl_cond_initializer;
+    STORAGECLASS gl_cond_t NAME = gl_cond_initializer;
 # define gl_cond_initializer \
     DEFAULTCV
 # define glthread_cond_init(COND) \
@@ -267,10 +267,11 @@ extern int glthread_cond_timedwait_multithreaded (gl_cond_t *cond, gl_lock_t *lo
 
 #endif
 
-
 /* ========================================================================= */
 
 #if USE_WIN32_THREADS
+
+# include <windows.h>
 
 # ifdef __cplusplus
 extern "C" {
@@ -278,16 +279,23 @@ extern "C" {
 
 /* -------------------------- gl_cond_t datatype -------------------------- */
 
-typedef struct {
-  gl_spinlock_t guard;
-  CRITICAL_SECTION lock;
-
-  int waiters_count;
-  int release_count;
-  int wait_generation_count;
-  HANDLE event;
-} gl_cond_t;
-
+struct gl_waitqueue_link
+{
+  struct gl_waitqueue_link *wql_next;
+  struct gl_waitqueue_link *wql_prev;
+};
+typedef struct
+        {
+          struct gl_waitqueue_link wq_list; /* circular list of waiting threads */
+        }
+        gl_linked_waitqueue_t;
+typedef struct
+        {
+          gl_spinlock_t guard; /* protects the initialization */
+          CRITICAL_SECTION lock; /* protects the remaining fields */
+          gl_linked_waitqueue_t waiters; /* waiting threads */
+        }
+        gl_cond_t;
 # define gl_cond_define(STORAGECLASS, NAME) \
     STORAGECLASS gl_cond_t NAME;
 # define gl_cond_define_initialized(STORAGECLASS, NAME) \
@@ -306,13 +314,12 @@ typedef struct {
     glthread_cond_broadcast_func (COND)
 # define glthread_cond_destroy(COND) \
     glthread_cond_destroy_func (COND)
-
-int glthread_cond_init_func(gl_cond_t *cv);
-int glthread_cond_signal_func(gl_cond_t *cv);
-int glthread_cond_broadcast_func(gl_cond_t *cv);
-int glthread_cond_wait_func(gl_cond_t *cv, gl_lock_t *external_mutex);
-int glthread_cond_timedwait_func(gl_cond_t *cv, gl_lock_t *external_mutex, struct timespec *ts);
-int glthread_cond_destroy_func(gl_cond_t *cv);
+extern int glthread_cond_init_func (gl_cond_t *cond);
+extern int glthread_cond_wait_func (gl_cond_t *cond, gl_lock_t *lock);
+extern int glthread_cond_timedwait_func (gl_cond_t *cond, gl_lock_t *lock, struct timespec *abstime);
+extern int glthread_cond_signal_func (gl_cond_t *cond);
+extern int glthread_cond_broadcast_func (gl_cond_t *cond);
+extern int glthread_cond_destroy_func (gl_cond_t *cond);
 
 # ifdef __cplusplus
 }
@@ -327,7 +334,6 @@ int glthread_cond_destroy_func(gl_cond_t *cv);
 /* Provide dummy implementation if threads are not supported.  */
 
 typedef int gl_cond_t;
-# define gl_cond_initializer 0
 # define gl_cond_define(STORAGECLASS, NAME)
 # define gl_cond_define_initialized(STORAGECLASS, NAME)
 # define glthread_cond_init(COND) 0

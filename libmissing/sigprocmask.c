@@ -43,13 +43,58 @@
 # define SIGSTOP (-1)
 #endif
 
+/* On native Windows, as of 2008, the signal SIGABRT_COMPAT is an alias
+   for the signal SIGABRT.  Only one signal handler is stored for both
+   SIGABRT and SIGABRT_COMPAT.  SIGABRT_COMPAT is not a signal of its own.  */
+#if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
+# undef SIGABRT_COMPAT
+# define SIGABRT_COMPAT 6
+#endif
+#ifdef SIGABRT_COMPAT
+# define SIGABRT_COMPAT_MASK (1U << SIGABRT_COMPAT)
+#else
+# define SIGABRT_COMPAT_MASK 0
+#endif
+
 typedef void (*handler_t) (int);
+
+/* Handling of gnulib defined signals.  */
+
+#if GNULIB_defined_SIGPIPE
+static handler_t SIGPIPE_handler = SIG_DFL;
+#endif
+
+#if GNULIB_defined_SIGPIPE
+static handler_t
+ext_signal (int sig, handler_t handler)
+{
+  switch (sig)
+    {
+    case SIGPIPE:
+      {
+	handler_t old_handler = SIGPIPE_handler;
+	SIGPIPE_handler = handler;
+	return old_handler;
+      }
+    default: /* System defined signal */
+      return signal (sig, handler);
+    }
+}
+# define signal ext_signal
+#endif
 
 int
 sigismember (const sigset_t *set, int sig)
 {
   if (sig >= 0 && sig < NSIG)
-    return (*set >> sig) & 1;
+    {
+      #ifdef SIGABRT_COMPAT
+      if (sig == SIGABRT_COMPAT)
+	sig = SIGABRT;
+      #endif
+
+      return (*set >> sig) & 1;
+    }
   else
     return 0;
 }
@@ -66,6 +111,11 @@ sigaddset (sigset_t *set, int sig)
 {
   if (sig >= 0 && sig < NSIG)
     {
+      #ifdef SIGABRT_COMPAT
+      if (sig == SIGABRT_COMPAT)
+	sig = SIGABRT;
+      #endif
+
       *set |= 1U << sig;
       return 0;
     }
@@ -81,6 +131,11 @@ sigdelset (sigset_t *set, int sig)
 {
   if (sig >= 0 && sig < NSIG)
     {
+      #ifdef SIGABRT_COMPAT
+      if (sig == SIGABRT_COMPAT)
+	sig = SIGABRT;
+      #endif
+
       *set &= ~(1U << sig);
       return 0;
     }
@@ -91,10 +146,11 @@ sigdelset (sigset_t *set, int sig)
     }
 }
 
+
 int
 sigfillset (sigset_t *set)
 {
-  *set = (2U << (NSIG - 1)) - 1;
+  *set = ((2U << (NSIG - 1)) - 1) & ~ SIGABRT_COMPAT_MASK;
   return 0;
 }
 
@@ -216,6 +272,11 @@ rpl_signal (int sig, handler_t handler)
   if (sig >= 0 && sig < NSIG && sig != SIGKILL && sig != SIGSTOP
       && handler != SIG_ERR)
     {
+      #ifdef SIGABRT_COMPAT
+      if (sig == SIGABRT_COMPAT)
+	sig = SIGABRT;
+      #endif
+
       if (blocked_set & (1U << sig))
 	{
 	  /* POSIX states that sigprocmask and signal are both
@@ -240,3 +301,29 @@ rpl_signal (int sig, handler_t handler)
       return SIG_ERR;
     }
 }
+
+#if GNULIB_defined_SIGPIPE
+/* Raise the signal SIG.  */
+int
+rpl_raise (int sig)
+# undef raise
+{
+  switch (sig)
+    {
+    case SIGPIPE:
+      if (blocked_set & (1U << sig))
+	pending_array[sig] = 1;
+      else
+	{
+	  handler_t handler = SIGPIPE_handler;
+	  if (handler == SIG_DFL)
+	    exit (128 + SIGPIPE);
+	  else if (handler != SIG_IGN)
+	    (*handler) (sig);
+	}
+      return 0;
+    default: /* System defined signal */
+      return raise (sig);
+    }
+}
+#endif

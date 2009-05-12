@@ -17,9 +17,22 @@
 
 /* written by Paul Eggert */
 
-#ifndef _GL_FCNTL_H
-
+#if __GNUC__ >= 3
 @PRAGMA_SYSTEM_HEADER@
+#endif
+
+#if defined __need_system_fcntl_h
+/* Special invocation convention.  */
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#@INCLUDE_NEXT@ @NEXT_FCNTL_H@
+
+#else
+/* Normal invocation convention.  */
+
+#ifndef _GL_FCNTL_H
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -37,9 +50,17 @@
 extern "C" {
 #endif
 
-#if (@GNULIB_OPEN@ && @REPLACE_OPEN@) || defined FCHDIR_REPLACEMENT
-# define open rpl_open
+#if @GNULIB_OPEN@
+# if @REPLACE_OPEN@
+#  undef open
+#  define open rpl_open
 extern int open (const char *filename, int flags, ...);
+# endif
+#endif
+
+#ifdef FCHDIR_REPLACEMENT
+/* gnulib internal function.  */
+extern void _gl_register_fd (int fd, const char *filename);
 #endif
 
 #ifdef __cplusplus
@@ -106,8 +127,8 @@ extern int open (const char *filename, int flags, ...);
 # define O_TEXT _O_TEXT
 #endif
 
-#ifdef __BEOS__
-  /* BeOS 5 has O_BINARY and O_TEXT, but they have no effect.  */
+#if defined __BEOS__ || defined __HAIKU__
+  /* BeOS 5 and Haiku have O_BINARY and O_TEXT, but they have no effect.  */
 # undef O_BINARY
 # undef O_TEXT
 #endif
@@ -120,3 +141,4 @@ extern int open (const char *filename, int flags, ...);
 
 #endif /* _GL_FCNTL_H */
 #endif /* _GL_FCNTL_H */
+#endif

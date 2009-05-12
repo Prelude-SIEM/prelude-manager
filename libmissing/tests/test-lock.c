@@ -20,6 +20,19 @@
 
 #if USE_POSIX_THREADS || USE_SOLARIS_THREADS || USE_PTH_THREADS || USE_WIN32_THREADS
 
+#if USE_POSIX_THREADS
+# define TEST_POSIX_THREADS 1
+#endif
+#if USE_SOLARIS_THREADS
+# define TEST_SOLARIS_THREADS 1
+#endif
+#if USE_PTH_THREADS
+# define TEST_PTH_THREADS 1
+#endif
+#if USE_WIN32_THREADS
+# define TEST_WIN32_THREADS 1
+#endif
+
 /* Whether to enable locking.
    Uncomment this to get a test program without locking, to verify that
    it crashes.  */
@@ -58,8 +71,24 @@
 # undef USE_PTH_THREADS
 # undef USE_WIN32_THREADS
 #endif
-#include "glthread/thread.h"
 #include "glthread/lock.h"
+
+#if !ENABLE_LOCKING
+# if TEST_POSIX_THREADS
+#  define USE_POSIX_THREADS 1
+# endif
+# if TEST_SOLARIS_THREADS
+#  define USE_SOLARIS_THREADS 1
+# endif
+# if TEST_PTH_THREADS
+#  define USE_PTH_THREADS 1
+# endif
+# if TEST_WIN32_THREADS
+#  define USE_WIN32_THREADS 1
+# endif
+#endif
+
+#include "glthread/thread.h"
 #include "glthread/yield.h"
 
 #if ENABLE_DEBUGGING
@@ -95,6 +124,9 @@ check_accounts (void)
   if (sum != ACCOUNT_COUNT * 1000)
     abort ();
 }
+
+
+/* ------------------- Test normal (non-recursive) locks ------------------- */
 
 /* Test normal locks by having several bank accounts and several threads
    which shuffle around money between the accounts and another thread
@@ -158,7 +190,7 @@ lock_checker_thread (void *arg)
   return NULL;
 }
 
-void
+static void
 test_lock (void)
 {
   int i;
@@ -182,6 +214,9 @@ test_lock (void)
   gl_thread_join (checkerthread, NULL);
   check_accounts ();
 }
+
+
+/* ----------------- Test read-write (non-recursive) locks ----------------- */
 
 /* Test read-write locks by having several bank accounts and several threads
    which shuffle around money between the accounts and several other threads
@@ -239,7 +274,7 @@ rwlock_checker_thread (void *arg)
   return NULL;
 }
 
-void
+static void
 test_rwlock (void)
 {
   int i;
@@ -265,6 +300,9 @@ test_rwlock (void)
     gl_thread_join (checkerthreads[i], NULL);
   check_accounts ();
 }
+
+
+/* -------------------------- Test recursive locks -------------------------- */
 
 /* Test recursive locks by having several bank accounts and several threads
    which shuffle around money between the accounts (recursively) and another
@@ -338,7 +376,7 @@ reclock_checker_thread (void *arg)
   return NULL;
 }
 
-void
+static void
 test_recursive_lock (void)
 {
   int i;
@@ -362,6 +400,9 @@ test_recursive_lock (void)
   gl_thread_join (checkerthread, NULL);
   check_accounts ();
 }
+
+
+/* ------------------------ Test once-only execution ------------------------ */
 
 /* Test once-only execution by having several threads attempt to grab a
    once-only task simultaneously (triggered by releasing a read-write lock).  */
@@ -424,7 +465,7 @@ once_contender_thread (void *arg)
   return NULL;
 }
 
-void
+static void
 test_once (void)
 {
   int i, repeat;
@@ -508,6 +549,9 @@ test_once (void)
   for (i = 0; i < THREAD_COUNT; i++)
     gl_thread_join (threads[i], NULL);
 }
+
+
+/* -------------------------------------------------------------------------- */
 
 int
 main ()
