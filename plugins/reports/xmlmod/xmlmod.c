@@ -28,7 +28,6 @@
 #include <stdarg.h>
 #include <libxml/parser.h>
 
-#include "libmissing.h"
 #include "prelude-manager.h"
 
 

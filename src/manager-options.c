@@ -22,13 +22,14 @@
 *****/
 
 #include "config.h"
-#include "libmissing.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
 #if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
 # include <pwd.h>

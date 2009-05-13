@@ -6,7 +6,6 @@ noinst_HEADERS = 			\
 	decode-plugins.h		\
 	filter-plugins.h		\
         idmef-message-scheduler.h 	\
-        libmissing.h 			\
         manager-auth.h 			\
         manager-options.h 		\
         pmsg-to-idmef.h 		\

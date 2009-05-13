@@ -22,7 +22,6 @@
 *****/
 
 #include "config.h"
-#include "libmissing.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -38,6 +37,7 @@
 #include <assert.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include <netdb.h>
 
 #if ! ((defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__)
 # include <syslog.h>
