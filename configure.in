@@ -41,7 +41,7 @@ dnl **************************************************
 dnl * Check for libprelude                           *
 dnl **************************************************
 
-AM_PATH_LIBPRELUDE(0.9.7, ,
+AM_PATH_LIBPRELUDE(0.9.21.3, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?), no)
 
 dnl ***
