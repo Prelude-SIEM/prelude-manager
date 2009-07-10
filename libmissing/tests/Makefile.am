@@ -42,6 +42,15 @@ libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
 EXTRA_libtests_a_SOURCES =
 AM_LIBTOOLFLAGS = --preserve-dup-deps
 
+## begin gnulib module alignof-tests
+
+TESTS += test-alignof
+check_PROGRAMS += test-alignof
+
+EXTRA_DIST += test-alignof.c
+
+## end   gnulib module alignof-tests
+
 ## begin gnulib module alloca-opt-tests
 
 TESTS += test-alloca-opt
@@ -121,6 +130,14 @@ test_lock_LDADD = $(LDADD) @LIBMULTITHREAD@ @YIELD_LIB@
 EXTRA_DIST += test-lock.c
 
 ## end   gnulib module lock-tests
+
+## begin gnulib module memchr-tests
+
+TESTS += test-memchr
+check_PROGRAMS += test-memchr
+EXTRA_DIST += test-memchr.c zerosize-ptr.h
+
+## end   gnulib module memchr-tests
 
 ## begin gnulib module netdb-tests
 

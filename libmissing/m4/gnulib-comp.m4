@@ -53,6 +53,8 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_FTW
   gl_GETADDRINFO
   gl_NETDB_MODULE_INDICATOR([getaddrinfo])
+  gl_FUNC_GETPAGESIZE
+  gl_UNISTD_MODULE_INDICATOR([getpagesize])
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_FUNC_GETTIMEOFDAY
@@ -60,6 +62,8 @@ AC_DEFUN([gl_INIT],
   gl_INET_NTOP
   gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
   gl_LOCK
+  gl_FUNC_MEMCHR
+  gl_STRING_MODULE_INDICATOR([memchr])
   gl_FUNC_MEMSET
   gl_MULTIARCH
   gl_HEADER_NETDB
@@ -250,6 +254,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/ftw_.h
   lib/gai_strerror.c
   lib/getaddrinfo.c
+  lib/getpagesize.c
   lib/gettext.h
   lib/gettimeofday.c
   lib/glthread/cond.c
@@ -260,6 +265,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/glthread/thread.h
   lib/glthread/threadlib.c
   lib/inet_ntop.c
+  lib/memchr.c
+  lib/memchr.valgrind
   lib/memset.c
   lib/netdb.in.h
   lib/netinet_in.in.h
@@ -301,6 +308,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/float_h.m4
   m4/ftw.m4
   m4/getaddrinfo.m4
+  m4/getpagesize.m4
   m4/gettimeofday.m4
   m4/gnulib-common.m4
   m4/hostent.m4
@@ -313,7 +321,9 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lib-prefix.m4
   m4/lock.m4
   m4/longlong.m4
+  m4/memchr.m4
   m4/memset.m4
+  m4/mmap-anon.m4
   m4/multiarch.m4
   m4/netdb_h.m4
   m4/netinet_in_h.m4
@@ -351,6 +361,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/wint_t.m4
   m4/xsize.m4
   m4/yield.m4
+  tests/test-alignof.c
   tests/test-alloca-opt.c
   tests/test-arpa_inet.c
   tests/test-cond.c
@@ -359,6 +370,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-getaddrinfo.c
   tests/test-gettimeofday.c
   tests/test-lock.c
+  tests/test-memchr.c
   tests/test-netdb.c
   tests/test-netinet_in.c
   tests/test-sigaction.c
@@ -377,6 +389,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-vasnprintf.c
   tests/test-vsnprintf.c
   tests/test-wchar.c
+  tests/zerosize-ptr.h
   tests=lib/dummy.c
   tests=lib/glthread/yield.h
   tests=lib/intprops.h
