@@ -1,3 +1,14 @@
+* 2009-07-10, prelude-manager-0.9.15:
+
+- Make Prelude-Manager thread backend independant.
+
+- Add missing dlpreopening support for the SMTP plugin.
+
+- Win32 compilation fixes.
+
+- Various fixes and update.
+
+
 * 2008-08-21, prelude-manager-0.9.14.2:
 
 - Various build fixes (#306).
