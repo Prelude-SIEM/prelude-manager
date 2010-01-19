@@ -182,7 +182,7 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
                         break;
 
                 ret = (direction == PRELUDE_MSG_OPTION_REQUEST) ? hop - 1 : hop + 1;
-                if ( ret < 0 || ret >= (target_len / sizeof(uint64_t)) )
+                if ( ret < 0 || (size_t) ret >= (target_len / sizeof(uint64_t)) )
                         break;
 
                 ident = prelude_extract_uint64(&(*target_ptr)[ret]);
@@ -190,7 +190,7 @@ static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
                         return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "client attempt to mask source identifier");
 
                 hop = (direction == PRELUDE_MSG_OPTION_REQUEST) ? hop + 1 : hop - 1;
-                if ( ret < 0 || ret >= (target_len / sizeof(uint64_t)) )
+                if ( ret < 0 || (size_t) ret >= (target_len / sizeof(uint64_t)) )
                         break;
 
                 if ( hop == (target_len / sizeof(uint64_t)) ) {

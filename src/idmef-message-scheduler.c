@@ -291,7 +291,8 @@ static size_t read_message_scheduled_from_pool(bufpool_t *pool, size_t count)
 
 static void read_message_scheduled(idmef_queue_t *queue)
 {
-        int ret, i = 0, j;
+        unsigned int j;
+        int ret, i = 0;
         prelude_msg_t *msg;
         size_t total, hlen, mlen, llen, proc;
         bufpool_t *btbl[] = { queue->high, queue->mid, queue->low };

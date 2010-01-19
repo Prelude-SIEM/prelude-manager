@@ -309,7 +309,7 @@ static char *const2char(const char *val)
 
 static int set_sched_priority(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
-        int i;
+        unsigned int i;
         char *name, *prio, *value = const2char(arg);
         struct {
                 const char *name;

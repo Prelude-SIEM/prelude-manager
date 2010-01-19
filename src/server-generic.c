@@ -509,7 +509,7 @@ static void ev_trigger_cb(struct ev_loop *loop, struct ev_async *w, int revents)
 
 static int wait_connection(server_generic_t **server, size_t nserver)
 {
-        int i;
+        unsigned int i;
 
         ev_async_init(&ev_trigger, ev_trigger_cb);
         ev_async_start(manager_event_loop, &ev_trigger);

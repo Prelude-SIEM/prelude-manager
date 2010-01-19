@@ -49,7 +49,7 @@
 
 
 #ifndef MIN
-# define MIN(x, y) ((x < y) ? (x) : (y))
+# define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
 
@@ -152,7 +152,7 @@ static char *strip_return_constant(const char *str, char *buf, size_t size)
         if ( ! end )
                 return "invalid input string";
 
-        len = MIN(end - str, size - 1);
+        len = MIN((size_t) (end - str), size - 1);
         strncpy(buf, str, len);
         buf[len] = 0;
 
@@ -241,7 +241,7 @@ static int send_command_va(smtp_plugin_t *plugin, int expected, const char *fmt,
         ret = vsnprintf(wbuf, sizeof(wbuf), fmt, ap);
         va_end(ap);
 
-        if ( ret < 0 || ret >= sizeof(wbuf) ) {
+        if ( ret < 0 || (unsigned int) ret >= sizeof(wbuf) ) {
                 prelude_log(PRELUDE_LOG_WARN, "buffer not large enough (%u bytes needed).\n", ret);
                 return ret;
         }
@@ -410,7 +410,7 @@ static int send_correlation_alert_notice(smtp_plugin_t *plugin, int count)
         if ( ret < 0 || ret == sizeof(txt) )
                 return -1;
 
-        len = MIN(sizeof(pad) - 1, ret);
+        len = MIN(sizeof(pad) - 1, (size_t) ret);
         memset(pad, '*', len);
         pad[len] = 0;
 
