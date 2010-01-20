@@ -59,6 +59,8 @@ extern "C" {
 #    define EV_USE_MONOTONIC 1
 #   endif
 #  endif
+# elif !defined(EV_USE_CLOCK_SYSCALL)
+#  define EV_USE_CLOCK_SYSCALL 0
 # endif
 
 # if HAVE_CLOCK_GETTIME
@@ -133,6 +135,14 @@ extern "C" {
 #  endif
 # endif
 
+# ifndef EV_USE_SIGNALFD
+#  if HAVE_SIGNALFD && HAVE_SYS_SIGNALFD_H
+#   define EV_USE_SIGNALFD 1
+#  else
+#   define EV_USE_SIGNALFD 0
+#  endif
+# endif
+
 # ifndef EV_USE_EVENTFD
 #  if HAVE_EVENTFD
 #   define EV_USE_EVENTFD 1
@@ -145,6 +155,7 @@ extern "C" {
 
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <stddef.h>
 
@@ -177,6 +188,33 @@ extern "C" {
 #endif
 
 /* this block tries to deduce configuration from header-defined symbols and defaults */
+
+/* try to deduce the maximum number of signals on this platform */
+#if defined (EV_NSIG)
+/* use what's provided */
+#elif defined (NSIG)
+# define EV_NSIG (NSIG)
+#elif defined(_NSIG)
+# define EV_NSIG (_NSIG)
+#elif defined (SIGMAX)
+# define EV_NSIG (SIGMAX+1)
+#elif defined (SIG_MAX)
+# define EV_NSIG (SIG_MAX+1)
+#elif defined (_SIG_MAX)
+# define EV_NSIG (_SIG_MAX+1)
+#elif defined (MAXSIG)
+# define EV_NSIG (MAXSIG+1)
+#elif defined (MAX_SIG)
+# define EV_NSIG (MAX_SIG+1)
+#elif defined (SIGARRAYSIZE)
+# define EV_NSIG SIGARRAYSIZE /* Assume ary[SIGARRAYSIZE] */
+#elif defined (_sys_nsig)
+# define EV_NSIG (_sys_nsig) /* Solaris 2.5 */
+#else
+# error "unable to find value for NSIG, please report"
+/* to make it compile regardless, just remove the above line */
+# define EV_NSIG 65
+#endif
 
 #ifndef EV_USE_CLOCK_SYSCALL
 # if __linux && __GLIBC__ >= 2
@@ -266,6 +304,14 @@ extern "C" {
 # endif
 #endif
 
+#ifndef EV_USE_SIGNALFD
+# if __linux && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 7))
+#  define EV_USE_SIGNALFD 1
+# else
+#  define EV_USE_SIGNALFD 0
+# endif
+#endif
+
 #if 0 /* debugging */
 # define EV_VERIFY 3
 # define EV_USE_4HEAP 1
@@ -282,6 +328,20 @@ extern "C" {
 
 #ifndef EV_HEAP_CACHE_AT
 # define EV_HEAP_CACHE_AT !EV_MINIMAL
+#endif
+
+/* on linux, we can use a (slow) syscall to avoid a dependency on pthread, */
+/* which makes programs even slower. might work on other unices, too. */
+#if EV_USE_CLOCK_SYSCALL
+# include <syscall.h>
+# ifdef SYS_clock_gettime
+#  define clock_gettime(id, ts) syscall (SYS_clock_gettime, (id), (ts))
+#  undef EV_USE_MONOTONIC
+#  define EV_USE_MONOTONIC 1
+# else
+#  undef EV_USE_CLOCK_SYSCALL
+#  define EV_USE_CLOCK_SYSCALL 0
+# endif
 #endif
 
 /* this block fixes any misconfiguration where we know we run into trouble otherwise */
@@ -322,18 +382,19 @@ extern "C" {
 # include <winsock.h>
 #endif
 
-/* on linux, we can use a (slow) syscall to avoid a dependency on pthread, */
-/* which makes programs even slower. might work on other unices, too. */
-#if EV_USE_CLOCK_SYSCALL
-# include <syscall.h>
-# define clock_gettime(id, ts) syscall (SYS_clock_gettime, (id), (ts))
-# undef EV_USE_MONOTONIC
-# define EV_USE_MONOTONIC 1
-#endif
-
 #if EV_USE_EVENTFD
 /* our minimum requirement is glibc 2.7 which has the stub, but not the header */
 # include <stdint.h>
+# ifndef EFD_NONBLOCK
+#  define EFD_NONBLOCK O_NONBLOCK
+# endif
+# ifndef EFD_CLOEXEC
+#  ifdef O_CLOEXEC
+#   define EFD_CLOEXEC O_CLOEXEC
+#  else
+#   define EFD_CLOEXEC 02000000
+#  endif
+# endif
 # ifdef __cplusplus
 extern "C" {
 # endif
@@ -342,6 +403,35 @@ int eventfd (unsigned int initval, int flags);
 }
 # endif
 #endif
+
+#if EV_USE_SIGNALFD
+/* our minimum requirement is glibc 2.7 which has the stub, but not the header */
+# include <stdint.h>
+# ifndef SFD_NONBLOCK
+#  define SFD_NONBLOCK O_NONBLOCK
+# endif
+# ifndef SFD_CLOEXEC
+#  ifdef O_CLOEXEC
+#   define SFD_CLOEXEC O_CLOEXEC
+#  else
+#   define SFD_CLOEXEC 02000000
+#  endif
+# endif
+# ifdef __cplusplus
+extern "C" {
+# endif
+int signalfd (int fd, const sigset_t *mask, int flags);
+
+struct signalfd_siginfo
+{
+  uint32_t ssi_signo;
+  char pad[128 - sizeof (uint32_t)];
+};
+# ifdef __cplusplus
+}
+# endif
+#endif
+
 
 /**/
 
@@ -363,7 +453,6 @@ int eventfd (unsigned int initval, int flags);
 
 #define MIN_TIMEJUMP  1. /* minimum timejump that gets detected (if monotonic clock available) */
 #define MAX_BLOCKTIME 59.743 /* never wait longer than this time (to detect time jumps) */
-/*#define CLEANUP_INTERVAL (MAX_BLOCKTIME * 5.) /* how often to try to free memory and re-check fds, TODO */
 
 #if __GNUC__ >= 4
 # define expect(expr,value)         __builtin_expect ((expr),(value))
@@ -386,8 +475,13 @@ int eventfd (unsigned int initval, int flags);
 # define inline_speed      static inline
 #endif
 
-#define NUMPRI    (EV_MAXPRI - EV_MINPRI + 1)
-#define ABSPRI(w) (((W)w)->priority - EV_MINPRI)
+#define NUMPRI (EV_MAXPRI - EV_MINPRI + 1)
+
+#if EV_MINPRI == EV_MAXPRI
+# define ABSPRI(w) (((W)w), 0)
+#else
+# define ABSPRI(w) (((W)w)->priority - EV_MINPRI)
+#endif
 
 #define EMPTY       /* required for microsofts broken pseudo-c compiler */
 #define EMPTY2(a,b) /* used to suppress some warnings */
@@ -407,6 +501,16 @@ static EV_ATOMIC_T have_realtime; /* did clock_gettime (CLOCK_REALTIME) work? */
 
 #if EV_USE_MONOTONIC
 static EV_ATOMIC_T have_monotonic; /* did clock_gettime (CLOCK_MONOTONIC) work? */
+#endif
+
+#ifndef EV_FD_TO_WIN32_HANDLE
+# define EV_FD_TO_WIN32_HANDLE(fd) _get_osfhandle (fd)
+#endif
+#ifndef EV_WIN32_HANDLE_TO_FD
+# define EV_WIN32_HANDLE_TO_FD(handle) _open_osfhandle (fd, 0)
+#endif
+#ifndef EV_WIN32_CLOSE_FD
+# define EV_WIN32_CLOSE_FD(fd) close (fd)
 #endif
 
 #ifdef _WIN32
@@ -480,12 +584,15 @@ ev_realloc (void *ptr, long size)
 
 /*****************************************************************************/
 
+/* set in reify when reification needed */
+#define EV_ANFD_REIFY 1
+
 /* file descriptor info structure */
 typedef struct
 {
   WL head;
   unsigned char events; /* the events watched for */
-  unsigned char reify;  /* flag set when this ANFD needs reification */
+  unsigned char reify;  /* flag set when this ANFD needs reification (EV_ANFD_REIFY, EV__IOFDSET) */
   unsigned char emask;  /* the epoll backend stores the actual kernel mask in here */
   unsigned char unused;
 #if EV_USE_EPOLL
@@ -557,8 +664,21 @@ typedef struct
 
 #endif
 
+#if EV_MINIMAL < 2
+# define EV_RELEASE_CB if (expect_false (release_cb)) release_cb (EV_A)
+# define EV_ACQUIRE_CB if (expect_false (acquire_cb)) acquire_cb (EV_A)
+# define EV_INVOKE_PENDING invoke_cb (EV_A)
+#else
+# define EV_RELEASE_CB (void)0
+# define EV_ACQUIRE_CB (void)0
+# define EV_INVOKE_PENDING ev_invoke_pending (EV_A)
+#endif
+
+#define EVUNLOOP_RECURSE 0x80
+
 /*****************************************************************************/
 
+#ifndef EV_HAVE_EV_TIME
 ev_tstamp
 ev_time (void)
 {
@@ -575,6 +695,7 @@ ev_time (void)
   gettimeofday (&tv, 0);
   return tv.tv_sec + tv.tv_usec * 1e-6;
 }
+#endif
 
 inline_size ev_tstamp
 get_clock (void)
@@ -620,7 +741,7 @@ ev_sleep (ev_tstamp delay)
       tv.tv_usec = (long)((delay - (ev_tstamp)(tv.tv_sec)) * 1e6);
 
       /* here we rely on sys/time.h + sys/types.h + unistd.h providing select */
-      /* somehting nto guaranteed by newer posix versions, but guaranteed */
+      /* something not guaranteed by newer posix versions, but guaranteed */
       /* by older ones */
       select (0, 0, 0, 0, &tv);
 #endif
@@ -738,7 +859,7 @@ queue_events (EV_P_ W *events, int eventcnt, int type)
 /*****************************************************************************/
 
 inline_speed void
-fd_event (EV_P_ int fd, int revents)
+fd_event_nc (EV_P_ int fd, int revents)
 {
   ANFD *anfd = anfds + fd;
   ev_io *w;
@@ -752,11 +873,22 @@ fd_event (EV_P_ int fd, int revents)
     }
 }
 
+/* do not submit kernel events for fds that have reify set */
+/* because that means they changed while we were polling for new events */
+inline_speed void
+fd_event (EV_P_ int fd, int revents)
+{
+  ANFD *anfd = anfds + fd;
+
+  if (expect_true (!anfd->reify))
+    fd_event_nc (EV_A_ fd, revents);
+}
+
 void
 ev_feed_fd_event (EV_P_ int fd, int revents)
 {
   if (fd >= 0 && fd < anfdmax)
-    fd_event (EV_A_ fd, revents);
+    fd_event_nc (EV_A_ fd, revents);
 }
 
 /* make sure the external fd watch events are in-sync */
@@ -781,11 +913,7 @@ fd_reify (EV_P)
       if (events)
         {
           unsigned long arg;
-          #ifdef EV_FD_TO_WIN32_HANDLE
-            anfd->handle = EV_FD_TO_WIN32_HANDLE (fd);
-          #else
-            anfd->handle = _get_osfhandle (fd);
-          #endif
+          anfd->handle = EV_FD_TO_WIN32_HANDLE (fd);
           assert (("libev: only socket fds supported in this configuration", ioctlsocket (anfd->handle, FIONREAD, &arg) == 0));
         }
 #endif
@@ -866,7 +994,7 @@ fd_enomem (EV_P)
     if (anfds [fd].events)
       {
         fd_kill (EV_A_ fd);
-        return;
+        break;
       }
 }
 
@@ -881,7 +1009,7 @@ fd_rearm_all (EV_P)
       {
         anfds [fd].events = 0;
         anfds [fd].emask  = 0;
-        fd_change (EV_A_ fd, EV__IOFDSET | 1);
+        fd_change (EV_A_ fd, EV__IOFDSET | EV_ANFD_REIFY);
       }
 }
 
@@ -966,7 +1094,7 @@ downheap (ANHE *heap, int N, int k)
     {
       int c = k << 1;
 
-      if (c > N + HEAP0 - 1)
+      if (c >= N + HEAP0)
         break;
 
       c += c + 1 < N + HEAP0 && ANHE_at (heap [c]) > ANHE_at (heap [c + 1])
@@ -1012,7 +1140,7 @@ upheap (ANHE *heap, int k)
 inline_size void
 adjustheap (ANHE *heap, int N, int k)
 {
-  if (k > HEAP0 && ANHE_at (heap [HPARENT (k)]) >= ANHE_at (heap [k]))
+  if (k > HEAP0 && ANHE_at (heap [k]) <= ANHE_at (heap [HPARENT (k)]))
     upheap (heap, k);
   else
     downheap (heap, N, k);
@@ -1035,14 +1163,14 @@ reheap (ANHE *heap, int N)
 /* associate signal watchers to a signal signal */
 typedef struct
 {
+  EV_ATOMIC_T pending;
+#if EV_MULTIPLICITY
+  EV_P;
+#endif
   WL head;
-  EV_ATOMIC_T gotsig;
 } ANSIG;
 
-static ANSIG *signals;
-static int signalmax;
-
-static EV_ATOMIC_T gotsig;
+static ANSIG signals [EV_NSIG - 1];
 
 /*****************************************************************************/
 
@@ -1066,10 +1194,14 @@ evpipe_init (EV_P)
   if (!ev_is_active (&pipe_w))
     {
 #if EV_USE_EVENTFD
-      if ((evfd = eventfd (0, 0)) >= 0)
+      evfd = eventfd (0, EFD_NONBLOCK | EFD_CLOEXEC);
+      if (evfd < 0 && errno == EINVAL)
+        evfd = eventfd (0, 0);
+
+      if (evfd >= 0)
         {
           evpipe [0] = -1;
-          fd_intern (evfd);
+          fd_intern (evfd); /* doing it twice doesn't hurt */
           ev_io_set (&pipe_w, evfd, EV_READ);
         }
       else
@@ -1116,6 +1248,8 @@ evpipe_write (EV_P_ EV_ATOMIC_T *flag)
 static void
 pipecb (EV_P_ ev_io *iow, int revents)
 {
+  int i;
+
 #if EV_USE_EVENTFD
   if (evfd >= 0)
     {
@@ -1129,21 +1263,19 @@ pipecb (EV_P_ ev_io *iow, int revents)
       read (evpipe [0], &dummy, 1);
     }
 
-  if (gotsig && ev_is_default_loop (EV_A))
+  if (sig_pending)
     {    
-      int signum;
-      gotsig = 0;
+      sig_pending = 0;
 
-      for (signum = signalmax; signum--; )
-        if (signals [signum].gotsig)
-          ev_feed_signal_event (EV_A_ signum + 1);
+      for (i = EV_NSIG - 1; i--; )
+        if (expect_false (signals [i].pending))
+          ev_feed_signal_event (EV_A_ i + 1);
     }
 
 #if EV_ASYNC_ENABLE
-  if (gotasync)
+  if (async_pending)
     {
-      int i;
-      gotasync = 0;
+      async_pending = 0;
 
       for (i = asynccnt; i--; )
         if (asyncs [i]->sent)
@@ -1161,15 +1293,15 @@ static void
 ev_sighandler (int signum)
 {
 #if EV_MULTIPLICITY
-  struct ev_loop *loop = &default_loop_struct;
+  EV_P = signals [signum - 1].loop;
 #endif
 
 #if _WIN32
   signal (signum, ev_sighandler);
 #endif
 
-  signals [signum - 1].gotsig = 1;
-  evpipe_write (EV_A_ &gotsig);
+  signals [signum - 1].pending = 1;
+  evpipe_write (EV_A_ &sig_pending);
 }
 
 void noinline
@@ -1177,20 +1309,44 @@ ev_feed_signal_event (EV_P_ int signum)
 {
   WL w;
 
-#if EV_MULTIPLICITY
-  assert (("libev: feeding signal events is only supported in the default loop", loop == ev_default_loop_ptr));
-#endif
+  if (expect_false (signum <= 0 || signum > EV_NSIG))
+    return;
 
   --signum;
 
-  if (signum < 0 || signum >= signalmax)
-    return;
+#if EV_MULTIPLICITY
+  /* it is permissible to try to feed a signal to the wrong loop */
+  /* or, likely more useful, feeding a signal nobody is waiting for */
 
-  signals [signum].gotsig = 0;
+  if (expect_false (signals [signum].loop != EV_A))
+    return;
+#endif
+
+  signals [signum].pending = 0;
 
   for (w = signals [signum].head; w; w = w->next)
     ev_feed_event (EV_A_ (W)w, EV_SIGNAL);
 }
+
+#if EV_USE_SIGNALFD
+static void
+sigfdcb (EV_P_ ev_io *iow, int revents)
+{
+  struct signalfd_siginfo si[2], *sip; /* these structs are big */
+
+  for (;;)
+    {
+      ssize_t res = read (sigfd, si, sizeof (si));
+
+      /* not ISO-C, as res might be -1, but works with SuS */
+      for (sip = si; (char *)sip < (char *)si + res; ++sip)
+        ev_feed_signal_event (EV_A_ sip->ssi_signo);
+
+      if (res < (ssize_t)sizeof (si))
+        break;
+    }
+}
+#endif
 
 /*****************************************************************************/
 
@@ -1345,10 +1501,17 @@ ev_backend (EV_P)
   return backend;
 }
 
+#if EV_MINIMAL < 2
 unsigned int
 ev_loop_count (EV_P)
 {
   return loop_count;
+}
+
+unsigned int
+ev_loop_depth (EV_P)
+{
+  return loop_depth;
 }
 
 void
@@ -1362,6 +1525,30 @@ ev_set_timeout_collect_interval (EV_P_ ev_tstamp interval)
 {
   timeout_blocktime = interval;
 }
+
+void
+ev_set_userdata (EV_P_ void *data)
+{
+  userdata = data;
+}
+
+void *
+ev_userdata (EV_P)
+{
+  return userdata;
+}
+
+void ev_set_invoke_pending_cb (EV_P_ void (*invoke_pending_cb)(EV_P))
+{
+  invoke_cb = invoke_pending_cb;
+}
+
+void ev_set_loop_release_cb (EV_P_ void (*release)(EV_P), void (*acquire)(EV_P))
+{
+  release_cb = release;
+  acquire_cb = acquire;
+}
+#endif
 
 /* initialise a loop structure, must be zero-initialised */
 static void noinline
@@ -1389,20 +1576,6 @@ loop_init (EV_P_ unsigned int flags)
         }
 #endif
 
-      ev_rt_now         = ev_time ();
-      mn_now            = get_clock ();
-      now_floor         = mn_now;
-      rtmn_diff         = ev_rt_now - mn_now;
-
-      io_blocktime      = 0.;
-      timeout_blocktime = 0.;
-      backend           = 0;
-      backend_fd        = -1;
-      gotasync          = 0;
-#if EV_USE_INOTIFY
-      fs_fd             = -2;
-#endif
-
       /* pid check not overridable via env */
 #ifndef _WIN32
       if (flags & EVFLAG_FORKCHECK)
@@ -1413,6 +1586,29 @@ loop_init (EV_P_ unsigned int flags)
           && !enable_secure ()
           && getenv ("LIBEV_FLAGS"))
         flags = atoi (getenv ("LIBEV_FLAGS"));
+
+      ev_rt_now         = ev_time ();
+      mn_now            = get_clock ();
+      now_floor         = mn_now;
+      rtmn_diff         = ev_rt_now - mn_now;
+#if EV_MINIMAL < 2
+      invoke_cb         = ev_invoke_pending;
+#endif
+
+      io_blocktime      = 0.;
+      timeout_blocktime = 0.;
+      backend           = 0;
+      backend_fd        = -1;
+      sig_pending       = 0;
+#if EV_ASYNC_ENABLE
+      async_pending     = 0;
+#endif
+#if EV_USE_INOTIFY
+      fs_fd             = flags & EVFLAG_NOINOTIFY ? -1 : -2;
+#endif
+#if EV_USE_SIGNALFD
+      sigfd             = flags & EVFLAG_SIGNALFD  ? -2 : -1;
+#endif
 
       if (!(flags & 0x0000ffffU))
         flags |= ev_recommended_backends ();
@@ -1448,8 +1644,8 @@ loop_destroy (EV_P)
 
   if (ev_is_active (&pipe_w))
     {
-      ev_ref (EV_A); /* signal watcher */
-      ev_io_stop (EV_A_ &pipe_w);
+      /*ev_ref (EV_A);*/
+      /*ev_io_stop (EV_A_ &pipe_w);*/
 
 #if EV_USE_EVENTFD
       if (evfd >= 0)
@@ -1458,10 +1654,15 @@ loop_destroy (EV_P)
 
       if (evpipe [0] >= 0)
         {
-          close (evpipe [0]);
-          close (evpipe [1]);
+          EV_WIN32_CLOSE_FD (evpipe [0]);
+          EV_WIN32_CLOSE_FD (evpipe [1]);
         }
     }
+
+#if EV_USE_SIGNALFD
+  if (ev_is_active (&sigfd_w))
+    close (sigfd);
+#endif
 
 #if EV_USE_INOTIFY
   if (fs_fd >= 0)
@@ -1495,7 +1696,7 @@ loop_destroy (EV_P)
 #endif
     }
 
-  ev_free (anfds); anfdmax = 0;
+  ev_free (anfds); anfds = 0; anfdmax = 0;
 
   /* have to use the microsoft-never-gets-it-right macro */
   array_free (rfeed, EMPTY);
@@ -1540,9 +1741,9 @@ loop_fork (EV_P)
     {
       /* this "locks" the handlers against writing to the pipe */
       /* while we modify the fd vars */
-      gotsig = 1;
+      sig_pending   = 1;
 #if EV_ASYNC_ENABLE
-      gotasync = 1;
+      async_pending = 1;
 #endif
 
       ev_ref (EV_A);
@@ -1555,8 +1756,8 @@ loop_fork (EV_P)
 
       if (evpipe [0] >= 0)
         {
-          close (evpipe [0]);
-          close (evpipe [1]);
+          EV_WIN32_CLOSE_FD (evpipe [0]);
+          EV_WIN32_CLOSE_FD (evpipe [1]);
         }
 
       evpipe_init (EV_A);
@@ -1572,14 +1773,13 @@ loop_fork (EV_P)
 struct ev_loop *
 ev_loop_new (unsigned int flags)
 {
-  struct ev_loop *loop = (struct ev_loop *)ev_malloc (sizeof (struct ev_loop));
+  EV_P = (struct ev_loop *)ev_malloc (sizeof (struct ev_loop));
 
-  memset (loop, 0, sizeof (struct ev_loop));
-
+  memset (EV_A, 0, sizeof (struct ev_loop));
   loop_init (EV_A_ flags);
 
   if (ev_backend (EV_A))
-    return loop;
+    return EV_A;
 
   return 0;
 }
@@ -1596,6 +1796,7 @@ ev_loop_fork (EV_P)
 {
   postfork = 1; /* must be in line with ev_default_fork */
 }
+#endif /* multiplicity */
 
 #if EV_VERIFY
 static void noinline
@@ -1633,6 +1834,7 @@ array_verify (EV_P_ W *ws, int cnt)
 }
 #endif
 
+#if EV_MINIMAL < 2
 void
 ev_loop_verify (EV_P)
 {
@@ -1691,12 +1893,11 @@ ev_loop_verify (EV_P)
 
 # if 0
   for (w = (ev_child *)childs [chain & (EV_PID_HASHSIZE - 1)]; w; w = (ev_child *)((WL)w)->next)
-  for (signum = signalmax; signum--; ) if (signals [signum].gotsig)
+  for (signum = EV_NSIG; signum--; ) if (signals [signum].pending)
 # endif
 #endif
 }
-
-#endif /* multiplicity */
+#endif
 
 #if EV_MULTIPLICITY
 struct ev_loop *
@@ -1709,7 +1910,7 @@ ev_default_loop (unsigned int flags)
   if (!ev_default_loop_ptr)
     {
 #if EV_MULTIPLICITY
-      struct ev_loop *loop = ev_default_loop_ptr = &default_loop_struct;
+      EV_P = ev_default_loop_ptr = &default_loop_struct;
 #else
       ev_default_loop_ptr = 1;
 #endif
@@ -1736,7 +1937,7 @@ void
 ev_default_destroy (void)
 {
 #if EV_MULTIPLICITY
-  struct ev_loop *loop = ev_default_loop_ptr;
+  EV_P = ev_default_loop_ptr;
 #endif
 
   ev_default_loop_ptr = 0;
@@ -1753,7 +1954,7 @@ void
 ev_default_fork (void)
 {
 #if EV_MULTIPLICITY
-  struct ev_loop *loop = ev_default_loop_ptr;
+  EV_P = ev_default_loop_ptr;
 #endif
 
   postfork = 1; /* must be in line with ev_loop_fork */
@@ -1767,8 +1968,20 @@ ev_invoke (EV_P_ void *w, int revents)
   EV_CB_INVOKE ((W)w, revents);
 }
 
-inline_speed void
-call_pending (EV_P)
+unsigned int
+ev_pending_count (EV_P)
+{
+  int pri;
+  unsigned int count = 0;
+
+  for (pri = NUMPRI; pri--; )
+    count += pendingcnt [pri];
+
+  return count;
+}
+
+void noinline
+ev_invoke_pending (EV_P)
 {
   int pri;
 
@@ -1950,11 +2163,10 @@ timers_reschedule (EV_P_ ev_tstamp adjust)
 inline_speed void
 time_update (EV_P_ ev_tstamp max_block)
 {
-  int i;
-
 #if EV_USE_MONOTONIC
   if (expect_true (have_monotonic))
     {
+      int i;
       ev_tstamp odiff = rtmn_diff;
 
       mn_now = get_clock ();
@@ -2014,14 +2226,18 @@ time_update (EV_P_ ev_tstamp max_block)
     }
 }
 
-static int loop_done;
-
 void
 ev_loop (EV_P_ int flags)
 {
+#if EV_MINIMAL < 2
+  ++loop_depth;
+#endif
+
+  assert (("libev: ev_loop recursion during release detected", loop_done != EVUNLOOP_RECURSE));
+
   loop_done = EVUNLOOP_CANCEL;
 
-  call_pending (EV_A); /* in case we recurse, ensure ordering stays nice and clean */
+  EV_INVOKE_PENDING; /* in case we recurse, ensure ordering stays nice and clean */
 
   do
     {
@@ -2044,7 +2260,7 @@ ev_loop (EV_P_ int flags)
         if (forkcnt)
           {
             queue_events (EV_A_ (W *)forks, forkcnt, EV_FORK);
-            call_pending (EV_A);
+            EV_INVOKE_PENDING;
           }
 #endif
 
@@ -2052,8 +2268,11 @@ ev_loop (EV_P_ int flags)
       if (expect_false (preparecnt))
         {
           queue_events (EV_A_ (W *)prepares, preparecnt, EV_PREPARE);
-          call_pending (EV_A);
+          EV_INVOKE_PENDING;
         }
+
+      if (expect_false (loop_done))
+        break;
 
       /* we might have forked, so reify kernel state if necessary */
       if (expect_false (postfork))
@@ -2069,6 +2288,9 @@ ev_loop (EV_P_ int flags)
 
         if (expect_true (!(flags & EVLOOP_NONBLOCK || idleall || !activecnt)))
           {
+            /* remember old timestamp for io_blocktime calculation */
+            ev_tstamp prev_mn_now = mn_now;
+
             /* update time to cancel out callback processing overhead */
             time_update (EV_A_ 1e100);
 
@@ -2088,23 +2310,32 @@ ev_loop (EV_P_ int flags)
               }
 #endif
 
+            /* don't let timeouts decrease the waittime below timeout_blocktime */
             if (expect_false (waittime < timeout_blocktime))
               waittime = timeout_blocktime;
 
-            sleeptime = waittime - backend_fudge;
-
-            if (expect_true (sleeptime > io_blocktime))
-              sleeptime = io_blocktime;
-
-            if (sleeptime)
+            /* extra check because io_blocktime is commonly 0 */
+            if (expect_false (io_blocktime))
               {
-                ev_sleep (sleeptime);
-                waittime -= sleeptime;
+                sleeptime = io_blocktime - (mn_now - prev_mn_now);
+
+                if (sleeptime > waittime - backend_fudge)
+                  sleeptime = waittime - backend_fudge;
+
+                if (expect_true (sleeptime > 0.))
+                  {
+                    ev_sleep (sleeptime);
+                    waittime -= sleeptime;
+                  }
               }
           }
 
+#if EV_MINIMAL < 2
         ++loop_count;
+#endif
+        assert ((loop_done = EVUNLOOP_RECURSE, 1)); /* assert for side effect */
         backend_poll (EV_A_ waittime);
+        assert ((loop_done = EVUNLOOP_CANCEL, 1)); /* assert for side effect */
 
         /* update ev_rt_now, do magic */
         time_update (EV_A_ waittime + sleeptime);
@@ -2125,7 +2356,7 @@ ev_loop (EV_P_ int flags)
       if (expect_false (checkcnt))
         queue_events (EV_A_ (W *)checks, checkcnt, EV_CHECK);
 
-      call_pending (EV_A);
+      EV_INVOKE_PENDING;
     }
   while (expect_true (
     activecnt
@@ -2135,6 +2366,10 @@ ev_loop (EV_P_ int flags)
 
   if (loop_done == EVUNLOOP_ONE)
     loop_done = EVUNLOOP_CANCEL;
+
+#if EV_MINIMAL < 2
+  --loop_depth;
+#endif
 }
 
 void
@@ -2195,10 +2430,10 @@ wlist_del (WL *head, WL elem)
 {
   while (*head)
     {
-      if (*head == elem)
+      if (expect_true (*head == elem))
         {
           *head = elem->next;
-          return;
+          break;
         }
 
       head = &(*head)->next;
@@ -2236,10 +2471,10 @@ ev_clear_pending (EV_P_ void *w)
 inline_size void
 pri_adjust (EV_P_ W w)
 {
-  int pri = w->priority;
+  int pri = ev_priority (w);
   pri = pri < EV_MINPRI ? EV_MINPRI : pri;
   pri = pri > EV_MAXPRI ? EV_MAXPRI : pri;
-  w->priority = pri;
+  ev_set_priority (w, pri);
 }
 
 inline_speed void
@@ -2276,7 +2511,7 @@ ev_io_start (EV_P_ ev_io *w)
   array_needsize (ANFD, anfds, anfdmax, fd + 1, array_init_zero);
   wlist_add (&anfds[fd].head, (WL)w);
 
-  fd_change (EV_A_ fd, w->events & EV__IOFDSET | 1);
+  fd_change (EV_A_ fd, w->events & EV__IOFDSET | EV_ANFD_REIFY);
   w->events &= ~EV__IOFDSET;
 
   EV_FREQUENT_CHECK;
@@ -2380,6 +2615,12 @@ ev_timer_again (EV_P_ ev_timer *w)
   EV_FREQUENT_CHECK;
 }
 
+ev_tstamp
+ev_timer_remaining (EV_P_ ev_timer *w)
+{
+  return ev_at (w) - (ev_is_active (w) ? mn_now : 0.);
+}
+
 #if EV_PERIODIC_ENABLE
 void noinline
 ev_periodic_start (EV_P_ ev_periodic *w)
@@ -2456,47 +2697,77 @@ ev_periodic_again (EV_P_ ev_periodic *w)
 void noinline
 ev_signal_start (EV_P_ ev_signal *w)
 {
-#if EV_MULTIPLICITY
-  assert (("libev: signal watchers are only supported in the default loop", loop == ev_default_loop_ptr));
-#endif
   if (expect_false (ev_is_active (w)))
     return;
 
-  assert (("libev: ev_signal_start called with illegal signal number", w->signum > 0));
+  assert (("libev: ev_signal_start called with illegal signal number", w->signum > 0 && w->signum < EV_NSIG));
 
-  evpipe_init (EV_A);
+#if EV_MULTIPLICITY
+  assert (("libev: a signal must not be attached to two different loops",
+           !signals [w->signum - 1].loop || signals [w->signum - 1].loop == loop));
+
+  signals [w->signum - 1].loop = EV_A;
+#endif
 
   EV_FREQUENT_CHECK;
 
-  {
-#ifndef _WIN32
-    sigset_t full, prev;
-    sigfillset (&full);
-    sigprocmask (SIG_SETMASK, &full, &prev);
-#endif
+#if EV_USE_SIGNALFD
+  if (sigfd == -2)
+    {
+      sigfd = signalfd (-1, &sigfd_set, SFD_NONBLOCK | SFD_CLOEXEC);
+      if (sigfd < 0 && errno == EINVAL)
+        sigfd = signalfd (-1, &sigfd_set, 0); /* retry without flags */
 
-    array_needsize (ANSIG, signals, signalmax, w->signum, array_init_zero);
+      if (sigfd >= 0)
+        {
+          fd_intern (sigfd); /* doing it twice will not hurt */
 
-#ifndef _WIN32
-    sigprocmask (SIG_SETMASK, &prev, 0);
+          sigemptyset (&sigfd_set);
+
+          ev_io_init (&sigfd_w, sigfdcb, sigfd, EV_READ);
+          ev_set_priority (&sigfd_w, EV_MAXPRI);
+          ev_io_start (EV_A_ &sigfd_w);
+          ev_unref (EV_A); /* signalfd watcher should not keep loop alive */
+        }
+    }
+
+  if (sigfd >= 0)
+    {
+      /* TODO: check .head */
+      sigaddset (&sigfd_set, w->signum);
+      sigprocmask (SIG_BLOCK, &sigfd_set, 0);
+
+      signalfd (sigfd, &sigfd_set, 0);
+    }
 #endif
-  }
 
   ev_start (EV_A_ (W)w, 1);
   wlist_add (&signals [w->signum - 1].head, (WL)w);
 
   if (!((WL)w)->next)
-    {
-#if _WIN32
-      signal (w->signum, ev_sighandler);
-#else
-      struct sigaction sa;
-      sa.sa_handler = ev_sighandler;
-      sigfillset (&sa.sa_mask);
-      sa.sa_flags = SA_RESTART; /* if restarting works we save one iteration */
-      sigaction (w->signum, &sa, 0);
+# if EV_USE_SIGNALFD
+    if (sigfd < 0) /*TODO*/
+# endif
+      {
+# if _WIN32
+        evpipe_init (EV_A);
+
+        signal (w->signum, ev_sighandler);
+# else
+        struct sigaction sa;
+
+        evpipe_init (EV_A);
+
+        sa.sa_handler = ev_sighandler;
+        sigfillset (&sa.sa_mask);
+        sa.sa_flags = SA_RESTART; /* if restarting works we save one iteration */
+        sigaction (w->signum, &sa, 0);
+
+        sigemptyset (&sa.sa_mask);
+        sigaddset (&sa.sa_mask, w->signum);
+        sigprocmask (SIG_UNBLOCK, &sa.sa_mask, 0);
 #endif
-    }
+      }
 
   EV_FREQUENT_CHECK;
 }
@@ -2514,7 +2785,26 @@ ev_signal_stop (EV_P_ ev_signal *w)
   ev_stop (EV_A_ (W)w);
 
   if (!signals [w->signum - 1].head)
-    signal (w->signum, SIG_DFL);
+    {
+#if EV_MULTIPLICITY
+      signals [w->signum - 1].loop = 0; /* unattach from signal */
+#endif
+#if EV_USE_SIGNALFD
+      if (sigfd >= 0)
+        {
+          sigset_t ss;
+
+          sigemptyset (&ss);
+          sigaddset (&ss, w->signum);
+          sigdelset (&sigfd_set, w->signum);
+
+          signalfd (sigfd, &sigfd_set, 0);
+          sigprocmask (SIG_UNBLOCK, &ss, 0);
+        }
+      else
+#endif
+        signal (w->signum, SIG_DFL);
+    }
 
   EV_FREQUENT_CHECK;
 }
@@ -2572,12 +2862,33 @@ infy_add (EV_P_ ev_stat *w)
 {
   w->wd = inotify_add_watch (fs_fd, w->path, IN_ATTRIB | IN_DELETE_SELF | IN_MOVE_SELF | IN_MODIFY | IN_DONT_FOLLOW | IN_MASK_ADD);
 
-  if (w->wd < 0)
+  if (w->wd >= 0)
     {
-      w->timer.repeat = w->interval ? w->interval : DEF_STAT_INTERVAL;
-      ev_timer_again (EV_A_ &w->timer); /* this is not race-free, so we still need to recheck periodically */
+      struct statfs sfs;
 
-      /* monitor some parent directory for speedup hints */
+      /* now local changes will be tracked by inotify, but remote changes won't */
+      /* unless the filesystem is known to be local, we therefore still poll */
+      /* also do poll on <2.6.25, but with normal frequency */
+
+      if (!fs_2625)
+        w->timer.repeat = w->interval ? w->interval : DEF_STAT_INTERVAL;
+      else if (!statfs (w->path, &sfs)
+               && (sfs.f_type == 0x1373 /* devfs */
+                   || sfs.f_type == 0xEF53 /* ext2/3 */
+                   || sfs.f_type == 0x3153464a /* jfs */
+                   || sfs.f_type == 0x52654973 /* reiser3 */
+                   || sfs.f_type == 0x01021994 /* tempfs */
+                   || sfs.f_type == 0x58465342 /* xfs */))
+        w->timer.repeat = 0.; /* filesystem is local, kernel new enough */
+      else
+        w->timer.repeat = w->interval ? w->interval : NFS_STAT_INTERVAL; /* remote, use reduced frequency */
+    }
+  else
+    {
+      /* can't use inotify, continue to stat */
+      w->timer.repeat = w->interval ? w->interval : DEF_STAT_INTERVAL;
+
+      /* if path is not there, monitor some parent directory for speedup hints */
       /* note that exceeding the hardcoded path limit is not a correctness issue, */
       /* but an efficiency issue only */
       if ((errno == ENOENT || errno == EACCES) && strlen (w->path) < 4096)
@@ -2603,26 +2914,12 @@ infy_add (EV_P_ ev_stat *w)
     }
 
   if (w->wd >= 0)
-    {
-      wlist_add (&fs_hash [w->wd & (EV_INOTIFY_HASHSIZE - 1)].head, (WL)w);
+    wlist_add (&fs_hash [w->wd & (EV_INOTIFY_HASHSIZE - 1)].head, (WL)w);
 
-      /* now local changes will be tracked by inotify, but remote changes won't */
-      /* unless the filesystem it known to be local, we therefore still poll */
-      /* also do poll on <2.6.25, but with normal frequency */
-      struct statfs sfs;
-
-      if (fs_2625 && !statfs (w->path, &sfs))
-        if (sfs.f_type == 0x1373 /* devfs */
-            || sfs.f_type == 0xEF53 /* ext2/3 */
-            || sfs.f_type == 0x3153464a /* jfs */
-            || sfs.f_type == 0x52654973 /* reiser3 */
-            || sfs.f_type == 0x01021994 /* tempfs */
-            || sfs.f_type == 0x58465342 /* xfs */)
-          return;
-
-      w->timer.repeat = w->interval ? w->interval : fs_2625 ? NFS_STAT_INTERVAL : DEF_STAT_INTERVAL;
-      ev_timer_again (EV_A_ &w->timer);
-    }
+  /* now re-arm timer, if required */
+  if (ev_is_active (&w->timer)) ev_ref (EV_A);
+  ev_timer_again (EV_A_ &w->timer);
+  if (ev_is_active (&w->timer)) ev_unref (EV_A);
 }
 
 static void noinline
@@ -2708,6 +3005,17 @@ check_2625 (EV_P)
   fs_2625 = 1;
 }
 
+inline_size int
+infy_newfd (void)
+{
+#if defined (IN_CLOEXEC) && defined (IN_NONBLOCK)
+  int fd = inotify_init1 (IN_CLOEXEC | IN_NONBLOCK);
+  if (fd >= 0)
+    return fd;
+#endif
+  return inotify_init ();
+}
+
 inline_size void
 infy_init (EV_P)
 {
@@ -2718,13 +3026,15 @@ infy_init (EV_P)
 
   check_2625 (EV_A);
 
-  fs_fd = inotify_init ();
+  fs_fd = infy_newfd ();
 
   if (fs_fd >= 0)
     {
+      fd_intern (fs_fd);
       ev_io_init (&fs_w, infy_cb, fs_fd, EV_READ);
       ev_set_priority (&fs_w, EV_MAXPRI);
       ev_io_start (EV_A_ &fs_w);
+      ev_unref (EV_A);
     }
 }
 
@@ -2736,8 +3046,18 @@ infy_fork (EV_P)
   if (fs_fd < 0)
     return;
 
+  ev_ref (EV_A);
+  ev_io_stop (EV_A_ &fs_w);
   close (fs_fd);
-  fs_fd = inotify_init ();
+  fs_fd = infy_newfd ();
+
+  if (fs_fd >= 0)
+    {
+      fd_intern (fs_fd);
+      ev_io_set (&fs_w, fs_fd, EV_READ);
+      ev_io_start (EV_A_ &fs_w);
+      ev_unref (EV_A);
+    }
 
   for (slot = 0; slot < EV_INOTIFY_HASHSIZE; ++slot)
     {
@@ -2754,7 +3074,12 @@ infy_fork (EV_P)
           if (fs_fd >= 0)
             infy_add (EV_A_ w); /* re-add, no matter what */
           else
-            ev_timer_again (EV_A_ &w->timer);
+            {
+              w->timer.repeat = w->interval ? w->interval : DEF_STAT_INTERVAL;
+              if (ev_is_active (&w->timer)) ev_ref (EV_A);
+              ev_timer_again (EV_A_ &w->timer);
+              if (ev_is_active (&w->timer)) ev_unref (EV_A);
+            }
         }
     }
 }
@@ -2781,25 +3106,28 @@ stat_timer_cb (EV_P_ ev_timer *w_, int revents)
 {
   ev_stat *w = (ev_stat *)(((char *)w_) - offsetof (ev_stat, timer));
 
-  /* we copy this here each the time so that */
-  /* prev has the old value when the callback gets invoked */
-  w->prev = w->attr;
+  ev_statdata prev = w->attr;
   ev_stat_stat (EV_A_ w);
 
   /* memcmp doesn't work on netbsd, they.... do stuff to their struct stat */
   if (
-    w->prev.st_dev      != w->attr.st_dev
-    || w->prev.st_ino   != w->attr.st_ino
-    || w->prev.st_mode  != w->attr.st_mode
-    || w->prev.st_nlink != w->attr.st_nlink
-    || w->prev.st_uid   != w->attr.st_uid
-    || w->prev.st_gid   != w->attr.st_gid
-    || w->prev.st_rdev  != w->attr.st_rdev
-    || w->prev.st_size  != w->attr.st_size
-    || w->prev.st_atime != w->attr.st_atime
-    || w->prev.st_mtime != w->attr.st_mtime
-    || w->prev.st_ctime != w->attr.st_ctime
+    prev.st_dev      != w->attr.st_dev
+    || prev.st_ino   != w->attr.st_ino
+    || prev.st_mode  != w->attr.st_mode
+    || prev.st_nlink != w->attr.st_nlink
+    || prev.st_uid   != w->attr.st_uid
+    || prev.st_gid   != w->attr.st_gid
+    || prev.st_rdev  != w->attr.st_rdev
+    || prev.st_size  != w->attr.st_size
+    || prev.st_atime != w->attr.st_atime
+    || prev.st_mtime != w->attr.st_mtime
+    || prev.st_ctime != w->attr.st_ctime
   ) {
+      /* we only update w->prev on actual differences */
+      /* in case we test more often than invoke the callback, */
+      /* to ensure that prev is always different to attr */
+      w->prev = prev;
+
       #if EV_USE_INOTIFY
         if (fs_fd >= 0)
           {
@@ -2834,7 +3162,10 @@ ev_stat_start (EV_P_ ev_stat *w)
     infy_add (EV_A_ w);
   else
 #endif
-    ev_timer_again (EV_A_ &w->timer);
+    {
+      ev_timer_again (EV_A_ &w->timer);
+      ev_unref (EV_A);
+    }
 
   ev_start (EV_A_ (W)w, 1);
 
@@ -2853,7 +3184,12 @@ ev_stat_stop (EV_P_ ev_stat *w)
 #if EV_USE_INOTIFY
   infy_del (EV_A_ w);
 #endif
-  ev_timer_stop (EV_A_ &w->timer);
+
+  if (ev_is_active (&w->timer))
+    {
+      ev_ref (EV_A);
+      ev_timer_stop (EV_A_ &w->timer);
+    }
 
   ev_stop (EV_A_ (W)w);
 
@@ -3004,7 +3340,7 @@ embed_prepare_cb (EV_P_ ev_prepare *prepare, int revents)
   ev_embed *w = (ev_embed *)(((char *)prepare) - offsetof (ev_embed, prepare));
 
   {
-    struct ev_loop *loop = w->other;
+    EV_P = w->other;
 
     while (fdchangecnt)
       {
@@ -3022,7 +3358,7 @@ embed_fork_cb (EV_P_ ev_fork *fork_w, int revents)
   ev_embed_stop (EV_A_ w);
 
   {
-    struct ev_loop *loop = w->other;
+    EV_P = w->other;
 
     ev_loop_fork (EV_A);
     ev_loop (EV_A_ EVLOOP_NONBLOCK);
@@ -3046,7 +3382,7 @@ ev_embed_start (EV_P_ ev_embed *w)
     return;
 
   {
-    struct ev_loop *loop = w->other;
+    EV_P = w->other;
     assert (("libev: loop to be embedded is not embeddable", backend & ev_embeddable_backends ()));
     ev_io_init (&w->io, embed_io_cb, backend_fd, EV_READ);
   }
@@ -3168,7 +3504,7 @@ void
 ev_async_send (EV_P_ ev_async *w)
 {
   w->sent = 1;
-  evpipe_write (EV_A_ &gotasync);
+  evpipe_write (EV_A_ &async_pending);
 }
 #endif
 
@@ -3327,7 +3663,7 @@ ev_walk (EV_P_ int types, void (*cb)(EV_P_ int type, void *w))
       cb (EV_A_ EV_CHECK, checks [i]);
 
   if (types & EV_SIGNAL)
-    for (i = 0; i < signalmax; ++i)
+    for (i = 0; i < EV_NSIG - 1; ++i)
       for (wl = signals [i].head; wl; )
         {
           wn = wl->next;
