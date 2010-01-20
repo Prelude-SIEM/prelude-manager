@@ -1,6 +1,6 @@
 ## DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## Process this file with automake to produce Makefile.in.
-# Copyright (C) 2002-2009 Free Software Foundation, Inc.
+# Copyright (C) 2002-2010 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -14,6 +14,7 @@ AUTOMAKE_OPTIONS = 1.5 foreign
 
 SUBDIRS =
 TESTS =
+XFAIL_TESTS =
 TESTS_ENVIRONMENT =
 noinst_PROGRAMS =
 check_PROGRAMS =
@@ -42,6 +43,8 @@ libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
 EXTRA_libtests_a_SOURCES =
 AM_LIBTOOLFLAGS = --preserve-dup-deps
 
+TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@' srcdir='$(srcdir)'
+
 ## begin gnulib module alignof-tests
 
 TESTS += test-alignof
@@ -60,14 +63,52 @@ EXTRA_DIST += test-alloca-opt.c
 
 ## end   gnulib module alloca-opt-tests
 
+## begin gnulib module arg-nonnull
+
+# The BUILT_SOURCES created by this Makefile snippet are not used via #include
+# statements but through direct file reference. Therefore this snippet must be
+# present in all Makefile.am that need it. This is ensured by the applicability
+# 'all' defined above.
+
+BUILT_SOURCES += arg-nonnull.h
+# The arg-nonnull.h that gets inserted into generated .h files is the same as
+# build-aux/arg-nonnull.h, except that it has the copyright header cut off.
+arg-nonnull.h: $(top_srcdir)/./arg-nonnull.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	sed -n -e '/GL_ARG_NONNULL/,$$p' \
+	  < $(top_srcdir)/./arg-nonnull.h \
+	  > $@-t && \
+	mv $@-t $@
+MOSTLYCLEANFILES += arg-nonnull.h arg-nonnull.h-t
+
+ARG_NONNULL_H=arg-nonnull.h
+
+EXTRA_DIST += $(top_srcdir)/./arg-nonnull.h
+
+## end   gnulib module arg-nonnull
+
 ## begin gnulib module arpa_inet-tests
 
 TESTS += test-arpa_inet
 check_PROGRAMS += test-arpa_inet
-
 EXTRA_DIST += test-arpa_inet.c
 
 ## end   gnulib module arpa_inet-tests
+
+## begin gnulib module binary-io
+
+libtests_a_SOURCES += binary-io.h
+
+## end   gnulib module binary-io
+
+## begin gnulib module binary-io-tests
+
+TESTS += test-binary-io.sh
+check_PROGRAMS += test-binary-io
+
+EXTRA_DIST += test-binary-io.sh test-binary-io.c macros.h
+
+## end   gnulib module binary-io-tests
 
 ## begin gnulib module cond-tests
 
@@ -78,6 +119,14 @@ EXTRA_DIST += test-cond.c
 
 ## end   gnulib module cond-tests
 
+## begin gnulib module dup2-tests
+
+TESTS += test-dup2
+check_PROGRAMS += test-dup2
+EXTRA_DIST += test-dup2.c signature.h macros.h
+
+## end   gnulib module dup2-tests
+
 ## begin gnulib module errno-tests
 
 TESTS += test-errno
@@ -87,12 +136,19 @@ EXTRA_DIST += test-errno.c
 
 ## end   gnulib module errno-tests
 
+## begin gnulib module fcntl-h-tests
+
+TESTS += test-fcntl-h
+check_PROGRAMS += test-fcntl-h
+EXTRA_DIST += test-fcntl-h.c
+
+## end   gnulib module fcntl-h-tests
+
 ## begin gnulib module fcntl-tests
 
 TESTS += test-fcntl
 check_PROGRAMS += test-fcntl
-
-EXTRA_DIST += test-fcntl.c
+EXTRA_DIST += test-fcntl.c signature.h macros.h
 
 ## end   gnulib module fcntl-tests
 
@@ -101,19 +157,44 @@ EXTRA_DIST += test-fcntl.c
 TESTS += test-getaddrinfo
 check_PROGRAMS += test-getaddrinfo
 test_getaddrinfo_LDADD = $(LDADD) @GETADDRINFO_LIB@ @LIBINTL@
-
-EXTRA_DIST += test-getaddrinfo.c
+EXTRA_DIST += signature.h test-getaddrinfo.c
 
 ## end   gnulib module getaddrinfo-tests
+
+## begin gnulib module getdtablesize
+
+
+EXTRA_DIST += getdtablesize.c
+
+EXTRA_libtests_a_SOURCES += getdtablesize.c
+
+## end   gnulib module getdtablesize
+
+## begin gnulib module getdtablesize-tests
+
+TESTS += test-getdtablesize
+check_PROGRAMS += test-getdtablesize
+EXTRA_DIST += test-getdtablesize.c signature.h macros.h
+
+## end   gnulib module getdtablesize-tests
 
 ## begin gnulib module gettimeofday-tests
 
 TESTS += test-gettimeofday
 check_PROGRAMS += test-gettimeofday
 
-EXTRA_DIST += test-gettimeofday.c
+EXTRA_DIST += signature.h test-gettimeofday.c
 
 ## end   gnulib module gettimeofday-tests
+
+## begin gnulib module inet_ntop-tests
+
+TESTS += test-inet_ntop
+check_PROGRAMS += test-inet_ntop
+test_inet_ntop_LDADD = $(LDADD) @INET_NTOP_LIB@
+EXTRA_DIST += test-inet_ntop.c signature.h macros.h
+
+## end   gnulib module inet_ntop-tests
 
 ## begin gnulib module intprops
 
@@ -131,11 +212,28 @@ EXTRA_DIST += test-lock.c
 
 ## end   gnulib module lock-tests
 
+## begin gnulib module lstat
+
+
+EXTRA_DIST += lstat.c
+
+EXTRA_libtests_a_SOURCES += lstat.c
+
+## end   gnulib module lstat
+
+## begin gnulib module lstat-tests
+
+TESTS += test-lstat
+check_PROGRAMS += test-lstat
+EXTRA_DIST += test-lstat.h test-lstat.c signature.h macros.h
+
+## end   gnulib module lstat-tests
+
 ## begin gnulib module memchr-tests
 
 TESTS += test-memchr
 check_PROGRAMS += test-memchr
-EXTRA_DIST += test-memchr.c zerosize-ptr.h
+EXTRA_DIST += test-memchr.c zerosize-ptr.h signature.h macros.h
 
 ## end   gnulib module memchr-tests
 
@@ -143,7 +241,6 @@ EXTRA_DIST += test-memchr.c zerosize-ptr.h
 
 TESTS += test-netdb
 check_PROGRAMS += test-netdb
-
 EXTRA_DIST += test-netdb.c
 
 ## end   gnulib module netdb-tests
@@ -152,16 +249,39 @@ EXTRA_DIST += test-netdb.c
 
 TESTS += test-netinet_in
 check_PROGRAMS += test-netinet_in
-
 EXTRA_DIST += test-netinet_in.c
 
 ## end   gnulib module netinet_in-tests
+
+## begin gnulib module open
+
+
+EXTRA_DIST += open.c
+
+EXTRA_libtests_a_SOURCES += open.c
+
+## end   gnulib module open
+
+## begin gnulib module open-tests
+
+TESTS += test-open
+check_PROGRAMS += test-open
+EXTRA_DIST += test-open.h test-open.c signature.h macros.h
+
+## end   gnulib module open-tests
+
+## begin gnulib module same-inode
+
+
+EXTRA_DIST += same-inode.h
+
+## end   gnulib module same-inode
 
 ## begin gnulib module sigaction-tests
 
 TESTS += test-sigaction
 check_PROGRAMS += test-sigaction
-EXTRA_DIST += test-sigaction.c
+EXTRA_DIST += test-sigaction.c signature.h macros.h
 
 ## end   gnulib module sigaction-tests
 
@@ -169,7 +289,6 @@ EXTRA_DIST += test-sigaction.c
 
 TESTS += test-signal
 check_PROGRAMS += test-signal
-
 EXTRA_DIST += test-signal.c
 
 ## end   gnulib module signal-tests
@@ -187,8 +306,7 @@ EXTRA_libtests_a_SOURCES += sleep.c
 
 TESTS += test-sleep
 check_PROGRAMS += test-sleep
-
-EXTRA_DIST += test-sleep.c
+EXTRA_DIST += test-sleep.c signature.h macros.h
 
 ## end   gnulib module sleep-tests
 
@@ -197,24 +315,38 @@ EXTRA_DIST += test-sleep.c
 TESTS += test-snprintf
 check_PROGRAMS += test-snprintf
 
-EXTRA_DIST += test-snprintf.c
+EXTRA_DIST += test-snprintf.c signature.h macros.h
 
 ## end   gnulib module snprintf-tests
+
+## begin gnulib module stat-tests
+
+TESTS += test-stat
+check_PROGRAMS += test-stat
+EXTRA_DIST += test-stat.h test-stat.c signature.h macros.h
+
+## end   gnulib module stat-tests
 
 ## begin gnulib module stdbool-tests
 
 TESTS += test-stdbool
 check_PROGRAMS += test-stdbool
-
 EXTRA_DIST += test-stdbool.c
 
 ## end   gnulib module stdbool-tests
+
+## begin gnulib module stddef-tests
+
+TESTS += test-stddef
+check_PROGRAMS += test-stddef
+EXTRA_DIST += test-stddef.c
+
+## end   gnulib module stddef-tests
 
 ## begin gnulib module stdint-tests
 
 TESTS += test-stdint
 check_PROGRAMS += test-stdint
-
 EXTRA_DIST += test-stdint.c
 
 ## end   gnulib module stdint-tests
@@ -223,7 +355,6 @@ EXTRA_DIST += test-stdint.c
 
 TESTS += test-stdio
 check_PROGRAMS += test-stdio
-
 EXTRA_DIST += test-stdio.c
 
 ## end   gnulib module stdio-tests
@@ -241,7 +372,7 @@ EXTRA_libtests_a_SOURCES += strerror.c
 
 TESTS += test-strerror
 check_PROGRAMS += test-strerror
-EXTRA_DIST += test-strerror.c
+EXTRA_DIST += test-strerror.c signature.h macros.h
 
 ## end   gnulib module strerror-tests
 
@@ -249,25 +380,47 @@ EXTRA_DIST += test-strerror.c
 
 TESTS += test-string
 check_PROGRAMS += test-string
-
 EXTRA_DIST += test-string.c
 
 ## end   gnulib module string-tests
+
+## begin gnulib module symlink
+
+
+EXTRA_DIST += symlink.c
+
+EXTRA_libtests_a_SOURCES += symlink.c
+
+## end   gnulib module symlink
+
+## begin gnulib module symlink-tests
+
+TESTS += test-symlink
+check_PROGRAMS += test-symlink
+EXTRA_DIST += test-symlink.h test-symlink.c signature.h macros.h
+
+## end   gnulib module symlink-tests
 
 ## begin gnulib module sys_socket-tests
 
 TESTS += test-sys_socket
 check_PROGRAMS += test-sys_socket
-
 EXTRA_DIST += test-sys_socket.c
 
 ## end   gnulib module sys_socket-tests
+
+## begin gnulib module sys_stat-tests
+
+TESTS += test-sys_stat
+check_PROGRAMS += test-sys_stat
+EXTRA_DIST += test-sys_stat.c
+
+## end   gnulib module sys_stat-tests
 
 ## begin gnulib module sys_time-tests
 
 TESTS += test-sys_time
 check_PROGRAMS += test-sys_time
-
 EXTRA_DIST += test-sys_time.c
 
 ## end   gnulib module sys_time-tests
@@ -276,7 +429,6 @@ EXTRA_DIST += test-sys_time.c
 
 TESTS += test-time
 check_PROGRAMS += test-time
-
 EXTRA_DIST += test-time.c
 
 ## end   gnulib module time-tests
@@ -285,7 +437,6 @@ EXTRA_DIST += test-time.c
 
 TESTS += test-unistd
 check_PROGRAMS += test-unistd
-
 EXTRA_DIST += test-unistd.c
 
 ## end   gnulib module unistd-tests
@@ -295,7 +446,7 @@ EXTRA_DIST += test-unistd.c
 TESTS += test-vasnprintf
 check_PROGRAMS += test-vasnprintf
 
-EXTRA_DIST += test-vasnprintf.c
+EXTRA_DIST += test-vasnprintf.c macros.h
 
 ## end   gnulib module vasnprintf-tests
 
@@ -310,15 +461,33 @@ libtests_a_SOURCES += verify.h
 TESTS += test-vsnprintf
 check_PROGRAMS += test-vsnprintf
 
-EXTRA_DIST += test-vsnprintf.c
+EXTRA_DIST += test-vsnprintf.c signature.h macros.h
 
 ## end   gnulib module vsnprintf-tests
+
+## begin gnulib module warn-on-use
+
+BUILT_SOURCES += warn-on-use.h
+# The warn-on-use.h that gets inserted into generated .h files is the same as
+# build-aux/warn-on-use.h, except that it has the copyright header cut off.
+warn-on-use.h: $(top_srcdir)/./warn-on-use.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	sed -n -e '/^.ifndef/,$$p' \
+	  < $(top_srcdir)/./warn-on-use.h \
+	  > $@-t && \
+	mv $@-t $@
+MOSTLYCLEANFILES += warn-on-use.h warn-on-use.h-t
+
+WARN_ON_USE_H=warn-on-use.h
+
+EXTRA_DIST += $(top_srcdir)/./warn-on-use.h
+
+## end   gnulib module warn-on-use
 
 ## begin gnulib module wchar-tests
 
 TESTS += test-wchar
 check_PROGRAMS += test-wchar
-
 EXTRA_DIST += test-wchar.c
 
 ## end   gnulib module wchar-tests

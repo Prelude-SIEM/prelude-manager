@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2009 Free Software Foundation, Inc.
+# Copyright (C) 2002-2010 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -47,14 +47,16 @@ AC_DEFUN([gl_INIT],
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
   gl_COND
+  gl_FUNC_DUP2
+  gl_UNISTD_MODULE_INDICATOR([dup2])
   gl_HEADER_ERRNO_H
+  gl_FUNC_FCNTL
+  gl_FCNTL_MODULE_INDICATOR([fcntl])
   gl_FCNTL_H
   gl_FLOAT_H
   gl_FUNC_FTW
   gl_GETADDRINFO
   gl_NETDB_MODULE_INDICATOR([getaddrinfo])
-  gl_FUNC_GETPAGESIZE
-  gl_UNISTD_MODULE_INDICATOR([getpagesize])
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_FUNC_GETTIMEOFDAY
@@ -80,7 +82,10 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_SNPRINTF
   gl_STDIO_MODULE_INDICATOR([snprintf])
   gl_TYPE_SOCKLEN_T
+  gl_FUNC_STAT
+  gl_SYS_STAT_MODULE_INDICATOR([stat])
   AM_STDBOOL_H
+  gl_STDDEF_H
   gl_STDINT_H
   gl_STDIO_H
   gl_FUNC_STRDUP
@@ -89,6 +94,8 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_STRSEP
   gl_STRING_MODULE_INDICATOR([strsep])
   gl_HEADER_SYS_SOCKET
+  AC_PROG_MKDIR_P
+  gl_HEADER_SYS_STAT_H
   AC_PROG_MKDIR_P
   gl_HEADER_SYS_TIME_H
   AC_PROG_MKDIR_P
@@ -124,7 +131,7 @@ AC_DEFUN([gl_INIT],
     if test -n "$gl_LIBOBJS"; then
       # Remove the extension.
       sed_drop_objext='s/\.o$//;s/\.obj$//'
-      for i in `for i in $gl_LIBOBJS; do echo "$i"; done | sed "$sed_drop_objext" | sort | uniq`; do
+      for i in `for i in $gl_LIBOBJS; do echo "$i"; done | sed -e "$sed_drop_objext" | sort | uniq`; do
         gl_libobjs="$gl_libobjs $i.$ac_objext"
         gl_ltlibobjs="$gl_ltlibobjs $i.lo"
       done
@@ -141,13 +148,24 @@ AC_DEFUN([gl_INIT],
   m4_pushdef([gltests_LIBSOURCES_DIR], [])
   gl_COMMON
   gl_source_base='libmissing/tests'
+  gl_FUNC_GETDTABLESIZE
+  gl_UNISTD_MODULE_INDICATOR([getdtablesize])
+  AC_C_BIGENDIAN
+  gl_FUNC_LSTAT
+  gl_SYS_STAT_MODULE_INDICATOR([lstat])
+  gl_FUNC_OPEN
+  gl_MODULE_INDICATOR([open])
+  gl_FCNTL_MODULE_INDICATOR([open])
   gl_FUNC_SLEEP
   gl_UNISTD_MODULE_INDICATOR([sleep])
+  AC_CHECK_DECLS_ONCE([alarm])
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
   gl_FUNC_STRERROR
   gl_STRING_MODULE_INDICATOR([strerror])
-  AC_CHECK_FUNCS([shutdown])
+  gl_FUNC_SYMLINK
+  gl_UNISTD_MODULE_INDICATOR([symlink])
+  AC_CHECK_FUNCS_ONCE([shutdown])
   gl_YIELD
   m4_ifval(gltests_LIBSOURCES_LIST, [
     m4_syscmd([test ! -d ]m4_defn([gltests_LIBSOURCES_DIR])[ ||
@@ -171,7 +189,7 @@ AC_DEFUN([gl_INIT],
     if test -n "$gltests_LIBOBJS"; then
       # Remove the extension.
       sed_drop_objext='s/\.o$//;s/\.obj$//'
-      for i in `for i in $gltests_LIBOBJS; do echo "$i"; done | sed "$sed_drop_objext" | sort | uniq`; do
+      for i in `for i in $gltests_LIBOBJS; do echo "$i"; done | sed -e "$sed_drop_objext" | sort | uniq`; do
         gltests_libobjs="$gltests_libobjs $i.$ac_objext"
         gltests_ltlibobjs="$gltests_ltlibobjs $i.lo"
       done
@@ -240,13 +258,16 @@ AC_DEFUN([gltests_LIBSOURCES], [
 # This macro records the list of files which have been installed by
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
+  build-aux/arg-nonnull.h
   build-aux/config.rpath
-  build-aux/link-warning.h
+  build-aux/warn-on-use.h
   lib/alignof.h
   lib/alloca.in.h
   lib/arpa_inet.in.h
   lib/asnprintf.c
+  lib/dup2.c
   lib/errno.in.h
+  lib/fcntl.c
   lib/fcntl.in.h
   lib/float+.h
   lib/float.in.h
@@ -254,7 +275,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/ftw_.h
   lib/gai_strerror.c
   lib/getaddrinfo.c
-  lib/getpagesize.c
   lib/gettext.h
   lib/gettimeofday.c
   lib/glthread/cond.c
@@ -281,7 +301,9 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/sigprocmask.c
   lib/size_max.h
   lib/snprintf.c
+  lib/stat.c
   lib/stdbool.in.h
+  lib/stddef.in.h
   lib/stdint.in.h
   lib/stdio-write.c
   lib/stdio.in.h
@@ -289,6 +311,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/string.in.h
   lib/strsep.c
   lib/sys_socket.in.h
+  lib/sys_stat.in.h
   lib/sys_time.in.h
   lib/time.in.h
   lib/time_r.c
@@ -302,13 +325,17 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/cond.m4
+  m4/dos.m4
+  m4/dup2.m4
   m4/errno_h.m4
   m4/extensions.m4
+  m4/fcntl-o.m4
+  m4/fcntl.m4
   m4/fcntl_h.m4
   m4/float_h.m4
   m4/ftw.m4
   m4/getaddrinfo.m4
-  m4/getpagesize.m4
+  m4/getdtablesize.m4
   m4/gettimeofday.m4
   m4/gnulib-common.m4
   m4/hostent.m4
@@ -321,13 +348,16 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lib-prefix.m4
   m4/lock.m4
   m4/longlong.m4
+  m4/lstat.m4
   m4/memchr.m4
   m4/memset.m4
   m4/mmap-anon.m4
+  m4/mode_t.m4
   m4/multiarch.m4
   m4/netdb_h.m4
   m4/netinet_in_h.m4
   m4/onceonly.m4
+  m4/open.m4
   m4/pathmax.m4
   m4/printf.m4
   m4/servent.m4
@@ -339,7 +369,9 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/snprintf.m4
   m4/socklen.m4
   m4/sockpfaf.m4
+  m4/stat.m4
   m4/stdbool.m4
+  m4/stddef_h.m4
   m4/stdint.m4
   m4/stdint_h.m4
   m4/stdio_h.m4
@@ -347,7 +379,9 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/strerror.m4
   m4/string_h.m4
   m4/strsep.m4
+  m4/symlink.m4
   m4/sys_socket_h.m4
+  m4/sys_stat_h.m4
   m4/sys_time_h.m4
   m4/thread.m4
   m4/threadlib.m4
@@ -356,33 +390,52 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/unistd_h.m4
   m4/vasnprintf.m4
   m4/vsnprintf.m4
+  m4/warn-on-use.m4
   m4/wchar.m4
   m4/wchar_t.m4
   m4/wint_t.m4
   m4/xsize.m4
   m4/yield.m4
+  tests/macros.h
+  tests/signature.h
   tests/test-alignof.c
   tests/test-alloca-opt.c
   tests/test-arpa_inet.c
+  tests/test-binary-io.c
+  tests/test-binary-io.sh
   tests/test-cond.c
+  tests/test-dup2.c
   tests/test-errno.c
+  tests/test-fcntl-h.c
   tests/test-fcntl.c
   tests/test-getaddrinfo.c
+  tests/test-getdtablesize.c
   tests/test-gettimeofday.c
+  tests/test-inet_ntop.c
   tests/test-lock.c
+  tests/test-lstat.c
+  tests/test-lstat.h
   tests/test-memchr.c
   tests/test-netdb.c
   tests/test-netinet_in.c
+  tests/test-open.c
+  tests/test-open.h
   tests/test-sigaction.c
   tests/test-signal.c
   tests/test-sleep.c
   tests/test-snprintf.c
+  tests/test-stat.c
+  tests/test-stat.h
   tests/test-stdbool.c
+  tests/test-stddef.c
   tests/test-stdint.c
   tests/test-stdio.c
   tests/test-strerror.c
   tests/test-string.c
+  tests/test-symlink.c
+  tests/test-symlink.h
   tests/test-sys_socket.c
+  tests/test-sys_stat.c
   tests/test-sys_time.c
   tests/test-time.c
   tests/test-unistd.c
@@ -390,10 +443,16 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-vsnprintf.c
   tests/test-wchar.c
   tests/zerosize-ptr.h
+  tests=lib/binary-io.h
   tests=lib/dummy.c
+  tests=lib/getdtablesize.c
   tests=lib/glthread/yield.h
   tests=lib/intprops.h
+  tests=lib/lstat.c
+  tests=lib/open.c
+  tests=lib/same-inode.h
   tests=lib/sleep.c
   tests=lib/strerror.c
+  tests=lib/symlink.c
   tests=lib/verify.h
 ])

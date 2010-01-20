@@ -1,5 +1,5 @@
-# sys_socket_h.m4 serial 12
-dnl Copyright (C) 2005-2009 Free Software Foundation, Inc.
+# sys_socket_h.m4 serial 14
+dnl Copyright (C) 2005-2010 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -66,6 +66,18 @@ AC_DEFUN([gl_HEADER_SYS_SOCKET],
     gl_PREREQ_SYS_H_WINSOCK2
   fi
   AC_SUBST([SYS_SOCKET_H])
+
+  dnl Check for declarations of anything we want to poison if the
+  dnl corresponding gnulib module is not in use.
+  gl_WARN_ON_USE_PREPARE([[
+/* Some systems require prerequisite headers.  */
+#include <sys/types.h>
+#if !defined __GLIBC__ && HAVE_SYS_TIME_H
+# include <sys/time.h>
+#endif
+#include <sys/select.h>
+    ]], [socket connect accept bind getpeername getsockname getsockopt
+    listen recv send recvfrom sendto setsockopt shutdown accept4])
 ])
 
 AC_DEFUN([gl_PREREQ_SYS_H_SOCKET],
@@ -92,7 +104,7 @@ AC_DEFUN([gl_PREREQ_SYS_H_SOCKET],
   AC_SUBST([HAVE_WS2TCPIP_H])
 ])
 
-# Common prerequisites of of the <sys/socket.h> replacement and of the
+# Common prerequisites of the <sys/socket.h> replacement and of the
 # <sys/select.h> replacement.
 # Sets and substitutes HAVE_WINSOCK2_H.
 AC_DEFUN([gl_PREREQ_SYS_H_WINSOCK2],
@@ -140,6 +152,8 @@ AC_DEFUN([gl_SYS_SOCKET_H_DEFAULTS],
   GNULIB_SENDTO=0;      AC_SUBST([GNULIB_SENDTO])
   GNULIB_SETSOCKOPT=0;  AC_SUBST([GNULIB_SETSOCKOPT])
   GNULIB_SHUTDOWN=0;    AC_SUBST([GNULIB_SHUTDOWN])
+  GNULIB_ACCEPT4=0;     AC_SUBST([GNULIB_ACCEPT4])
   HAVE_STRUCT_SOCKADDR_STORAGE=1; AC_SUBST([HAVE_STRUCT_SOCKADDR_STORAGE])
   HAVE_SA_FAMILY_T=1;   AC_SUBST([HAVE_SA_FAMILY_T])
+  HAVE_ACCEPT4=1;       AC_SUBST([HAVE_ACCEPT4])
 ])

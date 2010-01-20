@@ -4,7 +4,15 @@ AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing -I$(top_srcdir)/li
 AM_CFLAGS = @PRELUDE_MANAGER_CFLAGS@ @GLOBAL_CFLAGS@
 
 bin_PROGRAMS = prelude-manager
-prelude_manager_LDADD = @LIBPRELUDE_LIBS@ @LIBWRAP_LIBS@ $(top_builddir)/libev/libev.la $(top_builddir)/libmissing/libmissing.la @LTLIBMULTITHREAD@
+prelude_manager_LDADD = @LIBPRELUDE_LIBS@ @LIBWRAP_LIBS@ $(top_builddir)/libev/libev.la \
+			$(top_builddir)/libmissing/libmissing.la 	\
+			$(GETADDRINFOLIB) 				\
+			$(HOSTENTLIB)					\
+			$(INET_NTOP_LIB)				\
+			$(LTLIBINTL)					\
+			$(LTLIBMULTITHREAD)				\
+			$(LTLIBTHREAD)	 				\
+			$(SERVENTLIB)
 
 if HAVE_XML2
  XML_OBJS= -dlopen $(top_builddir)/plugins/reports/xmlmod/xmlmod.la
