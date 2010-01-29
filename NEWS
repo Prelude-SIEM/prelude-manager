@@ -1,3 +1,13 @@
+* 2010-01-29, prelude-manager-1.0.0rc1:
+
+- Upgrade to libev 3.9
+
+- Use pkg-config for GnuTLS detection, as required by recent GnuTLS
+  version.
+
+- Various bug fixes.
+
+
 * 2009-07-10, prelude-manager-0.9.15:
 
 - Make Prelude-Manager thread backend independant.
