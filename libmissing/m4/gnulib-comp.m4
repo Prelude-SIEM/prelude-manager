@@ -75,6 +75,10 @@ AC_DEFUN([gl_INIT],
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
   gl_PATHMAX
+  AC_FUNC_REALLOC
+  AC_DEFINE([GNULIB_REALLOC_GNU], 1, [Define to indicate the 'realloc' module.])
+  gl_FUNC_REALLOC_POSIX
+  gl_STDLIB_MODULE_INDICATOR([realloc-posix])
   gl_SERVENT
   gl_SIGACTION
   gl_SIGNAL_MODULE_INDICATOR([sigaction])
@@ -91,6 +95,7 @@ AC_DEFUN([gl_INIT],
   gl_STDDEF_H
   gl_STDINT_H
   gl_STDIO_H
+  gl_STDLIB_H
   gl_FUNC_STRDUP
   gl_STRING_MODULE_INDICATOR([strdup])
   gl_HEADER_STRING_H
@@ -298,6 +303,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/printf-args.h
   lib/printf-parse.c
   lib/printf-parse.h
+  lib/realloc.c
   lib/sig-handler.h
   lib/sigaction.c
   lib/signal.in.h
@@ -310,6 +316,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/stdint.in.h
   lib/stdio-write.c
   lib/stdio.in.h
+  lib/stdlib.in.h
   lib/strdup.c
   lib/string.in.h
   lib/strsep.c
@@ -352,6 +359,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lock.m4
   m4/longlong.m4
   m4/lstat.m4
+  m4/malloc.m4
   m4/memchr.m4
   m4/memset.m4
   m4/mmap-anon.m4
@@ -363,6 +371,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/open.m4
   m4/pathmax.m4
   m4/printf.m4
+  m4/realloc.m4
   m4/servent.m4
   m4/sigaction.m4
   m4/signal_h.m4
@@ -378,6 +387,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/stdint.m4
   m4/stdint_h.m4
   m4/stdio_h.m4
+  m4/stdlib_h.m4
   m4/strdup.m4
   m4/strerror.m4
   m4/string_h.m4
@@ -433,6 +443,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-stddef.c
   tests/test-stdint.c
   tests/test-stdio.c
+  tests/test-stdlib.c
   tests/test-strerror.c
   tests/test-string.c
   tests/test-symlink.c

@@ -111,7 +111,7 @@ static server_generic_t *add_server(void)
 {
         config.nserver++;
 
-        config.server = _prelude_realloc(config.server, sizeof(*config.server) * config.nserver);
+        config.server = realloc(config.server, sizeof(*config.server) * config.nserver);
         if ( ! config.server )
                 return NULL;
 
@@ -128,7 +128,7 @@ static void del_server(void)
         server_generic_destroy(config.server[config.nserver - 1]);
 
         config.nserver--;
-        config.server = _prelude_realloc(config.server, sizeof(*config.server) * config.nserver);
+        config.server = realloc(config.server, sizeof(*config.server) * config.nserver);
 }
 
 static int add_server_default(void)

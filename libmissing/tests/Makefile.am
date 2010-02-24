@@ -356,6 +356,14 @@ EXTRA_DIST += test-stdio.c
 
 ## end   gnulib module stdio-tests
 
+## begin gnulib module stdlib-tests
+
+TESTS += test-stdlib
+check_PROGRAMS += test-stdlib
+EXTRA_DIST += test-stdlib.c
+
+## end   gnulib module stdlib-tests
+
 ## begin gnulib module strerror
 
 
