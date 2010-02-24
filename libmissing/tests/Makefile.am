@@ -161,15 +161,6 @@ EXTRA_DIST += signature.h test-getaddrinfo.c
 
 ## end   gnulib module getaddrinfo-tests
 
-## begin gnulib module getdtablesize
-
-
-EXTRA_DIST += getdtablesize.c
-
-EXTRA_libtests_a_SOURCES += getdtablesize.c
-
-## end   gnulib module getdtablesize
-
 ## begin gnulib module getdtablesize-tests
 
 TESTS += test-getdtablesize
@@ -186,6 +177,12 @@ check_PROGRAMS += test-gettimeofday
 EXTRA_DIST += signature.h test-gettimeofday.c
 
 ## end   gnulib module gettimeofday-tests
+
+## begin gnulib module ignore-value
+
+libtests_a_SOURCES += ignore-value.h
+
+## end   gnulib module ignore-value
 
 ## begin gnulib module inet_ntop-tests
 

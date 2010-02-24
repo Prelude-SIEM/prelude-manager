@@ -57,9 +57,12 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_FTW
   gl_GETADDRINFO
   gl_NETDB_MODULE_INDICATOR([getaddrinfo])
+  gl_FUNC_GETDTABLESIZE
+  gl_UNISTD_MODULE_INDICATOR([getdtablesize])
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_FUNC_GETTIMEOFDAY
+  gl_SYS_TIME_MODULE_INDICATOR([gettimeofday])
   gl_HOSTENT
   gl_INET_NTOP
   gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
@@ -148,8 +151,7 @@ AC_DEFUN([gl_INIT],
   m4_pushdef([gltests_LIBSOURCES_DIR], [])
   gl_COMMON
   gl_source_base='libmissing/tests'
-  gl_FUNC_GETDTABLESIZE
-  gl_UNISTD_MODULE_INDICATOR([getdtablesize])
+  AC_REQUIRE([AC_C_INLINE])
   AC_C_BIGENDIAN
   gl_FUNC_LSTAT
   gl_SYS_STAT_MODULE_INDICATOR([lstat])
@@ -275,6 +277,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/ftw_.h
   lib/gai_strerror.c
   lib/getaddrinfo.c
+  lib/getdtablesize.c
   lib/gettext.h
   lib/gettimeofday.c
   lib/glthread/cond.c
@@ -445,8 +448,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/zerosize-ptr.h
   tests=lib/binary-io.h
   tests=lib/dummy.c
-  tests=lib/getdtablesize.c
   tests=lib/glthread/yield.h
+  tests=lib/ignore-value.h
   tests=lib/intprops.h
   tests=lib/lstat.c
   tests=lib/open.c
