@@ -678,12 +678,17 @@ static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *
 static void process_impact(xmlNodePtr parent, idmef_impact_t *impact)
 {
         xmlNodePtr new;
+        const char *s = NULL;
+        prelude_string_t *str;
 
         if ( ! impact )
                 return;
 
-        new = xmlNewTextChild(parent, NULL, (const xmlChar *) "Impact",
-                          (const xmlChar *) prelude_string_get_string(idmef_impact_get_description(impact)));
+        str = idmef_impact_get_description(impact);
+        if ( str )
+                s = prelude_string_get_string(str);
+
+        new = xmlNewTextChild(parent, NULL, (const xmlChar *) "Impact", (const xmlChar *) s);
         if ( ! new )
                 return;
 
@@ -721,6 +726,7 @@ static void process_confidence(xmlNodePtr parent, idmef_confidence_t *confidence
 static void process_action(xmlNodePtr parent, idmef_action_t *action)
 {
         xmlNodePtr new;
+        const char *s = NULL;
         prelude_string_t *str;
 
         if ( ! action )
@@ -728,11 +734,9 @@ static void process_action(xmlNodePtr parent, idmef_action_t *action)
 
         str = idmef_action_get_description(action);
         if ( str )
-                new = xmlNewTextChild(parent, NULL, (const xmlChar *) "Action",
-                                      (const xmlChar *) prelude_string_get_string(str));
-        else
-                new = xmlNewChild(parent, NULL, (const xmlChar *) "Action", NULL);
+                s = prelude_string_get_string(str);
 
+        new = xmlNewTextChild(parent, NULL, (const xmlChar *) "Action", (const xmlChar *) s);
         if ( ! new )
                 return;
 
@@ -768,7 +772,6 @@ static void process_assessment(xmlNodePtr parent, idmef_assessment_t *assessment
 static void process_correlation_alert(xmlNodePtr parent, idmef_correlation_alert_t *ca)
 {
         xmlNodePtr new, anew;
-        prelude_string_t *str;
         idmef_alertident_t *alertident = NULL;
 
         if ( ! ca )
@@ -778,9 +781,7 @@ static void process_correlation_alert(xmlNodePtr parent, idmef_correlation_alert
         if ( ! new )
                 return;
 
-        str = idmef_correlation_alert_get_name(ca);
-        if ( str )
-                xmlNewTextChild(new, NULL, (const xmlChar *) "name", (const xmlChar *) prelude_string_get_string(str));
+        xmlNewTextChild(new, NULL, (const xmlChar *) "name", (const xmlChar *) prelude_string_get_string(idmef_correlation_alert_get_name(ca)));
 
         while ( (alertident = idmef_correlation_alert_get_next_alertident(ca, alertident)) ) {
                 anew = xmlNewTextChild(new, NULL, (const xmlChar *) "alertident",
