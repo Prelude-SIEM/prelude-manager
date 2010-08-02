@@ -224,7 +224,7 @@ int bufpool_add_message(bufpool_t *bp, prelude_msg_t *msg)
 
         while ( get_total_mem() + len >= on_disk_threshold ) {
                 evicted = evict_from_memory();
-                if ( evicted == bp )
+                if ( evicted == NULL || evicted == bp )
                         break;
         }
 
