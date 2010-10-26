@@ -12,7 +12,7 @@
 
 AUTOMAKE_OPTIONS = 1.5 foreign
 
-SUBDIRS =
+SUBDIRS = .
 TESTS =
 XFAIL_TESTS =
 TESTS_ENVIRONMENT =
@@ -31,6 +31,7 @@ DISTCLEANFILES =
 MAINTAINERCLEANFILES =
 
 AM_CPPFLAGS = \
+  -D@gltests_WITNESS@=1 \
   -I. -I$(srcdir) \
   -I../.. -I$(srcdir)/../.. \
   -I../../libmissing -I$(srcdir)/../../libmissing
@@ -110,6 +111,30 @@ EXTRA_DIST += test-binary-io.sh test-binary-io.c macros.h
 
 ## end   gnulib module binary-io-tests
 
+## begin gnulib module c++defs
+
+# The BUILT_SOURCES created by this Makefile snippet are not used via #include
+# statements but through direct file reference. Therefore this snippet must be
+# present in all Makefile.am that need it. This is ensured by the applicability
+# 'all' defined above.
+
+BUILT_SOURCES += c++defs.h
+# The c++defs.h that gets inserted into generated .h files is the same as
+# build-aux/c++defs.h, except that it has the copyright header cut off.
+c++defs.h: $(top_srcdir)/./c++defs.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	sed -n -e '/_GL_CXXDEFS/,$$p' \
+	  < $(top_srcdir)/./c++defs.h \
+	  > $@-t && \
+	mv $@-t $@
+MOSTLYCLEANFILES += c++defs.h c++defs.h-t
+
+CXXDEFS_H=c++defs.h
+
+EXTRA_DIST += $(top_srcdir)/./c++defs.h
+
+## end   gnulib module c++defs
+
 ## begin gnulib module cond-tests
 
 TESTS += test-cond
@@ -168,6 +193,15 @@ check_PROGRAMS += test-getdtablesize
 EXTRA_DIST += test-getdtablesize.c signature.h macros.h
 
 ## end   gnulib module getdtablesize-tests
+
+## begin gnulib module getpagesize
+
+
+EXTRA_DIST += getpagesize.c
+
+EXTRA_libtests_a_SOURCES += getpagesize.c
+
+## end   gnulib module getpagesize
 
 ## begin gnulib module gettimeofday-tests
 
@@ -267,6 +301,14 @@ EXTRA_DIST += test-open.h test-open.c signature.h macros.h
 
 ## end   gnulib module open-tests
 
+## begin gnulib module realloc-gnu-tests
+
+TESTS += test-realloc-gnu
+check_PROGRAMS += test-realloc-gnu
+EXTRA_DIST += test-realloc-gnu.c
+
+## end   gnulib module realloc-gnu-tests
+
 ## begin gnulib module same-inode
 
 
@@ -316,6 +358,15 @@ EXTRA_DIST += test-snprintf.c signature.h macros.h
 
 ## end   gnulib module snprintf-tests
 
+## begin gnulib module sockets-tests
+
+TESTS += test-sockets
+check_PROGRAMS += test-sockets
+test_sockets_LDADD = $(LDADD) @LIBSOCKET@
+EXTRA_DIST += test-sockets.c
+
+## end   gnulib module sockets-tests
+
 ## begin gnulib module stat-tests
 
 TESTS += test-stat
@@ -360,7 +411,7 @@ EXTRA_DIST += test-stdio.c
 
 TESTS += test-stdlib
 check_PROGRAMS += test-stdlib
-EXTRA_DIST += test-stdlib.c
+EXTRA_DIST += test-stdlib.c test-sys_wait.h
 
 ## end   gnulib module stdlib-tests
 
@@ -455,11 +506,14 @@ EXTRA_DIST += test-vasnprintf.c macros.h
 
 ## end   gnulib module vasnprintf-tests
 
-## begin gnulib module verify
+## begin gnulib module verify-tests
 
-libtests_a_SOURCES += verify.h
+TESTS_ENVIRONMENT += MAKE='$(MAKE)'
+TESTS += test-verify test-verify.sh
+check_PROGRAMS += test-verify
+EXTRA_DIST += test-verify.c test-verify.sh init.sh
 
-## end   gnulib module verify
+## end   gnulib module verify-tests
 
 ## begin gnulib module vsnprintf-tests
 

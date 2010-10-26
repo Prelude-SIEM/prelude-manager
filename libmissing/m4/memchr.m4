@@ -1,4 +1,4 @@
-# memchr.m4 serial 7
+# memchr.m4 serial 9
 dnl Copyright (C) 2002-2004, 2009-2010 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -13,12 +13,7 @@ AC_DEFUN_ONCE([gl_FUNC_MEMCHR],
 
   dnl These days, we assume memchr is present.  But just in case...
   AC_REQUIRE([gl_HEADER_STRING_H_DEFAULTS])
-  AC_REPLACE_FUNCS([memchr])
-  if test $ac_cv_func_memchr = no; then
-    gl_PREREQ_MEMCHR
-    REPLACE_MEMCHR=1
-  fi
-
+  AC_CHECK_FUNCS_ONCE([memchr])
   if test $ac_cv_func_memchr = yes; then
     # Detect platform-specific bugs in some versions of glibc:
     # memchr should not dereference anything with length 0
@@ -67,16 +62,22 @@ AC_DEFUN_ONCE([gl_FUNC_MEMCHR],
       strcpy (fence - 9, "12345678");
       if (memchr (fence - 9, 0, 79) != fence - 1)
         return 2;
+      if (memchr (fence - 1, 0, 3) != fence - 1)
+        return 3;
     }
   return 0;
 ]])], [gl_cv_func_memchr_works=yes], [gl_cv_func_memchr_works=no],
       [dnl Be pessimistic for now.
        gl_cv_func_memchr_works="guessing no"])])
     if test "$gl_cv_func_memchr_works" != yes; then
-      gl_PREREQ_MEMCHR
       REPLACE_MEMCHR=1
-      AC_LIBOBJ([memchr])
     fi
+  else
+    HAVE_MEMCHR=0
+  fi
+  if test $HAVE_MEMCHR = 0 || test $REPLACE_MEMCHR = 1; then
+    AC_LIBOBJ([memchr])
+    gl_PREREQ_MEMCHR
   fi
 ])
 
