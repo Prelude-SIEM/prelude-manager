@@ -1,3 +1,12 @@
+* 2010-10-26, prelude-manager-1.0.1:
+
+- An infinite loop was possible on insertion of an event whose length was
+  higher than the 'on disk threshold' value in the processing queue. Closes #385.
+
+- Fix prelude-string warning in case of a NULL IDMEF impact description: this
+  is an optional element. Closes #376.
+
+
 * 2010-03-16, prelude-manager-1.0.0:
 
 - Minor changes since rc1.
