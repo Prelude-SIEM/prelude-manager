@@ -336,7 +336,6 @@ plugins/filters/thresholding/Makefile
 plugins/reports/Makefile
 plugins/reports/db/Makefile
 plugins/reports/debug/Makefile
-plugins/reports/relaying/Makefile
 plugins/reports/smtp/Makefile
 plugins/reports/textmod/Makefile
 plugins/reports/xmlmod/Makefile

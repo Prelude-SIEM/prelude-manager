@@ -33,7 +33,6 @@ prelude_manager_LDFLAGS = -export-dynamic @LIBPRELUDE_LDFLAGS@ \
         -dlopen $(top_builddir)/plugins/filters/idmef-criteria/idmef-criteria.la \
         -dlopen $(top_builddir)/plugins/filters/thresholding/thresholding.la \
         -dlopen $(top_builddir)/plugins/reports/debug/debug.la \
-        -dlopen $(top_builddir)/plugins/reports/relaying/relaying.la \
         -dlopen $(top_builddir)/plugins/reports/smtp/smtp.la \
         -dlopen $(top_builddir)/plugins/reports/textmod/textmod.la \
         $(DLOPENED_OBJS)

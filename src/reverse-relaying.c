@@ -174,18 +174,6 @@ int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_gener
 
 
 
-int reverse_relay_set_initiator_dead(prelude_connection_t *cnx)
-{
-        int ret = -1;
-
-        if ( initiator )
-                ret = prelude_connection_pool_set_connection_dead(initiator, cnx);
-
-        return ret;
-}
-
-
-
 void reverse_relay_set_receiver_dead(reverse_relay_receiver_t *rrr)
 {
         rrr->client = NULL;
@@ -419,42 +407,6 @@ static void destroy_current_initiator(void)
 
         prelude_connection_pool_destroy(initiator);
         initiator = NULL;
-}
-
-
-
-int reverse_relay_create_initiator(const char *arg)
-{
-        int ret;
-        prelude_client_profile_t *cp;
-
-        cp = prelude_client_get_profile(manager_client);
-
-        if ( initiator )
-                destroy_current_initiator();
-
-        ret = prelude_connection_pool_new(&initiator, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_READ);
-        if ( ret < 0 )
-                goto out;
-
-        prelude_connection_pool_set_flags(initiator, PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
-        prelude_connection_pool_set_event_handler(initiator, PRELUDE_CONNECTION_POOL_EVENT_DEAD |
-                                                  PRELUDE_CONNECTION_POOL_EVENT_ALIVE, connection_event_cb);
-
-        ret = prelude_connection_pool_set_connection_string(initiator, arg);
-        if ( ret < 0 ) {
-                prelude_connection_pool_destroy(initiator);
-                goto out;
-        }
-
-        ret = prelude_connection_pool_init(initiator);
-        if ( ret < 0 ) {
-                prelude_connection_pool_destroy(initiator);
-                goto out;
-        }
-
- out:
-        return ret;
 }
 
 

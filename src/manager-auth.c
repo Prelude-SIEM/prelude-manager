@@ -30,6 +30,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <pathmax.h>
+#include <dirent.h>
+#include <gnutls/gnutls.h>
 #include <errno.h>
 
 #if TIME_WITH_SYS_TIME
@@ -428,7 +431,7 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
 
 
 static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnutls_session session,
-                                           uint64_t *analyzerid, prelude_connection_permission_t *permission)
+                                           uint64_t *analyzerid, prelude_connection_permission_t *permission, char *profile, size_t *profile_size)
 {
         int ret;
         char buf[1024];
@@ -486,6 +489,16 @@ static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnut
                 goto err;
         }
 
+        *profile = '\0';
+        ret = gnutls_x509_crt_get_dn_by_oid(cert, GNUTLS_OID_X520_SURNAME, 0, 0, profile, profile_size);
+		if (ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+			// surname is optional
+			ret = 0;
+		} else if (ret < 0) {
+			server_generic_log_client(client, PRELUDE_LOG_WARN, "error getting certificate surName: %s.\n", gnutls_strerror(ret));
+			goto err;
+		}
+
  err:
         gnutls_x509_crt_deinit(cert);
         return ret;
@@ -509,6 +522,8 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnut
         gnutls_session session;
         int fd = prelude_io_get_fd(pio);
         prelude_connection_permission_t permission;
+        char profile[PATH_MAX];
+        size_t profile_size = sizeof(profile);
 
         /*
          * check if we already have a TLS descriptor
@@ -549,10 +564,15 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnut
         if ( ret < 0 )
                 return -1;
 
-        ret = certificate_get_peer_analyzerid(client, session, &analyzerid, &permission);
+        ret = certificate_get_peer_analyzerid(client, session, &analyzerid, &permission, profile, &profile_size);
         if ( ret < 0 ) {
                 *alert = GNUTLS_A_BAD_CERTIFICATE;
                 return -1;
+        }
+
+        if (strcmp(profile, "prelude-manager") == 0) {
+        	*alert = GNUTLS_A_ACCESS_DENIED;
+        	return -1;
         }
 
         ret = server_generic_client_set_permission(client, permission);
