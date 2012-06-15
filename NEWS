@@ -1,3 +1,12 @@
+* 2012-06-13, prelude-manager-1.0.2:
+
+- Changed copyrights
+
+- Added packaging for rhel6
+
+- Relaying functions have been transfered to the Enterprise Edition
+
+
 * 2010-10-26, prelude-manager-1.0.1:
 
 - An infinite loop was possible on insertion of an event whose length was

@@ -1,4 +1,4 @@
-Prelude-Manager is brought to you by PreludeIDS Technologies (http://www.prelude-ids.com),
+Prelude-Manager is brought to you by CS-SI (http://www.prelude-ids.com),
 
 
 Prelude-Manager Overview
@@ -15,12 +15,10 @@ and processing large amounts of events. It uses a per client scheduling queues i
 process events by severity fairly accross clients. 
 
 
-
 REQUIREMENTS
 ============
 
 You need to install libprelude on your system before compiling Prelude-Manager.
-
 
 
 IRC
@@ -31,16 +29,18 @@ give feedback directly to the authors or you're just bored, visit
 #prelude on irc.freenode.net
 
 
-
 Get Support
 ===========
 
 
 Prelude-user mailing list archives can be accessed at:
-        http://lists.prelude-ids.org
+
+	http://www.freelists.org/list/prelude-announce
+	http://www.freelists.org/list/prelude-dev
+	http://www.freelists.org/list/prelude-user
 
 
-Commercial Support is available through the PreludeIDS Technologies company:
+Commercial Support is available through the CS-SI company:
         http://www.prelude-ids.com, info@prelude-ids.com
 
 
@@ -51,22 +51,18 @@ Help development
 1. SUBMITTING PATCHES
 
 The Prelude source is constantly changing. If you want to submit a patch,
-please do so from the most recent CVS source tree, subscribe to the
-prelude-devel mailing list by sending a mail to:
-
-        prelude-devel-subscribe@prelude-ids.org
-
-and post your patch with a description of functionality.
+please do so from the most recent GIT source tree, subscribe to the
+prelude-devel mailing list and post your patch with a description of functionality.
 You can also attach patches to bugs on
 
-        http://trac.prelude-ids.org
+        https://dev.prelude-ids.com
 
 
 2. BUGS
 
 If you find any bugs, please report them to:
 
-        http://trac.prelude-ids.org
+        https://dev.prelude-ids.com
 
 Please make sure that what you're reporting is actually a BUG and not
 a problem on your side.
