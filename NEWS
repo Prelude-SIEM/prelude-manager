@@ -492,7 +492,7 @@
           database).
 
         - Modular filtering system, allowing to define IDMEF criteria, and to bind action
-          to be issued when an event match theses rules.
+          to be issued when an event match these rules.
 
         - Use libpreludedb.
 

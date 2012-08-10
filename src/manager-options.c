@@ -523,7 +523,7 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
                            NULL, PRELUDE_OPTION_ARGUMENT_REQUIRED, set_sched_buffer_size, NULL);
 
         /*
-         * necessary since the reverse relay need to be setup only once one
+         * necessary since the reverse relay needs to be setup only once one
          * server object has been created.
          */
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
@@ -540,13 +540,13 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
 
 
         /*
-         * Some plugin might require manager_client to be already initialized,
-         * for example the relaying plugin. We need to process theses option
-         * first so that --help will be recognized even throught the initialization
-         * fail.
+         * Some plugins might require manager_client to be already initialized,
+         * for example the relaying plugin. We need to process these options
+         * first so that --help will be recognized even though the initialization
+         * fails.
          *
          * We can't delay the error checking of manager_client initialization either since
-         * prelude_client_init() also need to know the configuration file that will be used.
+         * prelude_client_init() also needs to know the configuration file that will be used.
          */
 
         prelude_option_set_warnings(0, &old_warnings);

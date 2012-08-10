@@ -26,8 +26,8 @@ Requires(preun) : /sbin/service
 Requires(postun): /sbin/service
 
 %description
-Prelude-Manager is a high availability server that accepts
-secured connections from distributed sensors and/or other Managers
+Prelude-Manager is a high availability server that
+accepts secured connections from distributed sensors
 and saves received events to a media specified by the user
 (database, log file, mail etc.). The server schedules and
 establishes the priorities of treatment according to the

@@ -2,7 +2,7 @@
 #
 # <IMPORTANT>
 #
-# Sections are importants, and things won't work correctly if they are
+# Sections are important, and things won't work correctly if they are
 # not un-commented. For example you need to uncomment [db] if you want
 # the database plugin to be loaded.
 #
@@ -33,8 +33,8 @@ listen = 127.0.0.1
 # group = prelude
 
 
-# Number of second prelude-manager wait for an incoming client to
-# successfully authenticate before droping the connection.
+# Number of seconds prelude-manager waits for an incoming client to
+# successfully authenticate before dropping the connection.
 #
 # connection-timeout = 10
 
@@ -43,13 +43,13 @@ listen = 127.0.0.1
 # Scheduler settings for Prelude-Manager
 #
 # On systems with many concurrent sensors sending events to
-# Prelude-Manager, Prelude-Manager might have an hard time keeping up
+# Prelude-Manager, Prelude-Manager might have a hard time keeping up
 # with the demand for events reporting.
 #
 # The Prelude Manager scheduler allocate reporting time per sensor,
 # allowing to define the maximum number of events processed for one
 # sensor before processing others sensors events (in case a sensor is
-# sending a continuous events burst, this prevent other sensors
+# sending a continuous events burst, this prevents other sensors'
 # starvation).
 #
 # By default, for each sensor connected, a maximum of 100 events will
@@ -57,7 +57,7 @@ listen = 127.0.0.1
 #
 # Additionally, priority will be given to events depending on their
 # priority. Assuming there is enough events of each priority, 50 high
-# priority message will be processed, 30 medium, and 20 low (totalling
+# priority messages will be processed, 30 medium, and 20 low (totalling
 # the maximum of 100 described above).
 #
 # You might use the sched-priority option in order to change this
@@ -66,7 +66,7 @@ listen = 127.0.0.1
 # sched-priority = high:50 medium:30 low:20
 #
 #
-# When the number of events waiting to be processed exceed the defined
+# When the number of events waiting to be processed exceeds the defined
 # amount of reserved memory (default is 1 Megabyte), Prelude-Manager
 # will start storing events on disk:
 #
@@ -118,12 +118,12 @@ listen = 127.0.0.1
 # dh-parameters-regenerate = 24
 
 
-# If you want this Manager to retrieve message from another Manager
+# If you want this Manager to retrieve messages from another Manager
 # (useful if the other Manager is located within a DMZ):
 #
 # child-managers = x.x.x.x
 #
-# This mean the messages should be gathered from x.x.x.x
+# This means the messages should be gathered from x.x.x.x
 
 #
 # If you want a given reporting plugin to be protected against possible
@@ -146,7 +146,7 @@ listen = 127.0.0.1
 # For each incoming events, Prelude-Manager will run a number of
 # normalization routine: sanitize address, services information, etc.
 #
-# When the normalizer see an incoming IPv4 mapped IPv6 address, the
+# When the normalizer sees an incoming IPv4 mapped IPv6 address, the
 # default behavior is to map it back to raw IPv4. For example,
 # ::ffff:192.168.0.1 will be mapped back to 192.168.0.1
 #
@@ -172,8 +172,8 @@ listen = 127.0.0.1
 #
 # parent-managers = x.x.x.x || y.y.y.y && z.z.z.z
 #
-# This mean the emission should occur on x.x.x.x or, if it fail, on
-# y.y.y.y and z.z.z.z (if one of the two host in the AND fail, the
+# This means the emission should occur on x.x.x.x or, if it fails, on
+# y.y.y.y and z.z.z.z (if one of the two hosts in the AND fail, the
 # emission will be considered as failed involving saving the message
 # locally).
 
@@ -205,22 +205,22 @@ listen = 127.0.0.1
 
 # [XmlMod]
 #
-# The Xmlmod plugin allow to report alert as IDMEF XML in a file,
-# or to dump theses alert to stderr.
+# The Xmlmod plugin allows to report alerts as IDMEF XML in a file,
+# or to dump these alerts to stderr.
 #
 # The default behavior is to write output to stderr.
 #
-# Tell Xmlmod to disable output file buffering.
+# Tells Xmlmod to disable output file buffering.
 # This will prevent XML alerts to be truncated and thus make real-time
 # parsing easier:
 #
 # disable-buffering
 #
 #
-# Tell Xmlmod to check generated XML against IDMEF DTD:
+# Tells Xmlmod to check generated XML against IDMEF DTD:
 # validate
 #
-# Tell Xmlmod to produce a pretty, human readable xml output:
+# Tells Xmlmod to produce a pretty, human-readable xml output:
 # format
 #
 # logfile = stderr
@@ -230,8 +230,8 @@ listen = 127.0.0.1
 
 # [Debug]
 #
-# The Debug plugin allow to report alert as text in a file,
-# or to dump theses alert to stderr.
+# The Debug plugin allows to report alerts as text in a file,
+# or to dump these alerts to stderr.
 #
 # The default behavior is to write output to stderr.
 #
@@ -239,7 +239,7 @@ listen = 127.0.0.1
 # logfile = /var/log/prelude.log
 #
 # You can specify the name of the IDMEF object to print (you might
-# select multiple objects). If no object are provided, 'Debug' will
+# select multiple objects). If no object is provided, 'Debug' will
 # print out the entire message.
 #
 # object = alert.classification.text, alert.source(0).node.address(0).address
@@ -247,8 +247,8 @@ listen = 127.0.0.1
 
 # [TextMod]
 #
-# The Debug plugin allow to report alert as text in a file,
-# or to dump theses alert to stderr.
+# The Debug plugin allows to report alerts as text in a file,
+# or to dump these alerts to stderr.
 #
 # The default behavior is to write output to stderr.
 #
@@ -267,7 +267,7 @@ listen = 127.0.0.1
 # SMTP server to use for sending mail
 # smtp-server = localhost
 #
-# By default, the SMTP plugin send mail containing the whole IDMEF
+# By default, the SMTP plugin sends mail containing the whole IDMEF
 # event. If you wish to send a subset of the information, you may
 # customize the content of the generated mail through several options:
 #
@@ -283,7 +283,7 @@ listen = 127.0.0.1
 # template = /path/to/my/template
 #
 # You can provide your database settings here, so that the SMTP plugin
-# retrieve alert linked to received CorrelationAlert from the database.
+# retrieves alerts linked to received CorrelationAlert from the database.
 #
 # dbtype = mysql
 # dbname = prelude
@@ -307,21 +307,21 @@ listen = 127.0.0.1
 # Filtering plugins configuration  #
 ####################################
 
-# The idmef-criteria filtering plugin allow you to filter events based
+# The idmef-criteria filtering plugin allows you to filter events based
 # on specific IDMEF-Criteria.
 #
 # [idmef-criteria]
 # rule = alert.classification.text == 'User login successful'
 # hook = relaying[default]
 #
-# Will forward any events that match the defined criteria to the
+# Will forward any event that match the defined criteria to the
 # default instance of the relaying reporting plugin. The rule argument
 # might also be a filename containing the rules. Example:
 #
 # rule = /path/to/rule.file
 
 
-# The thresholding filtering plugin allow you to suppress events based
+# The thresholding filtering plugin allows you to suppress events based
 # on their value.
 #
 # [thresholding]
@@ -365,8 +365,8 @@ listen = 127.0.0.1
 # The following settings instruct the operating system when to consider
 # a connection dead in case sent data is left unacknowledged.
 #
-# Theses option are operating system specific, and might not work on
-# certain platform. In case you modify these settings on an unsupported
+# These options are operating system specific, and might not work on
+# certain platforms. In case you modify these settings on an unsupported
 # system, a warning message will be issued when the agent starts.
 #
 # Under Linux, the default system wide configuration is:
@@ -377,7 +377,7 @@ listen = 127.0.0.1
 # tcp-keepalive-time represents the number of seconds the connection
 # needs to be idle before TCP begins sending out keep-alive probes.
 #
-# tcp-keepalive-probes represent the number of not acknowledged probes
+# tcp-keepalive-probes represents the number of not acknowledged probes
 # to send before considering the connection dead.
 #
 # tcp-keepalive-intvl represents the interval between subsequent
