@@ -124,7 +124,6 @@ fi
 %dir %{_libdir}/%{name}/reports/
 %{_libdir}/%{name}/reports/debug.so
 %{_libdir}/%{name}/reports/textmod.so
-%{_libdir}/%{name}/reports/relaying.so
 %dir %{_libdir}/%{name}/decodes/
 %{_libdir}/%{name}/decodes/*.so
 %attr(0750,root,root) %dir %{_localstatedir}/spool/%{name}/
