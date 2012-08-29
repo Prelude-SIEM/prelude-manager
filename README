@@ -35,9 +35,9 @@ Get Support
 
 Prelude-user mailing list archives can be accessed at:
 
-	http://www.freelists.org/list/prelude-announce
-	http://www.freelists.org/list/prelude-dev
-	http://www.freelists.org/list/prelude-user
+	https://www.prelude-ids.org/lists/prelude-announce
+	https://www.prelude-ids.org/lists/prelude-devel
+	https://www.prelude-ids.org/lists/prelude-user
 
 
 Commercial Support is available through the CS-SI company:
@@ -55,14 +55,14 @@ please do so from the most recent GIT source tree, subscribe to the
 prelude-devel mailing list and post your patch with a description of functionality.
 You can also attach patches to bugs on
 
-        https://dev.prelude-ids.com
+        https://www.prelude-ids.org
 
 
 2. BUGS
 
 If you find any bugs, please report them to:
 
-        https://dev.prelude-ids.com
+        https://www.prelude-ids.org
 
 Please make sure that what you're reporting is actually a BUG and not
 a problem on your side.
