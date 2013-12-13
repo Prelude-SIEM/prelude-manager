@@ -1,7 +1,8 @@
-AC_INIT
+AC_INIT(prelude-manager, 1.0.2)
 AC_PREREQ(2.59)
 AC_CANONICAL_TARGET([])
-AM_INIT_AUTOMAKE(prelude-manager, 1.0.2)
+AM_INIT_AUTOMAKE([-Wall tar-pax 1.9])
+AC_CONFIG_MACRO_DIR([m4])
 AM_CONFIG_HEADER(config.h)
 AM_DISABLE_STATIC
 
@@ -23,6 +24,7 @@ dnl * Setup GnuLib, libtool and libltdl.
 dnl **********************************************************
 
 gl_EARLY
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_LIBTOOL_DLOPEN
 AM_DISABLE_STATIC
 AC_PROG_LIBTOOL
@@ -47,7 +49,7 @@ AM_PATH_LIBPRELUDE(0.9.21.3, ,
 dnl ***
 dnl *** Can we use -Werror -Wmissing-braces for some checks ? ***
 buggy_pthread_cppflags=""
-AX_C_CHECK_FLAG(-Werror -Wno-missing-braces, , , buggy_pthread_cppflags="-Wno-missing-braces")
+AX_CHECK_COMPILE_FLAG(-Werror -Wno-missing-braces, buggy_pthread_cppflags="-Wno-missing-braces")
 
 
 old_CFLAGS="$CFLAGS"
@@ -240,25 +242,24 @@ case "$host_os" in
         # apparently-legal code won't compile with its precompiled
         # headers.
         AC_MSG_RESULT(Darwin: adding -no-cpp-precomp)
-        AX_C_CHECK_FLAG(-no-cpp-precomp, , , GLOBAL_CFLAGS="$GLOBAL_CFLAGS -no-cpp-precomp")
+        AX_CHECK_COMPILE_FLAG(-no-cpp-precomp, GLOBAL_CFLAGS="$GLOBAL_CFLAGS -no-cpp-precomp")
         ;;
  *)
         AC_MSG_RESULT(none needed)
         ;;
 esac
 
-AC_PROG_CXX
-AX_LD_CHECK_FLAG(-z relro, , , LDFLAGS="$LDFLAGS -z relro")
-AX_LD_CHECK_FLAG(-z now, , , LDFLAGS="$LDFLAGS -z now")
+AX_CHECK_LINK_FLAG(-z relro, LDFLAGS="$LDFLAGS -z relro")
+AX_CHECK_LINK_FLAG(-z now, LDFLAGS="$LDFLAGS -z now")
 
 for i in -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
          -Wbad-function-cast -Wcast-qual -Wcast-align -Wnested-externs -Wunused \
          -Wformat -Wformat-security; do
-        AX_C_CHECK_FLAG($i, , , GLOBAL_CFLAGS="$GLOBAL_CFLAGS $i")
+        AX_CHECK_COMPILE_FLAG($i, GLOBAL_CFLAGS="$GLOBAL_CFLAGS $i")
 done
 
 if test x$buggy_pthread_initializers = xyes; then
-   AX_C_CHECK_FLAG(-Wno-missing-braces, , , GLOBAL_CFLAGS="$GLOBAL_CFLAGS -Wno-missing-braces")
+   AX_CHECK_COMPILE_FLAG(-Wno-missing-braces, GLOBAL_CFLAGS="$GLOBAL_CFLAGS -Wno-missing-braces")
 fi
 
 

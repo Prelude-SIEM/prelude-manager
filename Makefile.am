@@ -41,6 +41,10 @@ install-data-local:
 	fi                                                                                                   
 
 
+uninstall-local:
+	rm -f $(DESTDIR)$(configdir)/prelude-manager.conf; 
+
+
 dist-hook:
 	@if test -d "$(srcdir)/.git"; then      \
 		echo Creating ChangeLog && \
@@ -53,6 +57,5 @@ dist-hook:
 	else \
 		echo A git clone is required to generate a ChangeLog >&2; \
 	fi
-
 
 -include $(top_srcdir)/git.mk
