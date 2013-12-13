@@ -200,7 +200,6 @@ static int check_threshold(const char *key, filter_plugin_t *plugin, hash_elem_t
 
 static int check_filter(filter_plugin_t *plugin, const char *key)
 {
-        int ret;
         hash_elem_t *helem;
 
         helem = prelude_hash_get(plugin->path_value_hash, key);
@@ -217,7 +216,7 @@ static int check_filter(filter_plugin_t *plugin, const char *key)
                 prelude_timer_set_data(&helem->timer, helem);
                 prelude_timer_set_callback(&helem->timer, hash_entry_expire_cb);
 
-                ret = prelude_hash_set(plugin->path_value_hash, helem->key, helem);
+                prelude_hash_set(plugin->path_value_hash, helem->key, helem);
         }
 
         helem->count++;

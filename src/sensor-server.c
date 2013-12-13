@@ -100,10 +100,7 @@ static int write_client(sensor_fd_t *dst, prelude_msg_t *msg)
 static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzerid, uint32_t instance_no, prelude_msg_t *msg)
 {
         int ret = 0;
-        uint8_t tag;
         sensor_fd_t *target;
-
-        tag = prelude_msg_get_tag(msg);
 
         target = search_client(&sensors_cnx_list, analyzerid, instance_no);
         if ( ! target )
@@ -548,7 +545,6 @@ out:
 
 static int close_connection_cb(server_generic_client_t *ptr)
 {
-        int ret;
         prelude_msg_t *msg;
         prelude_list_t *tmp, *bkp;
         sensor_fd_t *cnx = (sensor_fd_t *) ptr;

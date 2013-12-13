@@ -925,9 +925,8 @@ static int parse_path(smtp_plugin_t *plugin, mail_format_t **fmt,
         int ret;
         size_t i = 0;
         idmef_path_t *path;
-        char path_s[1024], *ptr;
+        char path_s[1024];
 
-        ptr = path_s;
         while ( i < sizeof(path_s) - 1 &&
                 (isalnum(**in) || **in == '(' || **in == ')' || **in == '.' || **in == '-' || **in == '_' || **in == '*') ) {
                 path_s[i++] = **in;

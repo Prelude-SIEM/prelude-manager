@@ -157,7 +157,6 @@ static int flush_bufpool_to_disk(bufpool_t *bp)
 
 static bufpool_t *evict_from_memory(void)
 {
-        int ret;
         size_t prev_len = 0;
         bufpool_t *bp = NULL, *evict = NULL;
 
@@ -195,7 +194,7 @@ static bufpool_t *evict_from_memory(void)
 
 
         if ( evict ) {
-                ret = flush_bufpool_to_disk(evict);
+                flush_bufpool_to_disk(evict);
                 gl_lock_unlock(evict->mutex);
                 return evict;
         }

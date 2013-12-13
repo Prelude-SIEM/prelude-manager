@@ -340,7 +340,6 @@ void report_plugins_run(idmef_message_t *idmef)
         int ret;
         prelude_list_t *tmp;
         plugin_failover_t *pf;
-        prelude_plugin_generic_t *pg;
         prelude_plugin_instance_t *pi;
 
         ret = filter_plugins_run_by_category(idmef, MANAGER_FILTER_CATEGORY_REPORTING);
@@ -350,7 +349,6 @@ void report_plugins_run(idmef_message_t *idmef)
         prelude_list_for_each(&report_plugins_instance, tmp) {
 
                 pi = prelude_linked_object_get_object(tmp);
-                pg = prelude_plugin_instance_get_plugin(pi);
                 pf = prelude_plugin_instance_get_data(pi);
 
                 ret = filter_plugins_run_by_plugin(idmef, pi);

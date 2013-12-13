@@ -29,7 +29,7 @@
 
 int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_t *pio);
 
-int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnutls_alert_description *alert);
+int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnutls_alert_description_t *alert);
 
 int manager_auth_init(prelude_client_t *client, const char *tlsopts, int dh_bits, int dh_regenerate);
 

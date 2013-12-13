@@ -73,8 +73,8 @@ static gnutls_priority_t tls_priority;
 
 static int global_dh_lifetime;
 static unsigned int global_dh_bits;
-static gnutls_certificate_credentials cred;
-static gnutls_dh_params cur_dh_params = NULL;
+static gnutls_certificate_credentials_t cred;
+static gnutls_dh_params_t cur_dh_params = NULL;
 static prelude_timer_t dh_param_regeneration_timer;
 static gl_lock_t dh_regen_mutex = gl_lock_initializer;
 
@@ -153,14 +153,14 @@ static int dh_check_elapsed(void)
 
 
 
-static int dh_params_load(gnutls_dh_params dh, unsigned int req_bits)
+static int dh_params_load(gnutls_dh_params_t dh, unsigned int req_bits)
 {
         int ret;
         FILE *fd;
         ssize_t size;
         prelude_io_t *pfd;
         unsigned int *bits;
-        gnutls_datum prime, generator;
+        gnutls_datum_t prime, generator;
 
         fd = fopen(DH_FILENAME, "r");
         if ( ! fd ) {
@@ -221,11 +221,11 @@ static int dh_params_load(gnutls_dh_params dh, unsigned int req_bits)
 
 
 
-static int dh_params_save(gnutls_dh_params dh, unsigned int dh_bits)
+static int dh_params_save(gnutls_dh_params_t dh, unsigned int dh_bits)
 {
         int ret, fd;
         prelude_io_t *pfd;
-        gnutls_datum prime, generator;
+        gnutls_datum_t prime, generator;
 
         ret = gnutls_dh_params_export_raw(dh, &prime, &generator, NULL);
         if ( ret < 0 ) {
@@ -269,7 +269,7 @@ static int dh_params_save(gnutls_dh_params dh, unsigned int dh_bits)
 static void dh_params_regenerate(void *data)
 {
         int ret;
-        gnutls_dh_params new, tmp;
+        gnutls_dh_params_t new, tmp;
 
         /*
          * generate a new DH key.
@@ -301,10 +301,10 @@ static void dh_params_regenerate(void *data)
 
 
 
-static int get_params(gnutls_session session, gnutls_params_type type, gnutls_params_st *st)
+static int get_params(gnutls_session_t session, gnutls_params_type_t type, gnutls_params_st *st)
 {
         int ret;
-        gnutls_dh_params cpy;
+        gnutls_dh_params_t cpy;
 
         if ( type == GNUTLS_PARAMS_RSA_EXPORT )
                 return -1;
@@ -334,8 +334,8 @@ static int get_params(gnutls_session session, gnutls_params_type type, gnutls_pa
 
 
 
-static int handle_gnutls_error(prelude_io_t *pio, gnutls_session session, server_generic_client_t *client, int ret,
-                               gnutls_alert_description *alert_desc)
+static int handle_gnutls_error(prelude_io_t *pio, gnutls_session_t session, server_generic_client_t *client, int ret,
+                               gnutls_alert_description_t *alert_desc)
 {
         int level;
         const char *alert;
@@ -364,7 +364,7 @@ static int handle_gnutls_error(prelude_io_t *pio, gnutls_session session, server
         else {
                 server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS error: %s.\n", gnutls_strerror(ret));
                 if ( alert_desc && (ret = gnutls_error_to_alert(ret, &level)) > 0 )
-                        *alert_desc = (gnutls_alert_description) ret;
+                        *alert_desc = (gnutls_alert_description_t) ret;
         }
 
         return -1;
@@ -372,7 +372,7 @@ static int handle_gnutls_error(prelude_io_t *pio, gnutls_session session, server
 
 
 
-static int verify_certificate(server_generic_client_t *client, gnutls_session session, gnutls_alert_description *alert)
+static int verify_certificate(server_generic_client_t *client, gnutls_session_t session, gnutls_alert_description_t *alert)
 {
         int ret;
         time_t now;
@@ -430,14 +430,14 @@ static int verify_certificate(server_generic_client_t *client, gnutls_session se
 
 
 
-static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnutls_session session,
+static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnutls_session_t session,
                                            uint64_t *analyzerid, prelude_connection_permission_t *permission, char *profile, size_t *profile_size)
 {
         int ret;
         char buf[1024];
-        gnutls_x509_crt cert;
+        gnutls_x509_crt_t cert;
         size_t size = sizeof(buf);
-        const gnutls_datum *cert_list;
+        const gnutls_datum_t *cert_list;
         unsigned int cert_list_size = 0;
 
         cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
@@ -505,7 +505,7 @@ static int certificate_get_peer_analyzerid(server_generic_client_t *client, gnut
 }
 
 
-static void set_default_priority(gnutls_session session)
+static void set_default_priority(gnutls_session_t session)
 {
 #ifdef HAVE_GNUTLS_STRING_PRIORITY
                 gnutls_priority_set(session, tls_priority);
@@ -515,11 +515,11 @@ static void set_default_priority(gnutls_session session)
 }
 
 
-int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnutls_alert_description *alert)
+int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnutls_alert_description_t *alert)
 {
         int ret;
         uint64_t analyzerid;
-        gnutls_session session;
+        gnutls_session_t session;
         int fd = prelude_io_get_fd(pio);
         prelude_connection_permission_t permission;
         char profile[PATH_MAX];
@@ -592,7 +592,7 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnut
 int manager_auth_disable_encryption(server_generic_client_t *client, prelude_io_t *pio)
 {
         int ret;
-        gnutls_session session;
+        gnutls_session_t session;
 
         session = prelude_io_get_fdptr(pio);
 

@@ -51,7 +51,7 @@
         int state;                   \
         uint64_t ident;              \
         prelude_connection_permission_t permission; \
-        gnutls_alert_description alert; \
+        gnutls_alert_description_t alert; \
         SERVER_SOCKADDR_TYPE sa; \
         server_generic_t *server
 
