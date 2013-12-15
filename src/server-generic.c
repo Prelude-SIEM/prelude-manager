@@ -520,7 +520,7 @@ static int wait_connection(server_generic_t **server, size_t nserver)
         }
 
         while ( continue_processing )
-                ev_loop(manager_event_loop, 0);
+                ev_run(manager_event_loop, 0);
 
         return 0;
 }

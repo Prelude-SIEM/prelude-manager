@@ -142,7 +142,7 @@ static void sig_cb(struct ev_loop *loop, struct ev_signal *s, int revent)
 #endif
 
         handle_signal(s->signum);
-        ev_unloop(manager_event_loop, EVUNLOOP_ALL);
+        ev_break(manager_event_loop, EVUNLOOP_ALL);
 
         return;
 }
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 
         prelude_init(&argc, argv);
 
-        manager_event_loop = ev_default_loop_init(EVFLAG_AUTO);
+        manager_event_loop = ev_default_loop(EVFLAG_AUTO);
         if ( ! manager_event_loop ) {
                 prelude_log(PRELUDE_LOG_ERR, "error initializing libev.\n");
                 return -1;
