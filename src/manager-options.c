@@ -522,12 +522,6 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CFG, 0, "sched-buffer-size",
                            NULL, PRELUDE_OPTION_ARGUMENT_REQUIRED, set_sched_buffer_size, NULL);
 
-        /*
-         * necessary since the reverse relay needs to be setup only once one
-         * server object has been created.
-         */
-        prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
-
         prelude_option_add(rootopt, NULL, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'l', "listen",
                            "Address the sensors server should listen on (addr:port)",
                            PRELUDE_OPTION_ARGUMENT_REQUIRED, set_listen_address, NULL);
