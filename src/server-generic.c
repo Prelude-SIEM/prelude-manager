@@ -59,6 +59,9 @@
 #include "server-generic.h"
 #include "reverse-relaying.h"
 
+#ifndef SOMAXCONN
+# define SOMAXCONN 128
+#endif
 
 #define STATE_ACCEPTED_TIMEOUT 20
 
@@ -539,7 +542,7 @@ static int generic_server(int sock, struct sockaddr *addr, size_t alen)
                 return prelude_error_verbose(prelude_error_code_from_errno(errno),
                                              "could not bind socket: %s", strerror(errno));
 
-        ret = listen(sock, 10);
+        ret = listen(sock, SOMAXCONN);
         if ( ret < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "listen error: %s", strerror(errno));
 
