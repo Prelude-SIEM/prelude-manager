@@ -155,12 +155,10 @@ static int dh_check_elapsed(void)
 
 static int dh_params_load(gnutls_dh_params_t dh, unsigned int req_bits)
 {
-        int ret;
         FILE *fd;
         ssize_t size;
-        prelude_io_t *pfd;
-        unsigned int *bits;
-        gnutls_datum_t prime, generator;
+        char data[8192];
+        gnutls_datum_t dh_data;
 
         fd = fopen(DH_FILENAME, "r");
         if ( ! fd ) {
@@ -170,64 +168,35 @@ static int dh_params_load(gnutls_dh_params_t dh, unsigned int req_bits)
                 return -1;
         }
 
-        ret = prelude_io_new(&pfd);
-        if ( ret < 0 ) {
-                fclose(fd);
+        size = fread(data, 1, sizeof(data), fd);
+        fclose(fd);
+
+        if ( size <= 0 ) {
+                prelude_log(PRELUDE_LOG_ERR, "error reading DH parameters: %s.\n", strerror(errno));
                 return -1;
         }
 
-        prelude_io_set_file_io(pfd, fd);
+        dh_data.data = (unsigned char *) data;
+        dh_data.size = size;
 
-        size = prelude_io_read_delimited(pfd, (void *) &bits);
-        if ( size < 0 || size != sizeof(*bits) ) {
-                prelude_perror(size, "error reading dh-prime length");
-                goto err;
-        }
-
-        if ( *bits != req_bits )
-                goto err;
-
-        prime.size = size = prelude_io_read_delimited(pfd, &prime.data);
+        size = gnutls_dh_params_import_pkcs3(dh, &dh_data, GNUTLS_X509_FMT_PEM);
         if ( size < 0 ) {
-                prelude_perror(size, "error reading dh-prime");
-                goto err;
+                prelude_log(PRELUDE_LOG_ERR, "error importing DH parameters: %s.\n", gnutls_strerror(errno));
+                return -1;
         }
 
-        generator.size = size = prelude_io_read_delimited(pfd, &generator.data);
-        if ( size < 0 ) {
-                prelude_perror(size, "error reading dh generator");
-                goto err;
-        }
-
-        ret = gnutls_dh_params_import_raw(dh, &prime, &generator);
-        if ( ret < 0 )
-                prelude_log(PRELUDE_LOG_WARN, "error importing Diffie-Hellman parameters: %s.\n", gnutls_strerror(ret));
-
-        free(bits);
-        free(prime.data);
-        free(generator.data);
-        prelude_io_close(pfd);
-        prelude_io_destroy(pfd);
-
-        return ret;
-
- err:
-        prelude_io_close(pfd);
-        prelude_io_destroy(pfd);
-
-        return -1;
+        return 0;
 }
-
 
 
 
 static int dh_params_save(gnutls_dh_params_t dh, unsigned int dh_bits)
 {
         int ret, fd;
-        prelude_io_t *pfd;
-        gnutls_datum_t prime, generator;
+        unsigned char buf[64 * 1024];
+        size_t size = sizeof(buf);
 
-        ret = gnutls_dh_params_export_raw(dh, &prime, &generator, NULL);
+        ret = gnutls_dh_params_export_pkcs3(dh, GNUTLS_X509_FMT_PEM, buf, &size);
         if ( ret < 0 ) {
                 prelude_log(PRELUDE_LOG_WARN, "error exporting Diffie-Hellman parameters: %s.\n", gnutls_strerror(ret));
                 return -1;
@@ -236,33 +205,19 @@ static int dh_params_save(gnutls_dh_params_t dh, unsigned int dh_bits)
         fd = open(DH_FILENAME, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR);
         if ( fd < 0 ) {
                 prelude_log(PRELUDE_LOG_ERR, "error opening %s for writing: %s.\n", DH_FILENAME, strerror(errno));
-                free(prime.data);
-                free(generator.data);
                 return -1;
         }
 
-        ret = prelude_io_new(&pfd);
-        if ( ret < 0 ) {
-                close(fd);
-                free(prime.data);
-                free(generator.data);
-                return -1;
-        }
+        do {
+                ret = write(fd, buf, size);
+        } while ( ret < 0 && errno == EINTR );
 
-        prelude_io_set_sys_io(pfd, fd);
-        prelude_io_write_delimited(pfd, &dh_bits, sizeof(dh_bits));
-        prelude_io_write_delimited(pfd, prime.data, prime.size);
-        prelude_io_write_delimited(pfd, generator.data, generator.size);
+        if ( ret < 0 )
+                prelude_log(PRELUDE_LOG_ERR, "error writing DH data: %s.\n", strerror(errno));
 
-        prelude_io_close(pfd);
-        prelude_io_destroy(pfd);
-
-        free(prime.data);
-        free(generator.data);
-
-        return 0;
+        close(fd);
+        return ret;
 }
-
 
 
 
