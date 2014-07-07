@@ -1,3 +1,19 @@
+* 2014-07-07, prelude-manager-1.2.5:
+
+- Removed rhel6 packaging
+
+- Update libev
+
+- Warning fixes
+
+- Autoconf / Automake fixes, Update GnuLib code
+  Configure script generation and make distcheck work again.
+  Remove deprecated autoconf macro, update obsolete one.
+
+- Relaying cleanup
+
+
+
 * 2012-06-13, prelude-manager-1.0.2:
 
 - Changed copyrights
