@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2013 Free Software Foundation, Inc.
+# Copyright (C) 2002-2014 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -105,6 +105,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module lock-tests:
   # Code from module lstat:
   # Code from module lstat-tests:
+  # Code from module malloc-posix:
   # Code from module memchr:
   # Code from module memchr-tests:
   # Code from module memset:
@@ -121,7 +122,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module pathmax-tests:
   # Code from module raise:
   # Code from module raise-tests:
-  # Code from module realloc:
   # Code from module realloc-gnu:
   # Code from module realloc-gnu-tests:
   # Code from module realloc-posix:
@@ -161,7 +161,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module stdio-tests:
   # Code from module stdlib:
   # Code from module stdlib-tests:
-  # Code from module strdup:
+  # Code from module strdup-posix:
   # Code from module strerror:
   # Code from module strerror-override:
   # Code from module strerror-tests:
@@ -280,6 +280,11 @@ AC_DEFUN([gl_INIT],
   AC_REQUIRE([gl_LARGEFILE])
   gl_LOCK
   gl_MODULE_INDICATOR([lock])
+  gl_FUNC_MALLOC_POSIX
+  if test $REPLACE_MALLOC = 1; then
+    AC_LIBOBJ([malloc])
+  fi
+  gl_STDLIB_MODULE_INDICATOR([malloc-posix])
   gl_FUNC_MEMCHR
   if test $HAVE_MEMCHR = 0 || test $REPLACE_MEMCHR = 1; then
     AC_LIBOBJ([memchr])
@@ -354,8 +359,8 @@ AC_DEFUN([gl_INIT],
   gl_STDINT_H
   gl_STDIO_H
   gl_STDLIB_H
-  gl_FUNC_STRDUP
-  if test $ac_cv_func_strdup = no; then
+  gl_FUNC_STRDUP_POSIX
+  if test $ac_cv_func_strdup = no || test $REPLACE_STRDUP = 1; then
     AC_LIBOBJ([strdup])
     gl_PREREQ_STRDUP
   fi
@@ -633,6 +638,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/glthread/threadlib.c
   lib/inet_ntop.c
   lib/itold.c
+  lib/malloc.c
   lib/memchr.c
   lib/memchr.valgrind
   lib/memset.c

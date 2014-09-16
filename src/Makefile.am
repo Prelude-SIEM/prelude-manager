@@ -9,6 +9,7 @@ prelude_manager_LDADD = @LIBPRELUDE_LIBS@ @LIBWRAP_LIBS@ $(top_builddir)/libev/l
 			$(GETADDRINFOLIB) 				\
 			$(HOSTENTLIB)					\
 			$(INET_NTOP_LIB)				\
+                        $(LIBSOCKET)                                    \
 			$(LTLIBINTL)					\
 			$(LTLIBMULTITHREAD)				\
 			$(LTLIBTHREAD)	 				\
