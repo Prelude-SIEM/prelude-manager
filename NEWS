@@ -1,3 +1,17 @@
+* 2014-09-23, prelude-manager-1.2.6rc2:
+
+Author: Yoann Vandoorselaere
+
+- Update libev code
+
+- Update GnuLib code
+
+- Use PKCS3 format rather than binary form for writing Diffie-Hellman parameters.
+
+- Use system defined SOMAXCONN, increase replacement value
+
+
+
 * 2014-07-07, prelude-manager-1.2.5:
 
 - Removed rhel6 packaging
