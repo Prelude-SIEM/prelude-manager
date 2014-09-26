@@ -656,7 +656,7 @@ static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *
                 return;
         }
 
-        new = xmlNewChild(parent, NULL, (const xmlChar *) "AdditionalData", NULL);
+        new = xmlNewTextChild(parent, NULL, (const xmlChar *) "AdditionalData", (const xmlChar *) prelude_string_get_string(out));
         if ( ! new ) {
                 prelude_string_destroy(out);
                 return;
@@ -664,10 +664,6 @@ static void process_additional_data(xmlNodePtr parent, idmef_additional_data_t *
 
         idmef_attr_enum(new, "type", idmef_additional_data_get_type(ad), idmef_additional_data_type_to_string);
         idmef_attr_string(new, "meaning", idmef_additional_data_get_meaning(ad));
-
-        xmlNewTextChild(new, NULL, (const xmlChar *) idmef_additional_data_type_to_string(
-                                idmef_additional_data_get_type(ad)),
-                        (const xmlChar *) prelude_string_get_string(out));
 
         prelude_string_destroy(out);
 }
