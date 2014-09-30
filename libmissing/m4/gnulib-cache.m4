@@ -27,7 +27,7 @@
 
 
 # Specification in the form of a command-line invocation:
-#   gnulib-tool --import --dir=. --lib=libmissing --source-base=libmissing --m4-base=libmissing/m4 --doc-base=libmissing/doc --tests-base=libmissing/tests --aux-dir=. --with-tests --lgpl --no-conditional-dependencies --libtool --macro-prefix=gl --no-vc-files cond fcntl ftw getaddrinfo inet_ntop lock memset pathmax realloc-gnu sigaction snprintf socklen strdup-posix strsep thread time_r vsnprintf
+#   gnulib-tool --import --dir=. --lib=libmissing --source-base=libmissing --m4-base=libmissing/m4 --doc-base=libmissing/doc --tests-base=libmissing/tests --aux-dir=. --with-tests --lgpl=2 --no-conditional-dependencies --libtool --macro-prefix=gl --no-vc-files cond fcntl ftw getaddrinfo inet_ntop lock pathmax realloc-posix sigaction snprintf socklen strdup-posix strsep thread time_r vsnprintf
 
 # Specification in the form of a few gnulib-tool.m4 macro invocations:
 gl_LOCAL_DIR([])
@@ -38,9 +38,8 @@ gl_MODULES([
   getaddrinfo
   inet_ntop
   lock
-  memset
   pathmax
-  realloc-gnu
+  realloc-posix
   sigaction
   snprintf
   socklen
@@ -58,7 +57,7 @@ gl_DOC_BASE([libmissing/doc])
 gl_TESTS_BASE([libmissing/tests])
 gl_WITH_TESTS
 gl_LIB([libmissing])
-gl_LGPL
+gl_LGPL([2])
 gl_MAKEFILE_NAME([])
 gl_LIBTOOL
 gl_MACRO_PREFIX([gl])

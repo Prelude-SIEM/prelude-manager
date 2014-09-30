@@ -449,14 +449,6 @@ EXTRA_DIST += test-raise.c signature.h macros.h
 
 ## end   gnulib module raise-tests
 
-## begin gnulib module realloc-gnu-tests
-
-TESTS += test-realloc-gnu
-check_PROGRAMS += test-realloc-gnu
-EXTRA_DIST += test-realloc-gnu.c
-
-## end   gnulib module realloc-gnu-tests
-
 ## begin gnulib module same-inode
 
 

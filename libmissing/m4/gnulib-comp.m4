@@ -108,7 +108,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module malloc-posix:
   # Code from module memchr:
   # Code from module memchr-tests:
-  # Code from module memset:
   # Code from module msvc-inval:
   # Code from module msvc-nothrow:
   # Code from module multiarch:
@@ -122,8 +121,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module pathmax-tests:
   # Code from module raise:
   # Code from module raise-tests:
-  # Code from module realloc-gnu:
-  # Code from module realloc-gnu-tests:
   # Code from module realloc-posix:
   # Code from module same-inode:
   # Code from module servent:
@@ -291,11 +288,6 @@ AC_DEFUN([gl_INIT],
     gl_PREREQ_MEMCHR
   fi
   gl_STRING_MODULE_INDICATOR([memchr])
-  gl_FUNC_MEMSET
-  if test $ac_cv_func_memset = no; then
-    AC_LIBOBJ([memset])
-    gl_PREREQ_MEMSET
-  fi
   gl_MSVC_INVAL
   if test $HAVE_MSVC_INVALID_PARAMETER_HANDLER = 1; then
     AC_LIBOBJ([msvc-inval])
@@ -315,11 +307,6 @@ AC_DEFUN([gl_INIT],
     gl_PREREQ_RAISE
   fi
   gl_SIGNAL_MODULE_INDICATOR([raise])
-  gl_FUNC_REALLOC_GNU
-  if test $REPLACE_REALLOC = 1; then
-    AC_LIBOBJ([realloc])
-  fi
-  gl_MODULE_INDICATOR([realloc-gnu])
   gl_FUNC_REALLOC_POSIX
   if test $REPLACE_REALLOC = 1; then
     AC_LIBOBJ([realloc])
@@ -641,7 +628,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/malloc.c
   lib/memchr.c
   lib/memchr.valgrind
-  lib/memset.c
   lib/msvc-inval.c
   lib/msvc-inval.h
   lib/msvc-nothrow.c
@@ -734,7 +720,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/malloc.m4
   m4/math_h.m4
   m4/memchr.m4
-  m4/memset.m4
   m4/mmap-anon.m4
   m4/mode_t.m4
   m4/msvc-inval.m4
@@ -831,7 +816,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-open.h
   tests/test-pathmax.c
   tests/test-raise.c
-  tests/test-realloc-gnu.c
   tests/test-sigaction.c
   tests/test-signal-h.c
   tests/test-sigprocmask.c
