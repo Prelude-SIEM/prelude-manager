@@ -9,19 +9,6 @@ are permitted in any medium without royalty provided the copyright
 notice and this notice are preserved.  This file is offered as-is,
 without warranty of any kind.
 
-Dependencies
-============
-
-   The packages libprelude and libpreludedb must be installed first.
-
-   For Redhat based systems (CentOS, Fedora, etc.)
-       XML Plugin support   :  libxml2-devel
-       TCP wrapper support  :  tcp_wrappers-devel
-
-   For Debian systems
-       XML Plugin support   :  libxml2-dev
-       TCP wrapper support  :  libwrap0-dev
-
 Basic Installation
 ==================
 

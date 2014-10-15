@@ -6,19 +6,29 @@ Prelude-Manager Overview
 
 Prelude-Manager server is the Prelude events collector.
 
-Prelude-Manager is a high availability server that accepts secured connections from 
-distributed sensors or other managers and saves received events to a media specified 
+Prelude-Manager is a high availability server that accepts secured connections from
+distributed sensors or other managers and saves received events to a media specified
 by the user (database, logfile, mail, etc).
 
-The server is a high availability server capable of handling large number of connections, 
-and processing large amounts of events. It uses a per client scheduling queues in order to 
-process events by severity fairly accross clients. 
+The server is a high availability server capable of handling large number of connections,
+and processing large amounts of events. It uses a per client scheduling queues in order to
+process events by severity fairly accross clients.
+
 
 
 REQUIREMENTS
 ============
 
-You need to install libprelude on your system before compiling Prelude-Manager.
+You need to install libprelude and libpreludedb on your system before compiling Prelude-Manager.
+
+For Redhat based systems (CentOS, Fedora, etc.)
+       XML Plugin support   :  libxml2-devel
+       TCP wrapper support  :  tcp_wrappers-devel
+
+For Debian systems
+       XML Plugin support   :  libxml2-dev
+       TCP wrapper support  :  libwrap0-dev
+
 
 
 IRC
