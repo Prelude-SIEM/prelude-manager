@@ -1,3 +1,13 @@
+* 2014-10-15, prelude-manager-1.2.6rc3:
+
+Author: Yoann Vandoorselaere
+
+- Use --lgpl=2 when invoking GnuLib, remove obsolete GnuLib files
+
+- Correct AdditionalData output
+
+
+
 * 2014-09-23, prelude-manager-1.2.6rc2:
 
 Author: Yoann Vandoorselaere
