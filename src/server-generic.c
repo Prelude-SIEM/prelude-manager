@@ -645,6 +645,32 @@ static int inet_server_start(server_generic_t *server, struct sockaddr *addr, so
         if ( server->sock < 0 )
                 return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "error creating socket: %s", strerror(errno));
 
+
+#ifdef IPV6_V6ONLY
+        /*
+         * There is a problem on Linux system where getaddrinfo() return address in
+         * the wrong sort order (IPv4 first, IPv6 next).
+         *
+         * As a result we first bind IPv4 addresses, but then we get an error for
+         * dual-stacked addresses, when the IPv6 addresses come second. When an
+         * address is dual-stacked, we thus end-up listening only to the IPv4
+         * instance.
+         *
+         * The error happen on dual-stack Linux system, because mapping the IPv6
+         * address will actually attempt to bind both the IPv4 and IPv6 address.
+         *
+         * In order to prevent this problem, we set the IPV6_V6ONLY option so that
+         * only the IPv6 address is bound.
+         */
+        if ( server->sa->sa_family == AF_INET6 ) {
+                ret = setsockopt(server->sock, IPPROTO_IPV6, IPV6_V6ONLY, (void *) &on, sizeof(int));
+                if ( ret < 0 ) {
+                        ret = prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set IPV6_V6ONLY: %s.\n", strerror(errno));
+                        goto err;
+                }
+        }
+#endif
+
         ret = setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
         if ( ret < 0 ) {
                 ret = prelude_error_verbose(PRELUDE_ERROR_GENERIC, "error setting SO_REUSEADDR: %s", strerror(errno));
@@ -695,7 +721,7 @@ static int do_getaddrinfo(struct addrinfo **ai, const char *addr, unsigned int p
         memset(&hints, 0, sizeof(hints));
         snprintf(service, sizeof(service), "%u", port);
 
-        hints.ai_family = PF_UNSPEC;
+        hints.ai_family = AF_UNSPEC;
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
 

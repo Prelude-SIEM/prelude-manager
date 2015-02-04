@@ -122,19 +122,11 @@ static server_generic_t *add_server(void)
 }
 
 
-static void del_server(void)
-{
-        server_generic_destroy(config.server[config.nserver - 1]);
-
-        config.nserver--;
-        config.server = realloc(config.server, sizeof(*config.server) * config.nserver);
-}
-
 static int add_server_default(void)
 {
+        int ret;
         char buf[128];
         server_generic_t *server;
-        int ret, prev_family = AF_UNSPEC;
         struct addrinfo *ai, *ai_start, hints;
 
         memset(&hints, 0, sizeof(hints));
@@ -142,7 +134,7 @@ static int add_server_default(void)
         hints.ai_flags = AI_PASSIVE;
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
-        hints.ai_family = PF_UNSPEC;
+        hints.ai_family = AF_UNSPEC;
 
 #ifdef AI_ADDRCONFIG
         /*
@@ -173,25 +165,10 @@ static int add_server_default(void)
 
                 ret = server_generic_bind_numeric(server, ai->ai_addr, ai->ai_addrlen, DEFAULT_MANAGER_PORT);
                 if ( ret < 0 ) {
-                        char buf[128];
-
-                        /*
-                         * More information on this at:
-                         * http://lists.debian.org/debian-ipv6/2001/01/msg00031.html
-                         */
-                        if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EADDRINUSE &&
-                             prev_family != AF_UNSPEC && ai->ai_family != prev_family ) {
-                                ret = 0;
-                                del_server();
-                                continue;
-                        }
-
                         inet_ntop(ai->ai_family, prelude_sockaddr_get_inaddr(ai->ai_addr), buf, sizeof(buf));
                         prelude_perror(ret, "error initializing server on %s:%u", buf, DEFAULT_MANAGER_PORT);
                         break;
                 }
-
-                prev_family = ai->ai_family;
         }
 
         if ( config.nserver == 0 ) {
