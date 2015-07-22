@@ -1,4 +1,4 @@
-Prelude-Manager is brought to you by CS-SI (http://www.prelude-ids.com),
+Prelude-Manager is brought to you by CS-SI (http://www.prelude-siem.com),
 
 
 Prelude-Manager Overview
@@ -43,15 +43,12 @@ Get Support
 ===========
 
 
-Prelude-user mailing list archives can be accessed at:
-
-	https://www.prelude-ids.org/lists/prelude-announce
-	https://www.prelude-ids.org/lists/prelude-devel
-	https://www.prelude-ids.org/lists/prelude-user
+Prelude-user forums archives can be accessed at:
+        https://www.prelude-siem.org/projects/prelude/boards
 
 
 Commercial Support is available through the CS-SI company:
-        http://www.prelude-ids.com, info@prelude-ids.com
+        http://www.prelude-siem.com, info@prelude-siem.com
 
 
 
@@ -62,17 +59,17 @@ Help development
 
 The Prelude source is constantly changing. If you want to submit a patch,
 please do so from the most recent GIT source tree, subscribe to the
-prelude-devel mailing list and post your patch with a description of functionality.
+prelude-devel forum and post your patch with a description of functionality.
 You can also attach patches to bugs on
 
-        https://www.prelude-ids.org
+        https://www.prelude-siem.org
 
 
 2. BUGS
 
 If you find any bugs, please report them to:
 
-        https://www.prelude-ids.org
+        https://www.prelude-siem.org
 
 Please make sure that what you're reporting is actually a BUG and not
 a problem on your side.
