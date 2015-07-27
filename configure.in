@@ -1,4 +1,4 @@
-AC_INIT(prelude-manager, 1.2.6rc3)
+AC_INIT(prelude-manager, 1.2.6rc5)
 AC_PREREQ(2.59)
 AC_CANONICAL_TARGET([])
 AM_INIT_AUTOMAKE([-Wall tar-pax 1.9])
@@ -47,7 +47,7 @@ dnl **************************************************
 dnl * Check for libprelude                           *
 dnl **************************************************
 
-AM_PATH_LIBPRELUDE(0.9.21.3, ,
+AM_PATH_LIBPRELUDE(1.2.6rc5, ,
   AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?), no)
 
 dnl ***
@@ -109,7 +109,7 @@ dnl **************************************************
 dnl * Check for libpreludedb                         *
 dnl **************************************************
 
-AM_PATH_LIBPRELUDEDB(0.9.4, enable_libpreludedb=yes, enable_libpreludedb=no, no)
+AM_PATH_LIBPRELUDEDB(1.2.6rc5, enable_libpreludedb=yes, enable_libpreludedb=no, no)
 AM_CONDITIONAL(HAVE_LIBPRELUDEDB, test x$enable_libpreludedb = xyes)
 if test x$enable_libpreludedb = xyes; then
         AC_DEFINE_UNQUOTED(HAVE_LIBPRELUDEDB, , Define whether libpreludedb is available)
