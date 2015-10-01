@@ -1,5 +1,5 @@
 ***
-* http://127.0.0.1:8000/?view=alert_summary&origin=alert_listing&analyzerid=$alert.analyzer(-1).analyzerid&messageid=$alert.messageid
+* http://127.0.0.1:8000/alerts/alerts/AlertSummary?analyzerid=$alert.analyzer(-1).analyzerid&messageid=$alert.messageid
 * $alert.classification.text : $alert.source(0).node.address(0).address -> $alert.target(0).node.address(0).address
 * 
 * Create Time: $alert.create_time
