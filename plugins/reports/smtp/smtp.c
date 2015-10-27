@@ -462,6 +462,7 @@ static int retrieve_from_db(smtp_plugin_t *plugin, const char *criteria_str)
         prelude_string_t *str;
         preludedb_result_idents_t *results;
         prelude_list_t clist, *tmp, *bkp;
+        unsigned int ident_idx = 0;
 
         ret = idmef_criteria_new_from_string(&criteria, criteria_str);
         if ( ret < 0 ) {
@@ -482,7 +483,7 @@ static int retrieve_from_db(smtp_plugin_t *plugin, const char *criteria_str)
         send_correlation_alert_notice(plugin, ret);
         prelude_list_init(&clist);
 
-        while ( preludedb_result_idents_get_next(results, &dbident) ) {
+        while ( preludedb_result_idents_get(results, ident_idx++, &dbident) ) {
                 ret = preludedb_get_alert(plugin->db, dbident, &idmef);
                 if ( ret < 0 ) {
                         prelude_log(PRELUDE_LOG_ERR, "failure retrieving message ident %" PRELUDE_PRIu64 ".\n", dbident);
