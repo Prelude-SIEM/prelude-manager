@@ -356,7 +356,15 @@ listen = 127.0.0.1
 #
 # Note that limit and threshold might be combined, allowing to setup a
 # limit as soon as the first threshold is reached.
-
+#
+# By default, we only pass up to 100 occurrences of the same alert
+# (same source, target and classification combination) every 2 minutes
+# to reporting plugins (eg. to the database).
+[thresholding]
+path = alert.classification.text, alert.source.node.address.address, alert.target.node.address.address
+limit = 120
+count = 100
+hook = reporting
 
 
 ####################################
