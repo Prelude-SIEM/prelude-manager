@@ -159,6 +159,13 @@ listen = 127.0.0.1
 # converted to IPv6, un-comment the following option:
 #
 # ipv6-only
+#
+#
+# Prelude-Manager normalizer can add geolocation information to events
+# when libmaxminddb support is enabled, and the path to the maxminddb
+# database is provided.
+#
+# geoip-database = /path/to/your/geoip_mmdb_file
 
 
 ####################################

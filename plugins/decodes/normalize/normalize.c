@@ -30,14 +30,26 @@
 # include <netdb.h>
 #endif
 
+#ifdef HAVE_LIBMAXMINDDB
+# include <maxminddb.h>
+#endif
+
 #include <libprelude/prelude.h>
 #include "prelude-manager.h"
+
+
+typedef int (*set_data_func_t)(idmef_object_t *object, idmef_additional_data_t *ad, int pos);
 
 
 int normalize_LTX_prelude_plugin_version(void);
 int normalize_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *root_opt);
 
 
+
+#ifdef HAVE_LIBMAXMINDDB
+static MMDB_s mmdb;
+static prelude_bool_t mmdb_intialized = FALSE;
+#endif
 
 static prelude_bool_t no_ipv6_prefix = TRUE;
 static prelude_bool_t normalize_to_ipv6 = FALSE;
@@ -134,7 +146,6 @@ static void sanitize_address(idmef_address_t *addr)
              ! idmef_address_get_address(addr) )
                 return;
 
-
         str = prelude_string_get_string(idmef_address_get_address(addr));
 
         if ( strncmp(str, "::ffff:", 7) == 0 )
@@ -160,11 +171,124 @@ static void sanitize_address(idmef_address_t *addr)
 
 
 
-static int sanitize_node(idmef_node_t *node)
+#ifdef HAVE_LIBMAXMINDDB
+static const char *_mmdb_strerror(int ret)
+{
+        return (ret == MMDB_IO_ERROR) ? strerror(errno) : MMDB_strerror(ret);
+}
+
+
+
+static int new_geo_data(idmef_additional_data_t **ad, const char *type, unsigned int tidx, const char *field, const char *data, size_t size)
+{
+        int ret;
+        prelude_string_t *str;
+
+        ret = idmef_additional_data_new(ad);
+        if ( ret < 0 )
+                return ret;
+
+        ret = idmef_additional_data_new_meaning(*ad, &str);
+        if ( ret < 0 )
+                goto error;
+
+        ret = prelude_string_sprintf(str, "alert.%s(%d).node.location.%s", type, tidx, field);
+        if ( ret < 0 )
+                goto error;
+
+        ret = prelude_string_new(&str);
+        if ( ret < 0 )
+                goto error;
+
+        ret = prelude_string_ncat(str, data, size);
+        if ( ret < 0 ) {
+                prelude_string_destroy(str);
+                goto error;
+        }
+
+        ret = idmef_additional_data_set_string_dup_fast(*ad, prelude_string_get_string(str), prelude_string_get_len(str));
+        prelude_string_destroy(str);
+
+        if ( ret < 0 )
+                goto error;
+
+        return ret;
+
+error:
+        idmef_additional_data_destroy(*ad);
+        return ret;
+}
+
+
+
+static int set_geodata(const char *parent_type, unsigned int parent_idx, const char *field_name,
+                       MMDB_lookup_result_s *result, const char *const *const geo_path,
+                       idmef_object_t *object, set_data_func_t objfunc)
+{
+        int ret;
+        idmef_additional_data_t *ad;
+        MMDB_entry_data_s entry_data;
+
+        ret = MMDB_aget_value(&result->entry, &entry_data, geo_path);
+        if ( ret != MMDB_SUCCESS ) {
+                prelude_log(PRELUDE_LOG_ERR, "error retrieving maxmind data: %s\n", _mmdb_strerror(ret));
+                return -1;
+        }
+
+        if ( ! entry_data.has_data || entry_data.type != MMDB_DATA_TYPE_UTF8_STRING )
+                return -1;
+
+        ret = new_geo_data(&ad, parent_type, parent_idx, field_name, entry_data.utf8_string, entry_data.data_size);
+        if ( ret < 0 )
+                return ret;
+
+        objfunc(object, ad, IDMEF_LIST_APPEND);
+        return 0;
+}
+
+
+
+static int address_get_geoip(idmef_object_t *object, idmef_address_t *address, const char *parent_type, unsigned int parent_idx, set_data_func_t adfunc)
+{
+        int gai_error, ret;
+        MMDB_lookup_result_s result;
+        prelude_string_t *str = idmef_address_get_address(address);
+        const char *country_code_path[] = { "country", "iso_code", NULL };
+        const char *country_name_path[] = { "country", "names", "en", NULL };
+
+        if ( ! mmdb_intialized )
+                return 0;
+
+        result = MMDB_lookup_string(&mmdb, prelude_string_get_string(str), &gai_error, &ret);
+        if ( gai_error != 0 )
+                return -1;
+
+        if ( ret != MMDB_SUCCESS ) {
+                prelude_log(PRELUDE_LOG_ERR, "maxmindb lookup error: %s\n", _mmdb_strerror(ret));
+                return -1;
+        }
+
+        if ( ! result.found_entry )
+                return -1;
+
+        ret = set_geodata(parent_type, parent_idx, "country_code", &result, country_code_path, object, adfunc);
+        if ( ret < 0 )
+                return -1;
+
+        ret = set_geodata(parent_type, parent_idx, "country_name", &result, country_name_path, object, adfunc);
+        return (ret < 0) ? ret : 1;
+}
+#endif
+
+
+static int sanitize_node(idmef_object_t *object, idmef_node_t *node, const char *parent_type, unsigned int parent_idx, set_data_func_t adfunc)
 {
         const char *str;
         prelude_string_t *pstr;
         idmef_address_t *address = NULL;
+#ifdef HAVE_LIBMAXMINDDB
+        int geoip_ret = 0;
+#endif
 
         while ( (address = idmef_node_get_next_address(node, address)) ) {
 
@@ -181,6 +305,11 @@ static int sanitize_node(idmef_node_t *node)
                 }
 
                 sanitize_address(address);
+
+#ifdef HAVE_LIBMAXMINDDB
+                if ( geoip_ret <= 0 )
+                        geoip_ret = address_get_geoip(object, address, parent_type, parent_idx, adfunc);
+#endif
         }
 
         if ( ! idmef_node_get_next_address(node, NULL) && ! idmef_node_get_name(node) )
@@ -194,6 +323,7 @@ static int sanitize_node(idmef_node_t *node)
 static void sanitize_alert(idmef_alert_t *alert)
 {
         int ret;
+        unsigned int i;
         idmef_node_t *node;
         idmef_source_t *src = NULL;
         idmef_target_t *dst = NULL;
@@ -202,35 +332,38 @@ static void sanitize_alert(idmef_alert_t *alert)
         if ( ! alert )
                 return;
 
+        i = 0;
         while ( (analyzer = idmef_alert_get_next_analyzer(alert, analyzer)) ) {
                 node = idmef_analyzer_get_node(analyzer);
                 if ( node ) {
-                        ret = sanitize_node(node);
+                        ret = sanitize_node((idmef_object_t *) alert, node, "analyzer", i++, (set_data_func_t) idmef_alert_set_additional_data);
                         if ( ret < 0 )
                                 idmef_analyzer_set_node(analyzer, NULL);
                 }
         }
 
+        i = 0;
         while ( (src = idmef_alert_get_next_source(alert, src)) ) {
 
                 sanitize_service_protocol(idmef_source_get_service(src));
 
                 node = idmef_source_get_node(src);
                 if ( node ) {
-                        ret = sanitize_node(node);
+                        ret = sanitize_node((idmef_object_t *) alert, node, "source", i++, (set_data_func_t) idmef_alert_set_additional_data);
                         if ( ret < 0 )
                                 idmef_source_set_node(src, NULL);
                 }
         }
 
 
+        i = 0;
         while ( (dst = idmef_alert_get_next_target(alert, dst)) ) {
 
                 sanitize_service_protocol(idmef_target_get_service(dst));
 
                 node = idmef_target_get_node(dst);
                 if ( node ) {
-                        ret = sanitize_node(node);
+                        ret = sanitize_node((idmef_object_t *) alert, node, "target", i++, (set_data_func_t) idmef_alert_set_additional_data);
                         if ( ret < 0 )
                                 idmef_target_set_node(dst, NULL);
                 }
@@ -242,6 +375,7 @@ static void sanitize_alert(idmef_alert_t *alert)
 static void sanitize_heartbeat(idmef_heartbeat_t *heartbeat)
 {
         int ret;
+        unsigned int i = 0;
         idmef_node_t *node;
         idmef_analyzer_t *analyzer = NULL;
 
@@ -251,7 +385,7 @@ static void sanitize_heartbeat(idmef_heartbeat_t *heartbeat)
         while ( (analyzer = idmef_heartbeat_get_next_analyzer(heartbeat, analyzer)) ) {
                 node = idmef_analyzer_get_node(analyzer);
                 if ( node ) {
-                        ret = sanitize_node(node);
+                        ret = sanitize_node((idmef_object_t *) heartbeat, node, "analyzer", i++, (set_data_func_t) idmef_heartbeat_set_additional_data);
                         if ( ret < 0 )
                                 idmef_analyzer_set_node(analyzer, NULL);
                 }
@@ -287,6 +421,24 @@ static int normalize_keep_ipv6(prelude_option_t *option, const char *arg, prelud
 }
 
 
+#ifdef HAVE_LIBMAXMINDDB
+static int normalize_use_geoip(prelude_option_t *option, const char *arg, prelude_string_t *err, void *context)
+{
+        int ret;
+
+        ret = MMDB_open(arg, MMDB_MODE_MMAP, &mmdb);
+        if ( ret != MMDB_SUCCESS ) {
+                prelude_log(PRELUDE_LOG_ERR, "error initializing libmaxminddb: %s\n", _mmdb_strerror(ret));
+                return -1;
+        }
+
+        mmdb_intialized = TRUE;
+
+        return 0;
+}
+#endif
+
+
 int normalize_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *root_opt)
 {
         prelude_option_t *opt;
@@ -314,6 +466,13 @@ int normalize_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *root_opt
                            '4', "keep-ipv4-mapped-ipv6",
                            "Do not normalize IPv4 mapped IPv6 address to IPv4",
                            PRELUDE_OPTION_ARGUMENT_NONE, normalize_keep_ipv6, NULL);
+
+#ifdef HAVE_LIBMAXMINDDB
+        prelude_option_add(opt, NULL, PRELUDE_OPTION_TYPE_CFG,
+                           'f', "geoip-database",
+                           "Path to the GeoIP database (mmddb format)",
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED, normalize_use_geoip, NULL);
+#endif
 
         return prelude_plugin_new_instance(&pi, (void *) &normalize, NULL, NULL);
 }
