@@ -152,8 +152,8 @@ plugin_generic_t *plugin_init(int argc, char **argv)
                            required_argument, set_skeleton_hook, NULL);
         
         plugin_set_name(&plugin, "Skeleton");
-        plugin_set_author(&plugin, "Yoann Vandoorselaere");
-        plugin_set_contact(&plugin, "yoann.v@prelude-ids.com");
+        plugin_set_author(&plugin, "Prelude Team");
+        plugin_set_contact(&plugin, "support.prelude@c-s.fr");
         plugin_set_desc(&plugin, "Write alert to a file, or to stderr if requested");
 	plugin_set_running_func(&plugin, process_message);
                 
