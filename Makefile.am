@@ -1,7 +1,9 @@
 ACLOCAL_AMFLAGS = -I m4 -I libmissing/m4
 SUBDIRS = docs libev libmissing m4 plugins src
 
-EXTRA_DIST = AUTHORS COPYING HACKING.README INSTALL NEWS README 
+EXTRA_DIST = AUTHORS COPYING HACKING.README INSTALL NEWS README \
+             selinux/prelude-manager.te \
+             selinux/Makefile
 
 MAINTAINERCLEANFILES = \
         $(srcdir)/INSTALL \

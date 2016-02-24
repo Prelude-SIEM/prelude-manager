@@ -1,0 +1,16 @@
+module prelude-manager 1.0;
+
+require {
+        type tmpfs_t;
+        type prelude_t;
+        class file { read write open create };
+        class dir { search add_name write };
+        class filesystem getattr;
+}
+
+#============= prelude_t ==============
+
+# Grant permissons to prelude-manager on directory /dev/shm/
+allow prelude_t tmpfs_t:dir { search add_name write };
+allow prelude_t tmpfs_t:file { read write open create };
+allow prelude_t tmpfs_t:filesystem getattr;
