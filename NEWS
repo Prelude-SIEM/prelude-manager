@@ -1,3 +1,22 @@
+* 2016-03-01, prelude-manager-1.3.0beta1:
+
+Author: Yoann Vandoorselaere
+
+- Event geo-location support through normalisation
+
+    Implement support for libmaxminddb, allowing to set per-event geolocation
+    information within events AdditionalData.
+
+Author: Song Tran
+
+- Add SELinux policies
+
+Author: Thomas Andrejak
+
+- Change prelude-ids.com to prelude-siem.com
+
+
+
 * 2016-01-11, prelude-manager-1.3.0alpha1:
 
 Author: Antoine Luong
