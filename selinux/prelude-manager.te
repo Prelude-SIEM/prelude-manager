@@ -3,9 +3,13 @@ module prelude-manager 1.0;
 require {
         type tmpfs_t;
         type prelude_t;
+        type tmp_t;
+        type smtp_port_t;
         class file { read write open create };
         class dir { search add_name write };
         class filesystem getattr;
+        class sock_file write;
+        class tcp_socket name_connect;
 }
 
 #============= prelude_t ==============
@@ -14,3 +18,14 @@ require {
 allow prelude_t tmpfs_t:dir { search add_name write };
 allow prelude_t tmpfs_t:file { read write open create };
 allow prelude_t tmpfs_t:filesystem getattr;
+
+# Grant permissons to prelude-manager-pro to connect to Unix socket
+allow prelude_t tmp_t:sock_file write;
+
+# Grant permissons to prelude-manager-pro to use XML mod
+# It will write output to a file in /tmp
+allow prelude_t tmp_t:dir { write add_name };
+allow prelude_t tmp_t:file { create open };
+
+# Grant permissons to prelude-manager-pro to connect to a SMTP server
+allow prelude_t smtp_port_t:tcp_socket name_connect;
