@@ -213,9 +213,9 @@ listen = 127.0.0.1
 # [XmlMod]
 #
 # The Xmlmod plugin allows to report alerts as IDMEF XML in a file,
-# or to dump these alerts to stderr.
+# or to dump these alerts to /dev/stdout.
 #
-# The default behavior is to write output to stderr.
+# The default behavior is to write output to /dev/stdout.
 #
 # Tells Xmlmod to disable output file buffering.
 # This will prevent XML alerts to be truncated and thus make real-time
@@ -230,7 +230,7 @@ listen = 127.0.0.1
 # Tells Xmlmod to produce a pretty, human-readable xml output:
 # format
 #
-# logfile = stderr
+# logfile = /dev/stdout
 # logfile = /var/log/prelude-xml.log
 
 
@@ -238,11 +238,11 @@ listen = 127.0.0.1
 # [Debug]
 #
 # The Debug plugin allows to report alerts as text in a file,
-# or to dump these alerts to stderr.
+# or to dump these alerts to /dev/stdout.
 #
-# The default behavior is to write output to stderr.
+# The default behavior is to write output to /dev/stdout.
 #
-# logfile = stderr
+# logfile = /dev/stdout
 # logfile = /var/log/prelude.log
 #
 # You can specify the name of the IDMEF object to print (you might
@@ -255,11 +255,11 @@ listen = 127.0.0.1
 # [TextMod]
 #
 # The Debug plugin allows to report alerts as text in a file,
-# or to dump these alerts to stderr.
+# or to dump these alerts to /dev/stdout.
 #
-# The default behavior is to write output to stderr.
+# The default behavior is to write output to /dev/stdout.
 #
-# logfile = stderr
+# logfile = /dev/stdout
 # logfile = /var/log/prelude.log
 
 
