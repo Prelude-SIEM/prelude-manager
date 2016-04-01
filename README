@@ -24,10 +24,12 @@ You need to install libprelude and libpreludedb on your system before compiling 
 For Redhat based systems (CentOS, Fedora, etc.)
        XML Plugin support   :  libxml2-devel
        TCP wrapper support  :  tcp_wrappers-devel
+       Geolocation support  :  libmaxminddb-devel
 
 For Debian systems
        XML Plugin support   :  libxml2-dev
        TCP wrapper support  :  libwrap0-dev
+       Geolocation support  :  libmaxminddb-dev
 
 
 
