@@ -5,7 +5,8 @@ require {
         type prelude_t;
         type tmp_t;
         type smtp_port_t;
-        class file { read write open create };
+        type httpd_tmpfs_t;
+        class file { read write open create setattr };
         class dir { search add_name write };
         class filesystem getattr;
         class sock_file write;
@@ -16,16 +17,20 @@ require {
 
 # Grant permissons to prelude-manager on directory /dev/shm/
 allow prelude_t tmpfs_t:dir { search add_name write };
-allow prelude_t tmpfs_t:file { read write open create };
+allow prelude_t tmpfs_t:file { read write open create setattr };
 allow prelude_t tmpfs_t:filesystem getattr;
 
-# Grant permissons to prelude-manager-pro to connect to Unix socket
+# Grant permissons to prelude-manager on files on directory /dev/shm/
+# created by Apache
+allow prelude_t httpd_tmpfs_t:file { read write open };
+
+# Grant permissons to prelude-manager to connect to Unix socket
 allow prelude_t tmp_t:sock_file write;
 
-# Grant permissons to prelude-manager-pro to use XML mod
+# Grant permissons to prelude-manager to use XML mod
 # It will write output to a file in /tmp
 allow prelude_t tmp_t:dir { write add_name };
 allow prelude_t tmp_t:file { create open };
 
-# Grant permissons to prelude-manager-pro to connect to a SMTP server
+# Grant permissons to prelude-manager to connect to a SMTP server
 allow prelude_t smtp_port_t:tcp_socket name_connect;
