@@ -509,11 +509,11 @@ static int read_connection_cb(server_generic_client_t *client)
 static int write_connection_cb(server_generic_client_t *client)
 {
         int ret = 1;
-        prelude_list_t *tmp, *bkp;
+        prelude_list_t *tmp;
         prelude_msg_t *cur = NULL;
         sensor_fd_t *sclient = (sensor_fd_t *) client;
 
-        prelude_list_for_each_safe(&sclient->write_msg_list, tmp, bkp) {
+        prelude_list_for_each(&sclient->write_msg_list, tmp) {
                 cur = prelude_linked_object_get_object(tmp);
                 prelude_linked_object_del((prelude_linked_object_t *) cur);
 
