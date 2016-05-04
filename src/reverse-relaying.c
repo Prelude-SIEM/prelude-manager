@@ -215,19 +215,20 @@ int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_cl
 
 
 
-reverse_relay_receiver_t *reverse_relay_search_receiver(uint64_t analyzerid)
+reverse_relay_receiver_t *reverse_relay_search_receiver(server_generic_client_t *client)
 {
         prelude_list_t *iter = NULL;
         reverse_relay_receiver_t *item;
 
         while ( (item = get_next_receiver(&iter)) ) {
 
-                if ( analyzerid == item->analyzerid )
+                if ( ((sensor_fd_t *) client)->ident == item->analyzerid )
                         return item;
         }
 
         return NULL;
 }
+
 
 
 static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)

@@ -74,24 +74,57 @@ static sensor_fd_t *search_client(prelude_list_t *head, uint64_t analyzerid, uin
 
 
 
-static int write_client(sensor_fd_t *dst, prelude_msg_t *msg)
+static int queue_write_client(sensor_fd_t *client, prelude_msg_t *msg, uint32_t windex)
 {
-        int ret;
+        sensor_msg_t *smsg;
 
-        ret = prelude_msg_write(msg, dst->fd);
+        smsg = malloc(sizeof(*smsg));
+        if ( ! smsg )
+                return prelude_error_from_errno(errno);
+
+        smsg->write_index = windex;
+        smsg->msg = msg;
+
+        if ( windex )
+                prelude_list_add(&client->write_msg_list, &smsg->list);
+        else
+                prelude_list_add_tail(&client->write_msg_list, &smsg->list);
+
+        return 0;
+}
+
+
+
+static int write_client(sensor_fd_t *dst, sensor_msg_t *cont, prelude_msg_t *msg)
+{
+        int ret, ret2;
+        uint32_t local_windex = 0, *windex;
+
+        windex = (cont) ? &cont->write_index : &local_windex;
+
+        ret = prelude_msg_write_r(msg, dst->fd, windex);
         if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
+                if ( cont )
+                        prelude_list_add(&dst->write_msg_list, &cont->list);
+                else {
+                        ret2 = queue_write_client(dst, msg, local_windex);
+                        if ( ret2 < 0 )
+                                return ret2;
+                }
 
-                prelude_linked_object_add(&dst->write_msg_list, (prelude_linked_object_t *) msg);
                 server_generic_notify_write_enable((server_generic_client_t *) dst);
-
                 return ret;
         }
 
         if ( ret != 0 )
                 prelude_log(PRELUDE_LOG_ERR, "could not write msg: %s.\n", prelude_strerror(ret));
 
-        prelude_msg_destroy(msg);
+        if ( cont ) {
+                prelude_list_del(&cont->list);
+                free(cont);
+        }
 
+        prelude_msg_destroy(msg);
         return ret;
 }
 
@@ -364,7 +397,7 @@ static int handle_declare_receiver(sensor_fd_t *sclient)
         if ( ! sclient->ident )
                 return -1;
 
-        sclient->rrr = reverse_relay_search_receiver(sclient->ident);
+        sclient->rrr = reverse_relay_search_receiver(client);
         if ( ! sclient->rrr ) {
                 /*
                  * First time a child relay with this address connect here.
@@ -509,21 +542,19 @@ static int read_connection_cb(server_generic_client_t *client)
 static int write_connection_cb(server_generic_client_t *client)
 {
         int ret = 1;
-        prelude_list_t *tmp;
-        prelude_msg_t *cur = NULL;
+        prelude_list_t *tmp, *bkp;
+        sensor_msg_t *cur = NULL;
         sensor_fd_t *sclient = (sensor_fd_t *) client;
 
-        prelude_list_for_each(&sclient->write_msg_list, tmp) {
-                cur = prelude_linked_object_get_object(tmp);
-                prelude_linked_object_del((prelude_linked_object_t *) cur);
+        prelude_list_for_each_safe(&sclient->write_msg_list, tmp, bkp) {
+                cur = prelude_list_entry(tmp, sensor_msg_t, list);
+                prelude_list_del(&cur->list);
 
-                ret = write_client(sclient, cur);
+                ret = write_client(sclient, cur, cur->msg);
                 if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
                         ret = 0;
                         goto out;
                 }
-
-                break;
         }
 
         if ( prelude_list_is_empty(&sclient->write_msg_list) ) {
@@ -654,17 +685,16 @@ int sensor_server_add_client(server_generic_t *server, server_generic_client_t *
 }
 
 
+
 int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *msg)
 {
         int ret;
         sensor_fd_t *dst = (sensor_fd_t *) client;
 
         if ( prelude_list_is_empty(&dst->write_msg_list) )
-                ret = write_client(dst, msg);
-        else {
-                ret = 0;
-                prelude_linked_object_add_tail(&dst->write_msg_list, (prelude_linked_object_t *) msg);
-        }
+                ret = write_client(dst, NULL, msg);
+        else
+                ret = queue_write_client(dst, msg, 0);
 
         return ret;
 }

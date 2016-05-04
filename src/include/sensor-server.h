@@ -27,6 +27,15 @@
 #include "idmef-message-scheduler.h"
 #include "reverse-relaying.h"
 
+
+typedef struct {
+        prelude_list_t list;
+        prelude_msg_t *msg;
+        uint32_t write_index;
+} sensor_msg_t;
+
+
+
 typedef struct {
         SERVER_GENERIC_OBJECT;
         prelude_list_t list;
