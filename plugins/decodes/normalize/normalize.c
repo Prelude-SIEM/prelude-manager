@@ -231,7 +231,12 @@ static int set_geodata(const char *parent_type, unsigned int parent_idx, const c
 
         ret = MMDB_aget_value(&result->entry, &entry_data, geo_path);
         if ( ret != MMDB_SUCCESS ) {
-                prelude_log(PRELUDE_LOG_ERR, "error retrieving maxmind data: %s\n", _mmdb_strerror(ret));
+                /*
+                 * From the GEOIP2 documentation, there are some registered IP address with no country
+                 * but only continent information. Be quiet.
+                 *
+                 * prelude_log(PRELUDE_LOG_ERR, "error retrieving maxmind data path '%s': %s, %s\n", geo_path[0], geo_path[1], _mmdb_strerror(ret));
+                 */
                 return -1;
         }
 
