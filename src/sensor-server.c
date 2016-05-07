@@ -376,9 +376,6 @@ static int handle_declare_receiver(sensor_fd_t *sclient)
                         return ret;
         }
 
-        server_generic_log_client(client, PRELUDE_LOG_INFO,
-                                  "client requested forward of IDMEF message.\n");
-
         return reverse_relay_set_receiver_alive(sclient->rrr, client);
 }
 
