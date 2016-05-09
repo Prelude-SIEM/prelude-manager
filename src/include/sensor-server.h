@@ -44,7 +44,6 @@ typedef struct {
         prelude_connection_t *cnx;
         prelude_bool_t we_connected;
         prelude_list_t write_msg_list;
-        reverse_relay_receiver_t *rrr;
 
         uint32_t instance_id;
 } sensor_fd_t;
@@ -59,5 +58,9 @@ int sensor_server_broadcast_admin_command(uint64_t *analyzerid, prelude_msg_t *m
 int sensor_server_add_client(server_generic_t *server, server_generic_client_t **client, prelude_connection_t *cnx);
 
 int sensor_server_write_client(server_generic_client_t *dst, prelude_msg_t *msg);
+
+int sensor_server_init(void);
+
+prelude_list_t *sensor_server_get_list(uint64_t analyzerid);
 
 #endif /* _MANAGER_SENSOR_SERVER_H */

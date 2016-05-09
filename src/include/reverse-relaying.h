@@ -31,11 +31,9 @@ typedef struct reverse_relay_receiver reverse_relay_receiver_t;
 
 void reverse_relay_set_receiver_dead(reverse_relay_receiver_t *rrr);
 
-int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_generic_client_t *client);
+int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr);
 
 int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_client_t *client, uint64_t analyzerid);
-
-reverse_relay_receiver_t *reverse_relay_search_receiver(server_generic_client_t *client);
 
 void reverse_relay_send_prepared(void);
 

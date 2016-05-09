@@ -220,6 +220,7 @@ int main(int argc, char **argv)
                 return -1;
         prelude_log(PRELUDE_LOG_DEBUG, "Initialized %d filtering plugins.\n", ret);
 
+        sensor_server_init();
 
         ret = manager_options_init(manager_root_optlist, &argc, argv);
         if ( ret < 0 )

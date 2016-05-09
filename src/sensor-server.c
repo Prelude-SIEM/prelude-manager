@@ -53,8 +53,17 @@
 
 extern prelude_client_t *manager_client;
 
-static PRELUDE_LIST(sensors_cnx_list);
+
 static uint32_t global_instance_id = 0;
+static prelude_list_t sensors_cnx_list[1024];
+
+
+
+static unsigned int get_list_key(uint64_t analyzerid)
+{
+        return analyzerid & (sizeof(sensors_cnx_list) / sizeof(*sensors_cnx_list) - 1);
+}
+
 
 
 static sensor_fd_t *search_client(prelude_list_t *head, uint64_t analyzerid, uint32_t instance_id)
@@ -135,7 +144,7 @@ static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzeri
         int ret = 0;
         sensor_fd_t *target;
 
-        target = search_client(&sensors_cnx_list, analyzerid, instance_no);
+        target = search_client(&sensors_cnx_list[get_list_key(analyzerid)], analyzerid, instance_no);
         if ( ! target )
                 return -1;
 
@@ -275,6 +284,7 @@ static int send_unreachable_message(server_generic_client_t *client, uint64_t *i
 static int process_request_cb(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 {
         int ret;
+
         ret = sensor_server_write_client(prelude_msgbuf_get_data(msgbuf), msg);
         if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
                 return 0; /* message is queued */
@@ -391,25 +401,13 @@ static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
 
 static int handle_declare_receiver(sensor_fd_t *sclient)
 {
-        int ret;
+        reverse_relay_receiver_t *rrr;
         server_generic_client_t *client = (server_generic_client_t *) sclient;
 
         if ( ! sclient->ident )
                 return -1;
 
-        sclient->rrr = reverse_relay_search_receiver(client);
-        if ( ! sclient->rrr ) {
-                /*
-                 * First time a child relay with this address connect here.
-                 * Add it to the manager list. Type of the created connection is -parent-
-                 * because *we* are sending the alert to the child.
-                 */
-                ret = reverse_relay_new_receiver(&sclient->rrr, client, sclient->ident);
-                if ( ret < 0 )
-                        return ret;
-        }
-
-        return reverse_relay_set_receiver_alive(sclient->rrr, client);
+        return reverse_relay_new_receiver(&rrr, client, sclient->ident);
 }
 
 
@@ -422,7 +420,7 @@ static int handle_declare_client(sensor_fd_t *cnx)
                 return -1;
 
         cnx->instance_id = ++global_instance_id;
-        prelude_list_add_tail(&sensors_cnx_list, &cnx->list);
+        prelude_list_add_tail(&sensors_cnx_list[get_list_key(cnx->ident)], &cnx->list);
 
         return 0;
 }
@@ -541,7 +539,8 @@ static int read_connection_cb(server_generic_client_t *client)
 
 static int write_connection_cb(server_generic_client_t *client)
 {
-        int ret = 1;
+        int ret = 0;
+        size_t limit = 1024; /* FIXME: hardcoded limit */
         prelude_list_t *tmp, *bkp;
         sensor_msg_t *cur = NULL;
         sensor_fd_t *sclient = (sensor_fd_t *) client;
@@ -553,20 +552,17 @@ static int write_connection_cb(server_generic_client_t *client)
                 ret = write_client(sclient, cur, cur->msg);
                 if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
                         ret = 0;
-                        goto out;
+                        break;
                 }
+
+                if ( limit-- == 0 )
+                        break;
         }
 
-        if ( prelude_list_is_empty(&sclient->write_msg_list) ) {
+        if ( prelude_list_is_empty(&sclient->write_msg_list) )
                 server_generic_notify_write_disable(client);
-                if ( server_generic_client_get_state(client) & SERVER_GENERIC_CLIENT_STATE_FLUSHING )
-                        ret = reverse_relay_set_receiver_alive(sclient->rrr, client);
-                else
-                        ret = 0;
-        }
 
-out:
-        return ret; /* We yet have other message to process */
+        return ret;
 }
 
 
@@ -576,9 +572,6 @@ static int close_connection_cb(server_generic_client_t *ptr)
         prelude_msg_t *msg;
         prelude_list_t *tmp, *bkp;
         sensor_fd_t *cnx = (sensor_fd_t *) ptr;
-
-        if ( cnx->rrr )
-                reverse_relay_set_receiver_dead(cnx->rrr);
 
         if ( ! prelude_list_is_empty(&cnx->list) )
                 prelude_list_del(&cnx->list);
@@ -670,7 +663,6 @@ int sensor_server_add_client(server_generic_t *server, server_generic_client_t *
         cdata->fd = prelude_connection_get_fd(cnx);
 
         cdata->cnx = cnx;
-        cdata->rrr = NULL;
         cdata->we_connected = TRUE;
 
         cdata->server = server;
@@ -679,7 +671,7 @@ int sensor_server_add_client(server_generic_t *server, server_generic_client_t *
         cdata->ident = prelude_connection_get_peer_analyzerid(cnx);
 
         server_generic_client_set_permission((server_generic_client_t *)cdata, prelude_connection_get_permission(cnx));
-        prelude_list_add(&sensors_cnx_list, &cdata->list);
+        prelude_list_add(&sensors_cnx_list[get_list_key(cdata->ident)], &cdata->list);
 
         return server_generic_process_requests(server, (server_generic_client_t *) cdata);
 }
@@ -697,4 +689,23 @@ int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *m
                 ret = queue_write_client(dst, msg, 0);
 
         return ret;
+}
+
+
+
+int sensor_server_init(void)
+{
+        int i;
+
+        for ( i = 0; i < sizeof(sensors_cnx_list) / sizeof(*sensors_cnx_list); i++ )
+                prelude_list_init(&sensors_cnx_list[i]);
+
+        return 0;
+}
+
+
+
+prelude_list_t *sensor_server_get_list(uint64_t analyzerid)
+{
+        return &sensors_cnx_list[get_list_key(analyzerid)];
 }
