@@ -236,10 +236,14 @@ int bufpool_add_message(bufpool_t *bp, prelude_msg_t *msg)
 
         else {
                 ret = prelude_failover_save_msg(bp->failover, msg);
+                if ( ret < 0 )
+                        goto error;
+
                 inc_dlen(bp, prelude_msg_get_len(msg));
                 prelude_msg_destroy(msg);
         }
 
+    error:
         gl_lock_unlock(bp->mutex);
 
         return ret;
