@@ -74,6 +74,9 @@ static int iter_cb(idmef_value_t *value, void *str)
 {
         int ret;
 
+        if ( ! value )
+                return 0;
+
         if ( idmef_value_is_list(value) )
                 return idmef_value_iterate(value, iter_cb, str);
 
