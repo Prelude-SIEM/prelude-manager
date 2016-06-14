@@ -67,6 +67,9 @@ static int iterator(idmef_value_t *val, void *extra)
         prelude_string_t *out;
         struct iterator_data *data = extra;
 
+        if ( ! val )
+                return 0;
+
         ret = prelude_string_new(&out);
         if ( ret < 0 ) {
                 prelude_perror(ret, "error creating string object");

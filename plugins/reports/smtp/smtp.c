@@ -262,6 +262,9 @@ static int iterate_cb(idmef_value_t *value, void *extra)
         int ret;
         iterate_data_t *data = extra;
 
+        if ( ! value )
+                return 0;
+
         if ( idmef_value_is_list(value) )
                 return idmef_value_iterate(value, iterate_cb, extra);
 
