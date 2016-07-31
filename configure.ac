@@ -197,17 +197,39 @@ fi
 
 
 dnl ********************************************************
-dnl * Configure embedded libev                             *
+dnl * Check for libev                                      *
 dnl ********************************************************
 
-AC_DEFINE_UNQUOTED(EV_USE_INOTIFY, 0, Disable unused libev inotify backend)
-AC_DEFINE_UNQUOTED(EV_PERIODIC_ENABLE, 0, Disable unused libev periodic timers)
-AC_DEFINE_UNQUOTED(EV_STAT_ENABLE, 0, Disable unused libev stat watchers)
-AC_DEFINE_UNQUOTED(EV_IDLE_ENABLE, 0, Disable unused libev idle watchers)
-AC_DEFINE_UNQUOTED(EV_FORK_ENABLE, 0, Disable unused libev fork watchers)
-AC_DEFINE_UNQUOTED(EV_EMBED_ENABLE, 0, Disable unused libev embed watchers)
+dnl Determine whether to use the embedded libev or the system libev
+AC_ARG_WITH([libev],
+        AC_HELP_STRING([--with-libev],
+                [Define if we use the libev available on the system or the embedded libev]), , with_libev="embedded")
 
-m4_include([libev/libev.m4])
+if test "x$with_libev" = "xyes"; then
+        dnl Use the libev available on the system
+        PKG_CHECK_MODULES([LIBEV], [libev])
+
+        AC_CHECK_HEADER([ev.h], ,
+                AC_MSG_ERROR([libev development headers are required to build prelude-manager]))
+        with_libev="system"
+elif test "x$with_libev" = "xembedded"; then
+        dnl Configure and use embedded libev
+        AC_DEFINE_UNQUOTED(EV_USE_INOTIFY, 0, Disable unused libev inotify backend)
+        AC_DEFINE_UNQUOTED(EV_PERIODIC_ENABLE, 0, Disable unused libev periodic timers)
+        AC_DEFINE_UNQUOTED(EV_STAT_ENABLE, 0, Disable unused libev stat watchers)
+        AC_DEFINE_UNQUOTED(EV_IDLE_ENABLE, 0, Disable unused libev idle watchers)
+        AC_DEFINE_UNQUOTED(EV_FORK_ENABLE, 0, Disable unused libev fork watchers)
+        AC_DEFINE_UNQUOTED(EV_EMBED_ENABLE, 0, Disable unused libev embed watchers)
+
+        m4_include([libev/libev.m4])
+
+        LIBEV_CFLAGS="-I\$(top_srcdir)/libev"
+        LIBEV_LIBS="\$(top_builddir)/libev/libev.la"
+        AC_SUBST([LIBEV_CFLAGS])
+        AC_SUBST([LIBEV_LIBS])
+else
+        AC_MSG_ERROR([libev development headers are required to build prelude-manager])
+fi
 
 
 
@@ -335,7 +357,6 @@ Makefile
 docs/Makefile
 docs/manpages/Makefile
 
-libev/Makefile
 libmissing/Makefile
 libmissing/tests/Makefile
 
@@ -362,6 +383,11 @@ plugins/reports/smtp/Makefile
 plugins/reports/textmod/Makefile
 plugins/reports/xmlmod/Makefile
 ])
+if test "x$with_libev" = "xembedded"; then
+	AC_CONFIG_FILES([
+		libev/Makefile
+	])
+fi
 AC_OUTPUT
 
 echo
@@ -370,3 +396,4 @@ echo "    - TCP wrapper support    : $with_libwrap";
 echo "    - XML plugin support     : $enable_xmlmod";
 echo "    - GeoIP support          : $enable_libmaxminddb";
 echo "    - Database plugin support: $enable_libpreludedb";
+echo "    - Used libev             : $with_libev";
