@@ -1,5 +1,8 @@
 ACLOCAL_AMFLAGS = -I m4 -I libmissing/m4
-SUBDIRS = docs libev libmissing m4 plugins src
+SUBDIRS = docs libmissing m4 plugins src
+if EMBEDDED_LIBEV
+SUBDIRS += libev
+endif
 
 EXTRA_DIST = AUTHORS COPYING HACKING.README INSTALL NEWS README \
              selinux/prelude-manager.te \

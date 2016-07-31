@@ -1,10 +1,10 @@
 SUBDIRS = include
 
-AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing -I$(top_srcdir)/libev @LIBPRELUDE_CFLAGS@ @LIBGNUTLS_CFLAGS@
+AM_CPPFLAGS = -I$(srcdir)/include/ -I$(top_srcdir)/libmissing @LIBEV_CFLAGS@ @LIBPRELUDE_CFLAGS@ @LIBGNUTLS_CFLAGS@
 AM_CFLAGS = @PRELUDE_MANAGER_CFLAGS@ @GLOBAL_CFLAGS@
 
 bin_PROGRAMS = prelude-manager
-prelude_manager_LDADD = @LIBPRELUDE_LIBS@ @LIBWRAP_LIBS@ $(top_builddir)/libev/libev.la \
+prelude_manager_LDADD = @LIBPRELUDE_LIBS@ @LIBWRAP_LIBS@ @LIBEV_LIBS@	\
 			$(top_builddir)/libmissing/libmissing.la 	\
 			$(GETADDRINFOLIB) 				\
 			$(HOSTENTLIB)					\
