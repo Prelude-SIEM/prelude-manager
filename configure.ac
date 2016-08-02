@@ -106,13 +106,18 @@ LIBS=$old_LIBS
 
 
 dnl **************************************************
-dnl * Check for libmaxminddb.                        *
+dnl * Check for GeoIP through libmaxminddb           *
 dnl **************************************************
 LIBMAXMINDDB_MIN_VERSION=1.0.0
 
-PKG_CHECK_MODULES([LIBMAXMINDDB], [libmaxminddb >= $LIBMAXMINDDB_MIN_VERSION], enable_libmaxminddb=yes, enable_libmaxminddb=no)
+AC_ARG_ENABLE(libmaxminddb, AC_HELP_STRING(--enable-libmaxminddb, Define whether LibMaxMindDB is required), libmaxminddb_required="yes", enable_libmaxminddb="yes")
 if test x$enable_libmaxminddb = xyes; then
-	AC_CHECK_HEADER(maxminddb.h, enable_libmaxminddb=yes, enable_libmaxminddb=no)
+       PKG_CHECK_MODULES([LIBMAXMINDDB], [libmaxminddb >= $LIBMAXMINDDB_MIN_VERSION],
+             [AC_CHECK_HEADER(maxminddb.h, enable_libmaxminddb=yes, enable_libmaxminddb=no)],
+             [enable_libmaxminddb=no])
+       if test x$enable_libmaxminddb = xno && test x$libmaxminddb_required = xyes; then
+             AC_MSG_ERROR([Could not find libmaxminddb library])
+       fi
 fi
 
 AM_CONDITIONAL(HAVE_LIBMAXMINDDB, test x$enable_libmaxminddb = xyes)
