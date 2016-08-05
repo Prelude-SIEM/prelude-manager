@@ -1,3 +1,37 @@
+* 2016-08-05, prelude-manager-3.1.0rc1:
+
+Author: Thomas Andrejak
+
+- Allow the libev on system to be used
+
+    Thanks to Gokturk Yuksek <gokturk@gentoo.org>
+
+- Rename configure.in to configure.ac
+
+Author: Yoann Vandoorselaere
+
+- Reverse relaying code fixes / performance improvements
+
+    - Reduce per connection memory footprint
+    - Use hash-table for analyzerid->client lookup performance
+    - Reading events from multiple agents using the same analyzerid now works (even though it is not advised)
+
+- Update libev and GnuLib code
+
+- Fix possible debug and smtp plugins assertions
+
+- Fix memory corruption with multiple reverse relay
+
+- Fix double free in case of failover saving error
+
+- Prevent some geoip warnings
+
+Author: Antoine Luong
+
+- Fix assertion errors in thresholding plugin
+
+
+
 * 2016-04-22, prelude-manager-3.0.0:
 
 No new changes.
