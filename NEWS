@@ -1,3 +1,13 @@
+* 2016-08-19, prelude-manager-3.1.0rc2:
+
+Author: Thomas Andrejak
+
+- Fix configure for --enable-libmaxminddb
+- Fix configure for --with-libwrap-prefix=yes
+- Fix configure for --with-xml-prefix=yes
+
+
+
 * 2016-08-05, prelude-manager-3.1.0rc1:
 
 Author: Thomas Andrejak
