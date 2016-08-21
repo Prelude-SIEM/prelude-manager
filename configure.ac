@@ -154,17 +154,23 @@ dnl **************************************************
 
 AC_ARG_WITH(libwrap-prefix, AC_HELP_STRING(--with-libwrap-prefix@<:@=PFX@:>@,
                                     Compile in libwrap (tcp_wrappers) support @<:@default=auto@:>@.),
-            libwrap_required=true, with_libwrap="yes")
+            [libwrap_required=true; with_libwrap="$withval"], with_libwrap="yes")
 
 if test x$with_libwrap != xno; then
    LIBWRAP_INCLUDE="tcpd.h"
 
-   if test -d $with_libwrap; then
-      LIBWRAP_PATH="$with_libwrap"
-      LIBWRAP_INCLUDE="$with_libwrap/include/tcpd.h"
+   if test x$with_libwrap_prefix != xyes; then
+       if test -d $with_libwrap_prefix; then
+          LIBWRAP_PATH="$with_libwrap_prefix"
+          LIBWRAP_INCLUDE="$with_libwrap_prefix/include/tcpd.h"
+       else
+          with_libwrap=no
+       fi
    fi
 
-   AC_CHECK_HEADER($LIBWRAP_INCLUDE, with_libwrap=yes, with_libwrap=no)
+   if test x$with_libwrap != xno; then
+       AC_CHECK_HEADER($LIBWRAP_INCLUDE, with_libwrap=yes, with_libwrap=no)
+   fi
 
    if test x$with_libwrap = xyes; then
       AC_CHECK_LIB(wrap, request_init, LIBWRAP_LIBS="-L$LIBWRAP_PATH/lib -lwrap")
