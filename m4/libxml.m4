@@ -12,7 +12,7 @@ dnl
 AC_DEFUN([AM_PATH_XML2],[ 
 AC_ARG_WITH(xml-prefix,
             AC_HELP_STRING(--with-xml-prefix=PFX, Prefix where libxml is installed (optional)),
-            xml_config_prefix="$withval", xml_config_prefix="")
+            xml_config_prefix="$withval", xml_config_prefix="yes")
 AC_ARG_WITH(xml-exec-prefix,
             AC_HELP_STRING(--with-xml-exec-prefix=PFX, Exec prefix where libxml is installed (optional)),
             xml_config_exec_prefix="$withval", xml_config_exec_prefix="")
@@ -26,7 +26,7 @@ AC_ARG_ENABLE(xmltest,
         XML2_CONFIG=$xml_config_exec_prefix/bin/xml2-config
      fi
   fi
-  if test x$xml_config_prefix != x ; then
+  if test x$xml_config_prefix != xyes ; then
      xml_config_args="$xml_config_args --prefix=$xml_config_prefix"
      if test x${XML2_CONFIG+set} != xset ; then
         XML2_CONFIG=$xml_config_prefix/bin/xml2-config
