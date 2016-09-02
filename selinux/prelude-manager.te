@@ -6,11 +6,13 @@ require {
         type tmp_t;
         type smtp_port_t;
         type httpd_tmpfs_t;
+        type initrc_t;
         class file { read write open create setattr };
         class dir { search add_name write };
         class filesystem getattr;
         class sock_file write;
         class tcp_socket name_connect;
+        class unix_stream_socket connectto;
 }
 
 #============= prelude_t ==============
@@ -24,8 +26,10 @@ allow prelude_t tmpfs_t:filesystem getattr;
 # created by Apache
 allow prelude_t httpd_tmpfs_t:file { read write open };
 
-# Grant permissons to prelude-manager to connect to Unix socket
+# Grant permissons to prelude-manager to connect to Unix stream socket
+# Ex: /tmp/.s.PGSQL.5432
 allow prelude_t tmp_t:sock_file write;
+allow prelude_t initrc_t:unix_stream_socket connectto;
 
 # Grant permissons to prelude-manager to use XML mod
 # It will write output to a file in /tmp
