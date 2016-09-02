@@ -1,10 +1,21 @@
+* 2016-09-01, prelude-manager-3.1.0rc3:
+
+Author: Thomas Andrejak
+
+- Rename --with-libwrap-prefix to --with-libwrap
+
+Author: Song Tran
+
+- Add SELinux policy for Unix socket connection
+
+
+
 * 2016-08-19, prelude-manager-3.1.0rc2:
 
 Author: Thomas Andrejak
 
 - Fix configure for --enable-libmaxminddb
 - Fix configure for --with-libwrap-prefix=yes
-- Fix configure for --with-xml-prefix=yes
 
 
 
