@@ -52,7 +52,6 @@
 #include <libprelude/prelude-message-id.h>
 #include <libprelude/prelude-timer.h>
 
-#include <gcrypt.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 
@@ -77,53 +76,6 @@ static gnutls_certificate_credentials_t cred;
 static gnutls_dh_params_t cur_dh_params = NULL;
 static prelude_timer_t dh_param_regeneration_timer;
 static gl_lock_t dh_regen_mutex = gl_lock_initializer;
-
-
-
-static int gcry_prelude_mutex_init(void **retval)
-{
-        int ret;
-        gl_lock_t *lock;
-
-        *retval = lock = malloc(sizeof(*lock));
-        if ( ! lock )
-                return ENOMEM;
-
-        ret = glthread_lock_init(lock);
-        if ( ret < 0 )
-                free(lock);
-
-        return ret;
-}
-
-
-static int gcry_prelude_mutex_destroy(void **lock)
-{
-        return glthread_lock_destroy(*lock);
-}
-
-
-
-static int gcry_prelude_mutex_lock(void **lock)
-{
-        return glthread_lock_lock((gl_lock_t *) *lock);
-}
-
-
-static int gcry_prelude_mutex_unlock(void **lock)
-{
-        return glthread_lock_unlock((gl_lock_t *) *lock);
-}
-
-
-static struct gcry_thread_cbs gcry_threads_prelude = {
-        GCRY_THREAD_OPTION_USER,
-        NULL,
-        gcry_prelude_mutex_init,
-        gcry_prelude_mutex_destroy,
-        gcry_prelude_mutex_lock,
-        gcry_prelude_mutex_unlock
-};
 
 
 
@@ -584,7 +536,6 @@ int manager_auth_init(prelude_client_t *client, const char *tlsopts, int dh_bits
         global_dh_bits = dh_bits;
         global_dh_lifetime = dh_lifetime;
 
-        gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_prelude);
         gnutls_global_init();
 
         tls_priority_init(tlsopts);
