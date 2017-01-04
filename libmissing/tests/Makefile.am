@@ -1,6 +1,6 @@
 ## DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## Process this file with automake to produce Makefile.in.
-# Copyright (C) 2002-2016 Free Software Foundation, Inc.
+# Copyright (C) 2002-2017 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -365,6 +365,14 @@ check_PROGRAMS += test-inttypes
 EXTRA_DIST += test-inttypes.c
 
 ## end   gnulib module inttypes-tests
+
+## begin gnulib module limits-h-tests
+
+TESTS += test-limits-h
+check_PROGRAMS += test-limits-h
+EXTRA_DIST += test-limits-h.c
+
+## end   gnulib module limits-h-tests
 
 ## begin gnulib module lock-tests
 
