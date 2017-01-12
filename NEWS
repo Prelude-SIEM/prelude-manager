@@ -1,3 +1,12 @@
+* 2017-01-12, prelude-manager-4.0.0beta2:
+
+Author: Yoann Vandoorselaere
+
+- Update GnuLib/libev code
+
+- Get rid of libgcrypt
+
+
 * 2016-12-23, prelude-manager-4.0.0beta1:
 
 No new changes.
