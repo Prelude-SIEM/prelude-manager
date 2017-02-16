@@ -129,6 +129,14 @@ static int fill_analyzer_infos(void)
 
 static void heartbeat_cb(prelude_client_t *client, idmef_message_t *idmef)
 {
+        int ret;
+        prelude_string_t *str;
+
+        ret = idmef_heartbeat_new_messageid(idmef_message_get_heartbeat(idmef), &str);
+        if ( ret < 0 )
+                return;
+
+        prelude_ident_generate(prelude_client_get_unique_ident(client), str);
         idmef_message_process(idmef);
 }
 
