@@ -197,9 +197,13 @@ static void wait_for_message(struct timespec *last_wakeup)
 
                 ret = glthread_cond_timedwait(&input_cond, &input_mutex, &ts);
                 if ( ret == ETIMEDOUT ) {
+                        gl_lock_unlock(input_mutex);
+
                         prelude_timer_wake_up();
                         last_wakeup->tv_sec = ts.tv_sec;
                         last_wakeup->tv_nsec = ts.tv_nsec;
+
+                        gl_lock_lock(input_mutex);
                 }
         }
 
