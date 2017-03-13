@@ -53,7 +53,7 @@
 extern manager_config_t config;
 
 prelude_client_t *manager_client;
-struct ev_loop *manager_event_loop;
+struct ev_loop *manager_event_loop, *manager_worker_loop;
 
 static char **global_argv;
 static volatile sig_atomic_t got_signal = 0;
@@ -65,14 +65,6 @@ static volatile sig_atomic_t got_signal = 0;
  */
 static RETSIGTYPE handle_signal(int sig)
 {
-        size_t i;
-
-        /*
-         * stop the sensor server.
-         */
-        for ( i = 0; i < config.nserver; i++ )
-                sensor_server_stop(config.server[i]);
-
         got_signal = sig;
 }
 
@@ -150,7 +142,7 @@ static void sig_cb(struct ev_loop *loop, struct ev_signal *s, int revent)
 #endif
 
         handle_signal(s->signum);
-        ev_break(manager_event_loop, EVUNLOOP_ALL);
+        ev_break(manager_event_loop, EVBREAK_ALL);
 
         return;
 }
@@ -186,6 +178,12 @@ int main(int argc, char **argv)
         manager_event_loop = ev_default_loop(EVFLAG_AUTO);
         if ( ! manager_event_loop ) {
                 prelude_log(PRELUDE_LOG_ERR, "error initializing libev.\n");
+                return -1;
+        }
+
+        manager_worker_loop = ev_loop_new(EVFLAG_AUTO);
+        if ( ! manager_worker_loop ) {
+                prelude_log(PRELUDE_LOG_ERR, "error creating scheduler event loop.\n");
                 return -1;
         }
 

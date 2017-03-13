@@ -55,7 +55,6 @@
 
 #include "glthread/thread.h"
 #include "glthread/lock.h"
-#include "glthread/cond.h"
 
 #include "prelude-manager.h"
 #include "filter-plugins.h"
@@ -66,34 +65,6 @@
 #include "pmsg-to-idmef.h"
 #include "idmef-message-scheduler.h"
 #include "bufpool.h"
-
-
-/*
- * On POSIX systems where clock_gettime() is available, the symbol
- * _POSIX_TIMERS should be defined to a value greater than 0.
- *
- * However, some architecture (example True64), define it as:
- * #define _POSIX_TIMERS
- *
- * This explain the - 0 hack, since we need to test for the explicit
- * case where _POSIX_TIMERS is defined to a value higher than 0.
- *
- * If pthread_condattr_setclock and _POSIX_MONOTONIC_CLOCK are available,
- * CLOCK_MONOTONIC will be used. This avoid possible race problem when
- * calling pthread_cond_timedwait() if the system time is modified.
- *
- * If CLOCK_MONOTONIC is not available, revert to the standard CLOCK_REALTIME
- * way.
- *
- * If neither of the above are available, use gettimeofday().
- */
-#if _POSIX_TIMERS - 0 > 0
-# if defined(HAVE_PTHREAD_CONDATTR_SETCLOCK) && defined(_POSIX_MONOTONIC_CLOCK) && (_POSIX_MONOTONIC_CLOCK - 0 >= 0)
-#  define COND_CLOCK_TYPE CLOCK_MONOTONIC
-# else
-#  define COND_CLOCK_TYPE CLOCK_REALTIME
-# endif
-#endif
 
 
 #ifndef MIN
@@ -116,10 +87,6 @@ struct idmef_queue {
 
 static PRELUDE_LIST(message_queue);
 static gl_lock_t queue_list_mutex = gl_lock_initializer;
-
-static prelude_bool_t input_available = FALSE;
-static gl_cond_t input_cond = gl_cond_initializer;
-static gl_lock_t input_mutex = gl_lock_initializer;
 static gl_lock_t process_mutex = gl_lock_initializer;
 
 static unsigned int sched_process_high   =  50;
@@ -135,88 +102,17 @@ static gl_thread_t thread;
 static volatile sig_atomic_t stop_processing = 0;
 
 
+/*
+ * libev
+ */
+static ev_tstamp last_wakeup;
+static struct ev_async ev_async_data;
+extern struct ev_loop *manager_worker_loop;
+
 
 static void signal_input_available(void)
 {
-        gl_lock_lock(input_mutex);
-
-        if ( ! input_available ) {
-                input_available = TRUE;
-                gl_cond_signal(input_cond);
-        }
-
-        gl_lock_unlock(input_mutex);
-}
-
-
-
-static inline struct timespec *get_timespec(struct timespec *ts)
-{
-        struct timeval now;
-
-        gettimeofday(&now, NULL);
-
-        ts->tv_sec = now.tv_sec;
-        ts->tv_nsec = now.tv_usec * 1000;
-
-        return ts;
-}
-
-
-
-static int timespec_diff(struct timespec *end, struct timespec *start)
-{
-        int diff = end->tv_sec - start->tv_sec;
-
-        if ( end->tv_nsec < start->tv_nsec )
-                diff -= 1;
-
-        return diff;
-}
-
-static prelude_bool_t timespec_expired(struct timespec *end, struct timespec *start)
-{
-        return ( timespec_diff(end, start) >= 1 ) ? TRUE : FALSE;
-}
-
-
-/*
- * Wait until a message is queued.
- */
-static void wait_for_message(struct timespec *last_wakeup)
-{
-        int ret;
-        struct timespec ts;
-
-        gl_lock_lock(input_mutex);
-
-        while ( ! input_available && ! stop_processing ) {
-
-                ts.tv_sec = last_wakeup->tv_sec + 1;
-                ts.tv_nsec = last_wakeup->tv_nsec;
-
-                ret = glthread_cond_timedwait(&input_cond, &input_mutex, &ts);
-                if ( ret == ETIMEDOUT ) {
-                        gl_lock_unlock(input_mutex);
-
-                        prelude_timer_wake_up();
-                        last_wakeup->tv_sec = ts.tv_sec;
-                        last_wakeup->tv_nsec = ts.tv_nsec;
-
-                        gl_lock_lock(input_mutex);
-                }
-        }
-
-        if ( ! input_available && stop_processing ) {
-                gl_lock_unlock(input_mutex);
-                gl_thread_exit(NULL);
-        }
-
-        /*
-         * We are going to process all available data.
-         */
-        input_available = FALSE;
-        gl_lock_unlock(input_mutex);
+        ev_async_send(manager_worker_loop, &ev_async_data);
 }
 
 
@@ -334,9 +230,9 @@ static void read_message_scheduled(idmef_queue_t *queue)
 
 
 
-static void schedule_queued_message(struct timespec *last_wakeup)
+static void schedule_queued_message(void)
 {
-        struct timespec end;
+        ev_tstamp now;
         int dirty, any_queue_dirty;
         idmef_queue_t *queue = NULL, *bkp = NULL;
 
@@ -360,25 +256,63 @@ static void schedule_queued_message(struct timespec *last_wakeup)
                                 queue_destroy(queue);
                 }
 
-                if ( timespec_expired(get_timespec(&end), last_wakeup) ) {
-                        prelude_timer_wake_up();
-                        last_wakeup->tv_sec = end.tv_sec;
-                        last_wakeup->tv_nsec = end.tv_nsec;
+                now = ev_now(manager_worker_loop);
+                if ( now - last_wakeup >= 1 ) {
+                        last_wakeup = now;
+                        ev_now_update(manager_worker_loop);
                 }
+
         } while ( any_queue_dirty );
 }
 
+
+
+static void libev_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
+{
+        last_wakeup = ev_now(manager_worker_loop);
+        prelude_timer_wake_up();
+}
+
+
+
+static void libev_async_data_cb(struct ev_loop *loop, struct ev_async *w, int revents)
+{
+        schedule_queued_message();
+        if ( stop_processing )
+                ev_break(manager_worker_loop, EVBREAK_ALL);
+}
+
+
+
+static int is_any_queue_dirty(void)
+{
+        int ret = 0;
+        idmef_queue_t *queue, *bkp = NULL;
+
+        while ( 1 ) {
+                gl_lock_lock(queue_list_mutex);
+                queue = prelude_list_get_next_safe(&message_queue, queue, bkp, idmef_queue_t, list);
+                gl_lock_unlock(queue_list_mutex);
+
+                if ( ! queue )
+                        break;
+
+                ret += is_queue_dirty(queue);
+        }
+
+        return ret;
+}
 
 
 
 /*
  * This is the function responssible for handling queued message.
  */
-static void *message_reader(void *arg)
+static void *message_scheduler_thread(void *arg)
 {
         int ret;
         sigset_t set;
-        struct timespec last_wakeup;
+        struct ev_timer evt;
 
         sigfillset(&set);
 
@@ -388,19 +322,21 @@ static void *message_reader(void *arg)
                 return NULL;
         }
 
-        get_timespec(&last_wakeup);
-        last_wakeup.tv_sec--;
+        ev_timer_init(&evt, libev_timer_cb, 0, 1);
+        ev_timer_start(manager_worker_loop, &evt);
 
-        while ( ! stop_processing ) {
-                schedule_queued_message(&last_wakeup);
-                wait_for_message(&last_wakeup);
-        }
+        ev_async_init(&ev_async_data, libev_async_data_cb);
+        ev_async_start(manager_worker_loop, &ev_async_data);
+
+        last_wakeup = ev_now(manager_worker_loop);
 
         /*
-         * make sure we don't miss some.
+         * ev_run() will only return after ev_break().
          */
-        schedule_queued_message(&last_wakeup);
+        ev_run(manager_worker_loop, 0);
+        assert(is_any_queue_dirty() == 0);
 
+        gl_thread_exit(NULL);
         return NULL;
 }
 
@@ -607,7 +543,7 @@ int idmef_message_scheduler_init(void)
 
         closedir(dir);
 
-        ret = glthread_create(&thread, &message_reader, NULL);
+        ret = glthread_create(&thread, &message_scheduler_thread, NULL);
         if ( ret < 0 )
                 prelude_log(PRELUDE_LOG_ERR, "couldn't create message processing thread.\n");
 
@@ -622,25 +558,17 @@ void idmef_message_scheduler_exit(void)
         idmef_queue_t *queue;
         prelude_list_t *tmp, *bkp;
 
-        gl_lock_lock(input_mutex);
-
         stop_processing = 1;
-        gl_cond_signal(input_cond);
-
-        gl_lock_unlock(input_mutex);
+        ev_async_send(manager_worker_loop, &ev_async_data);
 
         prelude_log(PRELUDE_LOG_INFO, "Waiting queued message to be processed.\n");
         gl_thread_join(thread, NULL);
-
-        gl_cond_destroy(input_cond);
-        gl_lock_destroy(input_mutex);
 
         prelude_list_for_each_safe(&message_queue, tmp, bkp) {
                 queue = prelude_list_entry(tmp, idmef_queue_t, list);
                 queue_destroy(queue);
         }
 }
-
 
 
 

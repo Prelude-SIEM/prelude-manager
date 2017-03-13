@@ -633,14 +633,6 @@ server_generic_t *sensor_server_new(void)
 
 
 
-void sensor_server_stop(server_generic_t *server)
-{
-        server_generic_stop(server);
-}
-
-
-
-
 int sensor_server_add_client(server_generic_t *server, server_generic_client_t **client, prelude_connection_t *cnx)
 {
         sensor_fd_t *cdata;

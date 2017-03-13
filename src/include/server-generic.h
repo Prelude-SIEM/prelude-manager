@@ -98,8 +98,6 @@ void server_generic_start(server_generic_t **server, size_t nserver);
 
 void server_generic_destroy(server_generic_t *server);
 
-void server_generic_stop(server_generic_t *server);
-
 int server_generic_process_requests(server_generic_t *server, server_generic_client_t *client);
 
 void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t priority, const char *fmt, ...);

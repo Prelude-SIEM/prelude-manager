@@ -38,6 +38,8 @@
 #include <libprelude/prelude-timer.h>
 #include <libprelude/prelude-failover.h>
 
+#include "libev/ev.h"
+
 #include "prelude-manager.h"
 #include "report-plugins.h"
 #include "filter-plugins.h"
@@ -50,11 +52,12 @@
 
 static prelude_msgbuf_t *msgbuf;
 static PRELUDE_LIST(report_plugins_instance);
+extern struct ev_loop *manager_worker_loop;
 
 
 typedef struct {
         prelude_bool_t failover_enabled;
-        prelude_timer_t timer;
+        ev_timer timer;
 
         prelude_failover_t *failover;
         prelude_failover_t *failed_failover;
@@ -170,19 +173,17 @@ static int try_recovering_from_failover(prelude_plugin_instance_t *pi, plugin_fa
 
 
 
-static void failover_timer_expire_cb(void *data)
+static void failover_timer_expire_cb(struct ev_loop *loop, ev_timer *w, int revents)
 {
         int ret;
         plugin_failover_t *pf;
-        prelude_plugin_instance_t *pi = data;
+        prelude_plugin_instance_t *pi = w->data;
 
         pf = prelude_plugin_instance_get_data(pi);
 
         ret = try_recovering_from_failover(pi, pf);
-        if ( ret < 0 )
-                prelude_timer_reset(&pf->timer);
-        else
-                prelude_timer_destroy(&pf->timer);
+        if ( ret >= 0 )
+                ev_timer_stop(manager_worker_loop, &pf->timer);
 }
 
 
@@ -276,11 +277,11 @@ static void failover_init(prelude_plugin_instance_t *pi, plugin_failover_t *pf)
         prelude_log(PRELUDE_LOG_WARN, "Plugin %s[%s]: failure. Enabling failover.\n",
                     pg->name, prelude_plugin_instance_get_name(pi));
 
-        prelude_timer_set_data(&pf->timer, pi);
-        prelude_timer_set_expire(&pf->timer, FAILOVER_RETRY_TIMEOUT);
-        prelude_timer_set_callback(&pf->timer, failover_timer_expire_cb);
+        ev_init(&pf->timer, failover_timer_expire_cb);
+        pf->timer.data = pi;
 
-        prelude_timer_init(&pf->timer);
+        ev_timer_set(&pf->timer, FAILOVER_RETRY_TIMEOUT, FAILOVER_RETRY_TIMEOUT);
+        ev_timer_again(manager_worker_loop, &pf->timer);
 }
 
 

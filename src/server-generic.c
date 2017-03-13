@@ -94,7 +94,7 @@ extern prelude_client_t *manager_client;
 
 static struct ev_async ev_trigger;
 extern struct ev_loop *manager_event_loop;
-static volatile sig_atomic_t continue_processing = 1;
+
 
 static int send_auth_result(server_generic_client_t *client, int result)
 {
@@ -522,9 +522,7 @@ static int wait_connection(server_generic_t **server, size_t nserver)
                 ev_io_start(manager_event_loop, &server[i]->evio);
         }
 
-        while ( continue_processing )
-                ev_run(manager_event_loop, 0);
-
+        ev_run(manager_event_loop, 0);
         return 0;
 }
 
@@ -892,14 +890,6 @@ int server_generic_bind(server_generic_t *server, const char *saddr, unsigned in
 void server_generic_start(server_generic_t **server, size_t nserver)
 {
         wait_connection(server, nserver);
-}
-
-
-
-
-void server_generic_stop(server_generic_t *server)
-{
-        continue_processing = 0;
 }
 
 
