@@ -1,5 +1,5 @@
-/* Binary mode I/O.
-   Copyright 2017 Free Software Foundation, Inc.
+/* Return a NULL pointer, without letting the compiler know it.
+   Copyright (C) 2017 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -14,24 +14,20 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#include <config.h>
+#include <stdlib.h>
 
-#define BINARY_IO_INLINE _GL_EXTERN_INLINE
-#include "binary-io.h"
-
-#if defined __DJGPP__ || defined __EMX__
-# include <errno.h>
-# include <unistd.h>
-
-int
-__gl_setmode_check (int fd)
+/* Return NULL.
+   Usual compilers are not able to infer something about the return value.  */
+static void *
+null_ptr (void)
 {
-  if (isatty (fd))
-    {
-      errno = EINVAL;
-      return -1;
-    }
+  unsigned int x = rand ();
+  unsigned int y = x * x;
+  if (y & 2)
+    return (void *) -1;
   else
-    return 0;
+    return (void *) 0;
 }
-#endif
+
+/* If you want to know why this always returns NULL, read
+   https://en.wikipedia.org/wiki/Quadratic_residue#Prime_power_modulus .  */

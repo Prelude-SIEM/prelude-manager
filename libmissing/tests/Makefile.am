@@ -376,10 +376,11 @@ EXTRA_DIST += test-limits-h.c
 
 ## begin gnulib module lock-tests
 
-TESTS += test-lock
-check_PROGRAMS += test-lock
+TESTS += test-rwlock1 test-lock
+check_PROGRAMS += test-rwlock1 test-lock
+test_rwlock1_LDADD = $(LDADD) @LIBMULTITHREAD@ @YIELD_LIB@
 test_lock_LDADD = $(LDADD) @LIBMULTITHREAD@ @YIELD_LIB@
-EXTRA_DIST += test-lock.c
+EXTRA_DIST += test-rwlock1.c test-lock.c
 
 ## end   gnulib module lock-tests
 
@@ -407,6 +408,15 @@ check_PROGRAMS += test-memchr
 EXTRA_DIST += test-memchr.c zerosize-ptr.h signature.h macros.h
 
 ## end   gnulib module memchr-tests
+
+## begin gnulib module memmem-tests
+
+TESTS += test-memmem
+check_PROGRAMS += test-memmem
+
+EXTRA_DIST += test-memmem.c signature.h null-ptr.h zerosize-ptr.h macros.h
+
+## end   gnulib module memmem-tests
 
 ## begin gnulib module netdb-tests
 
@@ -695,6 +705,14 @@ EXTRA_DIST += test-string.c
 
 ## end   gnulib module string-tests
 
+## begin gnulib module strnlen-tests
+
+TESTS += test-strnlen
+check_PROGRAMS += test-strnlen
+EXTRA_DIST += test-strnlen.c zerosize-ptr.h signature.h macros.h
+
+## end   gnulib module strnlen-tests
+
 ## begin gnulib module symlink
 
 
@@ -785,6 +803,23 @@ check_PROGRAMS += test-unistd
 EXTRA_DIST += test-unistd.c
 
 ## end   gnulib module unistd-tests
+
+## begin gnulib module usleep
+
+
+EXTRA_DIST += usleep.c
+
+EXTRA_libtests_a_SOURCES += usleep.c
+
+## end   gnulib module usleep
+
+## begin gnulib module usleep-tests
+
+TESTS += test-usleep
+check_PROGRAMS += test-usleep
+EXTRA_DIST += test-usleep.c signature.h macros.h
+
+## end   gnulib module usleep-tests
 
 ## begin gnulib module vasnprintf-tests
 

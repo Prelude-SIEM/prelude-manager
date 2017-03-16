@@ -1,5 +1,5 @@
-/* Binary mode I/O.
-   Copyright 2017 Free Software Foundation, Inc.
+/* Test of usleep() function.
+   Copyright (C) 2009-2017 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -14,24 +14,27 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
+/* Written by Eric Blake <ebb9@byu.net>, 2009.  */
+
 #include <config.h>
 
-#define BINARY_IO_INLINE _GL_EXTERN_INLINE
-#include "binary-io.h"
+#include <unistd.h>
 
-#if defined __DJGPP__ || defined __EMX__
-# include <errno.h>
-# include <unistd.h>
+#include "signature.h"
+SIGNATURE_CHECK (usleep, int, (useconds_t));
+
+#include <time.h>
+
+#include "macros.h"
 
 int
-__gl_setmode_check (int fd)
+main (void)
 {
-  if (isatty (fd))
-    {
-      errno = EINVAL;
-      return -1;
-    }
-  else
-    return 0;
+  time_t start = time (NULL);
+  ASSERT (usleep (1000000) == 0);
+  ASSERT (start < time (NULL));
+
+  ASSERT (usleep (0) == 0);
+
+  return 0;
 }
-#endif

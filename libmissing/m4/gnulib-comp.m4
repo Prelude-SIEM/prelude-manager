@@ -50,6 +50,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module arpa_inet-tests:
   # Code from module binary-io:
   # Code from module binary-io-tests:
+  # Code from module builtin-expect:
   # Code from module close:
   # Code from module close-tests:
   # Code from module cond:
@@ -113,6 +114,9 @@ AC_DEFUN([gl_EARLY],
   # Code from module malloc-posix:
   # Code from module memchr:
   # Code from module memchr-tests:
+  # Code from module memmem:
+  # Code from module memmem-simple:
+  # Code from module memmem-tests:
   # Code from module msvc-inval:
   # Code from module msvc-nothrow:
   # Code from module multiarch:
@@ -169,6 +173,9 @@ AC_DEFUN([gl_EARLY],
   # Code from module strerror-tests:
   # Code from module string:
   # Code from module string-tests:
+  # Code from module strndup:
+  # Code from module strnlen:
+  # Code from module strnlen-tests:
   # Code from module strsep:
   # Code from module symlink:
   # Code from module symlink-tests:
@@ -193,6 +200,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module time_r:
   # Code from module unistd:
   # Code from module unistd-tests:
+  # Code from module usleep:
+  # Code from module usleep-tests:
   # Code from module vasnprintf:
   # Code from module vasnprintf-tests:
   # Code from module verify:
@@ -222,6 +231,7 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_ALLOCA
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
+  gl___BUILTIN_EXPECT
   gl_FUNC_CLOSE
   if test $REPLACE_CLOSE = 1; then
     AC_LIBOBJ([close])
@@ -294,6 +304,15 @@ AC_DEFUN([gl_INIT],
     gl_PREREQ_MEMCHR
   fi
   gl_STRING_MODULE_INDICATOR([memchr])
+  gl_FUNC_MEMMEM
+  if test $HAVE_MEMMEM = 0 || test $REPLACE_MEMMEM = 1; then
+    AC_LIBOBJ([memmem])
+  fi
+  gl_FUNC_MEMMEM_SIMPLE
+  if test $HAVE_MEMMEM = 0 || test $REPLACE_MEMMEM = 1; then
+    AC_LIBOBJ([memmem])
+  fi
+  gl_STRING_MODULE_INDICATOR([memmem])
   AC_REQUIRE([gl_MSVC_INVAL])
   if test $HAVE_MSVC_INVALID_PARAMETER_HANDLER = 1; then
     AC_LIBOBJ([msvc-inval])
@@ -359,6 +378,17 @@ AC_DEFUN([gl_INIT],
   fi
   gl_STRING_MODULE_INDICATOR([strdup])
   gl_HEADER_STRING_H
+  gl_FUNC_STRNDUP
+  if test $HAVE_STRNDUP = 0 || test $REPLACE_STRNDUP = 1; then
+    AC_LIBOBJ([strndup])
+  fi
+  gl_STRING_MODULE_INDICATOR([strndup])
+  gl_FUNC_STRNLEN
+  if test $HAVE_DECL_STRNLEN = 0 || test $REPLACE_STRNLEN = 1; then
+    AC_LIBOBJ([strnlen])
+    gl_PREREQ_STRNLEN
+  fi
+  gl_STRING_MODULE_INDICATOR([strnlen])
   gl_FUNC_STRSEP
   if test $HAVE_STRSEP = 0; then
     AC_LIBOBJ([strsep])
@@ -461,6 +491,7 @@ changequote([, ])dnl
   AC_C_BIGENDIAN
   gl_INTTYPES_H
   gl_INTTYPES_INCOMPLETE
+  AC_CHECK_HEADERS_ONCE([semaphore.h])
   gl_FUNC_LSTAT
   if test $REPLACE_LSTAT = 1; then
     AC_LIBOBJ([lstat])
@@ -471,6 +502,10 @@ changequote([, ])dnl
   gl_FUNC_MMAP_ANON
   AC_CHECK_HEADERS_ONCE([sys/mman.h])
   AC_CHECK_FUNCS_ONCE([mprotect])
+  gl_FUNC_MMAP_ANON
+  AC_CHECK_HEADERS_ONCE([sys/mman.h])
+  AC_CHECK_FUNCS_ONCE([mprotect])
+  AC_CHECK_DECLS_ONCE([alarm])
   gl_FUNC_OPEN
   if test $REPLACE_OPEN = 1; then
     AC_LIBOBJ([open])
@@ -497,12 +532,21 @@ changequote([, ])dnl
     AC_LIBOBJ([strerror-override])
     gl_PREREQ_SYS_H_WINSOCK2
   fi
+  dnl Check for prerequisites for memory fence checks.
+  gl_FUNC_MMAP_ANON
+  AC_CHECK_HEADERS_ONCE([sys/mman.h])
+  AC_CHECK_FUNCS_ONCE([mprotect])
   gl_FUNC_SYMLINK
   if test $HAVE_SYMLINK = 0 || test $REPLACE_SYMLINK = 1; then
     AC_LIBOBJ([symlink])
   fi
   gl_UNISTD_MODULE_INDICATOR([symlink])
   AC_CHECK_FUNCS_ONCE([shutdown])
+  gl_FUNC_USLEEP
+  if test $HAVE_USLEEP = 0 || test $REPLACE_USLEEP = 1; then
+    AC_LIBOBJ([usleep])
+  fi
+  gl_UNISTD_MODULE_INDICATOR([usleep])
   gl_YIELD
   m4_popdef([gl_MODULE_INDICATOR_CONDITION])
   m4_ifval(gltests_LIBSOURCES_LIST, [
@@ -635,6 +679,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/malloc.c
   lib/memchr.c
   lib/memchr.valgrind
+  lib/memmem.c
   lib/msvc-inval.c
   lib/msvc-inval.h
   lib/msvc-nothrow.c
@@ -664,8 +709,11 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/stdint.in.h
   lib/stdio.in.h
   lib/stdlib.in.h
+  lib/str-two-way.h
   lib/strdup.c
   lib/string.in.h
+  lib/strndup.c
+  lib/strnlen.c
   lib/strsep.c
   lib/sys_socket.c
   lib/sys_socket.in.h
@@ -689,6 +737,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/absolute-header.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
+  m4/builtin-expect.m4
   m4/close.m4
   m4/cond.m4
   m4/dup2.m4
@@ -728,6 +777,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/malloc.m4
   m4/math_h.m4
   m4/memchr.m4
+  m4/memmem.m4
   m4/mmap-anon.m4
   m4/mode_t.m4
   m4/msvc-inval.m4
@@ -740,6 +790,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/open.m4
   m4/pathmax.m4
   m4/printf.m4
+  m4/pthread_rwlock_rdlock.m4
   m4/raise.m4
   m4/realloc.m4
   m4/servent.m4
@@ -765,6 +816,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/strdup.m4
   m4/strerror.m4
   m4/string_h.m4
+  m4/strndup.m4
+  m4/strnlen.m4
   m4/strsep.m4
   m4/symlink.m4
   m4/sys_socket_h.m4
@@ -777,6 +830,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/time_h.m4
   m4/time_r.m4
   m4/unistd_h.m4
+  m4/usleep.m4
   m4/vasnprintf.m4
   m4/vsnprintf.m4
   m4/warn-on-use.m4
@@ -787,6 +841,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/yield.m4
   tests/init.sh
   tests/macros.h
+  tests/null-ptr.h
   tests/signature.h
   tests/test-alloca-opt.c
   tests/test-arpa_inet.c
@@ -819,12 +874,14 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-lstat.c
   tests/test-lstat.h
   tests/test-memchr.c
+  tests/test-memmem.c
   tests/test-netdb.c
   tests/test-netinet_in.c
   tests/test-open.c
   tests/test-open.h
   tests/test-pathmax.c
   tests/test-raise.c
+  tests/test-rwlock1.c
   tests/test-sigaction.c
   tests/test-signal-h.c
   tests/test-sigprocmask.c
@@ -841,6 +898,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-stdlib.c
   tests/test-strerror.c
   tests/test-string.c
+  tests/test-strnlen.c
   tests/test-symlink.c
   tests/test-symlink.h
   tests/test-sys_socket.c
@@ -853,6 +911,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-thread_self.c
   tests/test-time.c
   tests/test-unistd.c
+  tests/test-usleep.c
   tests/test-vasnprintf.c
   tests/test-verify.c
   tests/test-verify.sh
@@ -878,4 +937,5 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/strerror-override.h
   tests=lib/strerror.c
   tests=lib/symlink.c
+  tests=lib/usleep.c
 ])

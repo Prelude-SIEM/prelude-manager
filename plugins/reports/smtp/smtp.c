@@ -40,9 +40,10 @@
 #endif
 
 #include "prelude-manager.h"
+#include "smtp-io.h"
 
-
-#define DEFAULT_KEEPALIVE_SECONDS 60
+#define DEFAULT_KEEPALIVE_INTERVAL 30
+#define DEFAULT_INACTIVITY_TIMEOUT 10
 
 #define DEFAULT_SMTP_PORT   "25"
 #define DEFAULT_MAIL_SENDER "prelude-manager"
@@ -85,14 +86,12 @@ typedef struct {
         prelude_list_t subject_content;
         prelude_list_t message_content;
 
-        prelude_bool_t need_reconnect;
+        smtp_conn_t conn;
 
-        prelude_io_t *fd;
         char *server;
         char *sender;
         char *recipients;
         struct addrinfo *ai_addr;
-        prelude_timer_t keepalive_timer;
 
         expect_message_type_t expected_message;
 
@@ -143,90 +142,14 @@ static char *strip_return(char *str)
         return str;
 }
 
-static char *strip_return_constant(const char *str, char *buf, size_t size)
-{
-        char *end;
-        size_t len;
-
-        end = strchr(str, '\r');
-        if ( ! end )
-                return "invalid input string";
-
-        len = MIN((size_t) (end - str), size - 1);
-        strncpy(buf, str, len);
-        buf[len] = 0;
-
-        return buf;
-}
-
-
-static int read_reply(int expected, prelude_io_t *fd, char *buf, size_t size)
-{
-        char p[2];
-        ssize_t ret;
-
-        buf[0] = 0;
-
-        do {
-                ret = prelude_io_read(fd, buf, size - 1);
-        } while ( ret < 0 && errno == EINTR );
-
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "error reading server reply: %s.\n", strerror(errno));
-                return ret;
-        }
-
-        if ( ret == 0 )
-                return 0;
-
-        buf[ret] = 0;
-
-        p[0] = buf[0];
-        p[1] = 0;
-
-        prelude_log_debug(4, "SMTP[read(%" PRELUDE_PRId64 ")]: %s", (int64_t) ret, buf);
-
-        return (! expected || atoi(p) == expected) ? 0 : -1;
-}
-
 
 
 static int send_command(smtp_plugin_t *plugin, int expected, char *buf)
 {
-        int ret;
-        char rbuf[1024];
-
-        if ( plugin->need_reconnect )
+        if ( plugin->conn.fd < 0 )
                 return -1;
 
-        do {
-                ret = prelude_io_write(plugin->fd, buf, strlen(buf));
-        } while ( ret < 0 && errno == EINTR );
-
-        prelude_log_debug(4, "SMTP[write(%d)]: %s", ret, buf);
-
-        if ( ret < 0 ) {
-                prelude_io_close(plugin->fd);
-                plugin->need_reconnect = TRUE;
-                return ret;
-        }
-
-        if ( expected >= 0 ) {
-                rbuf[0] = 0;
-
-                ret = read_reply(expected, plugin->fd, rbuf, sizeof(rbuf));
-                if ( ret < 0 ) {
-                        char errbuf[1024];
-
-                        prelude_log(PRELUDE_LOG_WARN, "SMTP(%s): unexpected server reply: %s",
-                                    strip_return_constant(buf, errbuf, sizeof(errbuf)), rbuf);
-
-                        prelude_io_close(plugin->fd);
-                        plugin->need_reconnect = TRUE;
-                }
-        }
-
-        return ret;
+        return smtp_io_cmd(&plugin->conn, buf, strlen(buf), expected);
 }
 
 
@@ -418,7 +341,7 @@ static int send_correlation_alert_notice(smtp_plugin_t *plugin, int count)
         pad[len] = 0;
 
         snprintf(buf, sizeof(buf), "\n\n%s\n%s\n%s\n\n", pad, txt, pad);
-        return prelude_io_write(plugin->fd, buf, strlen(buf));
+        return smtp_io_cmd(&plugin->conn, buf, strlen(buf), -1);
 }
 
 
@@ -453,6 +376,34 @@ static int add_string_to_list(smtp_plugin_t *plugin, prelude_list_t *head, idmef
         prelude_linked_object_add(head, (prelude_linked_object_t *) str);
 
         return 0;
+}
+
+
+
+static int idmef_to_textio(smtp_plugin_t *plugin, idmef_object_t *object)
+{
+        int ret;
+        prelude_io_t *fd;
+
+        ret = prelude_io_new(&fd);
+        if ( ret < 0 )
+                return ret;
+
+        prelude_io_set_buffer_io(fd);
+
+        ret = idmef_object_print(object, fd);
+        if ( ret < 0 ) {
+                prelude_io_close(fd);
+                prelude_io_destroy(fd);
+                return ret;
+        }
+
+        ret = smtp_io_cmd(&plugin->conn, prelude_io_get_fdptr(fd), prelude_io_pending(fd) -1, -1);
+
+        prelude_io_close(fd);
+        prelude_io_destroy(fd);
+
+        return ret;
 }
 
 
@@ -494,7 +445,7 @@ static int retrieve_from_db(smtp_plugin_t *plugin, const char *criteria_str)
                 }
 
                 if ( prelude_list_is_empty(&plugin->correlation_content) )
-                        idmef_message_print(idmef, plugin->fd);
+                        idmef_to_textio(plugin, (idmef_object_t *) idmef);
                 else
                         add_string_to_list(plugin, &clist, idmef);
 
@@ -505,7 +456,7 @@ static int retrieve_from_db(smtp_plugin_t *plugin, const char *criteria_str)
 
         prelude_list_for_each_safe(&clist, tmp, bkp) {
                 str = prelude_linked_object_get_object(tmp);
-                prelude_io_write(plugin->fd, prelude_string_get_string(str), prelude_string_get_len(str));
+                smtp_io_cmd(&plugin->conn, prelude_string_get_string(str), prelude_string_get_len(str), -1);
                 prelude_string_destroy(str);
         }
 
@@ -626,83 +577,30 @@ static int send_mail(smtp_plugin_t *plugin, const char *subject, prelude_string_
                 return ret;
 
         if ( body && ! prelude_string_is_empty(body) )
-                prelude_io_write(plugin->fd, prelude_string_get_string(body), prelude_string_get_len(body));
+                ret = smtp_io_cmd(&plugin->conn, prelude_string_get_string(body), prelude_string_get_len(body), -1);
         else
-                idmef_message_print(idmef, plugin->fd);
+                ret = idmef_to_textio(plugin, (idmef_object_t *) idmef);
 
 #ifdef HAVE_LIBPRELUDEDB
         if ( plugin->db )
                 send_correlation_alert_info(plugin, idmef);
 #endif
 
-        ret = send_command(plugin, 2, "\r\n.\r\n");
+        ret = smtp_io_cmd(&plugin->conn, "\r\n.\r\n", 5, 2);
         if ( ret < 0 )
                 return ret;
 
-        return send_command(plugin, 2, "RSET\r\n");
+        return smtp_io_cmd(&plugin->conn, "RSET\r\n", 6, 2);
 }
 
-
-
-static void keepalive_smtp_conn(void *data)
-{
-        int ret;
-        smtp_plugin_t *plugin = data;
-
-        ret = send_command(plugin, 2, "NOOP\r\n");
-        if ( ret < 0 ) {
-                prelude_timer_destroy(&plugin->keepalive_timer);
-                return;
-        }
-
-        prelude_timer_reset(&plugin->keepalive_timer);
-}
 
 
 static int connect_mail_server_if_needed(smtp_plugin_t *plugin)
 {
-        int sock, ret;
-        char buf[1024];
-        struct addrinfo *ai = plugin->ai_addr;
-
-        if ( ! plugin->need_reconnect )
+        if ( plugin->conn.fd >= 0 )
                 return 0;
 
-        sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-        if ( sock < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "SMTP: could not open socket: %s.\n", strerror(errno));
-                return -1;
-        }
-
-        ret = connect(sock, ai->ai_addr, ai->ai_addrlen);
-        if ( ret < 0 ) {
-                prelude_log(PRELUDE_LOG_WARN, "SMTP: could not connect to %s: %s.\n", plugin->server, strerror(errno));
-                close(sock);
-                return -1;
-        }
-
-        prelude_log(PRELUDE_LOG_INFO, "SMTP: connection to %s succeeded.\n", plugin->server);
-        prelude_io_set_sys_io(plugin->fd, sock);
-
-        ret = read_reply(0, plugin->fd, buf, sizeof(buf));
-        if ( ret < 0 )
-                return ret;
-
-        if ( gethostname(buf, sizeof(buf)) < 0 )
-                strcpy(buf, "localhost");
-
-        plugin->need_reconnect = FALSE;
-
-        ret = send_command_va(plugin, 2, "HELO %s\r\n", buf);
-        if ( ret < 0 )
-                return ret;
-
-        if ( prelude_timer_get_expire(&plugin->keepalive_timer) )
-                prelude_timer_reset(&plugin->keepalive_timer);
-        else
-                prelude_timer_destroy(&plugin->keepalive_timer);
-
-        return 0;
+        return smtp_io_open(&plugin->conn, plugin->server, plugin->ai_addr);
 }
 
 
@@ -842,7 +740,6 @@ static int smtp_init(prelude_plugin_instance_t *pi, prelude_string_t *out)
 
 static int smtp_new(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
 {
-        int ret;
         smtp_plugin_t *new;
 
         new = calloc(sizeof(*new), 1);
@@ -856,7 +753,10 @@ static int smtp_new(prelude_option_t *opt, const char *arg, prelude_string_t *er
                 return -1;
         }
 
-        new->need_reconnect = TRUE;
+        new->conn.fd = -1;
+        new->conn.keepalive_interval = DEFAULT_KEEPALIVE_INTERVAL;
+        new->conn.inactivity_timeout = DEFAULT_INACTIVITY_TIMEOUT;
+
         prelude_list_init(&new->subject_content);
         prelude_list_init(&new->message_content);
         new->expected_message = EXPECT_MESSAGE_TYPE_ANY;
@@ -865,25 +765,9 @@ static int smtp_new(prelude_option_t *opt, const char *arg, prelude_string_t *er
         prelude_list_init(&new->correlation_content);
 #endif
 
-        prelude_timer_init_list(&new->keepalive_timer);
-        prelude_timer_set_data(&new->keepalive_timer, new);
-        prelude_timer_set_callback(&new->keepalive_timer, keepalive_smtp_conn);
-        prelude_timer_set_expire(&new->keepalive_timer, DEFAULT_KEEPALIVE_SECONDS);
-
-        ret = prelude_io_new(&new->fd);
-        if ( ret < 0 )
-                return ret;
-
+        prelude_list_init(&new->conn.cmd_list);
         prelude_plugin_instance_set_plugin_data(context, new);
 
-        return 0;
-}
-
-
-static int smtp_set_keepalive(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
-{
-        smtp_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-        prelude_timer_set_expire(&plugin->keepalive_timer, atoi(arg));
         return 0;
 }
 
@@ -947,7 +831,7 @@ static int parse_path(smtp_plugin_t *plugin, mail_format_t **fmt,
                         return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "cannot mix alert and heartbeat toplevel message.\n");
 
                 plugin->expected_message = EXPECT_MESSAGE_TYPE_ALERT;
-        } else {
+        } else if ( strncmp(path_s, "heartbeat", 9) == 0 ) {
                 if ( plugin->expected_message == EXPECT_MESSAGE_TYPE_ALERT )
                         return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "cannot mix alert and heartbeat toplevel message.\n");
 
@@ -1080,12 +964,35 @@ static int smtp_set_correlation_template(prelude_option_t *opt, const char *arg,
 #endif
 
 
+
+static int smtp_set_keepalive(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
+{
+        smtp_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
+        plugin->conn.keepalive_interval = atoi(arg);
+        return 0;
+}
+
+
 static int smtp_get_keepalive(prelude_option_t *opt, prelude_string_t *out, void *context)
 {
         smtp_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
-        return prelude_string_sprintf(out, "%d", prelude_timer_get_expire(&plugin->keepalive_timer));
+        return prelude_string_sprintf(out, "%d", plugin->conn.keepalive_interval);
 }
 
+
+static int smtp_set_inactivity_timeout(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
+{
+        smtp_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
+        plugin->conn.inactivity_timeout = atoi(arg);
+        return 0;
+}
+
+
+static int smtp_get_inactivity_timeout(prelude_option_t *opt, prelude_string_t *out, void *context)
+{
+        smtp_plugin_t *plugin = prelude_plugin_instance_get_plugin_data(context);
+        return prelude_string_sprintf(out, "%d", plugin->conn.inactivity_timeout);
+}
 
 
 static void destroy_mail_format(prelude_list_t *head)
@@ -1160,13 +1067,7 @@ static void smtp_destroy(prelude_plugin_instance_t *pi, prelude_string_t *err)
                 preludedb_destroy(plugin->db);
 #endif
 
-        prelude_timer_destroy(&plugin->keepalive_timer);
-
-        if ( ! plugin->need_reconnect )
-                prelude_io_close(plugin->fd);
-
-        prelude_io_destroy(plugin->fd);
-
+        smtp_io_destroy(&plugin->conn);
         free(plugin);
 }
 
@@ -1202,8 +1103,13 @@ int smtp_LTX_manager_plugin_init(prelude_plugin_entry_t *pe, void *rootopt)
         if ( ret < 0 )
                 return ret;
 
-        ret = prelude_option_add(opt, NULL, hook, 'k', "keepalive", "Specify how often to send keepalive probe (default 60)",
+        ret = prelude_option_add(opt, NULL, hook, 'k', "keepalive", "Specify how often to send keepalive probe (default 30 seconds)",
                                  PRELUDE_OPTION_ARGUMENT_REQUIRED, smtp_set_keepalive, smtp_get_keepalive);
+        if ( ret < 0 )
+                return ret;
+
+        ret = prelude_option_add(opt, NULL, hook, 't', "timeout", "Specify how long to wait for SMTP server reply (default 10 seconds)",
+                                 PRELUDE_OPTION_ARGUMENT_REQUIRED, smtp_set_inactivity_timeout, smtp_get_inactivity_timeout);
         if ( ret < 0 )
                 return ret;
 
