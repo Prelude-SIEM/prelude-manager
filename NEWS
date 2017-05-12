@@ -1,3 +1,11 @@
+* 2017-05-12, prelude-manager-4.0.1:
+
+Author: Yoann Vandoorselaere
+
+- Release lock while executing timer
+
+
+
 * 2017-02-16, prelude-manager-4.0.0:
 
 Author: Yoann Vandoorselaere
