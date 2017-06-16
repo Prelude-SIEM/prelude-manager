@@ -1,3 +1,21 @@
+* 2017-06-16, prelude-manager-4.1.0beta1:
+
+Author: Yoann Vandoorselaere
+
+- SMTP plugin is now asynchronous
+
+    This prevent locking Manager main worker thread.
+    However, SMTP plugin failover is not supported anymore.
+
+- Migrate IDMEF message scheduler to libev
+
+- Release lock while executing timer
+
+    Prevent server thread stall in the boggus case
+    where timer execution is itself stalled.
+
+
+
 * 2017-02-16, prelude-manager-4.0.0:
 
 Author: Yoann Vandoorselaere
