@@ -270,7 +270,11 @@ static int handle_gnutls_error(prelude_io_t *pio, gnutls_session_t session, serv
 
         else {
                 server_generic_log_client(client, PRELUDE_LOG_WARN, "TLS error: %s.\n", gnutls_strerror(ret));
-                if ( alert_desc && (ret = gnutls_error_to_alert(ret, &level)) > 0 )
+
+                if ( gnutls_error_is_fatal(ret) )
+                        return ret;
+
+                else if ( alert_desc && (ret = gnutls_error_to_alert(ret, &level)) > 0 )
                         *alert_desc = (gnutls_alert_description_t) ret;
         }
 
@@ -419,6 +423,9 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnut
         gnutls_session_t session;
         int fd = prelude_io_get_fd(pio);
         prelude_connection_permission_t permission;
+        union { int fd; void *ptr; } data;
+
+        *alert = 0;
 
         /*
          * check if we already have a TLS descriptor
@@ -426,13 +433,11 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnut
          */
         session = prelude_io_get_fdptr(pio);
         if ( ! session ) {
-                union { int fd; void *ptr; } data;
-
                 ret = gnutls_init(&session, GNUTLS_SERVER);
                 if ( ret < 0 ) {
                         server_generic_log_client(client, PRELUDE_LOG_WARN, "error initializing TLS session: %s.\n",
                                                   gnutls_strerror(ret));
-                        return -1;
+                        return ret;
                 }
 
                 set_default_priority(session);
@@ -452,8 +457,19 @@ int manager_auth_client(server_generic_client_t *client, prelude_io_t *pio, gnut
 
         } while ( ret < 0 && (ret = handle_gnutls_error(pio, session, client, ret, alert)) == 1 );
 
-        if ( ret <= 0 )
+        if ( ret == 0 )
                 return ret;
+
+        else if ( ret < 0 ) {
+                if ( gnutls_error_is_fatal(ret) ) {
+                        data.ptr = gnutls_transport_get_ptr(session);
+                        prelude_io_set_sys_io(pio, data.fd);
+
+                        gnutls_deinit(session);
+                }
+
+                return ret;
+        }
 
         ret = verify_certificate(client, session, alert);
         if ( ret < 0 )
