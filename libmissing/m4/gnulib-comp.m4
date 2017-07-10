@@ -58,6 +58,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module dosname:
   # Code from module dup2:
   # Code from module dup2-tests:
+  # Code from module environ:
+  # Code from module environ-tests:
   # Code from module errno:
   # Code from module errno-tests:
   # Code from module extensions:
@@ -70,6 +72,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module fdopen:
   # Code from module fdopen-tests:
   # Code from module fgetc-tests:
+  # Code from module filename:
   # Code from module float:
   # Code from module float-tests:
   # Code from module fpieee:
@@ -107,11 +110,14 @@ AC_DEFUN([gl_EARLY],
   AC_REQUIRE([AC_SYS_LARGEFILE])
   # Code from module limits-h:
   # Code from module limits-h-tests:
+  # Code from module localtime-buffer:
   # Code from module lock:
   # Code from module lock-tests:
   # Code from module lstat:
   # Code from module lstat-tests:
   # Code from module malloc-posix:
+  # Code from module malloca:
+  # Code from module malloca-tests:
   # Code from module memchr:
   # Code from module memchr-tests:
   # Code from module memmem:
@@ -128,6 +134,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module open-tests:
   # Code from module pathmax:
   # Code from module pathmax-tests:
+  # Code from module putenv:
   # Code from module raise:
   # Code from module raise-tests:
   # Code from module realloc-posix:
@@ -200,6 +207,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module time_r:
   # Code from module unistd:
   # Code from module unistd-tests:
+  # Code from module unsetenv:
+  # Code from module unsetenv-tests:
   # Code from module usleep:
   # Code from module usleep-tests:
   # Code from module vasnprintf:
@@ -210,6 +219,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module vsnprintf-tests:
   # Code from module wchar:
   # Code from module wchar-tests:
+  # Code from module xalloc-oversized:
   # Code from module xsize:
   # Code from module yield:
 ])
@@ -291,6 +301,8 @@ AC_DEFUN([gl_INIT],
   gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
   AC_REQUIRE([gl_LARGEFILE])
   gl_LIMITS_H
+  AC_REQUIRE([gl_LOCALTIME_BUFFER_DEFAULTS])
+  AC_LIBOBJ([localtime-buffer])
   gl_LOCK
   gl_MODULE_INDICATOR([lock])
   gl_FUNC_MALLOC_POSIX
@@ -298,6 +310,7 @@ AC_DEFUN([gl_INIT],
     AC_LIBOBJ([malloc])
   fi
   gl_STDLIB_MODULE_INDICATOR([malloc-posix])
+  gl_MALLOCA
   gl_FUNC_MEMCHR
   if test $HAVE_MEMCHR = 0 || test $REPLACE_MEMCHR = 1; then
     AC_LIBOBJ([memchr])
@@ -321,6 +334,7 @@ AC_DEFUN([gl_INIT],
   if test $HAVE_MSVC_INVALID_PARAMETER_HANDLER = 1; then
     AC_LIBOBJ([msvc-nothrow])
   fi
+  gl_MODULE_INDICATOR([msvc-nothrow])
   gl_MULTIARCH
   gl_HEADER_NETDB
   gl_HEADER_NETINET_IN
@@ -362,6 +376,11 @@ AC_DEFUN([gl_INIT],
   gl_FUNC_STAT
   if test $REPLACE_STAT = 1; then
     AC_LIBOBJ([stat])
+    case "$host_os" in
+      mingw*)
+        AC_LIBOBJ([stat-w32])
+        ;;
+    esac
     gl_PREREQ_STAT
   fi
   gl_SYS_STAT_MODULE_INDICATOR([stat])
@@ -466,6 +485,8 @@ changequote([, ])dnl
   AC_SUBST([gltests_WITNESS])
   gl_module_indicator_condition=$gltests_WITNESS
   m4_pushdef([gl_MODULE_INDICATOR_CONDITION], [$gl_module_indicator_condition])
+  gl_ENVIRON
+  gl_UNISTD_MODULE_INDICATOR([environ])
   gl_FUNC_FDOPEN
   if test $REPLACE_FDOPEN = 1; then
     AC_LIBOBJ([fdopen])
@@ -475,6 +496,11 @@ changequote([, ])dnl
   gl_FUNC_FSTAT
   if test $REPLACE_FSTAT = 1; then
     AC_LIBOBJ([fstat])
+    case "$host_os" in
+      mingw*)
+        AC_LIBOBJ([stat-w32])
+        ;;
+    esac
     gl_PREREQ_FSTAT
   fi
   gl_SYS_STAT_MODULE_INDICATOR([fstat])
@@ -512,6 +538,12 @@ changequote([, ])dnl
     gl_PREREQ_OPEN
   fi
   gl_FCNTL_MODULE_INDICATOR([open])
+  gl_FUNC_PUTENV
+  if test $REPLACE_PUTENV = 1; then
+    AC_LIBOBJ([putenv])
+    gl_PREREQ_PUTENV
+  fi
+  gl_STDLIB_MODULE_INDICATOR([putenv])
   gl_FUNC_SLEEP
   if test $HAVE_SLEEP = 0 || test $REPLACE_SLEEP = 1; then
     AC_LIBOBJ([sleep])
@@ -542,6 +574,12 @@ changequote([, ])dnl
   fi
   gl_UNISTD_MODULE_INDICATOR([symlink])
   AC_CHECK_FUNCS_ONCE([shutdown])
+  gl_FUNC_UNSETENV
+  if test $HAVE_UNSETENV = 0 || test $REPLACE_UNSETENV = 1; then
+    AC_LIBOBJ([unsetenv])
+    gl_PREREQ_UNSETENV
+  fi
+  gl_STDLIB_MODULE_INDICATOR([unsetenv])
   gl_FUNC_USLEEP
   if test $HAVE_USLEEP = 0 || test $REPLACE_USLEEP = 1; then
     AC_LIBOBJ([usleep])
@@ -641,21 +679,20 @@ AC_DEFUN([gltests_LIBSOURCES], [
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
   build-aux/config.rpath
-  build-aux/snippet/_Noreturn.h
-  build-aux/snippet/arg-nonnull.h
-  build-aux/snippet/c++defs.h
-  build-aux/snippet/warn-on-use.h
+  lib/_Noreturn.h
   lib/alloca.in.h
+  lib/arg-nonnull.h
   lib/arpa_inet.in.h
   lib/asnprintf.c
+  lib/c++defs.h
   lib/close.c
-  lib/dosname.h
   lib/dup2.c
   lib/errno.in.h
   lib/fcntl.c
   lib/fcntl.in.h
   lib/fd-hook.c
   lib/fd-hook.h
+  lib/filename.h
   lib/float+.h
   lib/float.c
   lib/float.in.h
@@ -676,7 +713,12 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/inet_ntop.c
   lib/itold.c
   lib/limits.in.h
+  lib/localtime-buffer.c
+  lib/localtime-buffer.h
   lib/malloc.c
+  lib/malloca.c
+  lib/malloca.h
+  lib/malloca.valgrind
   lib/memchr.c
   lib/memchr.valgrind
   lib/memmem.c
@@ -702,6 +744,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/snprintf.c
   lib/sockets.c
   lib/sockets.h
+  lib/stat-w32.c
+  lib/stat-w32.h
   lib/stat.c
   lib/stdalign.in.h
   lib/stdbool.in.h
@@ -730,7 +774,9 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/verify.h
   lib/vsnprintf.c
   lib/w32sock.h
+  lib/warn-on-use.h
   lib/wchar.in.h
+  lib/xalloc-oversized.h
   lib/xsize.c
   lib/xsize.h
   m4/00gnulib.m4
@@ -741,6 +787,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/close.m4
   m4/cond.m4
   m4/dup2.m4
+  m4/eealloc.m4
+  m4/environ.m4
   m4/errno_h.m4
   m4/exponentd.m4
   m4/extensions.m4
@@ -771,10 +819,12 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lib-link.m4
   m4/lib-prefix.m4
   m4/limits-h.m4
+  m4/localtime-buffer.m4
   m4/lock.m4
   m4/longlong.m4
   m4/lstat.m4
   m4/malloc.m4
+  m4/malloca.m4
   m4/math_h.m4
   m4/memchr.m4
   m4/memmem.m4
@@ -791,9 +841,11 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/pathmax.m4
   m4/printf.m4
   m4/pthread_rwlock_rdlock.m4
+  m4/putenv.m4
   m4/raise.m4
   m4/realloc.m4
   m4/servent.m4
+  m4/setenv.m4
   m4/sigaction.m4
   m4/signal_h.m4
   m4/signalblocking.m4
@@ -850,6 +902,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-close.c
   tests/test-cond.c
   tests/test-dup2.c
+  tests/test-environ.c
   tests/test-errno.c
   tests/test-fcntl-h.c
   tests/test-fcntl.c
@@ -873,6 +926,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-lock.c
   tests/test-lstat.c
   tests/test-lstat.h
+  tests/test-malloca.c
   tests/test-memchr.c
   tests/test-memmem.c
   tests/test-netdb.c
@@ -911,15 +965,21 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-thread_self.c
   tests/test-time.c
   tests/test-unistd.c
+  tests/test-unsetenv.c
   tests/test-usleep.c
   tests/test-vasnprintf.c
+  tests/test-verify-try.c
   tests/test-verify.c
   tests/test-verify.sh
   tests/test-vsnprintf.c
   tests/test-wchar.c
   tests/zerosize-ptr.h
+  tests=lib/_Noreturn.h
+  tests=lib/arg-nonnull.h
   tests=lib/binary-io.c
   tests=lib/binary-io.h
+  tests=lib/c++defs.h
+  tests=lib/dosname.h
   tests=lib/fdopen.c
   tests=lib/fpucw.h
   tests=lib/fstat.c
@@ -931,11 +991,16 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/inttypes.in.h
   tests=lib/lstat.c
   tests=lib/open.c
+  tests=lib/putenv.c
   tests=lib/same-inode.h
   tests=lib/sleep.c
+  tests=lib/stat-w32.c
+  tests=lib/stat-w32.h
   tests=lib/strerror-override.c
   tests=lib/strerror-override.h
   tests=lib/strerror.c
   tests=lib/symlink.c
+  tests=lib/unsetenv.c
   tests=lib/usleep.c
+  tests=lib/warn-on-use.h
 ])
