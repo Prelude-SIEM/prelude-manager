@@ -118,13 +118,6 @@ listen = 127.0.0.1
 # dh-parameters-regenerate = 24
 
 
-# If you want this Manager to retrieve messages from another Manager
-# (useful if the other Manager is located within a DMZ):
-#
-# child-managers = x.x.x.x
-#
-# This means the messages should be gathered from x.x.x.x
-
 #
 # If you want a given reporting plugin to be protected against possible
 # failure, use the failover option. Failover will prevent data sent to
@@ -171,19 +164,6 @@ listen = 127.0.0.1
 ####################################
 # Here start plugins configuration #
 ####################################
-
-# [relaying]
-#
-# If you want the message caught by this manager to be relayed.
-# You can use boolean AND and OR to make the rule.
-#
-# parent-managers = x.x.x.x || y.y.y.y && z.z.z.z
-#
-# This means the emission should occur on x.x.x.x or, if it fails, on
-# y.y.y.y and z.z.z.z (if one of the two hosts in the AND fail, the
-# emission will be considered as failed involving saving the message
-# locally).
-
 
 # [db]
 
@@ -319,10 +299,10 @@ listen = 127.0.0.1
 #
 # [idmef-criteria]
 # rule = alert.classification.text == 'User login successful'
-# hook = relaying[default]
+# hook = smtp[default]
 #
 # Will forward any event that match the defined criteria to the
-# default instance of the relaying reporting plugin. The rule argument
+# default instance of the smtp reporting plugin. The rule argument
 # might also be a filename containing the rules. Example:
 #
 # rule = /path/to/rule.file
@@ -335,11 +315,11 @@ listen = 127.0.0.1
 # path = alert.classification.text, alert.source.node.address.address
 # limit = 3600
 # count = 1
-# hook = relaying[default]
+# hook = smtp[default]
 #
 # Will forward one event with the unique alert.classification.text,
 # alert.source.node.address.address value combination to the 'default'
-# instance of the 'relaying' reporting plugin. Further events with the
+# instance of the smtp reporting plugin. Further events with the
 # same value will be suppressed for 3600 seconds.
 #
 #
@@ -347,11 +327,11 @@ listen = 127.0.0.1
 # path = alert.classification.text, alert.source.node.address.address
 # threshold = 3600
 # count = 10
-# hook = relaying[default]
+# hook = smtp[default]
 #
 # Will forward every tenth event per 3600 seconds with the unique
 # alert.classification.text, alert.source.node.address.address value
-# combination to the 'default' instance of the 'relaying' reporting
+# combination to the 'default' instance of the smtp reporting
 # plugin.
 #
 # Note that limit and threshold might be combined, allowing to setup a
@@ -373,9 +353,8 @@ hook = reporting
 
 # [prelude]
 #
-# This is the global prelude section, where you can define Prelude
-# related options. Option of matter for Prelude-Manager, are, most
-# specifically, in the context of relaying, the connection options:
+# This is the global prelude section, where you can define Prelude related
+# options. Option of matter for Prelude-Manager, are the connection options:
 #
 # The following settings instruct the operating system when to consider
 # a connection dead in case sent data is left unacknowledged.
