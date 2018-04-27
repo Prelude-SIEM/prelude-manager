@@ -34,7 +34,7 @@ allow prelude_t initrc_t:unix_stream_socket connectto;
 # Grant permissons to prelude-manager to use XML mod
 # It will write output to a file in /tmp
 allow prelude_t tmp_t:dir { write add_name };
-allow prelude_t tmp_t:file { create open };
+allow prelude_t tmp_t:file { create open write };
 
 # Grant permissons to prelude-manager to connect to a SMTP server
 allow prelude_t smtp_port_t:tcp_socket name_connect;
