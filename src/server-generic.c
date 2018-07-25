@@ -958,6 +958,12 @@ void server_generic_remove_client(server_generic_t *server, server_generic_clien
 }
 
 
+void server_generic_client_close(server_generic_client_t *client)
+{
+        close_connection_cb(client);
+}
+
+
 void server_generic_log_client(server_generic_client_t *cnx, prelude_log_t priority, const char *fmt, ...)
 {
         va_list ap;

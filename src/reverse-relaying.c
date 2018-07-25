@@ -95,11 +95,11 @@ static reverse_relay_receiver_t *get_next_receiver(prelude_list_t *receiver_list
 
 static int write_all_client(reverse_relay_receiver_t *rrr, prelude_msg_t *msg, unsigned long count)
 {
-        int i = 0, ret;
+        int i = 0;
         sensor_fd_t *client;
-        prelude_list_t *tmp;
+        prelude_list_t *tmp, *bkp;
 
-        prelude_list_for_each(sensor_server_get_list(rrr->analyzerid), tmp) {
+        prelude_list_for_each_safe(sensor_server_get_list(rrr->analyzerid), tmp, bkp) {
                 client = prelude_list_entry(tmp, sensor_fd_t, list);
 
                 if ( client->ident != rrr->analyzerid )
@@ -110,9 +110,7 @@ static int write_all_client(reverse_relay_receiver_t *rrr, prelude_msg_t *msg, u
                         server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_INFO,
                                                   "flushing %lu messages received while analyzer was offline.\n", count);
 
-                ret = sensor_server_write_client((server_generic_client_t *) client, prelude_msg_ref(msg));
-                if ( ret < 0 && prelude_error_get_code(ret) != PRELUDE_ERROR_EAGAIN )
-                        prelude_msg_destroy(msg);
+                sensor_server_write_client((server_generic_client_t *) client, prelude_msg_ref(msg));
         }
 
         return i;

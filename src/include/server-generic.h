@@ -110,6 +110,8 @@ int server_generic_client_get_state(server_generic_client_t *client);
 
 void server_generic_client_set_state(server_generic_client_t *client, int state);
 
+void server_generic_client_close(server_generic_client_t *client);
+
 void server_generic_remove_client(server_generic_t *server, server_generic_client_t *client);
 
 void server_generic_notify_event(void);

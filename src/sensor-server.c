@@ -539,7 +539,7 @@ static int read_connection_cb(server_generic_client_t *client)
 
 static int write_connection_cb(server_generic_client_t *client)
 {
-        int ret = 0;
+        int ret = 0, code;
         size_t limit = 1024; /* FIXME: hardcoded limit */
         prelude_list_t *tmp, *bkp;
         sensor_msg_t *cur = NULL;
@@ -550,9 +550,15 @@ static int write_connection_cb(server_generic_client_t *client)
                 prelude_list_del(&cur->list);
 
                 ret = write_client(sclient, cur, cur->msg);
-                if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
-                        ret = 0;
-                        break;
+                if ( ret < 0 ) {
+                        code = prelude_error_get_code(ret);
+                        if ( code == PRELUDE_ERROR_EOF || code == PRELUDE_ERROR_EPIPE )
+                                break;
+
+                        else if ( code == PRELUDE_ERROR_EAGAIN ) {
+                                ret = 0;
+                                break;
+                        }
                 }
 
                 if ( limit-- == 0 )
@@ -569,7 +575,7 @@ static int write_connection_cb(server_generic_client_t *client)
 
 static int close_connection_cb(server_generic_client_t *ptr)
 {
-        prelude_msg_t *msg;
+        sensor_msg_t *msg;
         prelude_list_t *tmp, *bkp;
         sensor_fd_t *cnx = (sensor_fd_t *) ptr;
 
@@ -577,9 +583,11 @@ static int close_connection_cb(server_generic_client_t *ptr)
                 prelude_list_del(&cnx->list);
 
         prelude_list_for_each_safe(&cnx->write_msg_list, tmp, bkp) {
-                msg = prelude_linked_object_get_object(tmp);
-                prelude_linked_object_del((prelude_linked_object_t *) msg);
-                prelude_msg_destroy(msg);
+                msg = prelude_list_entry(tmp, sensor_msg_t, list);
+                prelude_list_del(&msg->list);
+
+                prelude_msg_destroy(msg->msg);
+                free(msg);
         }
 
         /*
@@ -675,10 +683,13 @@ int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *m
         int ret;
         sensor_fd_t *dst = (sensor_fd_t *) client;
 
-        if ( prelude_list_is_empty(&dst->write_msg_list) )
-                ret = write_client(dst, NULL, msg);
-        else
+        if ( ! prelude_list_is_empty(&dst->write_msg_list) )
                 ret = queue_write_client(dst, msg, 0);
+        else {
+                ret = write_client(dst, NULL, msg);
+                if ( ret != 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EPIPE )
+                        server_generic_client_close((server_generic_client_t *) dst);
+        }
 
         return ret;
 }
