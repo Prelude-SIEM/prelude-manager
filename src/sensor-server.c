@@ -683,13 +683,10 @@ int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *m
         int ret;
         sensor_fd_t *dst = (sensor_fd_t *) client;
 
-        if ( ! prelude_list_is_empty(&dst->write_msg_list) )
-                ret = queue_write_client(dst, msg, 0);
-        else {
+        if ( prelude_list_is_empty(&dst->write_msg_list) )
                 ret = write_client(dst, NULL, msg);
-                if ( ret != 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EPIPE )
-                        server_generic_client_close((server_generic_client_t *) dst);
-        }
+        else
+                ret = queue_write_client(dst, msg, 0);
 
         return ret;
 }
