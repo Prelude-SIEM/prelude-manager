@@ -1,3 +1,11 @@
+* 2018-08-17, prelude-manager-5.0.0rc1:
+
+Author: Yoann Vandoorselaere
+
+- Memory corruption fixes
+
+
+
 * 2018-05-04, prelude-manager-5.0.0beta2:
 
 Author: Song Tran
