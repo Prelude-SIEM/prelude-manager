@@ -234,7 +234,7 @@ listen = 127.0.0.1
 
 # [TextMod]
 #
-# The Debug plugin allows to report alerts as text in a file,
+# The TextMod plugin allows to report alerts as text in a file,
 # or to dump these alerts to /dev/stdout.
 #
 # The default behavior is to write output to /dev/stdout.
