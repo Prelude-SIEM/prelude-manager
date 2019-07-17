@@ -1,3 +1,11 @@
+* 2019-07-17, prelude-manager-5.1.0beta1:
+
+Author: Yoann Vandoorselaere
+
+- Revert "Correct AdditionalData output"
+
+
+
 * 2019-03-15, prelude-manager-5.1.0alpha1:
 
 Author: Antoine Luong
