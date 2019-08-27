@@ -1,30 +1,18 @@
 module prelude-manager 1.0;
 
 require {
-        type tmpfs_t;
         type prelude_t;
         type tmp_t;
         type smtp_port_t;
-        type httpd_tmpfs_t;
         type initrc_t;
-        class file { read write open create setattr };
-        class dir { search add_name write };
-        class filesystem getattr;
+        class file { write open create };
+        class dir { add_name write };
         class sock_file write;
         class tcp_socket name_connect;
         class unix_stream_socket connectto;
 }
 
 #============= prelude_t ==============
-
-# Grant permissons to prelude-manager on directory /dev/shm/
-allow prelude_t tmpfs_t:dir { search add_name write };
-allow prelude_t tmpfs_t:file { read write open create setattr };
-allow prelude_t tmpfs_t:filesystem getattr;
-
-# Grant permissons to prelude-manager on files on directory /dev/shm/
-# created by Apache
-allow prelude_t httpd_tmpfs_t:file { read write open };
 
 # Grant permissons to prelude-manager to connect to Unix stream socket
 # Ex: /tmp/.s.PGSQL.5432
