@@ -1,3 +1,11 @@
+* 2019-09-04, prelude-manager-5.1.0rc1:
+
+Author: Antoine Luong
+
+- Remove unused SELinux rules
+
+
+
 * 2019-07-17, prelude-manager-5.1.0beta1:
 
 Author: Yoann Vandoorselaere
