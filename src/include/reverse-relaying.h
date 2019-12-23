@@ -31,7 +31,7 @@ typedef struct reverse_relay_receiver reverse_relay_receiver_t;
 
 void reverse_relay_set_receiver_dead(reverse_relay_receiver_t *rrr);
 
-int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr);
+int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_generic_client_t *client);
 
 int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_client_t *client, uint64_t analyzerid);
 
@@ -44,5 +44,7 @@ int reverse_relay_set_initiator_dead(prelude_connection_t *cnx);
 int reverse_relay_create_initiator(const char *arg);
 
 int reverse_relay_init(void);
+
+int reverse_relay_write_possible(reverse_relay_receiver_t *rrr, server_generic_client_t *client);
 
 #endif

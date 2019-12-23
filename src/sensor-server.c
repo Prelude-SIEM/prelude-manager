@@ -41,6 +41,7 @@
 #include <libprelude/prelude-connection-pool.h>
 #include <libprelude/prelude-option-wide.h>
 
+#include "bufpool.h"
 #include "server-generic.h"
 #include "sensor-server.h"
 #include "idmef-message-scheduler.h"
@@ -54,7 +55,6 @@
 extern prelude_client_t *manager_client;
 
 
-static uint32_t global_instance_id = 0;
 static prelude_list_t sensors_cnx_list[1024];
 
 
@@ -66,61 +66,13 @@ static unsigned int get_list_key(uint64_t analyzerid)
 
 
 
-static sensor_fd_t *search_client(prelude_list_t *head, uint64_t analyzerid, uint32_t instance_id)
+static int write_client(sensor_fd_t *dst, prelude_msg_t *msg)
 {
-        sensor_fd_t *client;
-        prelude_list_t *tmp;
+        int ret;
 
-        prelude_list_for_each(head, tmp) {
-                client = prelude_list_entry(tmp, sensor_fd_t, list);
-
-                if ( client->ident == analyzerid && (! instance_id || instance_id == client->instance_id) )
-                        return client;
-        }
-
-        return NULL;
-}
-
-
-
-static int queue_write_client(sensor_fd_t *client, prelude_msg_t *msg, uint32_t windex)
-{
-        sensor_msg_t *smsg;
-
-        smsg = malloc(sizeof(*smsg));
-        if ( ! smsg )
-                return prelude_error_from_errno(errno);
-
-        smsg->write_index = windex;
-        smsg->msg = msg;
-
-        if ( windex )
-                prelude_list_add(&client->write_msg_list, &smsg->list);
-        else
-                prelude_list_add_tail(&client->write_msg_list, &smsg->list);
-
-        return 0;
-}
-
-
-
-static int write_client(sensor_fd_t *dst, sensor_msg_t *cont, prelude_msg_t *msg)
-{
-        int ret, ret2;
-        uint32_t local_windex = 0, *windex;
-
-        windex = (cont) ? &cont->write_index : &local_windex;
-
-        ret = prelude_msg_write_r(msg, dst->fd, windex);
+        ret = prelude_msg_write_r(msg, dst->fd, &dst->write_index);
         if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
-                if ( cont )
-                        prelude_list_add(&dst->write_msg_list, &cont->list);
-                else {
-                        ret2 = queue_write_client(dst, msg, local_windex);
-                        if ( ret2 < 0 )
-                                return ret2;
-                }
-
+                dst->wmsg = msg;
                 server_generic_notify_write_enable((server_generic_client_t *) dst);
                 return ret;
         }
@@ -128,10 +80,8 @@ static int write_client(sensor_fd_t *dst, sensor_msg_t *cont, prelude_msg_t *msg
         if ( ret != 0 )
                 prelude_log(PRELUDE_LOG_ERR, "could not write msg: %s.\n", prelude_strerror(ret));
 
-        if ( cont ) {
-                prelude_list_del(&cont->list);
-                free(cont);
-        }
+        dst->write_index = 0;
+        dst->wmsg = NULL;
 
         prelude_msg_destroy(msg);
         return ret;
@@ -139,275 +89,14 @@ static int write_client(sensor_fd_t *dst, sensor_msg_t *cont, prelude_msg_t *msg
 
 
 
-static int forward_message_to_analyzerid(sensor_fd_t *client, uint64_t analyzerid, uint32_t instance_no, prelude_msg_t *msg)
-{
-        int ret = 0;
-        sensor_fd_t *target;
-
-        target = search_client(&sensors_cnx_list[get_list_key(analyzerid)], analyzerid, instance_no);
-        if ( ! target )
-                return -1;
-
-        /*
-         * if we are connected to the client, we need write permission. If the
-         * client connected to us, then read permission need to be set.
-         */
-        if ( prelude_msg_get_tag(msg) == PRELUDE_MSG_OPTION_REQUEST ) {
-                /*
-                 * We forward an option request to a client.
-                 *
-                 * If the client connected to us (->cnx == NULL), we need to check it has READ  permission.
-                 * If we connected to the client (->cnx != NULL), we need to check if we have WRITE permission.
-                 */
-                if ( (! (target->permission & PRELUDE_CONNECTION_PERMISSION_ADMIN_WRITE) && target->we_connected) ||
-                     (! (target->permission & PRELUDE_CONNECTION_PERMISSION_ADMIN_READ ) && ! target->we_connected) ) {
-                        ret = -2;
-                        server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_WARN,
-                                                  "%" PRELUDE_PRIu64 " credentials forbids admin request.\n", target->ident);
-                        goto out;
-                }
-        }
-
-        sensor_server_write_client((server_generic_client_t *) target, msg);
- out:
-        return ret;
-}
-
-
-
-
-static int get_msg_target_ident(sensor_fd_t *client, prelude_msg_t *msg,
-                                uint64_t **target_ptr, uint32_t *hop_ptr, uint32_t **instance_ptr, int direction)
-{
-        int ret;
-        void *buf;
-        uint8_t tag;
-        uint32_t len;
-        uint64_t ident;
-        uint32_t hop = 0, tmp, target_len = 0;
-
-        *target_ptr = NULL;
-        *instance_ptr = NULL;
-
-        while ( prelude_msg_get(msg, &tag, &len, &buf) == 0 ) {
-
-                if ( tag == PRELUDE_MSG_OPTION_TARGET_INSTANCE_ID ) {
-                        if ( len != sizeof(uint32_t) )
-                                return -1;
-
-                        *instance_ptr = buf;
-                }
-
-                if ( tag == PRELUDE_MSG_OPTION_TARGET_ID ) {
-
-                        if ( *target_ptr || (len % sizeof(uint64_t)) != 0 || len < 2 * sizeof(uint64_t) )
-                                break;
-
-                        target_len = len;
-                        *target_ptr = buf;
-                }
-
-                if ( tag != PRELUDE_MSG_OPTION_HOP )
-                        continue;
-
-                if ( ! *target_ptr || ! *instance_ptr )
-                        break;
-
-                ret = prelude_extract_uint32_safe(&hop, buf, len);
-                if ( ret < 0 )
-                        break;
-
-                if ( hop == 0 )
-                        break;
-
-                ret = (direction == PRELUDE_MSG_OPTION_REQUEST) ? hop - 1 : hop + 1;
-                if ( ret < 0 || (size_t) ret >= (target_len / sizeof(uint64_t)) )
-                        break;
-
-                ident = prelude_extract_uint64(&(*target_ptr)[ret]);
-                if ( ident != client->ident )
-                        return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "client attempt to mask source identifier");
-
-                hop = (direction == PRELUDE_MSG_OPTION_REQUEST) ? hop + 1 : hop - 1;
-                if ( ret < 0 || (size_t) ret >= (target_len / sizeof(uint64_t)) )
-                        break;
-
-                if ( hop == (target_len / sizeof(uint64_t)) ) {
-                        *hop_ptr = (hop - 1);
-                        return 0; /* we are the target */
-                }
-
-                tmp = htonl(hop);
-                memcpy(buf, &tmp, sizeof(tmp));
-
-                if ( hop >= (target_len / sizeof(uint64_t)) )
-                        break;
-
-                *hop_ptr = hop;
-                return 0;
-        }
-
-        return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "message does not carry a valid target: closing connection");
-}
-
-
-
-static int send_unreachable_message(server_generic_client_t *client, uint64_t *ident_list,
-                                    uint32_t hop, const char *error, size_t size)
-{
-        ssize_t ret;
-        prelude_msg_t *msg;
-
-        ret = prelude_msg_new(&msg, 3,
-                              size +
-                              sizeof(uint32_t) +
-                              hop * sizeof(uint64_t), PRELUDE_MSG_OPTION_REPLY, 0);
-        if ( ret < 0 )
-                return -1;
-
-        prelude_msg_set(msg, PRELUDE_MSG_OPTION_ERROR, size, error);
-        prelude_msg_set(msg, PRELUDE_MSG_OPTION_TARGET_ID, hop * sizeof(uint64_t), ident_list);
-
-        /*
-         * cancel the hop increment done previously, and position on target.
-         * this function is only supposed to be called for failed request (not failed reply).
-         */
-
-        hop -= 2;
-        prelude_msg_set(msg, PRELUDE_MSG_OPTION_HOP, sizeof(hop), &hop);
-
-        return sensor_server_write_client(client, msg);
-}
-
-
-
-static int process_request_cb(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
-{
-        int ret;
-
-        ret = sensor_server_write_client(prelude_msgbuf_get_data(msgbuf), msg);
-        if ( ret < 0 && prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN )
-                return 0; /* message is queued */
-
-        return ret;
-}
-
-
-
-static int process_option_request(prelude_client_t *dst, sensor_fd_t *src, prelude_msg_t *msg)
-{
-        int ret;
-        prelude_msgbuf_t *buf;
-
-        ret = prelude_msgbuf_new(&buf);
-        if ( ret < 0 )
-                return ret;
-
-        prelude_msgbuf_set_data(buf, src);
-        prelude_msgbuf_set_callback(buf, process_request_cb);
-        prelude_msgbuf_set_flags(buf, PRELUDE_MSGBUF_FLAGS_ASYNC);
-
-        /*
-         * Stop report plugin processing for safety.
-         */
-        idmef_message_scheduler_stop_processing();
-        ret = prelude_option_process_request(dst, msg, buf);
-        idmef_message_scheduler_start_processing();
-
-        prelude_msgbuf_destroy(buf);
-
-        return ret;
-}
-
-
-
-static int request_sensor_option(server_generic_client_t *client, prelude_msg_t *msg)
-{
-        int ret;
-        uint64_t ident;
-        uint64_t *target_route;
-        uint32_t target_hop, *instance_id;
-        sensor_fd_t *sclient = (sensor_fd_t *) client;
-        prelude_client_profile_t *cp = prelude_client_get_profile(manager_client);
-
-        ret = get_msg_target_ident(sclient, msg, &target_route,
-                                   &target_hop, &instance_id, PRELUDE_MSG_OPTION_REQUEST);
-        if ( ret < 0 )
-                return ret;
-
-        /*
-         * We receive an option request from client.
-         *
-         * If the client connected to us (->cnx == NULL), we need to check it has WRITE  permission.
-         * If we connected to the client (->cnx != NULL), we need to check it has READ   permission.
-         */
-        if ( (! (sclient->permission & PRELUDE_CONNECTION_PERMISSION_ADMIN_WRITE) && ! sclient->we_connected) ||
-             (! (sclient->permission & PRELUDE_CONNECTION_PERMISSION_ADMIN_READ ) &&   sclient->we_connected) ) {
-                server_generic_log_client(client, PRELUDE_LOG_WARN, "insufficient credentials to emit admin request.\n");
-                send_unreachable_message(client, target_route, target_hop, TARGET_PROHIBITED, sizeof(TARGET_PROHIBITED));
-                prelude_msg_destroy(msg);
-                return 0;
-        }
-
-        ident = prelude_extract_uint64(&target_route[target_hop]);
-        if ( ident == prelude_client_profile_get_analyzerid(cp) ) {
-                prelude_msg_recycle(msg);
-                ret = process_option_request(manager_client, sclient, msg);
-                prelude_msg_destroy(msg);
-                return ret;
-        }
-
-        *instance_id = htonl(sclient->instance_id);
-
-        ret = forward_message_to_analyzerid(sclient, ident, 0, msg);
-        if ( ret == -1 ) {
-                send_unreachable_message(client, target_route, target_hop, TARGET_UNREACHABLE, sizeof(TARGET_UNREACHABLE));
-                prelude_msg_destroy(msg);
-        }
-
-        if ( ret == -2 ) {
-                send_unreachable_message(client, target_route, target_hop, TARGET_PROHIBITED, sizeof(TARGET_PROHIBITED));
-                prelude_msg_destroy(msg);
-        }
-
-        return 0;
-}
-
-
-
-static int reply_sensor_option(sensor_fd_t *client, prelude_msg_t *msg)
-{
-        int ret;
-        uint64_t *target_route, ident;
-        uint32_t target_hop, *instance_no;
-
-        ret = get_msg_target_ident(client, msg, &target_route, &target_hop, &instance_no, PRELUDE_MSG_OPTION_REPLY);
-        if ( ret < 0 )
-                return ret;
-
-        ident = prelude_extract_uint64(&target_route[target_hop]);
-
-        /*
-         * The one replying the option doesn't care about client presence or not.
-         */
-        ret = forward_message_to_analyzerid(client, ident, prelude_extract_uint32(instance_no), msg);
-        if ( ret < 0 )
-                prelude_msg_destroy(msg);
-
-        return 0;
-}
-
-
-
 static int handle_declare_receiver(sensor_fd_t *sclient)
 {
-        reverse_relay_receiver_t *rrr;
         server_generic_client_t *client = (server_generic_client_t *) sclient;
 
         if ( ! sclient->ident )
                 return -1;
 
-        return reverse_relay_new_receiver(&rrr, client, sclient->ident);
+        return reverse_relay_new_receiver(&sclient->rrr, client, sclient->ident);
 }
 
 
@@ -419,7 +108,6 @@ static int handle_declare_client(sensor_fd_t *cnx)
         if ( ! cnx->queue )
                 return -1;
 
-        cnx->instance_id = ++global_instance_id;
         prelude_list_add_tail(&sensors_cnx_list[get_list_key(cnx->ident)], &cnx->list);
 
         return 0;
@@ -479,10 +167,10 @@ static int handle_msg(sensor_fd_t *client, prelude_msg_t *msg, uint8_t tag)
         }
 
         else if ( tag == PRELUDE_MSG_OPTION_REQUEST )
-                ret = request_sensor_option((server_generic_client_t *) client, msg);
+                ret = 0;
 
         else if ( tag == PRELUDE_MSG_OPTION_REPLY )
-                ret = reply_sensor_option(client, msg);
+                ret = 0;
 
         else if ( tag == PRELUDE_MSG_CONNECTION_CAPABILITY )
                 ret = handle_capability(client, msg);
@@ -539,34 +227,17 @@ static int read_connection_cb(server_generic_client_t *client)
 
 static int write_connection_cb(server_generic_client_t *client)
 {
-        int ret = 0, code;
-        size_t limit = 1024; /* FIXME: hardcoded limit */
-        prelude_list_t *tmp, *bkp;
-        sensor_msg_t *cur = NULL;
+        int ret = 0;
         sensor_fd_t *sclient = (sensor_fd_t *) client;
 
-        prelude_list_for_each_safe(&sclient->write_msg_list, tmp, bkp) {
-                cur = prelude_list_entry(tmp, sensor_msg_t, list);
-                prelude_list_del(&cur->list);
-
-                ret = write_client(sclient, cur, cur->msg);
-                if ( ret < 0 ) {
-                        code = prelude_error_get_code(ret);
-                        if ( code == PRELUDE_ERROR_EOF || code == PRELUDE_ERROR_EPIPE )
-                                break;
-
-                        else if ( code == PRELUDE_ERROR_EAGAIN ) {
-                                ret = 0;
-                                break;
-                        }
-                }
-
-                if ( limit-- == 0 )
-                        break;
+        if ( sclient->wmsg ) {
+                ret = write_client(sclient, sclient->wmsg);
+                if ( ret < 0 )
+                        return (prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN) ? 0 : ret;
         }
 
-        if ( prelude_list_is_empty(&sclient->write_msg_list) )
-                server_generic_notify_write_disable(client);
+        if ( sclient->rrr )
+                return reverse_relay_write_possible(sclient->rrr, client);
 
         return ret;
 }
@@ -575,28 +246,21 @@ static int write_connection_cb(server_generic_client_t *client)
 
 static int close_connection_cb(server_generic_client_t *ptr)
 {
-        sensor_msg_t *msg;
-        prelude_list_t *tmp, *bkp;
         sensor_fd_t *cnx = (sensor_fd_t *) ptr;
 
         if ( ! prelude_list_is_empty(&cnx->list) )
                 prelude_list_del(&cnx->list);
 
-        prelude_list_for_each_safe(&cnx->write_msg_list, tmp, bkp) {
-                msg = prelude_list_entry(tmp, sensor_msg_t, list);
-                prelude_list_del(&msg->list);
-
-                prelude_msg_destroy(msg->msg);
-                free(msg);
-        }
-
         /*
          * If cnx->msg is not NULL, it mean the sensor
-         * closed the connection without finishing to send
+         * closed the connection without finishing to read/write
          * a message. Destroy the unfinished message.
          */
         if ( cnx->msg )
                 prelude_msg_destroy(cnx->msg);
+
+        if ( cnx->wmsg )
+                prelude_msg_destroy(cnx->wmsg);
 
         if ( cnx->queue )
                 idmef_message_scheduler_queue_destroy(cnx->queue);
@@ -614,7 +278,6 @@ static int accept_connection_cb(server_generic_client_t *ptr)
 
         fd->we_connected = FALSE;
         prelude_list_init(&fd->list);
-        prelude_list_init(&fd->write_msg_list);
 
         ret = handle_declare_client(fd);
         if ( ret < 0 )
@@ -667,7 +330,6 @@ int sensor_server_add_client(server_generic_t *server, server_generic_client_t *
 
         cdata->server = server;
 
-        prelude_list_init(&cdata->write_msg_list);
         cdata->ident = prelude_connection_get_peer_analyzerid(cnx);
 
         server_generic_client_set_permission((server_generic_client_t *)cdata, prelude_connection_get_permission(cnx));
@@ -680,15 +342,10 @@ int sensor_server_add_client(server_generic_t *server, server_generic_client_t *
 
 int sensor_server_write_client(server_generic_client_t *client, prelude_msg_t *msg)
 {
-        int ret;
         sensor_fd_t *dst = (sensor_fd_t *) client;
 
-        if ( prelude_list_is_empty(&dst->write_msg_list) )
-                ret = write_client(dst, NULL, msg);
-        else
-                ret = queue_write_client(dst, msg, 0);
-
-        return ret;
+        assert(! dst->wmsg);
+        return write_client(dst, msg);
 }
 
 

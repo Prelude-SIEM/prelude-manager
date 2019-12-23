@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #include <libprelude/prelude.h>
 #include <libprelude/prelude-log.h>
@@ -36,6 +37,7 @@
 
 #include "glthread/lock.h"
 
+#include "bufpool.h"
 #include "reverse-relaying.h"
 #include "server-generic.h"
 #include "sensor-server.h"
@@ -48,14 +50,12 @@
 struct reverse_relay_receiver {
         prelude_list_t list;
         uint64_t analyzerid;
-        prelude_failover_t *failover;
+        bufpool_t *failover;
 };
 
 
 
 static prelude_msgbuf_t *msgbuf;
-static PRELUDE_LIST(mqueue_list);
-static gl_lock_t mqueue_mutex = gl_lock_initializer;
 
 static prelude_bool_t no_receiver = TRUE;
 static prelude_list_t receiver_list[1024];
@@ -93,53 +93,88 @@ static reverse_relay_receiver_t *get_next_receiver(prelude_list_t *receiver_list
 
 
 
-static int write_all_client(reverse_relay_receiver_t *rrr, prelude_msg_t *msg, unsigned long count)
+static sensor_fd_t *find_client(reverse_relay_receiver_t *rrr)
 {
-        int i = 0, ret;
         sensor_fd_t *client;
-        prelude_list_t *tmp, *bkp;
+        prelude_list_t *tmp;
 
-        prelude_list_for_each_safe(sensor_server_get_list(rrr->analyzerid), tmp, bkp) {
+        prelude_list_for_each(sensor_server_get_list(rrr->analyzerid), tmp) {
                 client = prelude_list_entry(tmp, sensor_fd_t, list);
-
-                if ( client->ident != rrr->analyzerid )
-                        continue;
-
-                i++;
-                if ( count )
-                        server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_INFO,
-                                                  "flushing %lu messages received while analyzer was offline.\n", count);
-
-                ret = sensor_server_write_client((server_generic_client_t *) client, prelude_msg_ref(msg));
-                if ( ret < 0 && prelude_error_get_code(ret) != PRELUDE_ERROR_EAGAIN )
-                         server_generic_client_close((server_generic_client_t *) client);
+                if ( client->ident == rrr->analyzerid )
+                        return client;
         }
 
-        return i;
+        return NULL;
 }
 
 
 
-int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr)
+static int write_client(sensor_fd_t *client, prelude_msg_t *msg)
 {
-        ssize_t size;
+        int ret;
+
+        ret = sensor_server_write_client((server_generic_client_t *) client, msg);
+        if ( ret < 0 ) {
+                if ( prelude_error_get_code(ret) != PRELUDE_ERROR_EAGAIN ) {
+                        prelude_perror(ret, "write client close cnx");
+                        server_generic_client_close((server_generic_client_t *) client);
+
+                } else {
+                        assert(client->wmsg);
+                        server_generic_notify_write_enable((server_generic_client_t *) client);
+                }
+        }
+
+        return ret;
+}
+
+
+
+int reverse_relay_write_possible(reverse_relay_receiver_t *rrr, server_generic_client_t *client)
+{
         prelude_msg_t *msg;
-        prelude_failover_t *failover = rrr->failover;
-        unsigned long avail = prelude_failover_get_available_msg_count(failover);
+        int ret, limit = 1024;
+        sensor_fd_t *sclient = (sensor_fd_t *) client;
 
-        while ( (size = prelude_failover_get_saved_msg(failover, &msg)) > 0 ) {
-                write_all_client(rrr, msg, avail);
-                prelude_msg_destroy(msg);
+        while ( --limit > 0 && (ret = bufpool_get_message(rrr->failover, &msg)) > 0 ) {
+                ret = write_client(sclient, msg);
+                if ( ret < 0 ) {
+                        if ( prelude_error_get_code(ret) == PRELUDE_ERROR_EAGAIN ) {
+                                ret = 0;
+                                break;
+                        }
 
-                avail = 0;
+                        return ret;
+                }
         }
 
-        if ( size < 0 ) {
-                prelude_perror((prelude_error_t) size, "could not retrieve saved message from disk");
-                return -1;
-        }
+        if ( ! sclient->wmsg && bufpool_get_message_count(rrr->failover) == 0 )
+                server_generic_notify_write_disable(client);
 
-        return 0;
+        else if ( ! limit )
+                server_generic_notify_write_enable(client);
+
+        return ret;
+}
+
+
+
+int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_generic_client_t *client)
+{
+        ssize_t count = bufpool_get_message_count(rrr->failover);
+
+        if ( count )
+                server_generic_log_client((server_generic_client_t *) client, PRELUDE_LOG_INFO,
+                                          "flushing %lu messages received while analyzer was offline.\n", count);
+
+        /*
+         * It is possible that reverse_relay_send_prepared() has been called before we enter this callback.
+         * In this case, wmsg might be set.
+         */
+        if ( ((sensor_fd_t *) client)->wmsg )
+                return 0;
+
+        return reverse_relay_write_possible(rrr, client);
 }
 
 
@@ -163,7 +198,7 @@ static reverse_relay_receiver_t *reverse_relay_search_receiver(uint64_t analyzer
 int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_client_t *client, uint64_t analyzerid)
 {
         int ret;
-        char fname[PATH_MAX];
+        char bdir[PATH_MAX], fname[PATH_MAX];
         reverse_relay_receiver_t *new;
 
         new = reverse_relay_search_receiver(analyzerid);
@@ -174,38 +209,53 @@ int reverse_relay_new_receiver(reverse_relay_receiver_t **rrr, server_generic_cl
         if ( ! new )
                 return -1;
 
-        new->analyzerid = analyzerid;
-        prelude_client_profile_get_backup_dirname(prelude_client_get_profile(manager_client), fname, sizeof(fname));
-        snprintf(fname + strlen(fname), sizeof(fname) - strlen(fname), "/%" PRELUDE_PRIu64, analyzerid);
+        prelude_client_profile_get_backup_dirname(prelude_client_get_profile(manager_client), bdir, sizeof(bdir));
+        snprintf(fname, sizeof(fname), "%s/send-failover.%" PRELUDE_PRIu64, bdir, analyzerid);
 
-        ret = prelude_failover_new(&new->failover, fname);
+        ret = bufpool_new(&new->failover, fname);
         if ( ret < 0 ) {
-                prelude_perror(ret, "could not create failover");
-                free(new);
+                prelude_perror(ret, "error creating reverse relay failover");
                 return -1;
         }
+
+        new->analyzerid = analyzerid;
 
         gl_lock_lock(receiver_list_mutex);
         no_receiver = FALSE;
         prelude_list_add_tail(&receiver_list[get_list_key(analyzerid)], &new->list);
         gl_lock_unlock(receiver_list_mutex);
-        *rrr = new;
 
     out:
-        return reverse_relay_set_receiver_alive(new);
+        *rrr = new;
+        return reverse_relay_set_receiver_alive(new, client);
 }
 
 
 
 static int send_msgbuf(prelude_msgbuf_t *msgbuf, prelude_msg_t *msg)
 {
-        prelude_msg_set_data(msg, prelude_msgbuf_get_data(msgbuf));
+        int i, ret;
+        prelude_list_t *tmp;
+        prelude_msg_t *clone;
+        reverse_relay_receiver_t *receiver, *sender = prelude_msgbuf_get_data(msgbuf);
 
-        gl_lock_lock(mqueue_mutex);
-        prelude_linked_object_add_tail(&mqueue_list, (prelude_linked_object_t *) msg);
-        gl_lock_unlock(mqueue_mutex);
+        for ( i = 0; i < sizeof(receiver_list) / sizeof(*receiver_list); i++ ) {
+                prelude_list_for_each(&receiver_list[i], tmp) {
+                        receiver = prelude_list_entry(tmp, reverse_relay_receiver_t, list);
+                        if ( sender == receiver )
+                                continue;
 
-        return 0;
+                        ret = prelude_msg_clone(&clone, msg);
+                        if ( ret < 0 )
+                                break;
+
+                        bufpool_add_message(receiver->failover, clone);
+                        continue;
+                }
+        }
+
+        prelude_msg_destroy(msg);
+        return 1;
 }
 
 
@@ -249,25 +299,6 @@ static int get_issuer_analyzerid(idmef_message_t *idmef, uint64_t *analyzerid)
                 *analyzerid = 0;
 
         return 0;
-}
-
-
-
-static prelude_msg_t *mqueue_get_next(void)
-{
-        prelude_msg_t *m = NULL;
-
-        gl_lock_lock(mqueue_mutex);
-
-        if ( prelude_list_is_empty(&mqueue_list) )
-                goto out;
-
-        m = prelude_linked_object_get_object(mqueue_list.next);
-        prelude_linked_object_del((prelude_linked_object_t *) m);
-
-out:
-        gl_lock_unlock(mqueue_mutex);
-        return m;
 }
 
 
@@ -317,30 +348,24 @@ void reverse_relay_send_receiver(idmef_message_t *idmef)
 
 void reverse_relay_send_prepared(void)
 {
-        int ret, i;
-        prelude_msg_t *m;
+
+        int i;
         prelude_list_t *tmp;
         reverse_relay_receiver_t *receiver;
+        sensor_fd_t *client;
 
-        while ( (m = mqueue_get_next()) ) {
+        for ( i = 0; i < sizeof(receiver_list) / sizeof(*receiver_list); i++ ) {
+                prelude_list_for_each(&receiver_list[i], tmp) {
+                        receiver = prelude_list_entry(tmp, reverse_relay_receiver_t, list);
+                        if ( ! receiver->failover || bufpool_get_message_count(receiver->failover) < 1 )
+                                continue;
 
-                for ( i = 0; i < sizeof(receiver_list) / sizeof(*receiver_list); i++ ) {
-                        prelude_list_for_each(&receiver_list[i], tmp) {
-                                receiver = prelude_list_entry(tmp, reverse_relay_receiver_t, list);
+                        client = find_client(receiver);
+                        if ( ! client || client->wmsg )
+                                continue;
 
-                                if ( prelude_msg_get_data(m) == receiver )
-                                        continue;
-
-                                ret = write_all_client(receiver, m, 0);
-                                if ( ! ret ) {
-                                        ret = prelude_failover_save_msg(receiver->failover, m);
-                                        if ( ret < 0 )
-                                                prelude_perror(ret, "could not save message to disk");
-                                }
-                        }
+                        reverse_relay_write_possible(receiver, (server_generic_client_t *) client);
                 }
-
-                prelude_msg_destroy(m);
         }
 }
 

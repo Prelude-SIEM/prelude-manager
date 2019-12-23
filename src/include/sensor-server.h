@@ -43,9 +43,10 @@ typedef struct {
         idmef_queue_t *queue;
         prelude_connection_t *cnx;
         prelude_bool_t we_connected;
-        prelude_list_t write_msg_list;
 
-        uint32_t instance_id;
+        unsigned int write_index;
+        reverse_relay_receiver_t *rrr;
+        prelude_msg_t *wmsg;
 } sensor_fd_t;
 
 
