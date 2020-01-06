@@ -160,20 +160,18 @@ static bufpool_t *evict_from_memory(void)
         size_t prev_len = 0;
         bufpool_t *bp = NULL, *evict = NULL;
 
-        while ( 1 ) {
-                gl_lock_lock(destroy_prevention);
+        gl_lock_lock(destroy_prevention);
 
+        while ( 1 ) {
                 gl_lock_lock(mutex);
                 bp = prelude_list_get_next(&pool_list, bp, bufpool_t, list);
                 gl_lock_unlock(mutex);
 
                 if ( ! bp ) {
-                        gl_lock_unlock(destroy_prevention);
                         break;
                 }
 
                 gl_lock_lock(bp->mutex);
-                gl_lock_unlock(destroy_prevention);
 
                 if ( bp->failover ) {
                         gl_lock_unlock(bp->mutex);
@@ -192,14 +190,14 @@ static bufpool_t *evict_from_memory(void)
                         gl_lock_unlock(bp->mutex);
         }
 
-
         if ( evict ) {
                 flush_bufpool_to_disk(evict);
                 gl_lock_unlock(evict->mutex);
-                return evict;
         }
 
-        return NULL;
+        gl_lock_unlock(destroy_prevention);
+
+        return evict;
 }
 
 
