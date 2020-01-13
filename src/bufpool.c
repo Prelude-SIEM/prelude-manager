@@ -306,6 +306,8 @@ int bufpool_get_message(bufpool_t *bp, prelude_msg_t **out)
 
 int bufpool_new(bufpool_t **bp, const char *filename)
 {
+        int ret;
+
         *bp = malloc(sizeof(**bp));
         if ( ! *bp )
                 return -1;
@@ -321,10 +323,24 @@ int bufpool_new(bufpool_t **bp, const char *filename)
                 return prelude_error_from_errno(errno);
         }
 
+        ret = prelude_failover_new(&(*bp)->failover, (*bp)->filename);
+        if ( ret < 0 ) {
+                free((*bp)->filename);
+                free(*bp);
+                return ret;
+        }
+
+        (*bp)->count = prelude_failover_get_available_msg_count((*bp)->failover);
+        if ( (*bp)->count == 0 ) {
+                prelude_failover_destroy((*bp)->failover);
+                (*bp)->failover = NULL;
+        }
+
         gl_lock_init((*bp)->mutex);
 
         gl_lock_lock(mutex);
         prelude_list_add_tail(&pool_list, &(*bp)->list);
+        disk_msgcount += (*bp)->count;
         gl_lock_unlock(mutex);
 
         return 0;
@@ -338,7 +354,14 @@ void bufpool_destroy(bufpool_t *bp)
         gl_lock_unlock(destroy_prevention);
 
         gl_lock_lock(mutex);
+
         prelude_list_del(&bp->list);
+
+        if ( bp->failover )
+                disk_msgcount -= bp->count;
+        else
+                mem_msgcount -= bp->count;
+
         gl_lock_unlock(mutex);
 
         if ( bp->failover )
