@@ -63,12 +63,39 @@ static gl_lock_t receiver_list_mutex = gl_lock_initializer;
 
 extern manager_config_t config;
 extern prelude_client_t *manager_client;
+static prelude_connection_pool_t *initiator = NULL;
+
 
 
 
 static unsigned int get_list_key(uint64_t analyzerid)
 {
         return analyzerid & (sizeof(receiver_list) / sizeof(*receiver_list) - 1);
+}
+
+
+static int connection_event_cb(prelude_connection_pool_t *pool,
+                               prelude_connection_pool_event_t event, prelude_connection_t *cnx)
+{
+        int ret;
+        server_generic_client_t *client;
+
+        if ( ! (event & PRELUDE_CONNECTION_POOL_EVENT_ALIVE) )
+                return 0;
+
+#if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
+        ret = fcntl(prelude_io_get_fd(prelude_connection_get_fd(cnx)), F_SETFL, O_NONBLOCK);
+        if ( ret < 0 )
+                return prelude_error_verbose(PRELUDE_ERROR_GENERIC, "could not set non blocking mode for client: %s", strerror(errno));
+#endif
+
+        ret = sensor_server_add_client(config.server[0], &client, cnx);
+        if ( ret < 0 )
+                prelude_log(PRELUDE_LOG_WARN, "error adding new client to reverse relay list.\n");
+
+        prelude_connection_set_data(cnx, client);
+
+        return 0;
 }
 
 
@@ -175,6 +202,18 @@ int reverse_relay_set_receiver_alive(reverse_relay_receiver_t *rrr, server_gener
                 return 0;
 
         return reverse_relay_write_possible(rrr, client);
+}
+
+
+
+int reverse_relay_set_initiator_dead(prelude_connection_t *cnx)
+{
+        int ret = -1;
+
+        if ( initiator )
+                ret = prelude_connection_pool_set_connection_dead(initiator, cnx);
+
+        return ret;
 }
 
 
@@ -367,6 +406,64 @@ void reverse_relay_send_prepared(void)
                         reverse_relay_write_possible(receiver, (server_generic_client_t *) client);
                 }
         }
+}
+
+
+static void destroy_current_initiator(void)
+{
+        sensor_fd_t *client;
+        prelude_list_t *tmp;
+        prelude_connection_t *cnx;
+
+        prelude_list_for_each(prelude_connection_pool_get_connection_list(initiator), tmp) {
+                cnx = prelude_linked_object_get_object(tmp);
+
+                client = prelude_connection_get_data(cnx);
+                if ( client ) {
+                        client->cnx = NULL;
+                        client->fd = NULL;
+                        server_generic_remove_client(config.server[0], (server_generic_client_t *) client);
+                }
+        }
+
+        prelude_connection_pool_destroy(initiator);
+        initiator = NULL;
+}
+
+
+
+int reverse_relay_create_initiator(const char *arg)
+{
+        int ret;
+        prelude_client_profile_t *cp;
+
+        cp = prelude_client_get_profile(manager_client);
+
+        if ( initiator )
+                destroy_current_initiator();
+
+        ret = prelude_connection_pool_new(&initiator, cp, PRELUDE_CONNECTION_PERMISSION_IDMEF_READ);
+        if ( ret < 0 )
+                goto out;
+
+        prelude_connection_pool_set_flags(initiator, PRELUDE_CONNECTION_POOL_FLAGS_RECONNECT);
+        prelude_connection_pool_set_event_handler(initiator, PRELUDE_CONNECTION_POOL_EVENT_DEAD |
+                                                  PRELUDE_CONNECTION_POOL_EVENT_ALIVE, connection_event_cb);
+
+        ret = prelude_connection_pool_set_connection_string(initiator, arg);
+        if ( ret < 0 ) {
+                prelude_connection_pool_destroy(initiator);
+                goto out;
+        }
+
+        ret = prelude_connection_pool_init(initiator);
+        if ( ret < 0 ) {
+                prelude_connection_pool_destroy(initiator);
+                goto out;
+        }
+
+ out:
+        return ret;
 }
 
 

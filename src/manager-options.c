@@ -45,6 +45,7 @@
 #include "sensor-server.h"
 #include "manager-options.h"
 #include "report-plugins.h"
+#include "reverse-relaying.h"
 
 
 #define DEFAULT_MANAGER_ADDR "0.0.0.0"
@@ -180,6 +181,22 @@ static int add_server_default(void)
 
         return ret;
 }
+
+
+
+static int set_reverse_relay(prelude_option_t *opt, const char *arg, prelude_string_t *err, void *context)
+{
+        int ret;
+
+        if ( config.nserver == 0 ) {
+                ret = add_server_default();
+                if ( ret < 0 )
+                        return -1; /* avoid duplicate option error */
+        }
+
+        return reverse_relay_create_initiator(arg);
+}
+
 
 
 
@@ -510,6 +527,9 @@ int manager_options_init(prelude_option_t *rootopt, int *argc, char **argv)
         prelude_option_set_priority(opt, PRELUDE_OPTION_PRIORITY_LAST);
 
 
+        prelude_option_add(rootopt, &opt, PRELUDE_OPTION_TYPE_CLI|PRELUDE_OPTION_TYPE_CFG, 'c', "child-managers",
+                           "List of managers address:port pair where messages should be gathered from",
+                           PRELUDE_OPTION_ARGUMENT_REQUIRED, set_reverse_relay, NULL);
         /*
          * Some plugins might require manager_client to be already initialized,
          * for example the relaying plugin. We need to process these options

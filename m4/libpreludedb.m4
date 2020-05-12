@@ -98,7 +98,7 @@ main ()
                 preludedb_check_version(NULL) );
         printf("*** You need a version of LIBPRELUDEDB newer than %s. The latest version of\n",
                "$min_libpreludedb_version" );
-        printf("*** LIBPRELUDEDB is always available from http://www.prelude-siem.org/download/releases.\n");
+        printf("*** LIBPRELUDEDB is always available from https://www.prelude-siem.org/project/prelude/files\n");
         printf("*** \n");
         printf("*** If you have already installed a sufficiently new version, this error\n");
         printf("*** probably means that the wrong copy of the libpreludedb-config shell script is\n");

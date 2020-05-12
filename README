@@ -1,4 +1,4 @@
-Prelude-Manager is brought to you by CS-SI (http://www.prelude-siem.com),
+Prelude-Manager is brought to you by CS-SI (http://www.prelude-siem.com).
 
 
 Prelude-Manager Overview
@@ -15,7 +15,6 @@ and processing large amounts of events. It uses a per client scheduling queues i
 process events by severity fairly accross clients.
 
 
-
 REQUIREMENTS
 ============
 
@@ -25,13 +24,13 @@ For Redhat based systems (CentOS, Fedora, etc.)
        XML Plugin support   :  libxml2-devel
        TCP wrapper support  :  tcp_wrappers-devel
        Geolocation support  :  libmaxminddb-devel
+       SNMP                 :  net-snmp-devel
 
 For Debian systems
        XML Plugin support   :  libxml2-dev
        TCP wrapper support  :  libwrap0-dev
        Geolocation support  :  libmaxminddb-dev
-
-
+       SNMP                 :  libsnmp-dev
 
 IRC
 ===
@@ -45,12 +44,11 @@ Get Support
 ===========
 
 
-Prelude-user forums archives can be accessed at:
+Prelude-user forums can be accessed at:
         https://www.prelude-siem.org/projects/prelude/boards
 
-
 Commercial Support is available through the CS-SI company:
-        http://www.prelude-siem.com, info@prelude-siem.com
+        http://www.prelude-siem.com, contact.prelude@c-s.fr
 
 
 

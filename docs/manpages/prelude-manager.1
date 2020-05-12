@@ -4,7 +4,7 @@ prelude-manager - Collects and normalize events.
 .SH SYNOPSIS
 .B prelude-manager [options]
 .SH DESCRIPTION
-Prelude Manager is a high-availability server which can collect, filter, normalize and store events. Events can come from registered analyzers and/or managers. The common usage is to store nomalized events into a database, thus this can be extended to store informations in plain text or xml files. 
+Prelude Manager is a high-availability server which can collect, filter, relay, reverse-relay, normalize and store events. Events can come from registered analyzers and/or managers. The common usage is to store nomalized events into a database, thus this can be extended to store informations in plain text or xml files.
 
 .SH OPTIONS
 Some prelude-manager option are contextual, they have to be prefixed by another.
@@ -65,6 +65,14 @@ Specify output file to use (default to stdout)
 .TP
 
 
+.B --relaying=<INAME>
+Relaying plugin option
+
+.B -p, --parent-managers=<address>
+List of managers address:port pair where messages should be sent to
+.TP
+
+
 .B --textmod=<INAME>
 Option for the textmod plugin
 
@@ -95,7 +103,7 @@ Filter message based on IDMEF criteria
 Filter rule, or filename containing rule
 
 .B --hook=<value>
-Where the filter should be hooked (reporting|plugin name)
+Where the filter should be hooked (reporting|reverse-relaying|plugin name)
 .TP
 
 
@@ -113,6 +121,9 @@ Run in daemon mode
 .TP
 .B -P, --pidfile=<file name>
 Write Prelude PID to pidfile
+.TP
+.B -c, --child-managers=<address>
+List of managers address:port pair where messages should be gathered from
 .TP
 .B -l, --listen=<address>
 Address the sensors server should listen on (addr:port)

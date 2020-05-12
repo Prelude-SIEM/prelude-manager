@@ -244,9 +244,50 @@ static int write_connection_cb(server_generic_client_t *client)
 
 
 
+static int do_close_cnx(server_generic_client_t *ptr, sensor_fd_t *cnx)
+{
+        int ret;
+        void *fd_ptr;
+        prelude_error_code_t code;
+
+         do {
+                 ret = prelude_connection_close(cnx->cnx);
+                 if ( ret == 0 )
+                         break;
+
+                 code = prelude_error_get_code(ret);
+                 if ( code == PRELUDE_ERROR_EAGAIN ) {
+
+                         fd_ptr = prelude_io_get_fdptr(prelude_connection_get_fd(cnx->cnx));
+                         if ( fd_ptr && gnutls_record_get_direction(fd_ptr) == 1 )
+                                 server_generic_notify_write_enable(ptr);
+
+                         return -1;
+                 }
+
+                 server_generic_log_client(ptr, PRELUDE_LOG_WARN, "%s.\n", prelude_strerror(ret));
+
+         } while ( ret < 0 && ! prelude_io_is_error_fatal(prelude_connection_get_fd(cnx->cnx), ret));
+
+         return 0;
+}
+
+
+
 static int close_connection_cb(server_generic_client_t *ptr)
 {
+        int ret;
         sensor_fd_t *cnx = (sensor_fd_t *) ptr;
+
+        if ( cnx->cnx ) {
+                cnx->fd = NULL;
+                reverse_relay_set_initiator_dead(cnx->cnx);
+
+                ret = do_close_cnx(ptr, cnx);
+                if ( ret < 0 )
+                        return -1;
+        }
+
 
         if ( ! prelude_list_is_empty(&cnx->list) )
                 prelude_list_del(&cnx->list);

@@ -1,0 +1,180 @@
+PRELUDE-SIEM-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    enterprises,
+    OBJECT-TYPE,
+    NOTIFICATION-TYPE
+        FROM SNMPv2-SMI
+
+    DisplayString,
+    TimeStamp
+        FROM SNMPv2-TC
+
+    MODULE-COMPLIANCE,
+    NOTIFICATION-GROUP,
+    OBJECT-GROUP
+        FROM SNMPv2-CONF
+    ;
+
+preludeModule MODULE-IDENTITY
+    LAST-UPDATED "201606161300Z"
+    ORGANIZATION "C-S"
+    CONTACT-INFO
+       "Contact:  support.prelude@c-s.fr"
+    DESCRIPTION
+       "MIB module for the Prelude SIEM."
+
+    REVISION "201606161300Z"
+    DESCRIPTION
+        "Initial version"
+
+    ::= { prelude 1 }
+
+cssi        OBJECT IDENTIFIER ::= { enterprises 14132 }
+prelude     OBJECT IDENTIFIER ::= { cssi 17 }
+
+-- preludeModule    OBJECT IDENTIFIER ::= { prelude 1 }
+-- See http://www.muonics.com/Docs/MIBSmithy/UserGuide/commonerrors.php#notifications
+-- for more information about the need for such a sub-OID.
+trapsGroup    OBJECT IDENTIFIER ::= { prelude 2 }
+preludeTraps  OBJECT IDENTIFIER ::= { trapsGroup 0 }
+idmef OBJECT IDENTIFIER ::= { prelude 3 }
+conformance OBJECT IDENTIFIER ::= { prelude 4 }
+
+-- For all IDMEF paths, we follow the ordonnancement inside the RFC chapters
+-- https://www.ietf.org/rfc/rfc4765.txt
+
+-- RFC chapter 4.2
+alert OBJECT IDENTIFIER ::= { idmef 1 }
+
+-- RFC chapter 4.2.2
+alertMessageid  OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Alert message identifier"
+    ::= { alert 1 }
+
+alertAnalyzer OBJECT IDENTIFIER ::= { alert 2 }
+
+alertCreatetime     OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Alert creation date/time"
+    ::= { alert 3 }
+
+alertClassification OBJECT IDENTIFIER ::= { alert 4 }
+
+alertSource OBJECT IDENTIFIER ::= { alert 7 }
+
+alertTarget OBJECT IDENTIFIER ::= { alert 8 }
+
+alertAssessment OBJECT IDENTIFIER ::= { alert 9 }
+
+-- RFC chapter 4.2.4.1
+alertAnalyzerAnalyzerid OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Alert analyzer identifier"
+    ::= { alertAnalyzer 1 }
+
+-- RFC 4.2.4.2
+alertClassificationText OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Alert classification"
+    ::= { alertClassification 2 }
+
+-- RFC chapter 4.2.4.4
+alertSourceNode OBJECT IDENTIFIER ::= { alertSource 4 }
+
+alertTargetNode OBJECT IDENTIFIER ::= { alertTarget 4 }
+
+-- RFC chapter 4.2.7.2
+alertSourceNodeAddress OBJECT IDENTIFIER ::= { alertSourceNode 5 }
+
+alertTargetNodeAddress OBJECT IDENTIFIER ::= { alertTargetNode 5 }
+
+-- RFC chapter 4.2.7.2.1
+alertSourceNodeAddressAddress OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Alert source address, empty if unknown"
+    ::= { alertSourceNodeAddress 5 }
+
+alertTargetNodeAddressAddress OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Alert target address, empty if unknown"
+    ::= { alertTargetNodeAddress 5 }
+
+-- RFC chapter 4.2.4.5
+alertAssessmentImpact OBJECT IDENTIFIER ::= { alertAssessment 1 }
+
+-- RFC chapter 4.2.6.1
+alertAssessmentImpactSeverity OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Alert severity (info, low, medium, high)"
+    ::= { alertAssessmentImpact 1 }
+
+alertNotification NOTIFICATION-TYPE
+    OBJECTS     { alertMessageid,
+                  alertAnalyzerAnalyzerid,
+                  alertCreatetime,
+                  alertClassificationText,
+                  alertSourceNodeAddressAddress,
+                  alertTargetNodeAddressAddress,
+                  alertAssessmentImpactSeverity }
+    STATUS      current
+    DESCRIPTION
+        "Notification about an alert received by the Prelude manager
+        that passes the notification criteria set by the administrator."
+::= { preludeTraps 1 }
+
+mibConformance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "The compliance statement for SNMP entities compatible
+        with the Prelude SIEM.
+        Prelude SIEM is based on the IDMEF format (RFC 4765)."
+
+    MODULE  -- this module
+        MANDATORY-GROUPS { alertNotificationsGroup, alertGeneralGroup  }
+    ::= {conformance 1}
+
+alertGeneralGroup OBJECT-GROUP
+    OBJECTS     { alertMessageid,
+                  alertAnalyzerAnalyzerid,
+                  alertCreatetime,
+                  alertClassificationText,
+                  alertSourceNodeAddressAddress,
+                  alertTargetNodeAddressAddress,
+                  alertAssessmentImpactSeverity }
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects linked to an IDMEF alert."
+::= { conformance 3 }
+
+alertNotificationsGroup NOTIFICATION-GROUP
+    NOTIFICATIONS { alertNotification }
+    STATUS      current
+    DESCRIPTION
+        "Notifications related to Prelude alerts."
+    ::= {conformance 2}
+
+END

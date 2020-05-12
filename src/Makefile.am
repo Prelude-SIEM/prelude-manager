@@ -10,6 +10,10 @@ if HAVE_XML2
  XML_OBJS= -dlopen $(top_builddir)/plugins/reports/xmlmod/xmlmod.la
 endif
 
+if HAVE_NET_SNMP
+ NET_SNMP_OBJS= -dlopen $(top_builddir)/plugins/reports/snmp/snmp.la
+endif
+
 #
 # FIXME: to be done once libtool support dlpreopening with shared library
 # (libtool 2). Will break in case of static build otherwise.
@@ -18,13 +22,14 @@ endif
 # DB_OBJS= -dlopen $(top_builddir)/plugins/reports/db/db.la
 #endif
 
-DLOPENED_OBJS=$(XML_OBJS) $(DB_OBJS)
+DLOPENED_OBJS=$(XML_OBJS) $(NET_SNMP_OBJS) $(DB_OBJS)
 
 prelude_manager_LDFLAGS = -export-dynamic @LIBPRELUDE_LDFLAGS@ \
         -dlopen $(top_builddir)/plugins/decodes/normalize/normalize.la \
         -dlopen $(top_builddir)/plugins/filters/idmef-criteria/idmef-criteria.la \
         -dlopen $(top_builddir)/plugins/filters/thresholding/thresholding.la \
         -dlopen $(top_builddir)/plugins/reports/debug/debug.la \
+        -dlopen $(top_builddir)/plugins/reports/relaying/relaying.la \
         -dlopen $(top_builddir)/plugins/reports/smtp/smtp.la \
         -dlopen $(top_builddir)/plugins/reports/textmod/textmod.la \
         $(DLOPENED_OBJS)

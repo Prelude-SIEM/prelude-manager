@@ -148,6 +148,23 @@ AM_CONDITIONAL(HAVE_XML2, test x$enable_xmlmod = xyes)
 
 
 
+dnl *****************************************************
+dnl * Check for net-snmp                                *
+dnl *****************************************************
+
+AC_ARG_ENABLE(snmp, AC_HELP_STRING(--enable-snmp, Define whether SNMP report is available), , enable_snmp="yes")
+if test x$enable_snmp = xyes; then
+    AM_PATH_NET_SNMP(, enable_snmp=yes, enable_snmp=no)
+else
+    enable_snmp=no
+fi
+AM_CONDITIONAL(HAVE_NET_SNMP, test x$enable_snmp = xyes)
+if test x$enable_snmp = xyes; then
+        AC_DEFINE_UNQUOTED(HAVE_NET_SNMP, , Define whether net-snmp is available)
+fi
+
+
+
 dnl **************************************************
 dnl * TCP WRAPPER CHECK                              *
 dnl **************************************************
@@ -390,7 +407,10 @@ plugins/filters/thresholding/Makefile
 plugins/reports/Makefile
 plugins/reports/db/Makefile
 plugins/reports/debug/Makefile
+plugins/reports/relaying/Makefile
+plugins/reports/script/Makefile
 plugins/reports/smtp/Makefile
+plugins/reports/snmp/Makefile
 plugins/reports/textmod/Makefile
 plugins/reports/xmlmod/Makefile
 ])
@@ -407,4 +427,5 @@ echo "    - TCP wrapper support    : $with_libwrap";
 echo "    - XML plugin support     : $enable_xmlmod";
 echo "    - GeoIP support          : $enable_libmaxminddb";
 echo "    - Database plugin support: $enable_libpreludedb";
+echo "    - SNMP plugin support    : $enable_snmp";
 echo "    - Used libev             : $with_libev";

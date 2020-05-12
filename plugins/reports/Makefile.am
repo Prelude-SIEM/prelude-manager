@@ -1,3 +1,3 @@
-SUBDIRS = db debug smtp textmod xmlmod
+SUBDIRS = db debug relaying script smtp snmp textmod xmlmod
 
 -include $(top_srcdir)/git.mk

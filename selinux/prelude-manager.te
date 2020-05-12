@@ -4,8 +4,9 @@ require {
         type prelude_t;
         type tmp_t;
         type smtp_port_t;
+        type prelude_log_t;
         type initrc_t;
-        class file { write open create };
+        class file { read write open create };
         class dir { add_name write };
         class sock_file write;
         class tcp_socket name_connect;
@@ -26,3 +27,7 @@ allow prelude_t tmp_t:file { create open write };
 
 # Grant permissons to prelude-manager to connect to a SMTP server
 allow prelude_t smtp_port_t:tcp_socket name_connect;
+
+# Grant permissons to prelude-manager to use text and debug mod
+# Output file is in /var/log/prelude
+allow prelude_t prelude_log_t:file read;
