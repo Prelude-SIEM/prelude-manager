@@ -1,3 +1,19 @@
+* 2020-06-19, prelude-manager-5.2.0beta1:
+
+Author: Yoann Vandoorselaere
+
+- Add relaying and reverse relaying plugin
+- Add script execution plugin
+- Use a bufpool for reverse relaying
+- Properly restore buffer pool state
+- Fix possible deadlock with multiple thread evicting
+
+Author: Francois Poirotte
+
+- Add SNMP traps plugin
+
+
+
 * 2019-09-13, prelude-manager-5.1.0:
 
 No new changes.
