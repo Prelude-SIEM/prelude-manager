@@ -119,6 +119,7 @@ static int make_argv(script_plugin_t *plugin, idmef_message_t *msg, char ***out)
         char **argv;
         prelude_list_t *tmp;
         prelude_linked_object_t *obj;
+        prelude_string_t *tmpstr;
 
         *out = argv = calloc(sizeof(*argv), plugin->argno + 1);
         if ( ! argv ) {
@@ -133,8 +134,14 @@ static int make_argv(script_plugin_t *plugin, idmef_message_t *msg, char ***out)
                 if ( prelude_linked_object_get_id(obj) == SCRIPT_ARG_ID_PATH )
                         ret = script_arg_resolve((script_arg_t *) obj, msg, &argv[n]);
 
-                else if ( prelude_string_get_len((prelude_string_t *) obj) )
-                        ret = prelude_string_get_string_released((prelude_string_t *) obj, &argv[n]);
+                else if ( prelude_string_get_len((prelude_string_t *) obj) ) {
+                        ret = prelude_string_clone((prelude_string_t *) obj, &tmpstr);
+                        if ( ret < 0 )
+                                return ret;
+
+                        ret = prelude_string_get_string_released(tmpstr, &argv[n]);
+                        prelude_string_destroy(tmpstr);
+                }
 
                 if ( ret < 0 )
                         return ret;
