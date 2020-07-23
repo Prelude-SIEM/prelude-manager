@@ -1,4 +1,4 @@
-AC_INIT(prelude-manager, 5.2.0beta2)
+AC_INIT(prelude-manager, 5.2.0rc1)
 AC_PREREQ(2.59)
 AC_CANONICAL_TARGET([])
 AM_INIT_AUTOMAKE([-Wall tar-pax 1.9])
