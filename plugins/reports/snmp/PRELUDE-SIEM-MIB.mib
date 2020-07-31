@@ -21,7 +21,7 @@ preludeModule MODULE-IDENTITY
     LAST-UPDATED "201606161300Z"
     ORGANIZATION "C-S"
     CONTACT-INFO
-       "Contact:  support.prelude@c-s.fr"
+       "Contact:  support.prelude@csgroup.eu"
     DESCRIPTION
        "MIB module for the Prelude SIEM."
 

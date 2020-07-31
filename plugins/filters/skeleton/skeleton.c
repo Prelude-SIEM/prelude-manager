@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2002-2020 CS-SI. All Rights Reserved.
+* Copyright (C) 2002-2020 CS GROUP - France. All Rights Reserved.
 * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
 * This file is part of the Prelude-Manager program.
@@ -153,7 +153,7 @@ plugin_generic_t *plugin_init(int argc, char **argv)
         
         plugin_set_name(&plugin, "Skeleton");
         plugin_set_author(&plugin, "Prelude Team");
-        plugin_set_contact(&plugin, "support.prelude@c-s.fr");
+        plugin_set_contact(&plugin, "support.prelude@csgroup.eu");
         plugin_set_desc(&plugin, "Write alert to a file, or to stderr if requested");
 	plugin_set_running_func(&plugin, process_message);
                 

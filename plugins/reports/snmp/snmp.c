@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 2016-2020 CS-SI. All Rights Reserved.
+* Copyright (C) 2016-2020 CS GROUP - France. All Rights Reserved.
 * Author: François Poirotte <francois.poirotte@c-s.fr>
 * Largely inspired from net-snmp's snmptrap command
 * written by the Carnegie Mellon University

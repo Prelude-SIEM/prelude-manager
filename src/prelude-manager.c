@@ -1,6 +1,6 @@
 /*****
 *
-* Copyright (C) 1998-2020 CS-SI. All Rights Reserved.
+* Copyright (C) 1998-2020 CS GROUP - France. All Rights Reserved.
 * Author: Yoann Vandoorselaere <yoann.v@prelude-ids.com>
 *
 * This file is part of the Prelude-Manager program.
@@ -47,7 +47,7 @@
 
 #define MANAGER_MODEL "Prelude Manager"
 #define MANAGER_CLASS "Concentrator"
-#define MANAGER_MANUFACTURER "http://www.prelude-siem.com"
+#define MANAGER_MANUFACTURER "https://www.prelude-siem.com"
 #define DEFAULT_ANALYZER_NAME "prelude-manager"
 
 extern manager_config_t config;
